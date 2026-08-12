@@ -118,8 +118,8 @@ def _compact_from_frontmatter(
             covered_to=covered_to,
             markdown_body=body.rstrip("\n"),
             status=status,
-            source_refs=_source_refs_from_json(
-                _frontmatter_text(frontmatter, "source_refs"), compact_id=compact_id
+            source_refs=_source_refs_from_frontmatter(
+                frontmatter.get("source_refs"), compact_id=compact_id
             ),
             created_at=created_at,
             updated_at=updated_at,
@@ -142,6 +142,23 @@ def _compact_from_frontmatter(
         )
     except (KeyError, TypeError, ValueError):
         return None
+
+
+def _source_refs_from_frontmatter(
+    value: CompactFrontmatterValue, *, compact_id: str
+) -> tuple[MemoryCompactSourceRef, ...]:
+    if isinstance(value, str):
+        return _source_refs_from_json(value, compact_id=compact_id)
+    if not isinstance(value, tuple):
+        return ()
+    refs: list[MemoryCompactSourceRef] = []
+    for item in value:
+        normalized = item.strip()
+        if not normalized:
+            continue
+        serialized = normalized if normalized.startswith("[") else f"[{normalized}]"
+        refs.extend(_source_refs_from_json(serialized, compact_id=compact_id))
+    return tuple(refs)
 
 
 def _source_refs_from_json(

@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from app.memory.infrastructure.repositories.memory_compacts.obsidian_markdown_parser import (
     _read_frontmatter,
+    read_compact_file,
 )
 from app.memory.infrastructure.repositories.memory_compacts.obsidian_markdown_serializer import (
     _yaml_property_lines,
@@ -71,3 +74,36 @@ Body
 
     assert rendered_tag_lines == ["tags:", "  - 'alpha'", "  - 'beta'"]
     assert frontmatter["tags"] == ("alpha", "beta")
+
+
+def test_memory_compact_parser_accepts_legacy_block_list_source_refs(
+    tmp_path: Path,
+) -> None:
+    """Legacy JSON-object string lists should restore structured source refs."""
+    note_path = tmp_path / "legacy-compact.md"
+    note_path.write_text(
+        """---
+alexandria_type: memory_compact
+id: legacy-compact
+status: CURRENT
+project: alexandria-hermes
+created_at: 2026-08-01T00:00:00Z
+updated_at: 2026-08-01T00:00:00Z
+covered_from: 2026-07-01T00:00:00Z
+covered_to: 2026-07-31T00:00:00Z
+source_refs:
+  - '{"id":"ref-1","compact_id":"legacy-compact","source_type":"obsidian","source_id":"source-1","title":"Source One","detail_path":"Contexts/Source One.md","source_hash":null}'
+  - '{"id":"ref-2","source_type":"memory_compact","source_id":"source-2","title":"Source Two","detail_path":"id:source-2","source_hash":null}'
+---
+# Legacy Compact
+""",
+        encoding="utf-8",
+    )
+
+    compact = read_compact_file(note_path)
+
+    assert compact is not None
+    assert [(ref.id, ref.compact_id, ref.source_id) for ref in compact.source_refs] == [
+        ("ref-1", "legacy-compact", "source-1"),
+        ("ref-2", "legacy-compact", "source-2"),
+    ]
