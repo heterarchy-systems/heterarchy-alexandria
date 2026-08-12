@@ -62,6 +62,29 @@ Interpret public OAuth status without requesting token material:
 If refresh fails, re-read status. Reconnect when instructed instead of repeatedly
 submitting the old refresh request.
 
+## Diagnose `invalid_grant`
+
+Treat `invalid_grant: refresh token does not exist` as an expired or revoked
+client authorization, not as RAG, embedding, or Memory Compact corruption.
+First identify which OAuth boundary failed:
+
+- `/connect/status` reporting Librarian reconnect/refresh state belongs to the
+  Alexandria-managed OpenAI Librarian connection. Reconnect it through
+  `/connect`; do not expose or manually copy token material.
+- A Codex stderr line such as `failed to refresh OAuth tokens for server
+  alexandria` belongs to the Codex MCP client credential. Repair that client
+  separately with `codex mcp logout alexandria`, followed by
+  `codex mcp login alexandria`.
+
+  Complete the browser flow, then start a fresh Codex process and verify MCP
+  tool discovery. Do not claim success from `login` alone.
+
+Before and after reauthorization, verify `/health/live`,
+`/memory/contexts/rag/status`, and `/operations/readiness`. If core retrieval
+remains `READY/HYBRID`, report it as healthy while clearly isolating the OAuth
+failure. Repeated gateway reconnect warnings do not justify rebuilding the
+vault or embeddings.
+
 ## Connect an MCP client
 
 1. Copy the MCP Endpoint displayed by `/connect`.

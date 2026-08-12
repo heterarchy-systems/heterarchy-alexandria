@@ -49,9 +49,10 @@ Use search to find a relevant seed note before traversing the graph:
 5. Read and cite the returned notes before using them as evidence.
 
 The graph is a rebuildable Neo4j read model, not a source of truth. Obsidian
-Markdown remains canonical, while SQLite `obsidian_edges` remains projection
-source-cache state. If graph projection is disabled or unavailable, continue
-with normal scoped RAG and do not simulate graph traversal from SQLite.
+Markdown remains canonical, while PostgreSQL indexed edge state remains
+projection source-cache state. If graph projection is disabled or unavailable,
+continue with normal scoped RAG and do not simulate graph traversal from the
+PostgreSQL edge cache.
 Missing or ambiguous targets are reported as counted, non-fatal rebuild issues
 and are excluded from the active projection. Use detailed issue output only as a
 bounded repair sample, not as the normal graph status payload.
@@ -74,18 +75,24 @@ prevents one agent from silently overwriting another agent's completed update.
 - `AGENT` writes and recall require the intended `agent_id`.
 - `SESSION` writes and recall require the intended `session_id`.
 - `PROJECT` writes and recall require the intended `project`.
+- For project-only Context recall, send both `project="<project>"` and
+  `include_scopes=["PROJECT"]`. The REST field is `include_scopes`, not
+  `recall_scopes`; using the response-field name in a request fails strict
+  validation with HTTP `422`.
 - Supply `workspace_id` whenever the caller has one.
 - Do not broaden a missing identity to `GLOBAL`; fail closed and repair the request.
 - Keep each concurrent task on its own database/request session.
 
 After canonical writes, verify the note can be read back and that scoped
 FTS/vector/HYBRID recall does not return another agent, session, project, or
-workspace.
+workspace. For a project-only verification, require response
+`recall_scopes=["PROJECT"]`, `effective_strategy="HYBRID"`, no warnings, a
+relevant match, and vector/semantic scoring evidence.
 
 When a write changes note links or graph-relevant metadata, finish with:
 
 1. vault reindex;
-2. embedding soft rebuild when RAG reports missing or stale rows;
+2. queued embedding reindex when RAG reports missing or stale rows;
 3. Neo4j graph projection rebuild when graph projection is enabled;
 4. exact search/readback plus one related-note lookup from a known seed.
 
