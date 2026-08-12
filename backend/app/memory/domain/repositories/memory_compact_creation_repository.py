@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from abc import abstractmethod
+from contextlib import AbstractAsyncContextManager
+
 from app.memory.domain.repositories.memory_compact_create_repository import (
     IMemoryCompactCreateRepository,
 )
@@ -15,3 +18,12 @@ class IMemoryCompactCreationRepository(
     IMemoryCompactQueryRepository,
 ):
     """Create compacts and query prior signatures for idempotency."""
+
+    @abstractmethod
+    def creation_guard(self) -> AbstractAsyncContextManager[None]:
+        """Coordinate one complete duplicate-check and create operation.
+
+        Returns:
+            Async context manager serializing creation for the canonical store.
+        """
+        raise NotImplementedError

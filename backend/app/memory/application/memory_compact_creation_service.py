@@ -39,10 +39,11 @@ class MemoryCompactCreationService:
             Created or deduplicated Memory Compact entity.
         """
         normalized = normalized_create(payload)
-        existing = await self._find_existing_by_signature(normalized)
-        if existing is not None:
-            return replace(existing, deduplicated=True)
-        return await self._repository.create(normalized)
+        async with self._repository.creation_guard():
+            existing = await self._find_existing_by_signature(normalized)
+            if existing is not None:
+                return replace(existing, deduplicated=True)
+            return await self._repository.create(normalized)
 
     async def _find_existing_by_signature(
         self,

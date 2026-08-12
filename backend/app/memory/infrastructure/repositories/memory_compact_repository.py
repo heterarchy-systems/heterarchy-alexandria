@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+from contextlib import AbstractAsyncContextManager
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -20,6 +22,12 @@ from app.memory.domain.repositories.memory_compact_repository import (
 from app.memory.domain.repositories.memory_compact_repository_contracts import (
     MemoryCompactCreate,
 )
+from app.memory.infrastructure.repositories.memory_compacts.creation_lock import (
+    MemoryCompactCreationLock,
+)
+from app.memory.infrastructure.repositories.memory_compacts.critical_task import (
+    wait_for_critical_task,
+)
 from app.memory.infrastructure.repositories.memory_compacts.note_store import (
     MemoryCompactNoteStore,
 )
@@ -32,6 +40,15 @@ class MemoryCompactCreateRepositoryDelegate:
     """Create Memory Compact notes over a shared Obsidian note store."""
 
     _store: MemoryCompactNoteStore
+    _creation_lock: MemoryCompactCreationLock
+
+    def creation_guard(self) -> AbstractAsyncContextManager[None]:
+        """Serialize the full application-level check-and-create section.
+
+        Returns:
+            Async context manager backed by a local cross-process file lock.
+        """
+        return self._creation_lock.hold()
 
     async def create(self, payload: MemoryCompactCreate) -> MemoryCompact:
         """Create one Memory Compact note and source-reference frontmatter.
@@ -60,13 +77,14 @@ class MemoryCompactCreateRepositoryDelegate:
             review_max_score=payload.review_max_score,
             reviewed_at=payload.reviewed_at,
         )
-        if payload.status is MemoryCompactStatus.CURRENT:
-            _supersede_current_project(
+        persistence_task = asyncio.create_task(
+            asyncio.to_thread(
+                _persist_created_compact,
                 self._store,
-                payload.project,
-                excluded_id=None,
+                compact,
             )
-        self._store.write(compact)
+        )
+        await wait_for_critical_task(persistence_task)
         return compact
 
 
@@ -109,8 +127,9 @@ class MemoryCompactQueryRepositoryDelegate:
         Returns:
             Page of compacts and total matching count.
         """
+        stored_compacts = await asyncio.to_thread(self._store.read_all)
         compacts = _filter_compacts(
-            self._store.read_all(),
+            stored_compacts,
             project=project,
             status=status,
             covered_after=covered_after,
@@ -232,6 +251,23 @@ class ObsidianMemoryCompactRepository(
             vault_path=vault_path,
             relative_dir=relative_dir,
         )
+        self._creation_lock = MemoryCompactCreationLock(
+            vault_path=vault_path,
+            relative_dir=relative_dir,
+        )
+
+
+def _persist_created_compact(
+    store: MemoryCompactNoteStore,
+    compact: MemoryCompact,
+) -> None:
+    if compact.status is MemoryCompactStatus.CURRENT:
+        _supersede_current_project(
+            store,
+            compact.project,
+            excluded_id=None,
+        )
+    store.write(compact)
 
 
 def _require_compact(
