@@ -94,7 +94,7 @@ POST /obsidian/graph/edges
 {
   "apiUrl": "http://127.0.0.1:8000",
   "operatorApiKey": "",
-  "defaultProject": "alexandria-hermes",
+  "defaultProject": "heterarchy-alexandria",
   "autoSaveTranscripts": false,
   "preferredProviderId": "",
   "preferredProfileId": "",

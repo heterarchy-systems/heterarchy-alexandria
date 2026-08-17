@@ -53,7 +53,7 @@ def _context(
         summary=title,
         content=content,
         content_format=ContextContentFormat.MARKDOWN,
-        project="Alexandria-Hermes",
+        project="heterarchy-alexandria",
         scope=ContextScope.PROJECT,
         workspace_id=None,
         agent_id=None,

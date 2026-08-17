@@ -156,7 +156,7 @@ def start_here_body() -> str:
     return """# Alexandria START HERE
 
 ## Summary
-This Obsidian vault stores Alexandria-Hermes long-term memory, skills, prompts, Memory Compacts, and librarian transcripts as canonical Markdown.
+This Obsidian vault stores heterarchy-alexandria long-term memory, skills, prompts, Memory Compacts, and librarian transcripts as canonical Markdown.
 
 ## Storage Rule
 Obsidian Markdown is the source of truth. PostgreSQL search state is a rebuildable projection.

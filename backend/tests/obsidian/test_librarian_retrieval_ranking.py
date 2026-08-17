@@ -24,7 +24,7 @@ def _hit(note_id: str, score: float) -> ObsidianSearchHit:
         title=note_id,
         status="active",
         tags=("retrieval-quality",),
-        project="alexandria-hermes",
+        project="heterarchy-alexandria",
         source="test",
         content_hash=f"hash-{note_id}",
         frontmatter={},

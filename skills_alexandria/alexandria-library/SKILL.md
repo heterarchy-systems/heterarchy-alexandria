@@ -16,17 +16,17 @@ Use Alexandria as an optional local-first knowledge library for Hermes.
 - Acquire a missing skill through Hermes-alone fallback first; ask a librarian only on explicit user request.
 
 ## Policy contract
-- Check `~/.hermes/alexandria-hermes/policy.yaml` or run `alexandria-hermes hermes policy status` before assuming Alexandria is enabled.
+- Check `~/.hermes/heterarchy-alexandria/policy.yaml` or run `heterarchy-heterarchy-alexandria policy status` before assuming Alexandria is enabled.
 - If the policy says `enabled: false`, do not use Alexandria unless the user asks to turn it back on.
-- Users can opt out with `alexandria-hermes hermes policy disable` and re-enable with `alexandria-hermes hermes policy enable`.
+- Users can opt out with `heterarchy-heterarchy-alexandria policy disable` and re-enable with `heterarchy-heterarchy-alexandria policy enable`.
 - Librarian delegation is optional and should require explicit user request.
 
 ## Status/diagnostics
-- Use `alexandria-hermes hermes doctor` for local status/diagnostics.
+- Use `heterarchy-heterarchy-alexandria doctor` for local status/diagnostics.
 - Prefer MCP tools named `mcp_alexandria_*` when available.
 - If MCP is unavailable, fall back to CLI commands such as
-  `alexandria-hermes memory-compacts current`,
-  `alexandria-hermes context recall`, or backend API calls.
+  `heterarchy-alexandria memory-compacts current`,
+  `heterarchy-alexandria context recall`, or backend API calls.
 
 ## Operating style
 - Treat Alexandria as a helper, not an obligation.

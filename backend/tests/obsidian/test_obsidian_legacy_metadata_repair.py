@@ -53,7 +53,7 @@ def test_legacy_metadata_repair_is_dry_run_hash_locked_and_body_preserving(
             "alexandria_type: context\n"
             "title: Legacy Metadata\n"
             "scope: PROJECT\n"
-            "project: alexandria-hermes\n"
+            "project: heterarchy-alexandria\n"
             "status: active\n"
             "tags: \"(' alpha ', 'beta', 'alpha', '')\"\n"
             "artifact_refs:\n"
@@ -273,7 +273,7 @@ def test_legacy_metadata_repair_rolls_back_when_reindex_fails(
         with pytest.raises(RuntimeError, match="reindex failed"):
             await service.apply(expected_plan_hash=plan.plan_hash)
         backups = list(
-            (vault / ".alexandria-hermes/legacy-metadata-repair/backups").rglob(
+            (vault / ".heterarchy-alexandria/legacy-metadata-repair/backups").rglob(
                 "Rollback.md.original"
             )
         )

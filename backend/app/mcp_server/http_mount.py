@@ -1,4 +1,4 @@
-"""ASGI mount helpers for the Alexandria-Hermes HTTP MCP endpoint."""
+"""ASGI mount helpers for the heterarchy-alexandria HTTP MCP endpoint."""
 
 from __future__ import annotations
 

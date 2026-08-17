@@ -3,7 +3,7 @@ title: Obsidian Librarian Chat Window
 status: implemented
 created: 2026-05-26
 updated: 2026-05-26
-owner: alexandria-hermes
+owner: heterarchy-alexandria
 scope: obsidian-plugin
 ---
 
@@ -12,7 +12,7 @@ scope: obsidian-plugin
 ## Goal
 
 Upgrade the Obsidian side pane from a single answer renderer into a compact
-conversation and workflow console for Alexandria-Hermes.
+conversation and workflow console for heterarchy-alexandria.
 
 ## Delivery
 

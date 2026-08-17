@@ -13,7 +13,7 @@ source: codex
 
 ## Contract
 
-`alexandria-hermes obsidian capture` is the migration-safe CLI for creating
+`heterarchy-alexandria obsidian capture` is the migration-safe CLI for creating
 canonical artifact notes without reviving old SQLite CRUD flows.
 
 Supported types:
@@ -42,13 +42,13 @@ before the backend stamps canonical Alexandria fields such as `alexandria_type`,
 ## Examples
 
 ```bash
-alexandria-hermes obsidian capture "Browser Verification Skill" \
+heterarchy-alexandria obsidian capture "Browser Verification Skill" \
   --body-file ./skill.md \
   --type skill \
-  --project alexandria-hermes \
+  --project heterarchy-alexandria \
   --tag browser
 
-alexandria-hermes obsidian capture "Release Review Prompt" \
+heterarchy-alexandria obsidian capture "Release Review Prompt" \
   --body-file ./prompt.md \
   --type prompt \
   --prompt-kind template \

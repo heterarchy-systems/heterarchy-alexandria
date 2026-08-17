@@ -31,8 +31,8 @@ Hermes self-acquisition이 fallback이다.
 protected librarian/settings route는 operator key가 필요하다.
 
 ```bash
-alexandria-hermes --json librarian providers list
-alexandria-hermes --json librarian profiles list
+heterarchy-alexandria --json librarian providers list
+heterarchy-alexandria --json librarian profiles list
 ```
 
 `HTTP 401: Operator API key required`가 나오면 현재 process 환경 또는 Hermes MCP env에 operator key가 없는 것이다. 실제 값은 출력하지 말고 presence/length와 command success로만 확인한다.
@@ -40,7 +40,7 @@ alexandria-hermes --json librarian profiles list
 ## 협업 예
 
 ```bash
-alexandria-hermes --json librarian ask   "이 후보 skill의 누락된 pitfall을 한 줄로 검토해 주세요."   --delegate-to-librarian   --agent-name Hermes   --task-summary "Skill candidate review"
+heterarchy-alexandria --json librarian ask   "이 후보 skill의 누락된 pitfall을 한 줄로 검토해 주세요."   --delegate-to-librarian   --agent-name Hermes   --task-summary "Skill candidate review"
 ```
 
 ## fallback 예

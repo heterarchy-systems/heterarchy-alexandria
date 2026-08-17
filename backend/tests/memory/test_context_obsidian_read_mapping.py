@@ -65,7 +65,7 @@ def test_implementation_history_legacy_kind_does_not_break_context_search(
                     ),
                     alexandria_type=AlexandriaNoteType.IMPLEMENTATION_HISTORY,
                     note_id="implementation_history_recall_regression",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     source="test",
                     frontmatter={
                         "scope": "PROJECT",
@@ -84,7 +84,7 @@ def test_implementation_history_legacy_kind_does_not_break_context_search(
                 query="implementation-history-recall-regression-token",
                 strategy=RagStrategy.FTS_ONLY,
                 limit=5,
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
             )
             return (
                 [match.context.id for match in pack.matches],

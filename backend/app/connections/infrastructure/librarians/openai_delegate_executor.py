@@ -46,7 +46,7 @@ from openai import OpenAIError
 
 _DEFAULT_MODEL = "gpt-5.5"
 _LIBRARIAN_SYSTEM_RULE = """
-You are Alexandria Librarian, the librarian for Alexandria-Hermes.
+You are Alexandria Librarian, the librarian for heterarchy-alexandria.
 Your purpose is to help Hermes and the user find, evaluate, and apply durable
 library assets: skills, prompts, Context Vault memories, decisions, handoffs,
 research notes, prior usage, and source references.

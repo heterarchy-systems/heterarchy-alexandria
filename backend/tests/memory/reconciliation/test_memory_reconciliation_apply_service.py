@@ -111,11 +111,11 @@ def _claim(
     valid_to: datetime | None = None,
 ) -> CanonicalClaim:
     return CanonicalClaim(
-        subject="Alexandria-Hermes",
+        subject="heterarchy-alexandria",
         predicate="uses",
         object=object_value,
         scope=ContextScope.PROJECT,
-        project="Alexandria-Hermes",
+        project="heterarchy-alexandria",
         valid_from=valid_from,
         valid_to=valid_to,
     )
@@ -129,10 +129,10 @@ def _candidate(
     return MemoryCandidate(
         candidate_id="candidate-new",
         title="New storage decision",
-        body=f"Alexandria-Hermes uses {object_value}.",
+        body=f"heterarchy-alexandria uses {object_value}.",
         canonical_claims=(_claim(object_value, valid_from=valid_from),),
         scope=ContextScope.PROJECT,
-        project="Alexandria-Hermes",
+        project="heterarchy-alexandria",
         tags=("memory",),
         source_refs=(_source(),),
         recorded_at=NOW,
@@ -153,12 +153,12 @@ def _existing(
     return MemoryRecallCandidate(
         context_id="obsidian:context-old",
         title="Old storage decision",
-        body=f"Alexandria-Hermes uses {object_value}.",
+        body=f"heterarchy-alexandria uses {object_value}.",
         canonical_claims=(
             _claim(object_value, valid_from=valid_from, valid_to=valid_to),
         ),
         scope=ContextScope.PROJECT,
-        project="Alexandria-Hermes",
+        project="heterarchy-alexandria",
         source_identity=None,
         content_hash=f"old-hash-{object_value}",
         recorded_at=EARLIER,

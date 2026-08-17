@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./docs/assets/alexandria-hermes-cover.png" alt="ALEXANDRIA-HERMES archive cover" width="100%" />
+  <img src="./docs/assets/h_lib.png" alt="heterarchy-alexandria library cover" width="100%" />
 </p>
 
 <p align="center">
@@ -9,13 +9,12 @@
   <a href="https://docs.pydantic.dev/"><img alt="Pydantic" src="https://img.shields.io/badge/Pydantic-2.13.4-E92063?logo=pydantic&logoColor=white"></a>
   <a href="https://www.sqlalchemy.org/"><img alt="SQLAlchemy" src="https://img.shields.io/badge/SQLAlchemy-2.0.49-D71F00"></a>
   <a href="https://modelcontextprotocol.io/"><img alt="MCP" src="https://img.shields.io/badge/MCP-1.27.1-5B5BD6"></a>
-  <a href="https://github.com/limhaneul12/alexandria-hermes/actions/workflows/backend.yml"><img alt="Backend CI" src="https://github.com/limhaneul12/alexandria-hermes/actions/workflows/backend.yml/badge.svg"></a>
+  <a href="https://github.com/heterarchy-systems/heterarchy-alexandria/actions/workflows/backend.yml"><img alt="Backend CI" src="https://github.com/heterarchy-systems/heterarchy-alexandria/actions/workflows/backend.yml/badge.svg"></a>
   <a href="./LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
 </p>
 
-# Alexandria-Hermes
-
-Alexandria-Hermes is a FastAPI + MCP backend for agent long-term memory, memory compaction, Obsidian Markdown storage, and librarian collaboration.
+# heterarchy-alexandria
+`heterarchy-alexandria` is the durable memory and knowledge layer of the HETERARCHY platform: a FastAPI + MCP backend for agent long-term memory, memory compaction, Obsidian Markdown storage, retrieval, graph projection, and librarian collaboration.
 
 The previous Next.js frontend, standalone product CLI, and SQLite-backed skill/prompt/harness CRUD surfaces have been removed. Obsidian Markdown is the human-facing source of truth; PostgreSQL is the operational, lexical-search, and pgvector retrieval store.
 
@@ -23,13 +22,21 @@ The previous Next.js frontend, standalone product CLI, and SQLite-backed skill/p
 Obsidian Markdown = canonical notes people can read and edit
 PostgreSQL = operational state + rebuildable lexical/vector search indexes
 Neo4j = rebuildable graph projection
-Alexandria-Hermes = FastAPI backend + MCP endpoint
+heterarchy-alexandria = HETERARCHY memory/knowledge service + FastAPI backend + MCP endpoint
 Librarian = optional Obsidian-aware collaborator/chat pane
 ```
 
+## Role in HETERARCHY
+
+`heterarchy-alexandria` owns durable agent memory, human-readable knowledge, recall/search indexes, memory compaction, graph projection, and librarian workflows. It is intentionally a memory/knowledge service rather than a general agent orchestrator or model runtime, so other HETERARCHY components can depend on it through explicit interfaces instead of sharing its storage internals.
+
+### Naming
+
+The repository, Python distribution, CLI, runtime identity, and persistent internal namespaces use `heterarchy-alexandria`. MCP tools intentionally keep the `alexandria_*` namespace, and existing `ALEXANDRIA_*` / `SERVICE_ALEXANDRIA_*` configuration names remain unchanged.
+
 ## Current scope
 
-Alexandria-Hermes now focuses on a narrow MCP-first recall surface:
+`heterarchy-alexandria` currently exposes an MCP-first memory, recall, and knowledge-maintenance surface:
 
 - FastAPI backend on `127.0.0.1:8000`
 - Streamable HTTP MCP endpoint at `POST /mcp/`
@@ -244,8 +251,8 @@ package CLI, not Makefile operational wrappers. Install/sync once, then use
 ```bash
 cd backend
 make install-local
-uv run --no-sync --no-editable alexandria-hermes memory-steward check \
-  --project alexandria-hermes \
+uv run --no-sync --no-editable heterarchy-alexandria memory-steward check \
+  --project heterarchy-alexandria \
   --refresh-compact \
   --summary
 ```
@@ -266,23 +273,23 @@ The FastAPI app exposes the Streamable HTTP MCP endpoint at:
 http://127.0.0.1:8000/mcp/
 ```
 
-Alexandria-Hermes supports three explicit MCP authentication modes:
+`heterarchy-alexandria` supports three explicit MCP authentication modes:
 
 - `none`: default localhost-only mode; no bearer token is required.
-- `local_oauth2`: Alexandria runs its own Authorization Code + PKCE server,
+- `local_oauth2`: the service runs its own Authorization Code + PKCE server,
   issues rotating access/refresh tokens, and asks the local operator to approve
   each connection in the browser.
-- `oauth2`: Alexandria only verifies JWT bearer tokens issued by an external
+- `oauth2`: the service only verifies JWT bearer tokens issued by an external
   authorization server through issuer/audience/JWKS configuration.
 
 The OpenAI Codex OAuth routes under `/settings/connections/{provider_id}/oauth/*`
-serve a different direction: they authorize Alexandria to call a provider. MCP
-OAuth authorizes ChatGPT or another MCP client to call Alexandria.
+serve a different direction: they authorize the backend to call a provider. MCP
+OAuth authorizes ChatGPT or another MCP client to call `heterarchy-alexandria`.
 
 For the default `none` mode, keep the backend bound to `127.0.0.1` and connect
 an MCP client directly to the URL above. No custom operator header is required.
 
-To enable Alexandria-issued OAuth for a public HTTPS endpoint, configure:
+To enable service-issued OAuth for a public HTTPS endpoint, configure:
 
 ```bash
 export SERVICE_MCP_LOCAL_APPROVAL_KEY="$(openssl rand -base64 32)"
@@ -299,7 +306,7 @@ https://your-mcp-host.example/mcp
 ```
 
 The client discovers `/register`, `/authorize`, `/token`, `/revoke`, and the
-OAuth metadata automatically. During connection, Alexandria opens `/approve`;
+OAuth metadata automatically. During connection, the service opens `/approve`;
 open `http://127.0.0.1:8000/connect` on the backend host, create one pairing
 code, and enter it on the approval page. Pairing codes are single-use and
 short-lived. Authorization codes and access/refresh tokens are stored only as
@@ -321,7 +328,7 @@ include the Memory Steward and Vault maintenance tools:
 
 ```bash
 cd backend
-uv run --no-sync --no-editable alexandria-hermes mcp smoke-tools
+uv run --no-sync --no-editable heterarchy-alexandria mcp smoke-tools
 ```
 
 ```text
@@ -347,8 +354,8 @@ JSON result, run:
 
 ```bash
 cd backend
-uv run --no-sync --no-editable alexandria-hermes memory-steward check \
-  --project alexandria-hermes
+uv run --no-sync --no-editable heterarchy-alexandria memory-steward check \
+  --project heterarchy-alexandria
 ```
 
 For a status-only JSON result, including MCP endpoint/tool count, tool exposure,
@@ -358,8 +365,8 @@ recommended maintenance action, add `--summary`:
 
 ```bash
 cd backend
-uv run --no-sync --no-editable alexandria-hermes memory-steward check \
-  --project alexandria-hermes \
+uv run --no-sync --no-editable heterarchy-alexandria memory-steward check \
+  --project heterarchy-alexandria \
   --summary
 ```
 
@@ -368,8 +375,8 @@ add `--refresh-compact`:
 
 ```bash
 cd backend
-uv run --no-sync --no-editable alexandria-hermes memory-steward check \
-  --project alexandria-hermes \
+uv run --no-sync --no-editable heterarchy-alexandria memory-steward check \
+  --project heterarchy-alexandria \
   --refresh-compact \
   --summary
 ```
@@ -402,8 +409,8 @@ Run a one-shot readiness check against the local backend:
 
 ```bash
 cd backend
-uv run --no-sync --no-editable alexandria-hermes memory-steward readiness \
-  --project alexandria-hermes
+uv run --no-sync --no-editable heterarchy-alexandria memory-steward readiness \
+  --project heterarchy-alexandria
 ```
 
 The response combines RAG health, CURRENT Memory Compact freshness, and the
@@ -419,8 +426,8 @@ Inspect the curation queue directly without changing the vault:
 
 ```bash
 cd backend
-uv run --no-sync --no-editable alexandria-hermes vault review-queue \
-  --project alexandria-hermes \
+uv run --no-sync --no-editable heterarchy-alexandria vault review-queue \
+  --project heterarchy-alexandria \
   --summary
 ```
 
@@ -428,8 +435,8 @@ Build the non-mutating safe move plan for automatic candidates:
 
 ```bash
 cd backend
-uv run --no-sync --no-editable alexandria-hermes vault review-move-plan \
-  --project alexandria-hermes
+uv run --no-sync --no-editable heterarchy-alexandria vault review-move-plan \
+  --project heterarchy-alexandria
 ```
 
 After inspecting the plan, apply the safe moves explicitly and write an
@@ -439,8 +446,8 @@ move candidates. The MCP apply tool follows the same default: it returns
 
 ```bash
 cd backend
-uv run --no-sync --no-editable alexandria-hermes vault review-apply-moves \
-  --project alexandria-hermes \
+uv run --no-sync --no-editable heterarchy-alexandria vault review-apply-moves \
+  --project heterarchy-alexandria \
   --confirm-apply
 ```
 
@@ -453,16 +460,16 @@ when Memory Steward still needs attention:
 
 ```bash
 cd backend
-uv run --no-sync --no-editable alexandria-hermes memory-steward preflight \
-  --project alexandria-hermes
+uv run --no-sync --no-editable heterarchy-alexandria memory-steward preflight \
+  --project heterarchy-alexandria
 ```
 
 Plan a CURRENT Memory Compact refresh without mutating the vault:
 
 ```bash
 cd backend
-uv run --no-sync --no-editable alexandria-hermes memory-steward refresh-current-compact \
-  --project alexandria-hermes
+uv run --no-sync --no-editable heterarchy-alexandria memory-steward refresh-current-compact \
+  --project heterarchy-alexandria
 ```
 
 Apply the refresh only when the plan says `refresh_required: true`, or when an
@@ -470,8 +477,8 @@ operator intentionally passes `--force`:
 
 ```bash
 cd backend
-uv run --no-sync --no-editable alexandria-hermes memory-steward refresh-current-compact \
-  --project alexandria-hermes \
+uv run --no-sync --no-editable heterarchy-alexandria memory-steward refresh-current-compact \
+  --project heterarchy-alexandria \
   --apply
 ```
 
@@ -479,8 +486,8 @@ For a startup check that may repair only stale or missing CURRENT compacts, use:
 
 ```bash
 cd backend
-uv run --no-sync --no-editable alexandria-hermes memory-steward preflight \
-  --project alexandria-hermes \
+uv run --no-sync --no-editable heterarchy-alexandria memory-steward preflight \
+  --project heterarchy-alexandria \
   --refresh-compact
 ```
 
@@ -561,7 +568,7 @@ make ci
 ```
 
 `make ci` also runs a no-editable package CLI smoke check for both
-`alexandria-hermes` and `alex-hermes`, then runs the same ephemeral-PostgreSQL
+`heterarchy-alexandria`, then runs the same ephemeral-PostgreSQL
 test contract used by the pre-push hook and GitHub Actions.
 
 Health check:

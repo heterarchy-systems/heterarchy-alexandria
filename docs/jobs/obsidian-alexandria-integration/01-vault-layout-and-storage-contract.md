@@ -15,7 +15,7 @@ source: codex
 
 ## 결정
 
-Obsidian vault의 Markdown 파일을 Alexandria-Hermes 지식 자산의 canonical source로 사용한다.
+Obsidian vault의 Markdown 파일을 heterarchy-alexandria 지식 자산의 canonical source로 사용한다.
 SQLite row는 검색/색인/운영 보조이며, 원본이 아니다.
 
 ## 기본 layout

@@ -67,7 +67,7 @@ class McpToolSmokeChecker:
                             "protocolVersion": "2025-06-18",
                             "capabilities": {},
                             "clientInfo": {
-                                "name": "alexandria-hermes-cli-smoke",
+                                "name": "heterarchy-alexandria-cli-smoke",
                                 "version": "0.1.0",
                             },
                         },

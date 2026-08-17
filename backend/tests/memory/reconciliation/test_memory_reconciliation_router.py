@@ -37,16 +37,16 @@ def _candidate_contract() -> MemoryCandidateCreate:
     return MemoryCandidateCreate(
         candidate_id="candidate-api",
         title="API memory decision",
-        body="Alexandria-Hermes uses PostgreSQL.",
+        body="heterarchy-alexandria uses PostgreSQL.",
         scope=ContextScope.PROJECT,
-        project="alexandria-hermes",
+        project="heterarchy-alexandria",
         canonical_claims=(
             CanonicalClaim(
-                subject="Alexandria-Hermes",
+                subject="heterarchy-alexandria",
                 predicate="uses",
                 object="PostgreSQL",
                 scope=ContextScope.PROJECT,
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
                 valid_from=NOW,
             ),
         ),
@@ -82,8 +82,8 @@ def _conflict() -> MemoryConflictSet:
         conflict_set_id="conflict-api",
         context_ids=("obsidian:candidate-api", "obsidian:context-old"),
         candidate_id="candidate-api",
-        subject_key="alexandria-hermes",
-        claim_key="Alexandria-Hermes|uses|PostgreSQL",
+        subject_key="heterarchy-alexandria",
+        claim_key="heterarchy-alexandria|uses|PostgreSQL",
         scope=ContextScope.PROJECT,
         validity_overlap=True,
         reason="Conflicting active storage decisions",
@@ -215,12 +215,12 @@ def _preview_payload() -> dict[str, object]:
         "candidate": {
             "candidate_id": "candidate-api",
             "title": " API memory decision ",
-            "body": "Alexandria-Hermes uses PostgreSQL.",
+            "body": "heterarchy-alexandria uses PostgreSQL.",
             "scope": "PROJECT",
-            "project": "alexandria-hermes",
+            "project": "heterarchy-alexandria",
             "canonical_claims": [
                 {
-                    "subject": "Alexandria-Hermes",
+                    "subject": "heterarchy-alexandria",
                     "predicate": "uses",
                     "object": "PostgreSQL",
                     "valid_from": NOW.isoformat(),

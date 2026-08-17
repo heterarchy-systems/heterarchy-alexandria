@@ -142,5 +142,5 @@ def test_mcp_protected_resource_metadata_uses_injected_oauth_config() -> None:
         "authorization_servers": ["https://auth.example.com"],
         "scopes_supported": ["alexandria:mcp"],
         "bearer_methods_supported": ["header"],
-        "resource_documentation": "Alexandria-Hermes MCP server for librarian tools.",
+        "resource_documentation": "heterarchy-alexandria MCP server for librarian tools.",
     }

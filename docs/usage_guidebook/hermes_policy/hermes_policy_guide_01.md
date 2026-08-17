@@ -2,12 +2,12 @@
 
 ## 목적
 
-사용자가 Hermes에게 Alexandria-Hermes를 쓰게 할지 말지를 명확히 제어한다.
+사용자가 Hermes에게 heterarchy-alexandria를 쓰게 할지 말지를 명확히 제어한다.
 
 ## policy 위치
 
 ```text
-~/.hermes/alexandria-hermes/policy.yaml
+~/.hermes/heterarchy-alexandria/policy.yaml
 ```
 
 기본값은 ON이다. 단, ON의 의미는 “항상 Alexandria부터 호출”이 아니라 **local-first / Alexandria-when-needed**다.
@@ -20,7 +20,7 @@ mode: local_first_library_when_needed
 ## 상태 확인
 
 ```bash
-alexandria-hermes --json hermes policy status --hermes-home "$HOME/.hermes"
+heterarchy-alexandria --json hermes policy status --hermes-home "$HOME/.hermes"
 ```
 
 예상 출력 일부:
@@ -49,7 +49,7 @@ alexandria-hermes --json hermes policy status --hermes-home "$HOME/.hermes"
 ## 끄기
 
 ```bash
-alexandria-hermes --json hermes policy disable --hermes-home "$HOME/.hermes"
+heterarchy-alexandria --json hermes policy disable --hermes-home "$HOME/.hermes"
 ```
 
 이후 Hermes는 다음 경우를 제외하고 Alexandria를 쓰지 않아야 한다.
@@ -60,7 +60,7 @@ alexandria-hermes --json hermes policy disable --hermes-home "$HOME/.hermes"
 ## 다시 켜기
 
 ```bash
-alexandria-hermes --json hermes policy enable --hermes-home "$HOME/.hermes"
+heterarchy-alexandria --json hermes policy enable --hermes-home "$HOME/.hermes"
 ```
 
 ## Hermes에게 말하는 예
@@ -72,7 +72,7 @@ Alexandria 사용하지 마.
 Hermes가 해야 할 일:
 
 ```bash
-alexandria-hermes hermes policy disable
+heterarchy-heterarchy-alexandria policy disable
 ```
 
 ```text
@@ -82,7 +82,7 @@ alexandria-hermes hermes policy disable
 Hermes가 해야 할 일:
 
 ```bash
-alexandria-hermes hermes policy enable
+heterarchy-heterarchy-alexandria policy enable
 ```
 
 ## session-only off

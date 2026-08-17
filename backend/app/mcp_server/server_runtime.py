@@ -1,4 +1,4 @@
-"""Alexandria-Hermes MCP server bootstrap."""
+"""heterarchy-alexandria MCP server bootstrap."""
 
 from __future__ import annotations
 
@@ -47,7 +47,7 @@ def build_mcp_server(
     transport_host: str = DEFAULT_MCP_TRANSPORT_HOST,
     local_oauth_runtime: LocalMcpOAuthRuntime | None = None,
 ) -> FastMCP:
-    """Build the Alexandria-Hermes FastMCP server.
+    """Build the heterarchy-alexandria FastMCP server.
 
     Args:
         client: Optional backend API client for tests.
@@ -74,7 +74,7 @@ def build_mcp_server(
     )
     if local_oauth_runtime is None:
         server = FastMCP(
-            "Alexandria-Hermes",
+            "heterarchy-alexandria",
             instructions=instructions,
             json_response=True,
             host=transport_host,
@@ -82,7 +82,7 @@ def build_mcp_server(
         )
     else:
         server = FastMCP(
-            "Alexandria-Hermes",
+            "heterarchy-alexandria",
             instructions=instructions,
             json_response=True,
             host=transport_host,
@@ -108,7 +108,7 @@ def build_mcp_server(
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Run the Alexandria-Hermes FastMCP server.
+    """Run the heterarchy-alexandria FastMCP server.
 
     Args:
         argv: Optional process arguments without the executable name.
@@ -116,7 +116,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     Returns:
         Process-style exit code after the MCP server exits normally.
     """
-    parser = argparse.ArgumentParser(prog="alexandria-hermes mcp serve")
+    parser = argparse.ArgumentParser(prog="heterarchy-alexandria mcp serve")
     parser.add_argument(
         "--transport",
         choices=[transport.value for transport in McpTransport],

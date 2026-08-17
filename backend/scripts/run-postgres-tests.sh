@@ -5,7 +5,7 @@ POSTGRES_IMAGE="${ALEXANDRIA_CI_POSTGRES_IMAGE:-pgvector/pgvector:pg17}"
 POSTGRES_USER="alexandria_ci"
 POSTGRES_PASSWORD="alexandria_ci"
 POSTGRES_DB="alexandria_ci"
-CONTAINER_NAME="alexandria-hermes-ci-postgres-${PPID}-$$"
+CONTAINER_NAME="heterarchy-alexandria-ci-postgres-${PPID}-$$"
 
 cleanup() {
   docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true

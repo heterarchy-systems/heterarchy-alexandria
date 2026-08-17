@@ -102,7 +102,7 @@ def _approval_html(
 <head><meta charset="utf-8"><title>Approve Alexandria MCP</title></head>
 <body>
   <main>
-    <h1>Approve Alexandria-Hermes MCP access</h1>
+    <h1>Approve heterarchy-alexandria MCP access</h1>
     <p>Client: <strong>{safe_client_name}</strong></p>
     <p>Scopes: <code>{safe_scopes}</code></p>
     <p>This approval grants access to your local Alexandria memory tools.</p>

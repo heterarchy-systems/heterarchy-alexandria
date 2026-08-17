@@ -118,7 +118,7 @@ services:
 
 volumes:
   embedding-model-cache:
-    name: alexandria-hermes_embedding-model-cache-v2
+    name: heterarchy-alexandria_embedding-model-cache-v2
   postgres-data:
   redis-data:
   neo4j-data:

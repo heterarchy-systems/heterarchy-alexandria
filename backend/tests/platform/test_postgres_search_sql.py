@@ -31,7 +31,7 @@ def _recall_filter() -> ContextRecallFilter:
         kind=None,
         scope_identity=ScopeIdentity(
             include_scopes=(ContextScope.PROJECT,),
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
             workspace_id=None,
             agent_id=None,
             user_id=None,
@@ -90,7 +90,7 @@ def test_postgres_obsidian_fts_uses_base_tables_and_jsonb_tags() -> None:
     query = build_obsidian_fts_query(
         "운영 안정성",
         limit=5,
-        project="alexandria-hermes",
+        project="heterarchy-alexandria",
         tags=("evidence",),
     )
 

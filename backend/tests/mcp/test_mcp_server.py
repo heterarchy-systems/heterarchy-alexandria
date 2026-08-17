@@ -171,7 +171,7 @@ def test_mcp_vault_search_compacts_and_deduplicates_note_hits() -> None:
                         "title": "One",
                         "status": "active",
                         "tags": ["search"],
-                        "project": "alexandria-hermes",
+                        "project": "heterarchy-alexandria",
                         "content_hash": "a" * 64,
                         "index_status": "indexed",
                         "wikilink": "[[Contexts/Projects/One]]",
@@ -191,7 +191,7 @@ def test_mcp_vault_search_compacts_and_deduplicates_note_hits() -> None:
                         "title": "One",
                         "status": "active",
                         "tags": ["search"],
-                        "project": "alexandria-hermes",
+                        "project": "heterarchy-alexandria",
                         "content_hash": "a" * 64,
                         "index_status": "indexed",
                     },
@@ -217,7 +217,7 @@ def test_mcp_vault_search_compacts_and_deduplicates_note_hits() -> None:
                     "title": "One",
                     "status": "active",
                     "tags": ["search"],
-                    "project": "alexandria-hermes",
+                    "project": "heterarchy-alexandria",
                     "content_hash": "a" * 64,
                     "index_status": "indexed",
                     "wikilink": "[[Contexts/Projects/One]]",
@@ -331,7 +331,7 @@ def test_mcp_search_skills_maps_to_search_first_endpoint() -> None:
             client,
             capability="browser automation",
             task_goal="Run deterministic browser checks",
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
             environment="pytest",
             required_tools=["playwright"],
             success_criteria=["stable selectors"],
@@ -347,7 +347,7 @@ def test_mcp_search_skills_maps_to_search_first_endpoint() -> None:
     assert body == {
         "capability": "browser automation",
         "task_goal": "Run deterministic browser checks",
-        "project": "alexandria-hermes",
+        "project": "heterarchy-alexandria",
         "environment": "pytest",
         "required_tools": ["playwright"],
         "constraints": [],
@@ -509,7 +509,7 @@ def test_mcp_async_skill_acquisition_tools_use_durable_job_endpoints() -> None:
         await alexandria_start_skill_acquisition(
             client,
             prompt="Need browser automation skill",
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
             task_summary="Browser test blocked.",
             search_snapshot={
                 "decision": "NOT_FOUND",
@@ -532,7 +532,7 @@ def test_mcp_async_skill_acquisition_tools_use_durable_job_endpoints() -> None:
     assert start_body == {
         "prompt": "Need browser automation skill",
         "agent_name": "Hermes",
-        "project": "alexandria-hermes",
+        "project": "heterarchy-alexandria",
         "task_summary": "Browser test blocked.",
         "search_snapshot": {
             "decision": "NOT_FOUND",
@@ -646,11 +646,13 @@ def test_memory_compact_gateway_supports_agent_reads_and_steward_primitives() ->
     async def run_tools() -> None:
         await alexandria_list_memory_compact_artifacts(
             client,
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
             status=MemoryCompactStatus.CURRENT,
             limit=3,
         )
-        await alexandria_get_current_memory_compact(client, project="alexandria-hermes")
+        await alexandria_get_current_memory_compact(
+            client, project="heterarchy-alexandria"
+        )
         await alexandria_create_memory_compact(
             client,
             covered_from="2026-07-01T00:00:00Z",
@@ -667,11 +669,11 @@ def test_memory_compact_gateway_supports_agent_reads_and_steward_primitives() ->
                 "## Coverage\n"
                 "- covered_from: 2026-07-01T00:00:00Z\n"
                 "- covered_to: 2026-07-15T00:00:00Z\n"
-                "- project: alexandria-hermes\n\n"
+                "- project: heterarchy-alexandria\n\n"
                 "## Evidence Summary\n"
                 "- Source note."
             ),
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
             status=MemoryCompactStatus.CURRENT,
             source_refs=[
                 {
@@ -705,9 +707,9 @@ def test_memory_compact_gateway_supports_agent_reads_and_steward_primitives() ->
     assert methods_and_paths == [
         (
             "GET",
-            "/memory/compacts?limit=3&offset=0&project=alexandria-hermes&status=CURRENT",
+            "/memory/compacts?limit=3&offset=0&project=heterarchy-alexandria&status=CURRENT",
         ),
-        ("GET", "/memory/compacts/current?project=alexandria-hermes"),
+        ("GET", "/memory/compacts/current?project=heterarchy-alexandria"),
         ("POST", "/memory/compacts"),
         ("GET", "/memory/compacts/compact%2F1"),
         ("POST", "/memory/compacts/compact%2F1/review"),
@@ -728,11 +730,11 @@ def test_memory_compact_gateway_supports_agent_reads_and_steward_primitives() ->
             "## Coverage\n"
             "- covered_from: 2026-07-01T00:00:00Z\n"
             "- covered_to: 2026-07-15T00:00:00Z\n"
-            "- project: alexandria-hermes\n\n"
+            "- project: heterarchy-alexandria\n\n"
             "## Evidence Summary\n"
             "- Source note."
         ),
-        "project": "alexandria-hermes",
+        "project": "heterarchy-alexandria",
         "status": "CURRENT",
         "source_refs": [
             {
@@ -767,18 +769,18 @@ def test_mcp_obsidian_tools_map_to_vault_endpoints() -> None:
             query="canonical markdown",
             limit=2,
             alexandria_type="context",
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
             tags=["obsidian"],
         )
         await alexandria_vault_review_queue(
             client,
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
             scope_path="Alexandria/_Inbox",
             limit=3,
         )
         await alexandria_vault_review_move_plan(
             client,
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
             scope_path="Alexandria/_Inbox",
             limit=3,
         )
@@ -809,12 +811,12 @@ def test_mcp_obsidian_tools_map_to_vault_endpoints() -> None:
         "limit": 2,
         "tags": ["obsidian"],
         "alexandria_type": "context",
-        "project": "alexandria-hermes",
+        "project": "heterarchy-alexandria",
     }
     queue_body = loads_json(calls[2].content or b"{}")
     assert queue_body == {
         "limit": 3,
-        "project": "alexandria-hermes",
+        "project": "heterarchy-alexandria",
         "scope_path": "Alexandria/_Inbox",
     }
     assert loads_json(calls[3].content or b"{}") == queue_body
@@ -1071,7 +1073,7 @@ def test_mcp_vault_review_apply_requires_confirmation_when_plan_has_moves() -> N
     payload = _run_json(
         alexandria_vault_review_apply_moves(
             client,
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
             scope_path="Alexandria/_Inbox",
             limit=3,
         )
@@ -1135,7 +1137,7 @@ def test_mcp_vault_review_apply_confirmed_calls_apply_endpoint() -> None:
     payload = _run_json(
         alexandria_vault_review_apply_moves(
             client,
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
             scope_path="Alexandria/_Inbox",
             limit=3,
             report_path="Alexandria/_Ops/Librarian/Reports/review-apply",
@@ -1156,7 +1158,7 @@ def test_mcp_vault_review_apply_confirmed_calls_apply_endpoint() -> None:
     assert apply_body == {
         "limit": 3,
         "reindex": True,
-        "project": "alexandria-hermes",
+        "project": "heterarchy-alexandria",
         "scope_path": "Alexandria/_Inbox",
         "report_path": "Alexandria/_Ops/Librarian/Reports/review-apply",
         "verification_query": "canonical markdown",
@@ -1179,7 +1181,7 @@ def test_mcp_memory_steward_readiness_combines_health_compact_and_review_queue()
         },
         {
             "id": "compact-1",
-            "project": "alexandria-hermes",
+            "project": "heterarchy-alexandria",
             "status": "CURRENT",
             "updated_at": "2026-07-15T00:00:00Z",
         },
@@ -1202,7 +1204,7 @@ def test_mcp_memory_steward_readiness_combines_health_compact_and_review_queue()
 
     payload = _run_json(
         alexandria_memory_steward_readiness(
-            client, project="alexandria-hermes", max_compact_age_days=365_000
+            client, project="heterarchy-alexandria", max_compact_age_days=365_000
         )
     )
 
@@ -1213,11 +1215,11 @@ def test_mcp_memory_steward_readiness_combines_health_compact_and_review_queue()
     review_queue_body = loads_json(calls[2].content or b"{}")
     assert methods_and_paths == [
         ("GET", "/memory/contexts/rag/status"),
-        ("GET", "/memory/compacts/current?project=alexandria-hermes"),
+        ("GET", "/memory/compacts/current?project=heterarchy-alexandria"),
         ("POST", "/obsidian/librarian/review-queue"),
         ("POST", "/memory/compacts/compact-1/review"),
     ]
-    assert review_queue_body == {"limit": 20, "project": "alexandria-hermes"}
+    assert review_queue_body == {"limit": 20, "project": "heterarchy-alexandria"}
     assert payload["ready"] is True
     assert payload["status"] == "ready"
     assert payload["current_memory_compact"]["id"] == "compact-1"
@@ -1237,7 +1239,7 @@ def test_mcp_memory_steward_readiness_flags_stale_current_compact() -> None:
         {"fts": "HEALTHY", "vector": "HEALTHY", "embedding": "HEALTHY"},
         {
             "id": "compact-old",
-            "project": "alexandria-hermes",
+            "project": "heterarchy-alexandria",
             "status": "CURRENT",
             "updated_at": "2000-01-01T00:00:00Z",
         },
@@ -1261,7 +1263,7 @@ def test_mcp_memory_steward_readiness_flags_stale_current_compact() -> None:
 
     payload = _run_json(
         alexandria_memory_steward_readiness(
-            client, project="alexandria-hermes", max_compact_age_days=30
+            client, project="heterarchy-alexandria", max_compact_age_days=30
         )
     )
 
@@ -1289,7 +1291,7 @@ def test_mcp_memory_steward_readiness_flags_missing_current_compact_timestamp() 
         {"fts": "HEALTHY", "vector": "HEALTHY", "embedding": "HEALTHY"},
         {
             "id": "compact-missing-timestamp",
-            "project": "alexandria-hermes",
+            "project": "heterarchy-alexandria",
             "status": "CURRENT",
             "updated_at": "2026-07-17T00:00:00Z",
             "warnings": ["memory_compact_timestamp_missing"],
@@ -1312,7 +1314,7 @@ def test_mcp_memory_steward_readiness_flags_missing_current_compact_timestamp() 
 
     payload = _run_json(
         alexandria_memory_steward_readiness(
-            client, project="alexandria-hermes", max_compact_age_days=365_000
+            client, project="heterarchy-alexandria", max_compact_age_days=365_000
         )
     )
 
@@ -1340,7 +1342,7 @@ def test_mcp_memory_steward_readiness_flags_source_hash_changed_current_compact(
         {"fts": "HEALTHY", "vector": "HEALTHY", "embedding": "HEALTHY"},
         {
             "id": "compact-source-changed",
-            "project": "alexandria-hermes",
+            "project": "heterarchy-alexandria",
             "status": "CURRENT",
             "updated_at": "2999-01-01T00:00:00Z",
             "source_refs": [
@@ -1372,7 +1374,7 @@ def test_mcp_memory_steward_readiness_flags_source_hash_changed_current_compact(
 
     payload = _run_json(
         alexandria_memory_steward_readiness(
-            client, project="alexandria-hermes", max_compact_age_days=30
+            client, project="heterarchy-alexandria", max_compact_age_days=30
         )
     )
 
@@ -1395,7 +1397,7 @@ def test_mcp_memory_steward_readiness_flags_blocked_current_compact_review() -> 
         {"fts": "HEALTHY", "vector": "HEALTHY", "embedding": "HEALTHY"},
         {
             "id": "compact-blocked",
-            "project": "alexandria-hermes",
+            "project": "heterarchy-alexandria",
             "status": "CURRENT",
             "updated_at": "2999-01-01T00:00:00Z",
         },
@@ -1417,7 +1419,7 @@ def test_mcp_memory_steward_readiness_flags_blocked_current_compact_review() -> 
 
     payload = _run_json(
         alexandria_memory_steward_readiness(
-            client, project="alexandria-hermes", max_compact_age_days=30
+            client, project="heterarchy-alexandria", max_compact_age_days=30
         )
     )
 
@@ -1427,7 +1429,7 @@ def test_mcp_memory_steward_readiness_flags_blocked_current_compact_review() -> 
     ]
     assert methods_and_paths == [
         ("GET", "/memory/contexts/rag/status"),
-        ("GET", "/memory/compacts/current?project=alexandria-hermes"),
+        ("GET", "/memory/compacts/current?project=heterarchy-alexandria"),
         ("POST", "/obsidian/librarian/review-queue"),
         ("POST", "/memory/compacts/compact-blocked/review"),
     ]
@@ -1465,7 +1467,7 @@ def test_mcp_memory_steward_readiness_returns_blocked_payload_when_rag_status_fa
 
     payload = _run_json(
         alexandria_memory_steward_readiness(
-            client, project="alexandria-hermes", max_compact_age_days=30
+            client, project="heterarchy-alexandria", max_compact_age_days=30
         )
     )
 
@@ -1574,7 +1576,7 @@ def test_mcp_memory_steward_readiness_separates_manual_review_queue_action() -> 
         {"fts": "HEALTHY", "vector": "HEALTHY", "embedding": "HEALTHY"},
         {
             "id": "compact-1",
-            "project": "alexandria-hermes",
+            "project": "heterarchy-alexandria",
             "status": "CURRENT",
             "updated_at": "2999-01-01T00:00:00Z",
         },
@@ -1606,7 +1608,7 @@ def test_mcp_memory_steward_readiness_separates_manual_review_queue_action() -> 
     payload = _run_json(
         alexandria_memory_steward_readiness(
             client,
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
             max_compact_age_days=365_000,
         )
     )
@@ -1635,7 +1637,7 @@ def test_mcp_memory_steward_refresh_current_compact_plans_stale_compact_refresh(
         {"fts": "HEALTHY", "vector": "HEALTHY", "embedding": "HEALTHY"},
         {
             "id": "compact-old",
-            "project": "alexandria-hermes",
+            "project": "heterarchy-alexandria",
             "status": "CURRENT",
             "updated_at": "2000-01-01T00:00:00Z",
         },
@@ -1658,7 +1660,7 @@ def test_mcp_memory_steward_refresh_current_compact_plans_stale_compact_refresh(
     payload = _run_json(
         alexandria_memory_steward_refresh_current_compact(
             client,
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
             max_compact_age_days=30,
             apply=False,
             covered_to="2026-07-15T00:00:00Z",
@@ -1668,7 +1670,7 @@ def test_mcp_memory_steward_refresh_current_compact_plans_stale_compact_refresh(
     paths = [str(request.url).removeprefix("http://backend:8000") for request in calls]
     assert paths == [
         "/memory/contexts/rag/status",
-        "/memory/compacts/current?project=alexandria-hermes",
+        "/memory/compacts/current?project=heterarchy-alexandria",
         "/obsidian/librarian/review-queue",
         "/memory/compacts/compact-old/review",
     ]
@@ -1689,17 +1691,17 @@ def test_mcp_memory_steward_refresh_current_compact_applies_stale_compact_refres
         {"fts": "HEALTHY", "vector": "HEALTHY", "embedding": "HEALTHY"},
         {
             "id": "compact-old",
-            "project": "alexandria-hermes",
+            "project": "heterarchy-alexandria",
             "status": "CURRENT",
             "updated_at": "2000-01-01T00:00:00Z",
         },
         {"items": [], "total": 0},
         _compact_review_payload("compact-old"),
-        {"id": "compact-new", "project": "alexandria-hermes", "status": "CURRENT"},
+        {"id": "compact-new", "project": "heterarchy-alexandria", "status": "CURRENT"},
         {"fts": "HEALTHY", "vector": "HEALTHY", "embedding": "HEALTHY"},
         {
             "id": "compact-new",
-            "project": "alexandria-hermes",
+            "project": "heterarchy-alexandria",
             "status": "CURRENT",
             "updated_at": "2999-01-01T00:00:00Z",
         },
@@ -1722,7 +1724,7 @@ def test_mcp_memory_steward_refresh_current_compact_applies_stale_compact_refres
     payload = _run_json(
         alexandria_memory_steward_refresh_current_compact(
             client,
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
             max_compact_age_days=30,
             apply=True,
             covered_to="2026-07-15T00:00:00Z",
@@ -1736,16 +1738,16 @@ def test_mcp_memory_steward_refresh_current_compact_applies_stale_compact_refres
     create_body = loads_json(calls[4].content or b"{}")
     assert methods_and_paths == [
         ("GET", "/memory/contexts/rag/status"),
-        ("GET", "/memory/compacts/current?project=alexandria-hermes"),
+        ("GET", "/memory/compacts/current?project=heterarchy-alexandria"),
         ("POST", "/obsidian/librarian/review-queue"),
         ("POST", "/memory/compacts/compact-old/review"),
         ("POST", "/memory/compacts"),
         ("GET", "/memory/contexts/rag/status"),
-        ("GET", "/memory/compacts/current?project=alexandria-hermes"),
+        ("GET", "/memory/compacts/current?project=heterarchy-alexandria"),
         ("POST", "/obsidian/librarian/review-queue"),
         ("POST", "/memory/compacts/compact-new/review"),
     ]
-    assert create_body["project"] == "alexandria-hermes"
+    assert create_body["project"] == "heterarchy-alexandria"
     assert create_body["covered_from"] == "2000-01-01T00:00:00Z"
     assert create_body["covered_to"] == "2026-07-15T00:00:00Z"
     assert create_body["status"] == "CURRENT"
@@ -1764,7 +1766,7 @@ def test_mcp_memory_steward_refresh_current_compact_blocks_apply_when_rag_unheal
         {"fts": "HEALTHY", "vector": "HEALTHY", "embedding": "REINDEX_REQUIRED"},
         {
             "id": "compact-old",
-            "project": "alexandria-hermes",
+            "project": "heterarchy-alexandria",
             "status": "CURRENT",
             "updated_at": "2000-01-01T00:00:00Z",
         },
@@ -1787,7 +1789,7 @@ def test_mcp_memory_steward_refresh_current_compact_blocks_apply_when_rag_unheal
     payload = _run_json(
         alexandria_memory_steward_refresh_current_compact(
             client,
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
             max_compact_age_days=30,
             apply=True,
             force=True,
@@ -1801,7 +1803,7 @@ def test_mcp_memory_steward_refresh_current_compact_blocks_apply_when_rag_unheal
     ]
     assert methods_and_paths == [
         ("GET", "/memory/contexts/rag/status"),
-        ("GET", "/memory/compacts/current?project=alexandria-hermes"),
+        ("GET", "/memory/compacts/current?project=heterarchy-alexandria"),
         ("POST", "/obsidian/librarian/review-queue"),
         ("POST", "/memory/compacts/compact-old/review"),
     ]
@@ -1833,7 +1835,7 @@ def test_mcp_memory_steward_refresh_current_compact_blocks_apply_on_rag_warnings
         },
         {
             "id": "compact-old",
-            "project": "alexandria-hermes",
+            "project": "heterarchy-alexandria",
             "status": "CURRENT",
             "updated_at": "2000-01-01T00:00:00Z",
         },
@@ -1856,7 +1858,7 @@ def test_mcp_memory_steward_refresh_current_compact_blocks_apply_on_rag_warnings
     payload = _run_json(
         alexandria_memory_steward_refresh_current_compact(
             client,
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
             max_compact_age_days=30,
             apply=True,
             force=True,
@@ -1870,7 +1872,7 @@ def test_mcp_memory_steward_refresh_current_compact_blocks_apply_on_rag_warnings
     ]
     assert methods_and_paths == [
         ("GET", "/memory/contexts/rag/status"),
-        ("GET", "/memory/compacts/current?project=alexandria-hermes"),
+        ("GET", "/memory/compacts/current?project=heterarchy-alexandria"),
         ("POST", "/obsidian/librarian/review-queue"),
         ("POST", "/memory/compacts/compact-old/review"),
     ]
@@ -1904,7 +1906,7 @@ def test_mcp_memory_steward_refresh_current_compact_blocks_apply_when_rag_status
     payload = _run_json(
         alexandria_memory_steward_refresh_current_compact(
             client,
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
             max_compact_age_days=30,
             apply=True,
             force=True,
@@ -1932,7 +1934,7 @@ def test_mcp_memory_steward_refresh_current_compact_blocks_apply_for_manual_revi
         {"fts": "HEALTHY", "vector": "HEALTHY", "embedding": "HEALTHY"},
         {
             "id": "compact-old",
-            "project": "alexandria-hermes",
+            "project": "heterarchy-alexandria",
             "status": "CURRENT",
             "updated_at": "2000-01-01T00:00:00Z",
         },
@@ -1963,7 +1965,7 @@ def test_mcp_memory_steward_refresh_current_compact_blocks_apply_for_manual_revi
     payload = _run_json(
         alexandria_memory_steward_refresh_current_compact(
             client,
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
             max_compact_age_days=30,
             apply=True,
             covered_to="2026-07-15T00:00:00Z",
@@ -1976,7 +1978,7 @@ def test_mcp_memory_steward_refresh_current_compact_blocks_apply_for_manual_revi
     ]
     assert methods_and_paths == [
         ("GET", "/memory/contexts/rag/status"),
-        ("GET", "/memory/compacts/current?project=alexandria-hermes"),
+        ("GET", "/memory/compacts/current?project=heterarchy-alexandria"),
         ("POST", "/obsidian/librarian/review-queue"),
         ("POST", "/memory/compacts/compact-old/review"),
     ]
@@ -2003,7 +2005,7 @@ def test_mcp_memory_steward_refresh_current_compact_blocks_apply_for_review_verd
         {"fts": "HEALTHY", "vector": "HEALTHY", "embedding": "HEALTHY"},
         {
             "id": "compact-blocked",
-            "project": "alexandria-hermes",
+            "project": "heterarchy-alexandria",
             "status": "CURRENT",
             "updated_at": "2000-01-01T00:00:00Z",
         },
@@ -2026,7 +2028,7 @@ def test_mcp_memory_steward_refresh_current_compact_blocks_apply_for_review_verd
     payload = _run_json(
         alexandria_memory_steward_refresh_current_compact(
             client,
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
             max_compact_age_days=30,
             apply=True,
             covered_to="2026-07-15T00:00:00Z",
@@ -2039,7 +2041,7 @@ def test_mcp_memory_steward_refresh_current_compact_blocks_apply_for_review_verd
     ]
     assert methods_and_paths == [
         ("GET", "/memory/contexts/rag/status"),
-        ("GET", "/memory/compacts/current?project=alexandria-hermes"),
+        ("GET", "/memory/compacts/current?project=heterarchy-alexandria"),
         ("POST", "/obsidian/librarian/review-queue"),
         ("POST", "/memory/compacts/compact-blocked/review"),
     ]
@@ -2162,7 +2164,7 @@ def test_fastapi_app_accepts_tunnel_host_for_streamable_http_mcp() -> None:
         default_app.state.container.wire(packages=_ROUTER_PACKAGES)
 
     assert response.status_code == 200
-    assert response.json()["result"]["serverInfo"]["name"] == "Alexandria-Hermes"
+    assert response.json()["result"]["serverInfo"]["name"] == "heterarchy-alexandria"
 
 
 def test_fastmcp_server_uses_tunnel_compatible_transport_host() -> None:

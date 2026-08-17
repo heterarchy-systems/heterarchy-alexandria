@@ -2,17 +2,17 @@
 
 ## 목적
 
-처음 사용하는 사람이 Alexandria-Hermes를 설치한 뒤 Hermes가 로컬/현재 컨텍스트를 먼저 쓰고, 부족할 때 Alexandria를 자연스럽게 사용할 수 있게 만든다.
+처음 사용하는 사람이 heterarchy-alexandria를 설치한 뒤 Hermes가 로컬/현재 컨텍스트를 먼저 쓰고, 부족할 때 Alexandria를 자연스럽게 사용할 수 있게 만든다.
 
-Alexandria-Hermes는 **로그인 없는 single-operator/local-first** 시스템이다.
+heterarchy-alexandria는 **로그인 없는 single-operator/local-first** 시스템이다.
 기본 온보딩에는 GPT/Codex OAuth나 provider credential이 필요하지 않으며,
 `ALEXANDRIA_OPERATOR_API_KEY` 하나만 settings/provider/OAuth/librarian delegation 같은
 control-plane 작업을 보호한다.
 
 ## 전제
 
-- Alexandria-Hermes backend가 실행 가능하다.
-- `alexandria-hermes` CLI가 PATH에 있다.
+- heterarchy-alexandria backend가 실행 가능하다.
+- `heterarchy-alexandria` CLI가 PATH에 있다.
 - Hermes Agent가 설치되어 있다.
 - operator key가 필요한 기능은 실제 secret을 문서에 남기지 않는다.
 - Docker/로컬 기본값은 localhost/private operator 사용을 전제로 한다. 외부 노출 전에는 VPN,
@@ -29,17 +29,17 @@ export ALEXANDRIA_API_URL="${ALEXANDRIA_API_URL:-http://localhost:8000}"
 export HERMES_HOME="${HERMES_HOME:-$HOME/.hermes}"
 export ALEXANDRIA_OPERATOR_API_KEY="${ALEXANDRIA_OPERATOR_API_KEY:-}"
 
-alexandria-hermes --base-url "$ALEXANDRIA_API_URL" --json health
+heterarchy-alexandria --base-url "$ALEXANDRIA_API_URL" --json health
 
-alexandria-hermes --json hermes onboard   --hermes-home "$HERMES_HOME"   --api-url "$ALEXANDRIA_API_URL"   --operator-api-key "${ALEXANDRIA_OPERATOR_API_KEY:-}"   --install-prompts   --install-mcp
+heterarchy-alexandria --json hermes onboard   --hermes-home "$HERMES_HOME"   --api-url "$ALEXANDRIA_API_URL"   --operator-api-key "${ALEXANDRIA_OPERATOR_API_KEY:-}"   --install-prompts   --install-mcp
 ```
 
 ## 확인
 
 ```bash
-alexandria-hermes --json hermes doctor   --hermes-home "$HERMES_HOME"   --api-url "$ALEXANDRIA_API_URL"   --operator-api-key "${ALEXANDRIA_OPERATOR_API_KEY:-}"
+heterarchy-alexandria --json hermes doctor   --hermes-home "$HERMES_HOME"   --api-url "$ALEXANDRIA_API_URL"   --operator-api-key "${ALEXANDRIA_OPERATOR_API_KEY:-}"
 
-alexandria-hermes --json hermes policy status --hermes-home "$HERMES_HOME"
+heterarchy-alexandria --json hermes policy status --hermes-home "$HERMES_HOME"
 ```
 
 성공 기준:
@@ -63,10 +63,10 @@ alexandria-hermes --json hermes policy status --hermes-home "$HERMES_HOME"
 
 ## Hermes MCP runtime 등록
 
-`~/.hermes/alexandria-hermes/mcp-config.json`은 snippet이다. 실제 Hermes tool discovery는 `~/.hermes/config.yaml`의 `mcp_servers` 등록을 봐야 한다.
+`~/.hermes/heterarchy-alexandria/mcp-config.json`은 snippet이다. 실제 Hermes tool discovery는 `~/.hermes/config.yaml`의 `mcp_servers` 등록을 봐야 한다.
 
 ```bash
-ALEXANDRIA_CLI="$(command -v alexandria-hermes)"
+ALEXANDRIA_CLI="$(command -v heterarchy-alexandria)"
 hermes mcp add alexandria   --command "$ALEXANDRIA_CLI"   --args mcp serve   --env ALEXANDRIA_API_URL="$ALEXANDRIA_API_URL"   --env ALEXANDRIA_OPERATOR_API_KEY="${ALEXANDRIA_OPERATOR_API_KEY:-}"   --env HERMES_HOME="$HERMES_HOME"
 
 hermes mcp test alexandria

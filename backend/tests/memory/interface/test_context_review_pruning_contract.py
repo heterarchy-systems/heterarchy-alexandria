@@ -27,7 +27,7 @@ _CONTEXT_PAYLOAD = {
     "title": "Manual review context",
     "summary": "This path should not support pre-save review.",
     "content": "# Manual review context\n\n## Summary\nReview-before-save is pruned.",
-    "project": "alexandria-hermes",
+    "project": "heterarchy-alexandria",
     "source_agent": "Hermes",
 }
 

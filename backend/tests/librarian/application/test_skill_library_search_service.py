@@ -52,7 +52,7 @@ def _note(
         title="HTTP Boundary Fake",
         status=status,
         tags=["skill-acquisition", "testing"],
-        project="alexandria-hermes",
+        project="heterarchy-alexandria",
         source="skill_acquisition",
         content_hash="hash",
         frontmatter={
@@ -93,7 +93,7 @@ def test_skill_library_search_returns_sufficient_active_skill() -> None:
             SkillCapabilityBrief(
                 capability="HTTP boundary fake",
                 task_goal="Replace brittle HTTP tests",
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
                 required_tools=["pytest"],
                 risk_tolerance=RiskLevel.MEDIUM,
             )
@@ -165,7 +165,7 @@ def test_skill_library_search_returns_sufficient_active_skill() -> None:
     )
     query, refresh = queries[0]
     assert query.alexandria_type is AlexandriaNoteType.SKILL
-    assert query.project == "alexandria-hermes"
+    assert query.project == "heterarchy-alexandria"
     assert refresh is True
 
 
@@ -177,7 +177,7 @@ def test_skill_library_search_marks_draft_skill_partial() -> None:
         return await SkillLibrarySearchService(backend).search_first(
             SkillCapabilityBrief(
                 capability="HTTP boundary fake",
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
                 required_tools=["pytest"],
             )
         )
@@ -220,7 +220,7 @@ def test_skill_library_search_rediscovers_completed_draft_skill_for_reuse_handof
             SkillCapabilityBrief(
                 capability="HTTP boundary fake",
                 task_goal="Replace brittle HTTP tests",
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
                 required_tools=["pytest"],
             )
         )

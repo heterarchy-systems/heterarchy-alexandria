@@ -11,7 +11,7 @@
 - README
 - 기존 개발 문서
 
-OMX-agent-adapter의 Ruff, Pyrefly 명령을 Alexandria-Hermes에 자동 복사하지 않는다.
+OMX-agent-adapter의 Ruff, Pyrefly 명령을 heterarchy-alexandria에 자동 복사하지 않는다.
 
 ## 품질 게이트
 

@@ -71,7 +71,7 @@ def _match(
         summary="summary",
         content=content,
         content_format=ContextContentFormat.MARKDOWN,
-        project="alexandria-hermes",
+        project="heterarchy-alexandria",
         scope=scope,
         workspace_id="workspace-1",
         agent_id="agent-1" if scope is ContextScope.AGENT else None,

@@ -90,7 +90,7 @@ def _command(prompt: str) -> HermesLibrarianAskCommand:
     return HermesLibrarianAskCommand(
         prompt=prompt,
         agent_name="Hermes",
-        project="alexandria-hermes",
+        project="heterarchy-alexandria",
         task_summary=None,
         delegate_to_librarian=True,
         provider_id=None,

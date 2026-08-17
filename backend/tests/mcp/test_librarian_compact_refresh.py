@@ -35,7 +35,7 @@ def _readiness_summary() -> ReadinessSummaryPayload:
         ),
         current_memory_compact=CurrentCompactPayload(
             id="compact-old",
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
             status="CURRENT",
             updated_at="2000-01-01T00:00:00Z",
             age_days=9_000,
@@ -49,7 +49,7 @@ def _readiness_summary() -> ReadinessSummaryPayload:
 def test_refresh_compact_payload_links_all_source_refs_in_evidence_summary() -> None:
     """Refresh drafts should satisfy Memory Compact source-ref evidence review."""
     draft = refresh_compact_payload(
-        project="alexandria-hermes",
+        project="heterarchy-alexandria",
         readiness=_readiness_summary(),
         covered_to="2026-07-15T00:00:00Z",
     )
@@ -72,7 +72,7 @@ def test_refresh_compact_payload_passes_memory_compact_current_review_gate(
 
     async def scenario() -> tuple[str, str, int | None, int | None]:
         draft = refresh_compact_payload(
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
             readiness=_readiness_summary(),
             covered_to="2026-07-15T00:00:00Z",
         )

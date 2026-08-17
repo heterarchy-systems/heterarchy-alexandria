@@ -1,15 +1,15 @@
 # Alexandria Librarian Obsidian Plugin
 
-Minimal Obsidian community-plugin bridge for the local Alexandria-Hermes backend.
+Minimal Obsidian community-plugin bridge for the local heterarchy-alexandria backend.
 
 ## Install locally
 
-1. Run the Alexandria-Hermes backend on `http://127.0.0.1:8000`.
+1. Run the heterarchy-alexandria backend on `http://127.0.0.1:8000`.
 2. Install this folder into your vault with the CLI:
 
    ```bash
    cd backend
-   uv run alexandria-hermes obsidian install-local \
+   uv run heterarchy-alexandria obsidian install-local \
      --vault-path "<vault>" \
      --plugin-install-mode copy
    ```
@@ -58,7 +58,7 @@ instead of your real Obsidian vault:
 
    ```bash
    cd backend
-   uv run alexandria-hermes librarian bootstrap-obsidian-oauth --provider-name codex-oauth
+   uv run heterarchy-alexandria librarian bootstrap-obsidian-oauth --provider-name codex-oauth
    ```
 
 4. In the Alexandria Librarian pane, use **Start OAuth login**. The plugin opens the provider verification page and shows the user code.

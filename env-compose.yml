@@ -1,6 +1,6 @@
 services:
   alexandria-app-base:
-    image: alexandria-hermes-app:local
+    image: heterarchy-alexandria-app:local
     build:
       context: ./backend
       dockerfile: Dockerfile

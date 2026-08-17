@@ -168,14 +168,14 @@ def test_librarian_workflow_pauses_then_resumes_approved_writes(
                     body="# Storage Source\n\nObsidian is canonical storage.",
                     alexandria_type=AlexandriaNoteType.CONTEXT,
                     note_id="ctx_storage_source",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     frontmatter={"scope": "PROJECT"},
                 )
             )
             workflow = await workflow_service.start_workflow(
                 ObsidianLibrarianAsk(
                     query="canonical storage",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     delegate_to_librarian=True,
                     provider_id="codex-oauth",
                     profile_id="research-critic",
@@ -228,7 +228,7 @@ def test_librarian_workflow_applies_approved_graph_links_to_active_note(
                     body="# Storage Source\n\nCanonical storage source.",
                     alexandria_type=AlexandriaNoteType.CONTEXT,
                     note_id="ctx_storage_source",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     frontmatter={"scope": "PROJECT"},
                 )
             )
@@ -238,7 +238,7 @@ def test_librarian_workflow_applies_approved_graph_links_to_active_note(
                     body="# Active Work Note\n\nNeeds linked evidence.",
                     alexandria_type=AlexandriaNoteType.CONTEXT,
                     note_id="ctx_active_work_note",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     frontmatter={"scope": "PROJECT"},
                 )
             )
@@ -246,7 +246,7 @@ def test_librarian_workflow_applies_approved_graph_links_to_active_note(
                 ObsidianLibrarianAsk(
                     query="canonical storage source",
                     active_note_path=active.relative_path,
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                 )
             )
             resumed = await workflow_service.resume_workflow(

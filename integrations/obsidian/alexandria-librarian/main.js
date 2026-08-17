@@ -16,7 +16,7 @@ const DEFAULT_SETTINGS = {
   operatorApiKey: "",
   backendVaultPath: "",
   backendAlexandriaRoot: ".",
-  defaultProject: "alexandria-hermes",
+  defaultProject: "heterarchy-alexandria",
   autoSaveTranscripts: false,
   preferredProviderId: "",
   preferredProfileId: "",
@@ -1079,7 +1079,7 @@ class AlexandriaLibrarianSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Alexandria API URL")
-      .setDesc("Local Alexandria-Hermes backend URL.")
+      .setDesc("Local heterarchy-alexandria backend URL.")
       .addText((text) =>
         text
           .setPlaceholder(DEFAULT_SETTINGS.apiUrl)

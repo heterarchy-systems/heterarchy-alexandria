@@ -55,7 +55,7 @@ class Database:
         self._create_schema = create_schema
         self._dialect_name = make_url(database_url).get_backend_name()
         if self._dialect_name != "postgresql":
-            raise ValueError("Alexandria-Hermes runtime supports PostgreSQL only")
+            raise ValueError("heterarchy-alexandria runtime supports PostgreSQL only")
         if create_schema:
             # Test-only coordinators must not retain asyncpg connections across
             # independent event loops used by sync TestClient/anyio boundaries.
@@ -132,7 +132,7 @@ class Database:
         """Return true for the only supported runtime backend.
 
         Returns:
-            True because Alexandria-Hermes runtime persistence is PostgreSQL-only.
+            True because heterarchy-alexandria runtime persistence is PostgreSQL-only.
         """
         return True
 

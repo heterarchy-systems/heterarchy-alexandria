@@ -55,7 +55,7 @@ def test_legacy_index_error_repair_is_hash_locked_and_backup_first(
                 "alexandria_type: context\n"
                 "title: Legacy Saved\n"
                 "scope: PROJECT\n"
-                "project: alexandria-hermes\n"
+                "project: heterarchy-alexandria\n"
                 "status: saved\n"
                 "---\n\n# Legacy Saved\n",
             ),
@@ -66,20 +66,20 @@ def test_legacy_index_error_repair_is_hash_locked_and_backup_first(
                 "alexandria_type: context\n"
                 "title: Legacy Index\n"
                 "scope: project-sources\n"
-                "project: alexandria-hermes\n"
+                "project: heterarchy-alexandria\n"
                 "status: active\n"
                 "---\n\n# Legacy Index\n",
             ),
             (
-                "Alexandria/Contexts/Projects/alexandria-hermes/"
+                "Alexandria/Contexts/Projects/heterarchy-alexandria/"
                 "Implementation History/Legacy History.md"
             ): _write(
-                root / "Contexts/Projects/alexandria-hermes/"
+                root / "Contexts/Projects/heterarchy-alexandria/"
                 "Implementation History/Legacy History.md",
                 "---\n"
                 "alexandria_type: implementation_history\n"
                 "title: Legacy History\n"
-                "project: alexandria-hermes\n"
+                "project: heterarchy-alexandria\n"
                 "status: active\n"
                 "---\n\n# Legacy History\n",
             ),
@@ -133,7 +133,7 @@ def test_legacy_index_error_repair_is_hash_locked_and_backup_first(
                     vault / "Alexandria/Contexts/Projects/00 Legacy Index.md"
                 ).read_text(encoding="utf-8"),
                 "history": (
-                    vault / "Alexandria/Contexts/Projects/alexandria-hermes/"
+                    vault / "Alexandria/Contexts/Projects/heterarchy-alexandria/"
                     "Implementation History/Legacy History.md"
                 ).read_text(encoding="utf-8"),
             }

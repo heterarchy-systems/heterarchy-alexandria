@@ -1,4 +1,4 @@
-# Alexandria-Hermes 설치
+# heterarchy-alexandria 설치
 
 프론트엔드 런타임은 제거되었습니다. 이제 backend/CLI/MCP 서비스와 Obsidian Markdown vault를 연결합니다.
 
@@ -9,9 +9,9 @@
 ```bash
 cd backend
 uv sync
-uv run alexandria-hermes setup --mode backend-daemon --apply --write-guidebook --run-migrations
-uv run alexandria-hermes serve \
-  --env-file "$HOME/.hermes/alexandria-hermes/.env" \
+uv run heterarchy-alexandria setup --mode backend-daemon --apply --write-guidebook --run-migrations
+uv run heterarchy-alexandria serve \
+  --env-file "$HOME/.hermes/heterarchy-alexandria/.env" \
   --host 127.0.0.1 \
   --port 8000
 ```
@@ -20,14 +20,14 @@ uv run alexandria-hermes serve \
 
 ```bash
 cd backend
-uv run alexandria-hermes obsidian init
-uv run alexandria-hermes obsidian reindex
+uv run heterarchy-alexandria obsidian init
+uv run heterarchy-alexandria obsidian reindex
 ```
 
 Obsidian에서 다음 vault를 엽니다.
 
 ```text
-~/.hermes/alexandria-hermes/data/obsidian-vault
+~/.hermes/heterarchy-alexandria/data/obsidian-vault
 ```
 
 ## 이미 만든 `Alexandria` vault에 붙이기
@@ -37,7 +37,7 @@ Obsidian에서 이미 `~/Desktop/Alexandria` vault를 만들었다면 이렇게 
 ```bash
 cd backend
 uv sync
-uv run alexandria-hermes setup \
+uv run heterarchy-alexandria setup \
   --mode backend-daemon \
   --apply \
   --write-guidebook \
@@ -51,8 +51,8 @@ uv run alexandria-hermes setup \
 그 다음 생성된 env 파일로 backend를 실행합니다.
 
 ```bash
-uv run alexandria-hermes serve \
-  --env-file "$HOME/.hermes/alexandria-hermes/.env" \
+uv run heterarchy-alexandria serve \
+  --env-file "$HOME/.hermes/heterarchy-alexandria/.env" \
   --host 127.0.0.1 \
   --port 8000
 ```
@@ -63,7 +63,7 @@ uv run alexandria-hermes serve \
 ```bash
 brew install --cask obsidian
 cd backend
-uv run alexandria-hermes obsidian install-local \
+uv run heterarchy-alexandria obsidian install-local \
   --vault-path "$HOME/Desktop/Alexandria" \
   --plugin-install-mode copy
 ```

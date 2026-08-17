@@ -59,7 +59,7 @@ def _compact_body(
     *,
     covered_from: datetime = datetime(2026, 5, 1, tzinfo=UTC),
     covered_to: datetime = datetime(2026, 5, 10, tzinfo=UTC),
-    project: str = "alexandria-hermes",
+    project: str = "heterarchy-alexandria",
 ) -> str:
     return f"""## Durable Decisions
 - Keep this compact as the current project summary.
@@ -85,7 +85,7 @@ def _compact_body(
 
 def _create(status: MemoryCompactStatus) -> MemoryCompactCreate:
     return MemoryCompactCreate(
-        project="alexandria-hermes",
+        project="heterarchy-alexandria",
         covered_from=datetime(2026, 5, 1, tzinfo=UTC),
         covered_to=datetime(2026, 5, 10, tzinfo=UTC),
         markdown_body=_compact_body(),
@@ -180,9 +180,9 @@ def test_memory_compact_service_supersedes_previous_current_when_new_current_cre
                 source_refs=[_source_ref("ctx-2")],
             )
         )
-        current = await service.current(project="alexandria-hermes")
+        current = await service.current(project="heterarchy-alexandria")
         previous = await service.get(first.id)
-        listed, total = await service.list_compacts(project="alexandria-hermes")
+        listed, total = await service.list_compacts(project="heterarchy-alexandria")
 
         assert total == 2
         assert current.id == second.id
@@ -222,7 +222,7 @@ def test_memory_compact_current_supersede_is_isolated_by_project(
         )
         await service.create(
             MemoryCompactCreate(
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
                 covered_from=datetime(2026, 5, 11, tzinfo=UTC),
                 covered_to=datetime(2026, 5, 15, tzinfo=UTC),
                 markdown_body=_compact_body(
@@ -275,7 +275,7 @@ def test_memory_compact_service_reuses_existing_compact_for_same_signature(
     async def scenario() -> tuple[str, str, int, int, str]:
         service = _service(tmp_path / "vault")
         payload = MemoryCompactCreate(
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
             covered_from=datetime(2026, 5, 1, tzinfo=UTC),
             covered_to=datetime(2026, 5, 10, tzinfo=UTC),
             markdown_body=_compact_body(),
@@ -293,8 +293,8 @@ def test_memory_compact_service_reuses_existing_compact_for_same_signature(
                 source_refs=[_source_ref("ctx-a"), _source_ref("ctx-b")],
             )
         )
-        _listed, total = await service.list_compacts(project="alexandria-hermes")
-        current = await service.current(project="alexandria-hermes")
+        _listed, total = await service.list_compacts(project="heterarchy-alexandria")
+        current = await service.current(project="heterarchy-alexandria")
         note_paths = list(
             (tmp_path / "vault" / "Alexandria" / "Memory Compacts").rglob("*.md")
         )
@@ -319,7 +319,7 @@ def test_memory_compact_service_rejects_blank_source_ref_fields(
         with pytest.raises(MemoryCompactValidationError, match="source ref"):
             await service.create(
                 MemoryCompactCreate(
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     covered_from=datetime(2026, 5, 1, tzinfo=UTC),
                     covered_to=datetime(2026, 5, 10, tzinfo=UTC),
                     markdown_body=_compact_body(),
@@ -356,7 +356,7 @@ def test_memory_compact_service_deduplicates_source_refs_by_stable_key(
 
         compact = await service.create(
             MemoryCompactCreate(
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
                 covered_from=datetime(2026, 5, 1, tzinfo=UTC),
                 covered_to=datetime(2026, 5, 10, tzinfo=UTC),
                 markdown_body=_compact_body(),
@@ -383,7 +383,7 @@ def test_memory_compact_service_preserves_source_hash_evidence(
         service = _service(tmp_path / "vault")
         compact = await service.create(
             MemoryCompactCreate(
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
                 covered_from=datetime(2026, 5, 1, tzinfo=UTC),
                 covered_to=datetime(2026, 5, 10, tzinfo=UTC),
                 markdown_body=_compact_body(),
@@ -442,7 +442,7 @@ def test_memory_compact_service_review_blocks_stale_source_hash(
         service = _service(tmp_path / "vault")
         compact = await service.create(
             MemoryCompactCreate(
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
                 covered_from=datetime(2026, 5, 1, tzinfo=UTC),
                 covered_to=datetime(2026, 5, 10, tzinfo=UTC),
                 markdown_body=_compact_body(),
@@ -488,7 +488,7 @@ def test_memory_compact_service_create_current_requires_evidence_summary_ref_lin
         with pytest.raises(MemoryCompactValidationError) as exc_info:
             await service.create(
                 MemoryCompactCreate(
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     covered_from=datetime(2026, 5, 1, tzinfo=UTC),
                     covered_to=datetime(2026, 5, 10, tzinfo=UTC),
                     markdown_body=body,
@@ -516,7 +516,7 @@ def test_memory_compact_service_create_current_requires_passing_review(
         with pytest.raises(MemoryCompactValidationError) as exc_info:
             await service.create(
                 MemoryCompactCreate(
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     covered_from=datetime(2026, 5, 1, tzinfo=UTC),
                     covered_to=datetime(2026, 5, 10, tzinfo=UTC),
                     markdown_body=_compact_body(),
@@ -549,7 +549,7 @@ def test_memory_compact_service_mark_current_requires_passing_review(
         service = _service(tmp_path / "vault")
         draft = await service.create(
             MemoryCompactCreate(
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
                 covered_from=datetime(2026, 5, 1, tzinfo=UTC),
                 covered_to=datetime(2026, 5, 10, tzinfo=UTC),
                 markdown_body=_compact_body(),
@@ -585,7 +585,7 @@ def test_current_memory_compact_requires_quality_sections(tmp_path: Path) -> Non
         with pytest.raises(MemoryCompactValidationError) as exc_info:
             await service.create(
                 MemoryCompactCreate(
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     covered_from=datetime(2026, 5, 1, tzinfo=UTC),
                     covered_to=datetime(2026, 5, 10, tzinfo=UTC),
                     markdown_body="## Current State\n- Too thin.",
@@ -612,7 +612,7 @@ def test_current_memory_compact_requires_source_refs(tmp_path: Path) -> None:
         with pytest.raises(MemoryCompactValidationError, match="source refs"):
             await service.create(
                 MemoryCompactCreate(
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     covered_from=datetime(2026, 5, 1, tzinfo=UTC),
                     covered_to=datetime(2026, 5, 10, tzinfo=UTC),
                     markdown_body=_compact_body(),
@@ -638,7 +638,7 @@ def test_memory_compact_service_lists_legacy_obsidian_notes(
 alexandria_type: memory_compact
 title: Legacy Compact
 id: legacy-compact
-project: alexandria-hermes
+project: heterarchy-alexandria
 status: current
 created: 2026-05-28
 tags:
@@ -652,8 +652,8 @@ Durable legacy summary.
         )
 
         service = _service(vault)
-        current = await service.current(project="alexandria-hermes")
-        listed, total = await service.list_compacts(project="alexandria-hermes")
+        current = await service.current(project="heterarchy-alexandria")
+        listed, total = await service.list_compacts(project="heterarchy-alexandria")
 
         assert total == 1
         assert listed == [current]
@@ -679,7 +679,7 @@ def test_memory_compact_service_deduplicates_same_id_lifecycle_notes(
             """---
 alexandria_type: memory_compact
 id: duplicate-compact
-project: alexandria-hermes
+project: heterarchy-alexandria
 status: CURRENT
 created_at: 2026-07-15T00:00:00Z
 updated_at: 2026-07-15T01:00:00Z
@@ -696,7 +696,7 @@ Old current copy.
             """---
 alexandria_type: memory_compact
 id: duplicate-compact
-project: alexandria-hermes
+project: heterarchy-alexandria
 status: ARCHIVED
 created_at: 2026-07-15T00:00:00Z
 updated_at: 2026-07-15T02:00:00Z
@@ -713,7 +713,7 @@ Archived lifecycle copy.
         service = _service(vault)
         current = await service.create(
             MemoryCompactCreate(
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
                 covered_from=datetime(2026, 7, 16, tzinfo=UTC),
                 covered_to=datetime(2026, 7, 16, 1, tzinfo=UTC),
                 markdown_body=_compact_body(
@@ -726,7 +726,7 @@ Archived lifecycle copy.
         )
 
         duplicate = await service.get("duplicate-compact")
-        listed, total = await service.list_compacts(project="alexandria-hermes")
+        listed, total = await service.list_compacts(project="heterarchy-alexandria")
 
         assert duplicate.status is MemoryCompactStatus.ARCHIVED
         return total, [(item.id, item.status) for item in listed], current.id

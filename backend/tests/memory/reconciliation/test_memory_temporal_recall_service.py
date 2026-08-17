@@ -97,7 +97,7 @@ def _context(
         summary=context_id,
         content=f"Memory content for {context_id}.",
         content_format=ContextContentFormat.MARKDOWN,
-        project="Alexandria-Hermes",
+        project="heterarchy-alexandria",
         scope=ContextScope.PROJECT,
         workspace_id=None,
         agent_id=None,
@@ -226,7 +226,7 @@ def test_temporal_recall_separates_current_historical_and_all_modes(
                         query="storage decision",
                         mode=MemoryTemporalRecallMode.CURRENT,
                         limit=5,
-                        project="Alexandria-Hermes",
+                        project="heterarchy-alexandria",
                         include_scopes=(ContextScope.PROJECT,),
                     )
                 )

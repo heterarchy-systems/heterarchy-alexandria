@@ -137,7 +137,7 @@ def _projection() -> ObsidianGraphProjection:
                 alexandria_type=AlexandriaNoteType.CONTEXT,
                 title="Note A",
                 status="active",
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
             ),
         ),
         edges=(
@@ -305,7 +305,7 @@ def test_adapter_snapshot_maps_typed_nodes_and_edges_in_stable_order() -> None:
                     "alexandria_type": "context",
                     "title": "Note A",
                     "status": "active",
-                    "project": "alexandria-hermes",
+                    "project": "heterarchy-alexandria",
                 }
             ],
             READ_EDGES: [

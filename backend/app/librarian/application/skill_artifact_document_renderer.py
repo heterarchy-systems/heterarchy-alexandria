@@ -18,7 +18,7 @@ from app.shared.types.extra_types import JSONObject
 
 
 def _skill_note_id(job_id: str) -> str:
-    return str(uuid5(NAMESPACE_URL, f"alexandria-hermes:skill:{job_id}"))
+    return str(uuid5(NAMESPACE_URL, f"heterarchy-alexandria:skill:{job_id}"))
 
 
 def _skill_tags(artifact: SkillAcquisitionArtifact) -> list[str]:

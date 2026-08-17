@@ -2,7 +2,7 @@
 
 ## 목적
 
-사서(librarian)가 없거나 쓰지 않는 상황에서도 Hermes가 Alexandria-Hermes를 활용해 reusable asset 후보를 만들 수 있게 한다.
+사서(librarian)가 없거나 쓰지 않는 상황에서도 Hermes가 heterarchy-alexandria를 활용해 reusable asset 후보를 만들 수 있게 한다.
 
 ## 기본 흐름
 
@@ -19,7 +19,7 @@ local Hermes skill 확인
 ## 테스트 프롬프트 예
 
 ```text
-이제 사서 없이 Alexandria-Hermes self-acquisition 테스트를 진행하세요.
+이제 사서 없이 heterarchy-alexandria self-acquisition 테스트를 진행하세요.
 
 주제:
 pytest fixture cleanup strategy

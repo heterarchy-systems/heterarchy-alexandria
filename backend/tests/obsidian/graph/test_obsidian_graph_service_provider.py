@@ -58,7 +58,7 @@ def _note(note_id: str) -> ObsidianNote:
         title=note_id,
         status="active",
         tags=(),
-        project="alexandria-hermes",
+        project="heterarchy-alexandria",
         source=None,
         content_hash=note_id,
         frontmatter={},
@@ -85,7 +85,7 @@ async def _active_graph() -> FakeObsidianGraphProjectionRepository:
                     alexandria_type=AlexandriaNoteType.CONTEXT,
                     title=note_id,
                     status="active",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                 )
                 for note_id in ("source", "target")
             ),

@@ -2,7 +2,7 @@
 
 ## Scope
 
-This record closes the Alexandria-Hermes Agent Scope Memory PRD implementation
+This record closes the heterarchy-alexandria Agent Scope Memory PRD implementation
 for `SESSION`, `AGENT`, and `PROJECT` Contexts. Platform orchestration, RBAC,
 automatic promotion, and other PRD non-goals remain outside this work.
 

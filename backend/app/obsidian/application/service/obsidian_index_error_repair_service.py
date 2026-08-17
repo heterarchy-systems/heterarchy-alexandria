@@ -162,10 +162,8 @@ class ObsidianIndexErrorRepairService:
             raise ObsidianValidationError("index error repair plan changed")
         config = self._vault_config_store.current()
         run_id = conversation_id()
-        operation_root = f".alexandria-hermes/index-error-repair/backups/{run_id}"
-        report_stem = (
-            f".alexandria-hermes/index-error-repair/reports/index-error-repair-{run_id}"
-        )
+        operation_root = f".heterarchy-alexandria/index-error-repair/backups/{run_id}"
+        report_stem = f".heterarchy-alexandria/index-error-repair/reports/index-error-repair-{run_id}"
         markdown_report = f"{report_stem}.md.txt"
         json_report = f"{report_stem}.json"
         originals = _preflight_paths(

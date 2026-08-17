@@ -2,7 +2,7 @@
 
 ## 한 줄 요약
 
-Alexandria-Hermes는 로그인/RBAC SaaS가 아니라 **local-first single-operator** 도구다. 외부 공개 전에 반드시 별도 access boundary를 둔다.
+heterarchy-alexandria는 로그인/RBAC SaaS가 아니라 **local-first single-operator** 도구다. 외부 공개 전에 반드시 별도 access boundary를 둔다.
 
 ## 인증 모델
 
@@ -50,8 +50,8 @@ Alexandria-Hermes는 로그인/RBAC SaaS가 아니라 **local-first single-opera
 ## 점검 명령
 
 ```bash
-alexandria-hermes context doctor-rag
-alexandria-hermes hermes policy status --hermes-home "$HOME/.hermes"
+heterarchy-alexandria context doctor-rag
+heterarchy-heterarchy-alexandria policy status --hermes-home "$HOME/.hermes"
 ```
 
 operator key 값 자체는 출력하지 않는다. presence, command success, 401 여부로만 확인한다.

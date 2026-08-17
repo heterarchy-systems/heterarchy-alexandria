@@ -1,6 +1,6 @@
-# Alexandria-Hermes Usage Guidebook
+# heterarchy-alexandria Usage Guidebook
 
-이 폴더는 처음 사용하는 사람이 Alexandria-Hermes를 Hermes와 함께 사용하는 방법을 기능별로 익히기 위한 가이드북이다.
+이 폴더는 처음 사용하는 사람이 heterarchy-alexandria를 Hermes와 함께 사용하는 방법을 기능별로 익히기 위한 가이드북이다.
 
 ## 폴더/파일 규칙
 
@@ -70,13 +70,13 @@ local Hermes skill/prompt/context
 기본값은 Alexandria 사용 ON이다. 끄려면:
 
 ```bash
-alexandria-hermes hermes policy disable
+heterarchy-heterarchy-alexandria policy disable
 ```
 
 다시 켜려면:
 
 ```bash
-alexandria-hermes hermes policy enable
+heterarchy-heterarchy-alexandria policy enable
 ```
 
 

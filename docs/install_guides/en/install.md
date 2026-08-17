@@ -1,4 +1,4 @@
-# Install Alexandria-Hermes
+# Install heterarchy-alexandria
 
 The frontend runtime has been removed. Install the backend/CLI/MCP service and connect it to Obsidian Markdown.
 
@@ -9,9 +9,9 @@ Terminal 1:
 ```bash
 cd backend
 uv sync
-uv run alexandria-hermes setup --mode backend-daemon --apply --write-guidebook --run-migrations
-uv run alexandria-hermes serve \
-  --env-file "$HOME/.hermes/alexandria-hermes/.env" \
+uv run heterarchy-alexandria setup --mode backend-daemon --apply --write-guidebook --run-migrations
+uv run heterarchy-alexandria serve \
+  --env-file "$HOME/.hermes/heterarchy-alexandria/.env" \
   --host 127.0.0.1 \
   --port 8000
 ```
@@ -20,18 +20,18 @@ Terminal 2:
 
 ```bash
 cd backend
-uv run alexandria-hermes obsidian init
-uv run alexandria-hermes obsidian reindex
+uv run heterarchy-alexandria obsidian init
+uv run heterarchy-alexandria obsidian reindex
 ```
 
-Open `~/.hermes/alexandria-hermes/data/obsidian-vault` in Obsidian.
+Open `~/.hermes/heterarchy-alexandria/data/obsidian-vault` in Obsidian.
 
 ## Existing vault named Alexandria
 
 ```bash
 cd backend
 uv sync
-uv run alexandria-hermes setup \
+uv run heterarchy-alexandria setup \
   --mode backend-daemon \
   --apply \
   --write-guidebook \
@@ -45,8 +45,8 @@ Use root `.` when the vault itself is the Alexandria workspace; this avoids `Ale
 Then start the backend with the generated env file:
 
 ```bash
-uv run alexandria-hermes serve \
-  --env-file "$HOME/.hermes/alexandria-hermes/.env" \
+uv run heterarchy-alexandria serve \
+  --env-file "$HOME/.hermes/heterarchy-alexandria/.env" \
   --host 127.0.0.1 \
   --port 8000
 ```
@@ -56,7 +56,7 @@ uv run alexandria-hermes serve \
 ```bash
 brew install --cask obsidian
 cd backend
-uv run alexandria-hermes obsidian install-local \
+uv run heterarchy-alexandria obsidian install-local \
   --vault-path "$HOME/Desktop/Alexandria" \
   --plugin-install-mode copy
 ```

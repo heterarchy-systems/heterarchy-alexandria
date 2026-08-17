@@ -7,7 +7,7 @@ BACKEND_DIR="$REPO_ROOT/backend"
 PYTHON_BIN="$BACKEND_DIR/.venv/bin/python"
 
 if [ ! -x "$PYTHON_BIN" ]; then
-  echo "alexandria-hermes: backend virtualenv not found. Run: cd $BACKEND_DIR && uv sync" >&2
+  echo "heterarchy-alexandria: backend virtualenv not found. Run: cd $BACKEND_DIR && uv sync" >&2
   exit 127
 fi
 

@@ -2,19 +2,19 @@
 
 ## 목적
 
-Alexandria-Hermes onboarding 산출물과 Hermes runtime MCP 등록의 차이를 이해한다.
+heterarchy-alexandria onboarding 산출물과 Hermes runtime MCP 등록의 차이를 이해한다.
 
 ## 두 파일/설정의 역할
 
 ### 1. onboarding snippet
 
 ```text
-~/.hermes/alexandria-hermes/mcp-config.json
+~/.hermes/heterarchy-alexandria/mcp-config.json
 ```
 
 역할:
 
-- Alexandria-Hermes가 생성하는 참고용 MCP server snippet
+- heterarchy-alexandria가 생성하는 참고용 MCP server snippet
 - 설치 산출물 확인용
 - 이것만으로 Hermes runtime tool discovery가 끝나는 것은 아님
 
@@ -32,7 +32,7 @@ Alexandria-Hermes onboarding 산출물과 Hermes runtime MCP 등록의 차이를
 ## 등록 예
 
 ```bash
-ALEXANDRIA_CLI="$(command -v alexandria-hermes)"
+ALEXANDRIA_CLI="$(command -v heterarchy-alexandria)"
 hermes mcp add alexandria   --command "$ALEXANDRIA_CLI"   --args mcp serve   --env ALEXANDRIA_API_URL="http://localhost:8000"   --env ALEXANDRIA_OPERATOR_API_KEY="${ALEXANDRIA_OPERATOR_API_KEY:-}"   --env HERMES_HOME="$HOME/.hermes"
 ```
 

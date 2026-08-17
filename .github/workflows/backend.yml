@@ -45,7 +45,7 @@ jobs:
 
       - name: Sync backend dependencies
         working-directory: backend
-        run: uv sync --group dev --reinstall-package alexandria-hermes
+        run: uv sync --group dev --reinstall-package heterarchy-alexandria
 
       - name: Run backend parity gate
         working-directory: backend

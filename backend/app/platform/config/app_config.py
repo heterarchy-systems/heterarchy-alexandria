@@ -56,7 +56,7 @@ class AppConfig(BaseSettings):
         "populate_by_name": True,
     }
 
-    app_name: str = Field(default="alexandria-hermes")
+    app_name: str = Field(default="heterarchy-alexandria")
     app_env: Literal["local", "stage", "prod"] = Field(default="local")
     app_version: str = Field(default="0.1.0")
     app_log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"

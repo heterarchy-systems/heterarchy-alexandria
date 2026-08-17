@@ -119,7 +119,7 @@ def _projection_snapshot() -> ObsidianGraphProjectionSourceSnapshot:
         alexandria_type=AlexandriaNoteType.CONTEXT,
         title="A",
         status="active",
-        project="alexandria-hermes",
+        project="heterarchy-alexandria",
     )
     node_b = ObsidianGraphProjectionNode(
         note_id="note-b",
@@ -127,7 +127,7 @@ def _projection_snapshot() -> ObsidianGraphProjectionSourceSnapshot:
         alexandria_type=AlexandriaNoteType.CONTEXT,
         title="B",
         status="active",
-        project="alexandria-hermes",
+        project="heterarchy-alexandria",
     )
     edge = ObsidianGraphProjectionEdge(
         edge_id="edge-a-b",

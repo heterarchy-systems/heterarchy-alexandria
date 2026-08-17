@@ -1,4 +1,4 @@
-"""Backend application entrypoint for Alexandria Hermes."""
+"""Backend application entrypoint for heterarchy-alexandria."""
 
 from __future__ import annotations
 
@@ -242,7 +242,7 @@ def create_app(app_config: AppConfig) -> FastAPI:
 
     docs_url, redoc_url, openapi_url = _docs_urls(app_config.app_env)
     app = FastAPI(
-        title="Alexandria Hermes API",
+        title="heterarchy-alexandria API",
         lifespan=lifespan,
         docs_url=docs_url,
         redoc_url=redoc_url,

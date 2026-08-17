@@ -3,7 +3,7 @@ title: Workflow Approval UI
 status: implemented
 created: 2026-05-26
 updated: 2026-05-26
-owner: alexandria-hermes
+owner: heterarchy-alexandria
 scope: langgraph-ui
 ---
 

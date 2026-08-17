@@ -16,7 +16,7 @@ source: codex
 
 ## 목표
 
-Alexandria-Hermes를 단순 Obsidian 검색/사서 답변에서 한 단계 확장한다.
+heterarchy-alexandria를 단순 Obsidian 검색/사서 답변에서 한 단계 확장한다.
 Obsidian은 계속 **장기기억 원본**이고, SQLite는 **검색/관계 index**, LangGraph는 **사서 작업 흐름 상태머신**으로 사용한다.
 
 ```text
@@ -25,7 +25,7 @@ Obsidian Graph = human-facing link/backlink view
 SQLite = rebuildable search/index/edge cache
 LangGraph = librarian workflow/checkpoint/human-in-the-loop engine
 OAuth provider = optional external librarian delegate
-Alexandria-Hermes = backend/CLI/MCP/plugin bridge
+heterarchy-alexandria = backend/CLI/MCP/plugin bridge
 ```
 
 ## 핵심 결정

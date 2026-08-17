@@ -2,8 +2,8 @@
 
 ## 목적
 
-Skill/prompt 자산은 더 이상 Alexandria-Hermes SQLite CRUD로 저장하지 않는다.
-기본 보관 위치는 로컬 Markdown 또는 Obsidian vault이며, Alexandria-Hermes는 agent가 필요한 배경 기억을 찾고 librarian/skill-acquisition job을 연결하는 역할을 맡는다.
+Skill/prompt 자산은 더 이상 heterarchy-alexandria SQLite CRUD로 저장하지 않는다.
+기본 보관 위치는 로컬 Markdown 또는 Obsidian vault이며, heterarchy-alexandria는 agent가 필요한 배경 기억을 찾고 librarian/skill-acquisition job을 연결하는 역할을 맡는다.
 
 ## 조회 순서
 
@@ -15,5 +15,5 @@ Skill/prompt 자산은 더 이상 Alexandria-Hermes SQLite CRUD로 저장하지 
 ## 저장 원칙
 
 - 재사용 가능한 skill/prompt는 Markdown 파일로 저장한다.
-- Alexandria-Hermes backend에는 SQLite skill/prompt CRUD로 등록하지 않는다.
+- heterarchy-alexandria backend에는 SQLite skill/prompt CRUD로 등록하지 않는다.
 - skill-acquisition job 완료 시에는 resume context id와 evidence를 남겨 다음 agent가 이어서 사용할 수 있게 한다.

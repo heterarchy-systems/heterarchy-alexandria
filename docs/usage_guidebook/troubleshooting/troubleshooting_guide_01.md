@@ -17,7 +17,7 @@ health not ok
 ### 확인
 
 ```bash
-alexandria-hermes --base-url http://localhost:8000 --json health
+heterarchy-alexandria --base-url http://localhost:8000 --json health
 curl http://localhost:8000/health/ready
 ```
 
@@ -35,8 +35,8 @@ uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ### 확인
 
 ```bash
-alexandria-hermes context recall "your query" --strategy FTS_ONLY --limit 5
-alexandria-hermes context recall "your query" --strategy FTS_ONLY --project <project> --limit 5
+heterarchy-alexandria context recall "your query" --strategy FTS_ONLY --limit 5
+heterarchy-alexandria context recall "your query" --strategy FTS_ONLY --project <project> --limit 5
 ```
 
 ### 조치
@@ -50,7 +50,7 @@ alexandria-hermes context recall "your query" --strategy FTS_ONLY --project <pro
 ### 확인
 
 ```bash
-alexandria-hermes context doctor-rag
+heterarchy-alexandria context doctor-rag
 ```
 
 ### 조치
@@ -63,7 +63,7 @@ alexandria-hermes context doctor-rag
 
 ### 원인
 
-`~/.hermes/alexandria-hermes/mcp-config.json`은 snippet이다. 실제 Hermes runtime은 `~/.hermes/config.yaml`의 `mcp_servers.alexandria`를 읽는다.
+`~/.hermes/heterarchy-alexandria/mcp-config.json`은 snippet이다. 실제 Hermes runtime은 `~/.hermes/config.yaml`의 `mcp_servers.alexandria`를 읽는다.
 
 ### 확인
 
@@ -75,7 +75,7 @@ hermes mcp test alexandria
 ### 조치
 
 ```bash
-ALEXANDRIA_CLI="$(command -v alexandria-hermes)"
+ALEXANDRIA_CLI="$(command -v heterarchy-alexandria)"
 hermes mcp add alexandria \
   --command "$ALEXANDRIA_CLI" \
   --args mcp serve \

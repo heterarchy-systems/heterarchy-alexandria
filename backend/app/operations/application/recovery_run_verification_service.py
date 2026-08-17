@@ -24,7 +24,7 @@ from app.shared.types.extra_types import JSONObject
 _REPRESENTATIVE_QUERY = "운영 안정성 자동 복구 루프"
 _REPRESENTATIVE_NOTE_ID = "prd_operational_readiness_recovery_v0_1"
 _REPRESENTATIVE_PATH_SUFFIX = (
-    "Contexts/Projects/alexandria-hermes/dev-size/PRD/"
+    "Contexts/Projects/heterarchy-alexandria/dev-size/PRD/"
     "PRD - 운영 안정성 및 자동 복구 루프.md"
 )
 

@@ -10,7 +10,7 @@ from app.obsidian.domain.contracts.obsidian_contracts import (
 )
 from app.obsidian.domain.entities.obsidian_note import ObsidianVaultInventoryItem
 from app.obsidian.infrastructure.markdown.paths import (
-    NOTE_SUFFIX,
+    discover_managed_markdown_paths,
     resolve_note_path,
     validate_discovered_note_path,
 )
@@ -18,8 +18,6 @@ from app.obsidian.infrastructure.obsidian_vault_config_store import (
     ObsidianVaultConfigStore,
 )
 from app.shared.exceptions.obsidian_exceptions import ObsidianValidationError
-
-NOTE_SUFFIX_GLOB = f"*{NOTE_SUFFIX}"
 
 
 class ObsidianVaultInventoryService:
@@ -54,7 +52,8 @@ class ObsidianVaultInventoryService:
         if not scope.exists():
             return []
         items: list[ObsidianVaultInventoryItem] = []
-        for discovered in _markdown_paths(scope):
+        managed_root = resolve_note_path(config.vault_path, config.alexandria_root)
+        for discovered in _markdown_paths(scope, managed_root=managed_root):
             path = validate_discovered_note_path(
                 config.vault_path,
                 config.alexandria_root,
@@ -98,7 +97,7 @@ class ObsidianVaultInventoryService:
         if not root.exists():
             return []
         relative_paths: list[str] = []
-        for discovered in _markdown_paths(root):
+        for discovered in _markdown_paths(root, managed_root=root):
             path = validate_discovered_note_path(
                 config.vault_path,
                 config.alexandria_root,
@@ -141,11 +140,8 @@ def _scope_path(
     return resolve_note_path(vault_path, scope)
 
 
-def _markdown_paths(scope: Path) -> list[Path]:
-    discovered = [scope] if scope.is_file() else sorted(scope.rglob(NOTE_SUFFIX_GLOB))
-    return [
-        path for path in discovered if path.is_file() and path.suffix == NOTE_SUFFIX
-    ]
+def _markdown_paths(scope: Path, *, managed_root: Path) -> list[Path]:
+    return discover_managed_markdown_paths(scope, managed_root=managed_root)
 
 
 def _inventory_item_matches(

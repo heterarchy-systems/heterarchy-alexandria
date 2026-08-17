@@ -161,7 +161,7 @@ def create_index_maintenance_coordinator(
     return IndexMaintenanceCoordinator(
         process_lock=PostgresAdvisoryLock(
             database.engine,
-            namespace="alexandria-hermes:index-maintenance",
+            namespace="heterarchy-alexandria:index-maintenance",
         ),
         allow_concurrent_writes=True,
     )

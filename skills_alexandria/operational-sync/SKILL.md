@@ -1,11 +1,11 @@
 ---
 name: operational-sync
-description: Use when Alexandria-Hermes needs operational recovery planning, PostgreSQL/Obsidian index synchronization, queued embedding reindex, Neo4j graph projection rebuild, RAG status repair, or proof that library search and optional graph discovery are healthy.
+description: Use when heterarchy-alexandria needs operational recovery planning, PostgreSQL/Obsidian index synchronization, queued embedding reindex, Neo4j graph projection rebuild, RAG status repair, or proof that library search and optional graph discovery are healthy.
 ---
 
 # Operational Sync
 
-Use this skill to restore Alexandria-Hermes retrieval health without modifying Obsidian Markdown source notes.
+Use this skill to restore heterarchy-alexandria retrieval health without modifying Obsidian Markdown source notes.
 
 ## Invariants
 
@@ -191,7 +191,7 @@ Run a representative HYBRID search:
 ```bash
 curl -sS -X POST http://127.0.0.1:8000/memory/contexts/retrieval/search \
   -H "Content-Type: application/json" \
-  --data '{"query":"운영 안정성 자동 복구 루프","strategy":"HYBRID","limit":3,"project":"alexandria-hermes","include_scopes":["PROJECT"]}' | jq
+  --data '{"query":"운영 안정성 자동 복구 루프","strategy":"HYBRID","limit":3,"project":"heterarchy-alexandria","include_scopes":["PROJECT"]}' | jq
 ```
 
 Expected:

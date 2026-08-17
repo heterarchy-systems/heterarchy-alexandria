@@ -20,7 +20,7 @@ from openai import OpenAI
 from openai.types.responses import ResponseTextDeltaEvent, WebSearchToolParam
 
 CODEX_BASE_URL = "https://chatgpt.com/backend-api/codex"
-CODEX_USER_AGENT = "codex_cli_rs/0.0.0 (Alexandria Hermes)"
+CODEX_USER_AGENT = "codex_cli_rs/0.0.0 (heterarchy-alexandria)"
 CODEX_ORIGINATOR = "codex_cli_rs"
 
 

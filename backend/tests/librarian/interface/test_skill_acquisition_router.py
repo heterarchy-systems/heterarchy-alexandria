@@ -50,7 +50,7 @@ class FakeSkillAcquisitionService:
             id="skill-acquisition-1",
             prompt="Need a browser automation skill",
             agent_name="Hermes",
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
             task_summary="Investigate Playwright usage.",
             status=self.status,
             provider_id="00000000-0000-4000-8000-000000000501",
@@ -140,7 +140,7 @@ def test_skill_acquisition_job_routes_return_sanitized_durable_status() -> None:
             json={
                 "prompt": "Need a browser automation skill",
                 "agent_name": "Hermes",
-                "project": "alexandria-hermes",
+                "project": "heterarchy-alexandria",
                 "task_summary": "Investigate Playwright usage.",
                 "search_snapshot": {
                     "decision": "NOT_FOUND",
@@ -199,7 +199,7 @@ def test_skill_acquisition_job_does_not_schedule_background_runner_for_non_accep
                 json={
                     "prompt": "Need a browser automation skill",
                     "agent_name": "Hermes",
-                    "project": "alexandria-hermes",
+                    "project": "heterarchy-alexandria",
                     "task_summary": "Investigate Playwright usage.",
                 },
             )
@@ -227,7 +227,7 @@ class FakeObsidianSkillSearchService:
             title="Browser Automation",
             status=self.skill_status,
             tags=["browser"],
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
             source="skill_acquisition",
             content_hash="hash",
             frontmatter={
@@ -271,7 +271,7 @@ def test_skill_library_search_route_returns_sufficiency_without_creating_job() -
             json={
                 "capability": "Browser Automation",
                 "task_goal": "Drive browser checks",
-                "project": "alexandria-hermes",
+                "project": "heterarchy-alexandria",
                 "required_tools": ["playwright"],
             },
         )
@@ -324,7 +324,7 @@ def test_skill_library_search_route_returns_existing_draft_handoff_without_job()
             json={
                 "capability": "Browser Automation",
                 "task_goal": "Drive browser checks",
-                "project": "alexandria-hermes",
+                "project": "heterarchy-alexandria",
                 "required_tools": ["playwright"],
             },
         )

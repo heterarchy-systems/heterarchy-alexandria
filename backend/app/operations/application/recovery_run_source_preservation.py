@@ -6,6 +6,7 @@ from hashlib import sha256
 from pathlib import Path
 from shutil import disk_usage
 
+from app.obsidian.infrastructure.markdown.paths import discover_managed_markdown_paths
 from app.operations.domain.entities.recovery_plan import (
     RecoveryPlan,
     RecoverySourceSnapshot,
@@ -29,7 +30,7 @@ def _source_snapshot_from_vault(
 ) -> RecoverySourceSnapshot:
     vault = Path(vault_path)
     root = Path(vault_path) / alexandria_root
-    markdown_files = sorted(root.rglob("*.md")) if root.exists() else []
+    markdown_files = discover_managed_markdown_paths(root) if root.exists() else []
     representative = markdown_files[0] if markdown_files else None
     return RecoverySourceSnapshot(
         vault_path=vault_path,
@@ -69,7 +70,7 @@ def _source_preservation_result(snapshot: RecoverySourceSnapshot) -> JSONObject:
 def _current_markdown_manifest(snapshot: RecoverySourceSnapshot) -> dict[str, str]:
     vault = Path(snapshot.vault_path)
     root = vault / snapshot.alexandria_root
-    markdown_files = sorted(root.rglob("*.md")) if root.exists() else []
+    markdown_files = discover_managed_markdown_paths(root) if root.exists() else []
     return _markdown_manifest(vault, markdown_files)
 
 

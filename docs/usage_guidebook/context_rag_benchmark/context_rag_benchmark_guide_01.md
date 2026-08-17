@@ -41,11 +41,11 @@ SERVICE_GRAPH_READ_MODEL=disabled \
 cd backend
 uv run python benchmarks/context_rag_api_benchmark.py \
   --base-url http://127.0.0.1:18012 \
-  --project alexandria-hermes \
+  --project heterarchy-alexandria \
   --query "Graph-aware Context Retrieval" \
   --query "Retrieval Architecture" \
   --query "Neo4j Graph Read Model" \
-  --query "Alexandria Hermes Knowledge Graph" \
+  --query "heterarchy-alexandria Knowledge Graph" \
   --warmups 1 \
   --repetitions 7 \
   --output ../.chatgpt2codex/context-rag-baseline.json
@@ -65,7 +65,7 @@ export ALEXANDRIA_BENCHMARK_BEARER_TOKEN="..."
 |---|---|
 | OS | macOS 26.5.2 arm64 |
 | Python | 3.13.5 |
-| Project filter | `alexandria-hermes` |
+| Project filter | `heterarchy-alexandria` |
 | Result limit | 5 |
 | Warmup | 질의·전략별 1회 |
 | Measured repetitions | 질의·전략별 7회 |
@@ -102,9 +102,9 @@ export ALEXANDRIA_BENCHMARK_BEARER_TOKEN="..."
 | Neo4j Graph Read Model | FTS_ONLY | 138.260 ms | 149.080 ms | 3 |
 | Neo4j Graph Read Model | VECTOR_ONLY | 599.256 ms | 640.955 ms | 2 |
 | Neo4j Graph Read Model | HYBRID | 670.252 ms | 704.109 ms | 5 |
-| Alexandria Hermes Knowledge Graph | FTS_ONLY | 145.031 ms | 222.456 ms | 5 |
-| Alexandria Hermes Knowledge Graph | VECTOR_ONLY | 611.673 ms | 627.045 ms | 3 |
-| Alexandria Hermes Knowledge Graph | HYBRID | 676.096 ms | 755.476 ms | 5 |
+| heterarchy-alexandria Knowledge Graph | FTS_ONLY | 145.031 ms | 222.456 ms | 5 |
+| heterarchy-alexandria Knowledge Graph | VECTOR_ONLY | 611.673 ms | 627.045 ms | 3 |
+| heterarchy-alexandria Knowledge Graph | HYBRID | 676.096 ms | 755.476 ms | 5 |
 
 ## Query Store 최적화 기준선
 

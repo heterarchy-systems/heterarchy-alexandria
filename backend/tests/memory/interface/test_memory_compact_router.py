@@ -58,7 +58,7 @@ def _compact_body(covered_from: str, covered_to: str) -> str:
 ## Coverage
 - covered_from: {covered_from}
 - covered_to: {covered_to}
-- project: alexandria-hermes
+- project: heterarchy-alexandria
 
 ## Evidence Summary
 - Context source supports the compact claims.
@@ -73,7 +73,7 @@ def _payload(
     source_id: str = "ctx-1",
 ) -> dict[str, object]:
     return {
-        "project": "alexandria-hermes",
+        "project": "heterarchy-alexandria",
         "covered_from": covered_from,
         "covered_to": covered_to,
         "markdown_body": _compact_body(covered_from, covered_to),
@@ -105,10 +105,10 @@ def test_memory_compact_api_hard_deletes_obsidian_note(tmp_path: Path) -> None:
         delete_response = client.delete(f"/memory/compacts/{compact_id}")
         get_response = client.get(f"/memory/compacts/{compact_id}")
         list_response = client.get(
-            "/memory/compacts", params={"project": "alexandria-hermes"}
+            "/memory/compacts", params={"project": "heterarchy-alexandria"}
         )
         current_response = client.get(
-            "/memory/compacts/current", params={"project": "alexandria-hermes"}
+            "/memory/compacts/current", params={"project": "heterarchy-alexandria"}
         )
 
     assert create_response.status_code == 201
@@ -135,11 +135,11 @@ def test_memory_compact_api_exposes_current_archive_lifecycle(tmp_path: Path) ->
         compact_id = create_response.json()["id"]
         note_path = _compact_note_path(tmp_path / "vault", compact_id)
         current_response = client.get(
-            "/memory/compacts/current", params={"project": "alexandria-hermes"}
+            "/memory/compacts/current", params={"project": "heterarchy-alexandria"}
         )
         get_response = client.get(f"/memory/compacts/{compact_id}")
         list_response = client.get(
-            "/memory/compacts", params={"project": "alexandria-hermes"}
+            "/memory/compacts", params={"project": "heterarchy-alexandria"}
         )
         archive_response = client.post(f"/memory/compacts/{compact_id}/archive")
         archived_get_response = client.get(f"/memory/compacts/{compact_id}")
@@ -189,7 +189,7 @@ def test_memory_compact_api_marks_duplicate_signature_response(
         )
         duplicate_response = client.post("/memory/compacts", json=duplicate_payload)
         list_response = client.get(
-            "/memory/compacts", params={"project": "alexandria-hermes"}
+            "/memory/compacts", params={"project": "heterarchy-alexandria"}
         )
         note_paths = list(
             (tmp_path / "vault" / "Alexandria" / "Memory Compacts").rglob("*.md")
@@ -229,7 +229,7 @@ def test_current_memory_compact_response_warns_when_stale(tmp_path: Path) -> Non
 
         current_response = client.get(
             "/memory/compacts/current",
-            params={"project": "alexandria-hermes", "max_compact_age_days": 30},
+            params={"project": "heterarchy-alexandria", "max_compact_age_days": 30},
         )
 
     assert current_response.status_code == 200
@@ -265,7 +265,10 @@ def test_current_memory_compact_response_warns_when_timestamp_missing(
 
         current_response = client.get(
             "/memory/compacts/current",
-            params={"project": "alexandria-hermes", "max_compact_age_days": 365_000},
+            params={
+                "project": "heterarchy-alexandria",
+                "max_compact_age_days": 365_000,
+            },
         )
 
     assert current_response.status_code == 200
@@ -355,7 +358,7 @@ def test_memory_compact_api_filters_by_dates_when_requested(tmp_path: Path) -> N
         coverage_response = client.get(
             "/memory/compacts",
             params={
-                "project": "alexandria-hermes",
+                "project": "heterarchy-alexandria",
                 "covered_after": "2026-05-05T00:00:00Z",
                 "covered_before": "2026-05-06T23:59:59Z",
             },
@@ -462,7 +465,7 @@ def test_create_current_route_rejects_missing_required_sections(
                 service=service,
                 context_service=_FakeContextService(RagHealthState.HEALTHY),
             )
-        _items, total = await service.list_compacts(project="alexandria-hermes")
+        _items, total = await service.list_compacts(project="heterarchy-alexandria")
         return raised.value.status_code, raised.value.detail, total
 
     status_code, detail, total = anyio.run(scenario)
@@ -487,7 +490,7 @@ def test_create_current_route_blocks_when_rag_unhealthy(tmp_path: Path) -> None:
                 service=service,
                 context_service=_FakeContextService(RagHealthState.REINDEX_REQUIRED),
             )
-        items, total = await service.list_compacts(project="alexandria-hermes")
+        items, total = await service.list_compacts(project="heterarchy-alexandria")
         assert items == []
         return raised.value.status_code, raised.value.detail, total
 
@@ -518,7 +521,7 @@ def test_create_current_route_blocks_when_rag_status_lookup_fails(
                 service=service,
                 context_service=_FailingContextService(),
             )
-        items, total = await service.list_compacts(project="alexandria-hermes")
+        items, total = await service.list_compacts(project="heterarchy-alexandria")
         assert items == []
         return raised.value.status_code, raised.value.detail, total
 
@@ -552,7 +555,7 @@ def test_create_current_route_blocks_when_rag_health_has_warnings(
                     warnings=["Vector retrieval degraded."],
                 ),
             )
-        items, total = await service.list_compacts(project="alexandria-hermes")
+        items, total = await service.list_compacts(project="heterarchy-alexandria")
         assert items == []
         return raised.value.status_code, raised.value.detail, total
 

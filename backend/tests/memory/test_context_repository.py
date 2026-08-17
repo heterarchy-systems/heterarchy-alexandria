@@ -197,18 +197,18 @@ def test_context_repository_searches_accesses_and_archives_seeded_contexts(
                 title="Sprint handoff",
                 summary="Context retrieval uses local searchable memory.",
                 content=_handoff_content(),
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
                 source_agent="Hermes",
                 tags=["handoff", "rag"],
             )
             await session.commit()
 
-            listed, total = await service.list_contexts(project="alexandria-hermes")
+            listed, total = await service.list_contexts(project="heterarchy-alexandria")
             chunks = await service.chunks(saved.id)
             pack = await service.search(
                 query="local searchable memory",
                 limit=3,
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
             )
             accessed = await service.access(
                 saved.id,
@@ -232,7 +232,7 @@ def test_context_repository_searches_accesses_and_archives_seeded_contexts(
             after_archive = await service.search(
                 query="local searchable memory",
                 limit=3,
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
             )
 
         assert total == 1
@@ -1349,7 +1349,7 @@ def test_context_recall_isolates_legacy_and_named_workspaces(tmp_path: Path) -> 
                     title=f"Workspace {workspace_id or 'legacy'}",
                     summary="workspace-boundary-token",
                     content="# Workspace\n\nworkspace-boundary-token",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     workspace_id=workspace_id,
                     embedding_provider=provider,
                 )
@@ -1364,7 +1364,7 @@ def test_context_recall_isolates_legacy_and_named_workspaces(tmp_path: Path) -> 
                         query="workspace-boundary-token",
                         strategy=strategy,
                         limit=10,
-                        project="alexandria-hermes",
+                        project="heterarchy-alexandria",
                         workspace_id=workspace_id,
                     )
                     results[(strategy, workspace_id)] = {

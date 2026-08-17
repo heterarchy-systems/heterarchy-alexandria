@@ -14,7 +14,7 @@ def _formatter() -> JsonFormatter:
     """Return a formatter with stack traces enabled for redaction coverage."""
     return JsonFormatter(
         service_context=JsonLogServiceContext(
-            service="alexandria-hermes",
+            service="heterarchy-alexandria",
             env="local",
             version="test",
         ),

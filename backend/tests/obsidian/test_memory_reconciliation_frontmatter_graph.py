@@ -26,12 +26,12 @@ EARLIER = datetime(2026, 7, 1, tzinfo=UTC)
 
 
 def test_reconciliation_temporal_frontmatter_round_trips() -> None:
-    body = "Alexandria-Hermes uses PostgreSQL."
+    body = "heterarchy-alexandria uses PostgreSQL."
     content_hash = context_content_hash(body)
     identity = context_identity_from_frontmatter(
         {
             "scope": "PROJECT",
-            "project": "Alexandria-Hermes",
+            "project": "heterarchy-alexandria",
             "visibility": "PROJECT",
             "status": "active",
             "source_actor_id": "memory-reconciliation",
@@ -48,7 +48,7 @@ def test_reconciliation_temporal_frontmatter_round_trips() -> None:
             "reconciliation_candidate_id": "candidate-1",
             "conflict_set_ids": ["conflict-1", "conflict-2"],
         },
-        project="Alexandria-Hermes",
+        project="heterarchy-alexandria",
         status="active",
         generated_content_hash=content_hash,
     )

@@ -53,7 +53,7 @@ source: human
 - `tags`: Obsidian과 Alexandria 검색이 같이 쓰는 태그.
 - `status`: 일반 note는 `active`, `draft`, `archived`, `superseded`를 우선 사용한다.
 - `created_at`: 문자열 날짜/시간. YAML parser 차이를 줄이기 위해 따옴표를 권장한다.
-- `source`: `human`, `codex`, `mcp`, `librarian`, `obsidian-plugin`, `import`, `alexandria-hermes`.
+- `source`: `human`, `codex`, `mcp`, `librarian`, `obsidian-plugin`, `import`, `heterarchy-alexandria`.
 
 ## 타입별 권장 필드
 
@@ -62,7 +62,7 @@ source: human
 ```yaml
 alexandria_type: context
 kind: decision
-project: alexandria-hermes
+project: heterarchy-alexandria
 scope: project
 visibility: project
 importance: high
@@ -88,8 +88,8 @@ alexandria_type: memory_compact
 id: compact_<stable_id>
 tags: [alexandria, memory-compact]
 status: CURRENT
-source: alexandria-hermes
-project: alexandria-hermes
+source: heterarchy-alexandria
+project: heterarchy-alexandria
 covered_from: "2026-05-25T00:00:00Z"
 covered_to: "2026-05-25T23:59:59Z"
 created_at: "2026-05-25T12:00:00Z"
@@ -133,7 +133,7 @@ version: "0.1.0"
 ```yaml
 alexandria_type: librarian_chat
 conversation_id: chat_20260525_001
-project: alexandria-hermes
+project: heterarchy-alexandria
 active_note_path: "Alexandria/Contexts/Decisions/Obsidian Storage.md"
 linked_note_ids:
   - ctx_obsidian_canonical_storage

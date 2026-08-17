@@ -59,6 +59,49 @@ def resolve_note_path(vault_path: str | Path, relative_path: str | Path) -> Path
     return target
 
 
+def discover_managed_markdown_paths(
+    scan_root: Path,
+    *,
+    managed_root: Path | None = None,
+) -> list[Path]:
+    """Discover managed Markdown while excluding vault-internal hidden directories.
+
+    Obsidian metadata, trash, VCS data, and other dot-directories are operational
+    filesystem state rather than Alexandria-managed notes.  When the configured
+    Alexandria root is the vault root (``.``), those directories must not enter
+    identity validation or recovery manifests.
+
+    Args:
+        scan_root: File or directory scope to enumerate.
+        managed_root: Root used to decide whether a directory is hidden. Defaults
+            to ``scan_root`` for whole-root scans.
+
+    Returns:
+        Sorted Markdown file candidates inside the managed identity domain.
+    """
+    root = scan_root if managed_root is None else managed_root
+    discovered = (
+        [scan_root]
+        if scan_root.is_file()
+        else sorted(scan_root.rglob(f"*{NOTE_SUFFIX}"))
+    )
+    return [
+        path
+        for path in discovered
+        if path.is_file()
+        and path.suffix == NOTE_SUFFIX
+        and _is_visible_managed_path(root, path)
+    ]
+
+
+def _is_visible_managed_path(managed_root: Path, candidate: Path) -> bool:
+    try:
+        relative = candidate.relative_to(managed_root)
+    except ValueError:
+        return False
+    return not any(part.startswith(".") for part in relative.parts[:-1])
+
+
 def validate_discovered_note_path(
     vault_path: str | Path,
     managed_root: str | Path,

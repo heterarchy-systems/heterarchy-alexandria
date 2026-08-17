@@ -48,12 +48,12 @@ def claim(
     valid_to: datetime | None = None,
 ) -> CanonicalClaim:
     return CanonicalClaim(
-        subject="Alexandria-Hermes",
+        subject="heterarchy-alexandria",
         predicate="uses",
         object=object_value,
         qualifiers=qualifiers,
         scope=ContextScope.PROJECT,
-        project="Alexandria-Hermes",
+        project="heterarchy-alexandria",
         valid_from=valid_from,
         valid_to=valid_to,
         polarity=polarity,
@@ -74,10 +74,10 @@ def candidate(
     content_hash: str = "candidate-hash",
     claims: tuple[CanonicalClaim, ...] = (claim(),),
     source_refs: tuple[MemorySourceReference, ...] = (source("new"),),
-    body: str = "Alexandria-Hermes uses Redis.",
+    body: str = "heterarchy-alexandria uses Redis.",
     valid_from: datetime | None = EARLIER,
     valid_to: datetime | None = None,
-    project: str | None = "Alexandria-Hermes",
+    project: str | None = "heterarchy-alexandria",
 ) -> MemoryCandidate:
     return MemoryCandidate(
         candidate_id="candidate-1",
@@ -102,10 +102,10 @@ def existing(
     content_hash: str = "existing-hash",
     claims: tuple[CanonicalClaim, ...] = (claim(),),
     source_refs: tuple[MemorySourceReference, ...] = (source("old"),),
-    body: str = "Alexandria-Hermes uses Redis.",
+    body: str = "heterarchy-alexandria uses Redis.",
     valid_from: datetime | None = EARLIER,
     valid_to: datetime | None = None,
-    project: str | None = "Alexandria-Hermes",
+    project: str | None = "heterarchy-alexandria",
 ) -> MemoryRecallCandidate:
     return MemoryRecallCandidate(
         context_id="obsidian:context-1",
@@ -199,12 +199,12 @@ def test_newer_non_overlapping_state_supersedes_existing() -> None:
     decision = MemoryRelationClassifier().classify(
         candidate(
             claims=(new_claim,),
-            body="Alexandria-Hermes uses PostgreSQL.",
+            body="heterarchy-alexandria uses PostgreSQL.",
             valid_from=NOW,
         ),
         existing(
             claims=(old_claim,),
-            body="Alexandria-Hermes uses Redis.",
+            body="heterarchy-alexandria uses Redis.",
             valid_from=EARLIER,
             valid_to=LATER,
         ),

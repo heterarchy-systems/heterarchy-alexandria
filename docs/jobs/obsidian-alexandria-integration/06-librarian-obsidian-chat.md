@@ -24,7 +24,7 @@ Obsidian 안에서 현재 note/선택영역을 바탕으로 Alexandria 사서에
 Obsidian side pane
   -> user asks question
   -> plugin sends active note path + selection + query
-  -> Alexandria-Hermes builds knowledge packet
+  -> heterarchy-alexandria builds knowledge packet
   -> self-answer or delegate-to-librarian provider
   -> answer with source refs
   -> plugin renders answer and wikilinks
@@ -49,7 +49,7 @@ GET  /obsidian/librarian/chats/{conversation_id}
   "query": "이 노트에서 skill 후보를 뽑아줘",
   "active_note_path": "Alexandria/Contexts/Decisions/Obsidian Storage.md",
   "selection": "SQLite는 검색/색인 보조로만 사용한다.",
-  "project": "alexandria-hermes",
+  "project": "heterarchy-alexandria",
   "preferred_alexandria_types": ["context", "skill", "prompt", "memory_compact"],
   "save_transcript": false,
   "delegate_to_librarian": false
@@ -109,7 +109,7 @@ status: active
 created_at: "2026-05-25"
 source: obsidian-plugin
 conversation_id: chat_20260525_001
-project: alexandria-hermes
+project: heterarchy-alexandria
 active_note_path: "Alexandria/Contexts/Decisions/Obsidian Storage.md"
 linked_note_ids:
   - ctx_obsidian_storage

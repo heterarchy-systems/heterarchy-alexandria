@@ -15,7 +15,7 @@ source: codex
 
 ## 보안 모델
 
-Alexandria-Hermes는 local-first single-operator 도구다.
+heterarchy-alexandria는 local-first single-operator 도구다.
 Obsidian integration도 기본적으로 localhost/private 환경을 전제로 한다.
 
 ## 저장 금지

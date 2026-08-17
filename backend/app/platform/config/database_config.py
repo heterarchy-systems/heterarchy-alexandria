@@ -37,6 +37,6 @@ class DatabaseConfig(BaseSettings):
                 break
         if not normalized.startswith("postgresql+asyncpg://"):
             raise ValueError(
-                "Alexandria-Hermes runtime requires PostgreSQL via asyncpg"
+                "heterarchy-alexandria runtime requires PostgreSQL via asyncpg"
             )
         return normalized

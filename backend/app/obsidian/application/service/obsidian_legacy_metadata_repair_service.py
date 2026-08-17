@@ -29,7 +29,7 @@ from app.obsidian.infrastructure.markdown.atomic_markdown_write import (
     atomic_write_markdown,
 )
 from app.obsidian.infrastructure.markdown.paths import (
-    NOTE_SUFFIX,
+    discover_managed_markdown_paths,
     resolve_note_path,
     validate_discovered_note_path,
 )
@@ -68,9 +68,7 @@ class ObsidianLegacyMetadataRepairService:
         candidates: list[ObsidianLegacyMetadataRepairCandidate] = []
         scanned_documents = 0
         unrecoverable_redacted_urls = 0
-        for discovered in sorted(root.rglob(f"*{NOTE_SUFFIX}")):
-            if not discovered.is_file():
-                continue
+        for discovered in discover_managed_markdown_paths(root):
             path = validate_discovered_note_path(
                 config.vault_path,
                 config.alexandria_root,
@@ -147,7 +145,7 @@ class ObsidianLegacyMetadataRepairService:
             )
         config = self._vault_config_store.current()
         operation_root = (
-            f".alexandria-hermes/legacy-metadata-repair/backups/{conversation_id()}"
+            f".heterarchy-alexandria/legacy-metadata-repair/backups/{conversation_id()}"
         )
         originals = _preflight_and_backup(
             vault_path=config.vault_path,

@@ -31,7 +31,7 @@ Done.
 ## Restore Prompt
 Continue from here.
 """,
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
             source_agent="Hermes",
             tags=["handoff"],
         )

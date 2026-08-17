@@ -1,6 +1,6 @@
 ---
 name: connection-hub
-description: Use when connecting or repairing Alexandria-Hermes OpenAI Librarian OAuth or an MCP client through the local /connect page, including token refresh, reconnect guidance, pairing-code generation, and secret-safe connection verification.
+description: Use when connecting or repairing heterarchy-alexandria OpenAI Librarian OAuth or an MCP client through the local /connect page, including token refresh, reconnect guidance, pairing-code generation, and secret-safe connection verification.
 ---
 
 # Connection Hub

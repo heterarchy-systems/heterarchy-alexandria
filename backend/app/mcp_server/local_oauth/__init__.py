@@ -1,1 +1,1 @@
-"""Self-hosted OAuth support for the Alexandria-Hermes MCP endpoint."""
+"""Self-hosted OAuth support for the heterarchy-alexandria MCP endpoint."""

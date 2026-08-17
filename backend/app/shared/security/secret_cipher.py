@@ -20,7 +20,7 @@ _PAYLOAD_VERSION = 1
 _PAYLOAD_VERSION_SIZE = 1
 _AES_GCM_TAG_SIZE = 16
 _MIN_ENCRYPTED_PAYLOAD_SIZE = _PAYLOAD_VERSION_SIZE + _NONCE_SIZE + _AES_GCM_TAG_SIZE
-_LOCAL_DEV_KEY_SEED = "alexandria-hermes-local-development-secret-v1"
+_LOCAL_DEV_KEY_SEED = "heterarchy-alexandria-local-development-secret-v1"
 
 
 def _urlsafe_b64encode(value: bytes) -> str:
@@ -56,7 +56,7 @@ def _derive_key(raw_key: str) -> bytes:
 class SecretCipherSettings:
     """Primitive settings needed to build the provider secret cipher."""
 
-    app_name: str = "alexandria-hermes"
+    app_name: str = "heterarchy-alexandria"
     app_env: Literal["local", "stage", "prod"] = "local"
     secret_encryption_key: str | None = None
 

@@ -73,7 +73,7 @@ def _report(
 
 def _payload() -> dict[str, object]:
     return {
-        "project": " Alexandria-Hermes ",
+        "project": " heterarchy-alexandria ",
         "scope": "PROJECT",
         "include_archived": True,
         "max_contexts": 250,
@@ -102,7 +102,7 @@ def test_existing_memory_preview_http_contract_is_write_free() -> None:
     assert payload["assessments"][0]["primary_relation"] == "DUPLICATE"
     assert service.preview_requests == [
         ExistingMemoryReconciliationRequest(
-            project="Alexandria-Hermes",
+            project="heterarchy-alexandria",
             scope=ContextScope.PROJECT,
             include_archived=True,
             max_contexts=250,
@@ -129,4 +129,4 @@ def test_existing_memory_apply_http_contract_uses_explicit_apply_path() -> None:
     assert payload["temporal_states_written"] == 1
     assert payload["plans_persisted"] == 1
     assert payload["hard_delete_performed"] is False
-    assert service.apply_requests[0].project == "Alexandria-Hermes"
+    assert service.apply_requests[0].project == "heterarchy-alexandria"

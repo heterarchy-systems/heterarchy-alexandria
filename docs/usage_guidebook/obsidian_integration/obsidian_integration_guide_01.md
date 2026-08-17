@@ -12,13 +12,13 @@ source: codex
 
 # Obsidian Integration Guide 01 — Vault, SQLite Index, Librarian Chat
 
-Alexandria-Hermes treats Obsidian Markdown as the human-facing durable knowledge store.
+heterarchy-alexandria treats Obsidian Markdown as the human-facing durable knowledge store.
 SQLite remains a rebuildable cache for search, chunking, and operational state.
 
 ```text
 Obsidian Markdown = canonical notes
 SQLite = search/index/cache
-Alexandria-Hermes = backend/CLI/MCP protocol
+heterarchy-alexandria = backend/CLI/MCP protocol
 Librarian = optional Obsidian-aware collaborator
 ```
 
@@ -32,12 +32,12 @@ brew install --cask obsidian
 
 You can use either:
 
-- the generated Alexandria-Hermes vault at `~/.hermes/alexandria-hermes/data/obsidian-vault`; or
+- the generated heterarchy-alexandria vault at `~/.hermes/heterarchy-alexandria/data/obsidian-vault`; or
 - an existing Obsidian vault such as `~/Desktop/Alexandria`.
 
 The local smoke test used `/Users/imhaneul/Desktop/Alexandria` with Alexandria root `.`.
 
-## 2. Configure Alexandria-Hermes
+## 2. Configure heterarchy-alexandria
 
 ### Generated vault
 
@@ -46,9 +46,9 @@ Terminal 1:
 ```bash
 cd backend
 uv sync
-uv run alexandria-hermes setup --mode backend-daemon --apply --write-guidebook --run-migrations
-uv run alexandria-hermes serve \
-  --env-file "$HOME/.hermes/alexandria-hermes/.env" \
+uv run heterarchy-alexandria setup --mode backend-daemon --apply --write-guidebook --run-migrations
+uv run heterarchy-alexandria serve \
+  --env-file "$HOME/.hermes/heterarchy-alexandria/.env" \
   --host 127.0.0.1 \
   --port 8000
 ```
@@ -57,8 +57,8 @@ Terminal 2, after the backend is running:
 
 ```bash
 cd backend
-uv run alexandria-hermes obsidian init
-uv run alexandria-hermes obsidian reindex
+uv run heterarchy-alexandria obsidian init
+uv run heterarchy-alexandria obsidian reindex
 ```
 
 `--run-migrations` applies Alembic before the first backend/Obsidian call, preventing missing-table errors on `/obsidian/init`.
@@ -66,7 +66,7 @@ uv run alexandria-hermes obsidian reindex
 The generated `.env` includes:
 
 ```text
-SERVICE_OBSIDIAN_VAULT_PATH=<hermes-home>/alexandria-hermes/data/obsidian-vault
+SERVICE_OBSIDIAN_VAULT_PATH=<hermes-home>/heterarchy-alexandria/data/obsidian-vault
 SERVICE_ALEXANDRIA_OBSIDIAN_ROOT=Alexandria
 SERVICE_MEMORY_COMPACT_NOTE_DIR=Alexandria/Memory Compacts
 ```
@@ -78,7 +78,7 @@ Use this when Obsidian already has a vault at `~/Desktop/Alexandria` and you wan
 ```bash
 cd backend
 uv sync
-uv run alexandria-hermes setup \
+uv run heterarchy-alexandria setup \
   --mode backend-daemon \
   --apply \
   --write-guidebook \
@@ -164,7 +164,7 @@ tags:
   - "alexandria"
   - "memory-compact"
 source_ref_links:
-  - "[[Contexts/Projects/alexandria-hermes/Source Note]]"
+  - "[[Contexts/Projects/heterarchy-alexandria/Source Note]]"
 related:
   - "[[Skills/Active/Alexandria Library]]"
 ```
@@ -184,25 +184,25 @@ Reference: [Obsidian Properties](https://obsidian.md/help/properties) and
 Search notes:
 
 ```bash
-uv run alexandria-hermes obsidian search "long memory" --type context --tag memory
+uv run heterarchy-alexandria obsidian search "long memory" --type context --tag memory
 ```
 
 Read by path in generated-vault mode:
 
 ```bash
-uv run alexandria-hermes obsidian read --path "Alexandria/START_HERE.md"
+uv run heterarchy-alexandria obsidian read --path "Alexandria/START_HERE.md"
 ```
 
 Read by path in existing-vault root mode:
 
 ```bash
-uv run alexandria-hermes obsidian read --path "START_HERE.md"
+uv run heterarchy-alexandria obsidian read --path "START_HERE.md"
 ```
 
 Save a note from a Markdown body file:
 
 ```bash
-uv run alexandria-hermes obsidian save "Prompt Draft" \
+uv run heterarchy-alexandria obsidian save "Prompt Draft" \
   --body-file ./prompt.md \
   --type prompt \
   --tag prompt
@@ -211,13 +211,13 @@ uv run alexandria-hermes obsidian save "Prompt Draft" \
 Capture reusable artifacts with migration-safe defaults:
 
 ```bash
-uv run alexandria-hermes obsidian capture "Browser Verification Skill" \
+uv run heterarchy-alexandria obsidian capture "Browser Verification Skill" \
   --body-file ./skill.md \
   --type skill \
-  --project alexandria-hermes \
+  --project heterarchy-alexandria \
   --tag browser
 
-uv run alexandria-hermes obsidian capture "Release Review Prompt" \
+uv run heterarchy-alexandria obsidian capture "Release Review Prompt" \
   --body-file ./prompt.md \
   --type prompt \
   --prompt-kind template
@@ -231,18 +231,18 @@ After enabling Neo4j and explicitly rebuilding the graph projection, read
 graph-related notes:
 
 ```bash
-uv run alexandria-hermes obsidian related --path "START_HERE.md"
+uv run heterarchy-alexandria obsidian related --path "START_HERE.md"
 ```
 
 Ask the Obsidian-aware librarian:
 
 ```bash
-uv run alexandria-hermes obsidian ask \
+uv run heterarchy-alexandria obsidian ask \
   "이 노트에서 장기기억으로 승격할 내용은?" \
   --active-note-path "Contexts/Today.md" \
   --save-transcript
 
-uv run alexandria-hermes obsidian ask \
+uv run heterarchy-alexandria obsidian ask \
   "외부 사서 비평도 같이 받아볼까요?" \
   --delegate \
   --provider-id codex-oauth \
@@ -278,7 +278,7 @@ Install it into a vault with the CLI:
 
 ```bash
 cd backend
-uv run alexandria-hermes obsidian install-local \
+uv run heterarchy-alexandria obsidian install-local \
   --vault-path "$HOME/Desktop/Alexandria" \
   --plugin-install-mode copy
 ```
@@ -339,7 +339,7 @@ To connect from Obsidian, bootstrap the default provider/profile set once if nee
 
 ```bash
 cd backend
-uv run alexandria-hermes librarian bootstrap-obsidian-oauth --provider-name codex-oauth
+uv run heterarchy-alexandria librarian bootstrap-obsidian-oauth --provider-name codex-oauth
 ```
 
 Set the plugin **Operator API key** to the local backend `ALEXANDRIA_OPERATOR_API_KEY` first; OAuth lifecycle endpoints are protected. Then use the side-pane **GPT OAuth connection** card: **Start OAuth login** -> finish browser login -> **Poll after login**.
@@ -379,5 +379,5 @@ Observed result:
 
 - Do not save raw secrets/API keys/tokens into Obsidian notes.
 - Treat Obsidian Markdown as canonical; SQLite can be deleted and rebuilt.
-- Resolve conflicts in Obsidian first, then run `alexandria-hermes obsidian reindex`.
+- Resolve conflicts in Obsidian first, then run `heterarchy-alexandria obsidian reindex`.
 - Keep frontend/Next.js removed unless product direction explicitly changes.

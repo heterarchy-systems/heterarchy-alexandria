@@ -208,14 +208,14 @@ def test_cli_memory_steward_prints_gateway_payload(monkeypatch, capsys) -> None:
             "memory-steward",
             "readiness",
             "--project",
-            "alexandria-hermes",
+            "heterarchy-alexandria",
             "--max-compact-age-days",
             "14",
         ]
     )
 
     assert exit_code == 0
-    assert received == [("alexandria-hermes", 14)]
+    assert received == [("heterarchy-alexandria", 14)]
     assert loads_json(capsys.readouterr().out) == {"ready": True, "warnings": []}
 
 
@@ -270,7 +270,7 @@ def test_cli_vault_review_queue_summary_maps_scope_options(
             "vault",
             "review-queue",
             "--project",
-            "alexandria-hermes",
+            "heterarchy-alexandria",
             "--scope-path",
             "Alexandria/_Inbox",
             "--limit",
@@ -280,7 +280,7 @@ def test_cli_vault_review_queue_summary_maps_scope_options(
     )
 
     assert exit_code == 0
-    assert received == [("alexandria-hermes", "Alexandria/_Inbox", 5)]
+    assert received == [("heterarchy-alexandria", "Alexandria/_Inbox", 5)]
     assert loads_json(capsys.readouterr().out) == {
         "total": 2,
         "auto_move_candidates": 1,
@@ -329,7 +329,7 @@ def test_cli_vault_review_move_plan_maps_scope_options(
             "vault",
             "review-move-plan",
             "--project",
-            "alexandria-hermes",
+            "heterarchy-alexandria",
             "--scope-path",
             "Alexandria/_Inbox",
             "--limit",
@@ -338,7 +338,7 @@ def test_cli_vault_review_move_plan_maps_scope_options(
     )
 
     assert exit_code == 0
-    assert received == [("alexandria-hermes", "Alexandria/_Inbox", 5)]
+    assert received == [("heterarchy-alexandria", "Alexandria/_Inbox", 5)]
     assert loads_json(capsys.readouterr().out) == {
         "status": "ready",
         "moves": [
@@ -397,7 +397,7 @@ def test_cli_vault_review_apply_moves_maps_safety_options(
             "vault",
             "review-apply-moves",
             "--project",
-            "alexandria-hermes",
+            "heterarchy-alexandria",
             "--scope-path",
             "Alexandria/_Inbox",
             "--limit",
@@ -414,7 +414,7 @@ def test_cli_vault_review_apply_moves_maps_safety_options(
     assert exit_code == 0
     assert received == [
         (
-            "alexandria-hermes",
+            "heterarchy-alexandria",
             "Alexandria/_Inbox",
             5,
             "Alexandria/_Ops/Librarian/Reports/cli-apply",
@@ -573,7 +573,7 @@ def test_cli_memory_steward_refresh_current_compact_maps_apply_options(
             "memory-steward",
             "refresh-current-compact",
             "--project",
-            "alexandria-hermes",
+            "heterarchy-alexandria",
             "--max-compact-age-days",
             "7",
             "--apply",
@@ -584,7 +584,9 @@ def test_cli_memory_steward_refresh_current_compact_maps_apply_options(
     )
 
     assert exit_code == 0
-    assert received == [("alexandria-hermes", 7, True, True, "2026-07-15T00:00:00Z")]
+    assert received == [
+        ("heterarchy-alexandria", 7, True, True, "2026-07-15T00:00:00Z")
+    ]
     assert loads_json(capsys.readouterr().out) == {
         "status": "refreshed",
         "created": {"id": "compact-new"},
@@ -622,14 +624,14 @@ def test_cli_memory_steward_preflight_returns_zero_when_ready(
             "memory-steward",
             "preflight",
             "--project",
-            "alexandria-hermes",
+            "heterarchy-alexandria",
             "--max-compact-age-days",
             "30",
         ]
     )
 
     assert exit_code == 0
-    assert received == [("alexandria-hermes", 30, False, False, None)]
+    assert received == [("heterarchy-alexandria", 30, False, False, None)]
     assert loads_json(capsys.readouterr().out)["status"] == "up_to_date"
 
 
@@ -662,7 +664,7 @@ def test_cli_memory_steward_preflight_returns_attention_exit_when_not_ready(
     )
 
     exit_code = cli.main(
-        ["memory-steward", "preflight", "--project", "alexandria-hermes"]
+        ["memory-steward", "preflight", "--project", "heterarchy-alexandria"]
     )
 
     assert exit_code == 2
@@ -704,7 +706,7 @@ def test_cli_memory_steward_preflight_can_apply_compact_refresh(
             "memory-steward",
             "preflight",
             "--project",
-            "alexandria-hermes",
+            "heterarchy-alexandria",
             "--refresh-compact",
             "--force-refresh",
             "--covered-to",
@@ -713,7 +715,9 @@ def test_cli_memory_steward_preflight_can_apply_compact_refresh(
     )
 
     assert exit_code == 0
-    assert received == [("alexandria-hermes", 30, True, True, "2026-07-15T00:00:00Z")]
+    assert received == [
+        ("heterarchy-alexandria", 30, True, True, "2026-07-15T00:00:00Z")
+    ]
     assert loads_json(capsys.readouterr().out)["status"] == "refreshed"
 
 
@@ -757,7 +761,7 @@ def test_cli_memory_steward_check_combines_mcp_smoke_and_preflight(
             "memory-steward",
             "check",
             "--project",
-            "alexandria-hermes",
+            "heterarchy-alexandria",
             "--max-compact-age-days",
             "14",
             "--refresh-compact",
@@ -780,7 +784,7 @@ def test_cli_memory_steward_check_combines_mcp_smoke_and_preflight(
         )
     ]
     assert preflight_calls == [
-        ("alexandria-hermes", 14, True, False, "2026-07-15T00:00:00Z")
+        ("heterarchy-alexandria", 14, True, False, "2026-07-15T00:00:00Z")
     ]
     assert loads_json(capsys.readouterr().out) == {
         "ok": True,
@@ -821,7 +825,9 @@ def test_cli_memory_steward_check_fails_when_mcp_smoke_is_missing_tools(
         fake_refresh,
     )
 
-    exit_code = cli.main(["memory-steward", "check", "--project", "alexandria-hermes"])
+    exit_code = cli.main(
+        ["memory-steward", "check", "--project", "heterarchy-alexandria"]
+    )
 
     assert exit_code == 2
     payload = loads_json(capsys.readouterr().out)

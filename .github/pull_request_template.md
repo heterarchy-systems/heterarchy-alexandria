@@ -30,7 +30,7 @@ cd backend && make ci
 
 ## Product positioning checklist
 
-- [ ] The change preserves Alexandria-Hermes as a local-first agent-native library/control plane.
+- [ ] The change preserves heterarchy-alexandria as a local-first agent-native library/control plane.
 - [ ] The change does not reposition the project as an autonomous agent runtime, prompt marketplace, MCP marketplace, or generic hosted memory API.
 - [ ] User-facing copy avoids raw backend routes, source ids, or internal identifiers unless the user explicitly asked for API details.
 

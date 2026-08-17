@@ -1,4 +1,4 @@
-"""Async HTTP backend client for Alexandria-Hermes MCP tools."""
+"""Async HTTP backend client for heterarchy-alexandria MCP tools."""
 
 from __future__ import annotations
 

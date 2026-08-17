@@ -30,16 +30,16 @@ from app.memory.domain.event_enum.reconciliation_enums import (
 from pytest import LogCaptureFixture
 
 NOW = datetime(2026, 7, 25, tzinfo=UTC)
-SECRET_BODY = "Alexandria-Hermes secret memory body that must never enter logs."
+SECRET_BODY = "heterarchy-alexandria secret memory body that must never enter logs."
 
 
 def _candidate() -> MemoryCandidate:
     claim = CanonicalClaim(
-        subject="Alexandria-Hermes",
+        subject="heterarchy-alexandria",
         predicate="uses",
         object="Obsidian",
         scope=ContextScope.PROJECT,
-        project="Alexandria-Hermes",
+        project="heterarchy-alexandria",
     )
     source = MemorySourceReference(
         source_type="user",
@@ -53,7 +53,7 @@ def _candidate() -> MemoryCandidate:
         body=SECRET_BODY,
         canonical_claims=(claim,),
         scope=ContextScope.PROJECT,
-        project="Alexandria-Hermes",
+        project="heterarchy-alexandria",
         tags=("memory",),
         source_refs=(source,),
         recorded_at=NOW,
@@ -73,7 +73,7 @@ def _plan() -> MemoryReconciliationPlan:
         confidence=0.91,
         reason="Claims have conflicting polarity in the same temporal scope.",
         evidence_refs=(),
-        claim_matches=("Alexandria-Hermes|uses|Obsidian",),
+        claim_matches=("heterarchy-alexandria|uses|Obsidian",),
         scores=MemoryRelationScores(
             semantic_similarity=0.95,
             claim_overlap=1.0,

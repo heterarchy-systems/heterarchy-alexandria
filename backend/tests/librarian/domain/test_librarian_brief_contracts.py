@@ -30,7 +30,7 @@ def test_librarian_brief_payload_preserves_budget_and_source_refs() -> None:
     policy = BudgetPolicy(max_input_chars=1200, max_source_refs=3)
     brief = LibrarianBrief(
         prompt="Which OAuth skill should Hermes use?",
-        project="alexandria-hermes",
+        project="heterarchy-alexandria",
         packet_markdown="# Packet\nUse compact evidence only.",
         source_refs=(source_ref,),
         budget_policy=policy,
@@ -40,7 +40,7 @@ def test_librarian_brief_payload_preserves_budget_and_source_refs() -> None:
 
     assert payload == {
         "prompt": "Which OAuth skill should Hermes use?",
-        "project": "alexandria-hermes",
+        "project": "heterarchy-alexandria",
         "packet_markdown": "# Packet\nUse compact evidence only.",
         "source_refs": [source_ref.to_payload()],
         "budget_policy": policy.to_payload(),

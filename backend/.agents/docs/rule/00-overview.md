@@ -2,7 +2,7 @@
 
 ## 저장소 성격
 
-Alexandria-Hermes는 단순 API Adapter가 아니다.
+heterarchy-alexandria는 단순 API Adapter가 아니다.
 
 다음 책임을 가진 Backend다.
 

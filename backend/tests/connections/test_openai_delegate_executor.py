@@ -412,7 +412,7 @@ def test_openai_codex_executor_uses_oauth_token_and_codex_base_url() -> None:
         assert configs[0].api_key == _fake_oauth_jwt(account_id="acct-test-123")
         assert configs[0].base_url == "https://chatgpt.com/backend-api/codex"
         assert configs[0].default_headers == {
-            "User-Agent": "codex_cli_rs/0.0.0 (Alexandria Hermes)",
+            "User-Agent": "codex_cli_rs/0.0.0 (heterarchy-alexandria)",
             "originator": "codex_cli_rs",
             "ChatGPT-Account-ID": "acct-test-123",
         }
@@ -527,7 +527,7 @@ def _command(
     return HermesLibrarianAskCommand(
         prompt=prompt,
         agent_name="Hermes",
-        project="alexandria-hermes",
+        project="heterarchy-alexandria",
         task_summary=task_summary,
         delegate_to_librarian=True,
         provider_id=None,

@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Alexandria-Hermes is a local-first agent-native library/control plane for context, memory compacts, skill-acquisition jobs, and optional librarian curation. It is not an autonomous agent runtime, prompt marketplace, MCP marketplace, or generic hosted memory API.
+        heterarchy-alexandria is a local-first agent-native library/control plane for context, memory compacts, skill-acquisition jobs, and optional librarian curation. It is not an autonomous agent runtime, prompt marketplace, MCP marketplace, or generic hosted memory API.
   - type: textarea
     id: problem
     attributes:
@@ -48,7 +48,7 @@ body:
     attributes:
       label: Constraints
       options:
-        - label: This fits the local-first, no-login, single-operator model or clearly explains the boundary needed outside Alexandria-Hermes.
+        - label: This fits the local-first, no-login, single-operator model or clearly explains the boundary needed outside heterarchy-alexandria.
           required: true
         - label: This does not require storing raw secrets, full conversation logs, or provider tokens in library/context content.
           required: true

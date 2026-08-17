@@ -86,7 +86,7 @@ def test_memory_compact_parser_accepts_legacy_block_list_source_refs(
 alexandria_type: memory_compact
 id: legacy-compact
 status: CURRENT
-project: alexandria-hermes
+project: heterarchy-alexandria
 created_at: 2026-08-01T00:00:00Z
 updated_at: 2026-08-01T00:00:00Z
 covered_from: 2026-07-01T00:00:00Z

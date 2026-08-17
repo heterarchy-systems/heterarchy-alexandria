@@ -84,7 +84,7 @@ class RecoveryPlanService:
         run_id = str(
             uuid5(
                 NAMESPACE_URL,
-                f"alexandria-hermes:recovery:postgresql:{idempotency_key}",
+                f"heterarchy-alexandria:recovery:postgresql:{idempotency_key}",
             )
         )
         source_snapshot = _source_snapshot(

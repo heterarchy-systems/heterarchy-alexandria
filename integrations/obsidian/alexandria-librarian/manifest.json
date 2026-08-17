@@ -3,8 +3,8 @@
   "name": "Alexandria Librarian",
   "version": "0.1.0",
   "minAppVersion": "1.5.0",
-  "description": "Talk to the local Alexandria-Hermes librarian from an Obsidian side pane.",
-  "author": "Alexandria-Hermes",
+  "description": "Talk to the local heterarchy-alexandria librarian from an Obsidian side pane.",
+  "author": "heterarchy-alexandria",
   "authorUrl": "https://github.com/",
   "isDesktopOnly": false
 }

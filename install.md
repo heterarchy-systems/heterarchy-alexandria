@@ -1,6 +1,6 @@
 # Install
 
-Alexandria-Hermes installs as a backend/CLI/MCP service. The old frontend runtime has been removed.
+heterarchy-alexandria installs as a backend/CLI/MCP service. The old frontend runtime has been removed.
 
 ## Requirements
 
@@ -15,9 +15,9 @@ Terminal 1:
 ```bash
 cd backend
 uv sync
-uv run alexandria-hermes setup --mode backend-daemon --apply --write-guidebook --run-migrations
-uv run alexandria-hermes serve \
-  --env-file "$HOME/.hermes/alexandria-hermes/.env" \
+uv run heterarchy-alexandria setup --mode backend-daemon --apply --write-guidebook --run-migrations
+uv run heterarchy-alexandria serve \
+  --env-file "$HOME/.hermes/heterarchy-alexandria/.env" \
   --host 127.0.0.1 \
   --port 8000
 ```
@@ -26,14 +26,14 @@ Terminal 2:
 
 ```bash
 cd backend
-uv run alexandria-hermes obsidian init
-uv run alexandria-hermes obsidian reindex
+uv run heterarchy-alexandria obsidian init
+uv run heterarchy-alexandria obsidian reindex
 ```
 
 Open this vault in Obsidian:
 
 ```text
-~/.hermes/alexandria-hermes/data/obsidian-vault
+~/.hermes/heterarchy-alexandria/data/obsidian-vault
 ```
 
 ## Backend daemon with an existing Obsidian vault
@@ -43,7 +43,7 @@ Use this when you already created `~/Desktop/Alexandria` in Obsidian:
 ```bash
 cd backend
 uv sync
-uv run alexandria-hermes setup \
+uv run heterarchy-alexandria setup \
   --mode backend-daemon \
   --apply \
   --write-guidebook \
@@ -57,8 +57,8 @@ uv run alexandria-hermes setup \
 Then start the backend with the generated env file:
 
 ```bash
-uv run alexandria-hermes serve \
-  --env-file "$HOME/.hermes/alexandria-hermes/.env" \
+uv run heterarchy-alexandria serve \
+  --env-file "$HOME/.hermes/heterarchy-alexandria/.env" \
   --host 127.0.0.1 \
   --port 8000
 ```
@@ -68,7 +68,7 @@ uv run alexandria-hermes serve \
 ```bash
 brew install --cask obsidian
 cd backend
-uv run alexandria-hermes obsidian install-local \
+uv run heterarchy-alexandria obsidian install-local \
   --vault-path "$HOME/Desktop/Alexandria" \
   --plugin-install-mode copy
 ```
@@ -81,17 +81,17 @@ Use Obsidian Markdown as the canonical recall surface:
 
 ```bash
 cd backend
-uv run alexandria-hermes obsidian capture "Browser Verification Skill" \
+uv run heterarchy-alexandria obsidian capture "Browser Verification Skill" \
   --body-file ./skill.md \
   --type skill \
-  --project alexandria-hermes
+  --project heterarchy-alexandria
 
-uv run alexandria-hermes obsidian capture "Release Review Prompt" \
+uv run heterarchy-alexandria obsidian capture "Release Review Prompt" \
   --body-file ./prompt.md \
   --type prompt \
   --prompt-kind template
 
-uv run alexandria-hermes obsidian reindex
+uv run heterarchy-alexandria obsidian reindex
 ```
 
 `obsidian capture` is limited to `memory_compact`, `skill`, and `prompt` so imports remain migration-safe. SQLite is rebuilt from Markdown; it is not the canonical artifact store.
@@ -108,7 +108,7 @@ The backend is published on `127.0.0.1:8000`.
 
 ```bash
 cd backend
-uv run alexandria-hermes hermes onboard
+uv run heterarchy-heterarchy-alexandria onboard
 ```
 
 Skill/prompt library persistence is no longer SQLite CRUD. Keep reusable assets as Markdown/Obsidian notes with `obsidian capture` or `obsidian save`; search them with `obsidian search` after reindex.

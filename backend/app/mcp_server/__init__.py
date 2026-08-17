@@ -1,1 +1,1 @@
-"""MCP server integration package for Alexandria-Hermes."""
+"""MCP server integration package for heterarchy-alexandria."""

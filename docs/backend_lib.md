@@ -1,10 +1,10 @@
-# Alexandria-Hermes Backend Recall Surface
+# heterarchy-alexandria Backend Recall Surface
 
 This document replaces the original backend MVP prompt. The active product is a local-first, agent-facing recall and librarian collaboration service for Hermes/Alexandria. It is not a human CMS, generic archive platform, or SQLite-backed skill/prompt library.
 
 ## Current product boundary
 
-Alexandria-Hermes keeps durable knowledge agent-native and Markdown-first:
+heterarchy-alexandria keeps durable knowledge agent-native and Markdown-first:
 
 ```text
 Hermes/agent/MCP/CLI request

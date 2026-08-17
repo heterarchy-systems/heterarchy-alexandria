@@ -1,6 +1,6 @@
-# Alexandria-Hermes Agent Entry
+# heterarchy-alexandria Agent Entry
 
-This file is the mandatory entrypoint for agents modifying the Alexandria-Hermes backend.
+This file is the mandatory entrypoint for agents modifying the heterarchy-alexandria backend.
 
 Before modifying backend code, read the following files in order:
 
@@ -25,7 +25,7 @@ When repository conventions and a task-specific document conflict, do not silent
 
 # Project Structure and Module Organization
 
-This repository is a backend and CLI service for Alexandria-Hermes.
+This repository is a backend and CLI service for heterarchy-alexandria.
 
 ## Repository Structure
 
@@ -64,7 +64,7 @@ The previous Next.js `frontend/` service has been removed.
 
 Do not add npm, Node.js, React, Next.js, or frontend workflows unless the product direction changes explicitly.
 
-Preserve the existing Alexandria-Hermes directory structure unless the current task provides a concrete reason to change it.
+Preserve the existing heterarchy-alexandria directory structure unless the current task provides a concrete reason to change it.
 
 Do not create generic modules or directories such as:
 

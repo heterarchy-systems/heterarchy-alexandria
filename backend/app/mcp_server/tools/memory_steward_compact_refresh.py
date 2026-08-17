@@ -121,7 +121,7 @@ def refresh_markdown_body(
     source_refs = refresh_source_refs(previous_id=compact.id, covered_to=covered_to)
     return "\n".join(
         [
-            "# Alexandria-Hermes Current Memory Compact — Librarian Refresh",
+            "# heterarchy-alexandria Current Memory Compact — Librarian Refresh",
             "",
             "## Durable Decisions",
             "- Obsidian Markdown remains the durable source of truth.",

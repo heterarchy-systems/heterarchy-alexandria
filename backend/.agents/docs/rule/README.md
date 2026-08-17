@@ -1,6 +1,6 @@
-# Alexandria-Hermes Rules Index
+# heterarchy-alexandria Rules Index
 
-이 디렉터리는 Alexandria-Hermes 전용 개발 규칙의 Source of Truth다.
+이 디렉터리는 heterarchy-alexandria 전용 개발 규칙의 Source of Truth다.
 
 ## 문서
 

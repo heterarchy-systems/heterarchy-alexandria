@@ -21,7 +21,7 @@ def postgres_connect_args() -> dict[str, float | dict[str, str]]:
     return {
         "command_timeout": POSTGRES_COMMAND_TIMEOUT_SECONDS,
         "server_settings": {
-            "application_name": "alexandria-hermes",
+            "application_name": "heterarchy-alexandria",
             "timezone": "UTC",
             "statement_timeout": str(POSTGRES_STATEMENT_TIMEOUT_MS),
             "lock_timeout": str(POSTGRES_LOCK_TIMEOUT_MS),

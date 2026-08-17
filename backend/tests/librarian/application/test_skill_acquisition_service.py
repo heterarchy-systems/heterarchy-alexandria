@@ -220,7 +220,7 @@ def test_skill_acquisition_job_returns_guidance_when_no_provider_exists(
             job = await service.request_job(
                 prompt="Need a Playwright skill",
                 agent_name="Hermes",
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
                 task_summary="Browser automation gap",
             )
             persisted = await service.get_job(job.id)
@@ -384,7 +384,7 @@ def test_skill_acquisition_job_rejects_search_unavailable_snapshot(
                 await service.request_job(
                     prompt="Need a browser automation skill",
                     agent_name="Hermes",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     search_snapshot={
                         "decision": "SEARCH_UNAVAILABLE",
                         "handoff": {"decision": "skill_search_repair_required"},
@@ -415,7 +415,7 @@ def test_skill_acquisition_job_rejects_sufficient_skill_snapshot(
                 await service.request_job(
                     prompt="Need a browser automation skill",
                     agent_name="Hermes",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     search_snapshot={
                         "decision": "FOUND_SUFFICIENT",
                         "candidates": [
@@ -456,7 +456,7 @@ def test_skill_acquisition_completion_rejects_active_publication_request(
             job = await service.request_job(
                 prompt="Need a production deployment skill",
                 agent_name="Hermes",
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
             )
             with pytest.raises(LibrarianValidationError) as exc_info:
                 await service.complete_with_skill_artifact(
@@ -546,7 +546,7 @@ def test_skill_acquisition_completion_publishes_durable_skill_artifact(
             job = await service.request_job(
                 prompt="Need a deterministic HTTP mocking skill",
                 agent_name="Hermes",
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
                 search_snapshot={
                     "decision": "FOUND_PARTIAL",
                     "gaps": ["Existing notes do not cover HTTP fakes."],
@@ -688,7 +688,7 @@ def test_skill_acquisition_completion_fails_closed_for_incomplete_handoff(
             job = await service.request_job(
                 prompt="Need a deterministic HTTP mocking skill",
                 agent_name="Hermes",
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
                 search_snapshot={"decision": "NOT_FOUND"},
             )
             failed = await service.complete_with_skill_artifact(
@@ -737,7 +737,7 @@ def test_skill_acquisition_completion_is_idempotent_for_completed_jobs(
             job = await service.request_job(
                 prompt="Need a deterministic HTTP mocking skill",
                 agent_name="Hermes",
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
                 search_snapshot={
                     "decision": "FOUND_PARTIAL",
                     "gaps": ["Existing notes do not cover HTTP fakes."],
@@ -805,7 +805,7 @@ def test_skill_acquisition_completion_persists_repair_handoff_when_publisher_fai
             job = await service.request_job(
                 prompt="Need a deterministic HTTP mocking skill",
                 agent_name="Hermes",
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
                 search_snapshot={"decision": "NOT_FOUND"},
             )
             failed = await service.complete_with_skill_artifact(
@@ -893,7 +893,7 @@ def test_skill_acquisition_completion_preserves_saved_handles_when_verification_
             job = await service.request_job(
                 prompt="Need a deterministic HTTP mocking skill",
                 agent_name="Hermes",
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
                 search_snapshot={"decision": "NOT_FOUND"},
             )
             failed = await service.complete_with_skill_artifact(
@@ -982,7 +982,7 @@ def test_skill_acquisition_completion_persists_sanitized_secret_guardrail_failur
             job = await service.request_job(
                 prompt="Need a secret handling skill",
                 agent_name="Hermes",
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
             )
             failed = await service.complete_with_skill_artifact(
                 job_id=job.id,
@@ -1041,7 +1041,7 @@ def test_skill_acquisition_completion_records_artifact_without_context_write(
             job = await service.request_job(
                 prompt="Need a deterministic HTTP mocking skill",
                 agent_name="Hermes",
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
                 task_summary="Replace brittle API tests.",
             )
             completed = await service.complete_with_skill_artifact(
@@ -1121,7 +1121,7 @@ def _publisher_job() -> SkillAcquisitionJob:
         id="skill-acquisition-1",
         prompt="Need HTTP fakes",
         agent_name="Hermes",
-        project="alexandria-hermes",
+        project="heterarchy-alexandria",
         task_summary="Replace brittle route tests.",
         status=SkillAcquisitionJobStatus.ACCEPTED,
         provider_id=None,
@@ -1211,7 +1211,7 @@ def test_obsidian_skill_artifact_publisher_saves_draft_skill_note() -> None:
         anyio.run(run_case)
     )
 
-    assert skill_id == "2ea2ec59-a4b7-5e7a-9f67-6fa679600999"
+    assert skill_id == "2d4ea19c-1041-5ea2-8897-af8d5d98cad3"
     assert context_id is None
     assert (
         result_summary
@@ -1220,7 +1220,7 @@ def test_obsidian_skill_artifact_publisher_saves_draft_skill_note() -> None:
     assert payload.note_id == skill_id
     assert payload.alexandria_type.value == "skill"
     assert payload.status == "draft"
-    assert payload.project == "alexandria-hermes"
+    assert payload.project == "heterarchy-alexandria"
     assert payload.source == "skill_acquisition"
     assert payload.tags == ("skill-acquisition", "testing")
     expected_sections = [
@@ -1257,7 +1257,7 @@ def test_obsidian_skill_artifact_publisher_saves_draft_skill_note() -> None:
     search_query, refresh = search_queries[0]
     assert search_query.query == "HTTP Boundary Fake"
     assert search_query.alexandria_type.value == "skill"
-    assert search_query.project == "alexandria-hermes"
+    assert search_query.project == "heterarchy-alexandria"
     assert refresh is True
 
 
@@ -1315,7 +1315,7 @@ def test_completed_skill_artifact_is_rediscovered_by_search_first_for_reuse() ->
             SkillCapabilityBrief(
                 capability="HTTP boundary fake",
                 task_goal="Replace brittle HTTP tests",
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
                 required_tools=["pytest"],
             )
         )
@@ -1661,7 +1661,7 @@ def test_obsidian_skill_artifact_publisher_fails_when_search_verification_misses
                     id="skill-acquisition-1",
                     prompt="Need HTTP fakes",
                     agent_name="Hermes",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     task_summary=None,
                     status=SkillAcquisitionJobStatus.ACCEPTED,
                     provider_id=None,
@@ -1727,7 +1727,7 @@ def test_obsidian_skill_artifact_publisher_fails_when_readback_contract_differs(
                     id="skill-acquisition-1",
                     prompt="Need HTTP fakes",
                     agent_name="Hermes",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     task_summary=None,
                     status=SkillAcquisitionJobStatus.ACCEPTED,
                     provider_id=None,

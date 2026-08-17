@@ -7,6 +7,7 @@ from pathlib import Path
 from shutil import disk_usage
 from typing import Protocol
 
+from app.obsidian.infrastructure.markdown.paths import discover_managed_markdown_paths
 from app.operations.domain.entities.recovery_plan import RecoverySourceSnapshot
 
 
@@ -40,7 +41,7 @@ def _source_snapshot(
     root = vault / alexandria_root
     access_error: str | None = None
     try:
-        markdown_files = sorted(root.rglob("*.md")) if root.exists() else []
+        markdown_files = discover_managed_markdown_paths(root) if root.exists() else []
     except OSError:
         markdown_files = []
         access_error = "source_snapshot_unreadable"

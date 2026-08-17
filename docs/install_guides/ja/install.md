@@ -1,4 +1,4 @@
-# Alexandria-Hermes install
+# heterarchy-alexandria install
 
 > Maintenance status: this Japanese page is currently an unmaintained placeholder. Use `../en/install.md` or `../ko/install.md` for the maintained install flow until a real translation is added.
 
@@ -9,9 +9,9 @@ The frontend runtime has been removed. Install the backend/CLI/MCP service and c
 ```bash
 cd backend
 uv sync
-uv run alexandria-hermes setup --mode backend-daemon --apply --write-guidebook --run-migrations
-uv run alexandria-hermes serve \
-  --env-file "$HOME/.hermes/alexandria-hermes/.env" \
+uv run heterarchy-alexandria setup --mode backend-daemon --apply --write-guidebook --run-migrations
+uv run heterarchy-alexandria serve \
+  --env-file "$HOME/.hermes/heterarchy-alexandria/.env" \
   --host 127.0.0.1 \
   --port 8000
 ```
@@ -20,18 +20,18 @@ In another terminal after the backend starts:
 
 ```bash
 cd backend
-uv run alexandria-hermes obsidian init
-uv run alexandria-hermes obsidian reindex
+uv run heterarchy-alexandria obsidian init
+uv run heterarchy-alexandria obsidian reindex
 ```
 
-Open `~/.hermes/alexandria-hermes/data/obsidian-vault` in Obsidian.
+Open `~/.hermes/heterarchy-alexandria/data/obsidian-vault` in Obsidian.
 
 ## Existing `Alexandria` vault
 
 ```bash
 cd backend
 uv sync
-uv run alexandria-hermes setup \
+uv run heterarchy-alexandria setup \
   --mode backend-daemon \
   --apply \
   --write-guidebook \
@@ -45,8 +45,8 @@ Root `.` means the vault itself is the Alexandria workspace and prevents an `Ale
 Then start the backend with the generated env file:
 
 ```bash
-uv run alexandria-hermes serve \
-  --env-file "$HOME/.hermes/alexandria-hermes/.env" \
+uv run heterarchy-alexandria serve \
+  --env-file "$HOME/.hermes/heterarchy-alexandria/.env" \
   --host 127.0.0.1 \
   --port 8000
 ```
@@ -56,7 +56,7 @@ uv run alexandria-hermes serve \
 ```bash
 brew install --cask obsidian
 cd backend
-uv run alexandria-hermes obsidian install-local \
+uv run heterarchy-alexandria obsidian install-local \
   --vault-path "$HOME/Desktop/Alexandria" \
   --plugin-install-mode copy
 ```

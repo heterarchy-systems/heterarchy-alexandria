@@ -55,6 +55,6 @@ def protected_resource_metadata(request: Request, config: AppConfig) -> JSONObje
         resource=config.mcp_oauth_resource or mcp_resource_url(request),
         authorization_servers=tuple(config.mcp_oauth_authorization_server_urls()),
         scopes_supported=scopes,
-        resource_documentation="Alexandria-Hermes MCP server for librarian tools.",
+        resource_documentation="heterarchy-alexandria MCP server for librarian tools.",
     )
     return payload.model_dump(mode="json")

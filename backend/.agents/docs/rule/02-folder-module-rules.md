@@ -2,7 +2,7 @@
 
 ## 기본 원칙
 
-기존 Alexandria-Hermes 디렉터리 구조를 우선한다.
+기존 heterarchy-alexandria 디렉터리 구조를 우선한다.
 
 새 폴더는 실제 Concept 또는 Responsibility Boundary가 있을 때만 만든다.
 

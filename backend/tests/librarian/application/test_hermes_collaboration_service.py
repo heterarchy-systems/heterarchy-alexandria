@@ -248,7 +248,7 @@ def _command(
     return HermesLibrarianAskCommand(
         prompt=prompt,
         agent_name="Hermes",
-        project="alexandria-hermes",
+        project="heterarchy-alexandria",
         task_summary=None,
         delegate_to_librarian=delegate,
         provider_id=provider_id,

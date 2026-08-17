@@ -1,7 +1,7 @@
 [project]
-name = "alexandria-hermes"
+name = "heterarchy-alexandria"
 version = "0.1.0"
-description = "FastAPI backend service for alexandria-hermes"
+description = "FastAPI backend service for heterarchy-alexandria"
 requires-python = ">=3.13,<3.15"
 dependencies = [
     "fastapi[all]",
@@ -27,8 +27,7 @@ dependencies = [
 ]
 
 [project.scripts]
-alexandria-hermes = "app.cli:main"
-alex-hermes = "app.cli:main"
+heterarchy-alexandria = "app.cli:main"
 
 [build-system]
 requires = ["setuptools>=80"]

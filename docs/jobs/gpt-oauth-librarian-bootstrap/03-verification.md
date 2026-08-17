@@ -3,7 +3,7 @@ title: Verification
 status: implemented
 created: 2026-05-26
 updated: 2026-05-26
-owner: alexandria-hermes
+owner: heterarchy-alexandria
 scope: tests
 ---
 
@@ -25,6 +25,6 @@ scope: tests
 Run after backend install:
 
 ```bash
-uv run alexandria-hermes --json librarian bootstrap-obsidian-oauth \
+uv run heterarchy-alexandria --json librarian bootstrap-obsidian-oauth \
   --provider-name codex-oauth
 ```

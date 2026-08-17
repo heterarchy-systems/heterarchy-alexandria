@@ -24,7 +24,7 @@ source: codex
 
 - `setup --apply`는 `.env`와 vault 경로를 만들지만 DB migration은 자동 실행하지 않았다.
 - migration 전 `/obsidian/init` 호출 시 `obsidian_files` table missing 500이 발생했다.
-- generated launchd plist는 `alexandria-hermes` command를 직접 호출하지만, local uv 환경에서는 repo working directory가 필요했다.
+- generated launchd plist는 `heterarchy-alexandria` command를 직접 호출하지만, local uv 환경에서는 repo working directory가 필요했다.
 - plugin symlink에 `data.json`을 쓰면 repo working tree가 더러워질 수 있다.
 
 ## 개선 방향
@@ -32,7 +32,7 @@ source: codex
 ### 1. setup apply 후 migration option
 
 ```bash
-alexandria-hermes setup \
+heterarchy-alexandria setup \
   --mode backend-daemon \
   --apply \
   --write-guidebook \
@@ -46,7 +46,7 @@ alexandria-hermes setup \
 새 command 후보:
 
 ```bash
-alexandria-hermes obsidian install-local \
+heterarchy-alexandria obsidian install-local \
   --vault-path "$HOME/Desktop/Alexandria" \
   --root "." \
   --install-plugin \
@@ -76,7 +76,7 @@ launchd plist는 repo-local backend에서 실행되도록 한다.
 
 ```text
 ProgramArguments:
-/bin/zsh -lc "cd <repo>/backend && exec uv run alexandria-hermes serve --env-file <env> --host 127.0.0.1 --port 8000"
+/bin/zsh -lc "cd <repo>/backend && exec uv run heterarchy-alexandria serve --env-file <env> --host 127.0.0.1 --port 8000"
 ```
 
 장기적으로는 설치된 wheel/venv entrypoint 경로를 명시하는 방식도 검토한다.

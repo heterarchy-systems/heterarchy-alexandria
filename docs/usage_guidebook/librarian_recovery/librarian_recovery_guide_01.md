@@ -41,7 +41,7 @@ fields unless an operator explicitly chooses a destructive recovery path.
    uv run python -m app.cli --json context soft-rebuild \
      --limit 1000 \
      --verification-query "known project-specific phrase" \
-     --project alexandria-hermes
+     --project heterarchy-alexandria
    ```
 
    This operation preserves source contexts, Obsidian notes, and memory rows. It
@@ -59,7 +59,7 @@ fields unless an operator explicitly chooses a destructive recovery path.
    uv run python -m app.cli --json context rag \
      "known project-specific phrase" \
      --strategy HYBRID \
-     --project alexandria-hermes
+     --project heterarchy-alexandria
    ```
 
 7. Use typed librarian jobs for vault organization.

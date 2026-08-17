@@ -58,9 +58,9 @@ def _client() -> tuple[AlexandriaApiClient, list[RecordedCall]]:
 def _candidate() -> MemoryCandidateRequest:
     return MemoryCandidateRequest(
         title="Storage decision",
-        body="Alexandria-Hermes uses Obsidian as canonical storage.",
+        body="heterarchy-alexandria uses Obsidian as canonical storage.",
         scope=ContextScope.PROJECT,
-        project="Alexandria-Hermes",
+        project="heterarchy-alexandria",
         tags=["memory", "canonical"],
         candidate_id="candidate/1",
     )
@@ -70,14 +70,14 @@ def _temporal_request() -> MemoryTemporalRecallHttpRequest:
     return MemoryTemporalRecallHttpRequest(
         query="storage decision",
         mode=MemoryTemporalRecallMode.ALL,
-        project="Alexandria-Hermes",
+        project="heterarchy-alexandria",
         include_scopes=[ContextScope.PROJECT],
     )
 
 
 def _existing_memory_request() -> ExistingMemoryReconciliationHttpRequest:
     return ExistingMemoryReconciliationHttpRequest(
-        project="Alexandria-Hermes",
+        project="heterarchy-alexandria",
         scope=ContextScope.PROJECT,
         include_archived=True,
         max_contexts=250,

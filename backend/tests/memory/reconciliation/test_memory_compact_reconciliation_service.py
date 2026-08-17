@@ -78,13 +78,13 @@ def test_compact_service_forces_all_temporal_states_before_classification() -> N
             mode=MemoryTemporalRecallMode.CURRENT,
             strategy=RagStrategy.HYBRID,
             limit=20,
-            project="Alexandria-Hermes",
+            project="heterarchy-alexandria",
             include_scopes=(ContextScope.PROJECT,),
         ),
     )
 
     assert temporal.requests[0].mode is MemoryTemporalRecallMode.ALL
-    assert temporal.requests[0].project == "Alexandria-Hermes"
+    assert temporal.requests[0].project == "heterarchy-alexandria"
     assert review.safe_to_publish is True
     assert review.rendered_markdown.startswith("## Current Facts")
 
@@ -118,7 +118,7 @@ def test_compact_preview_http_contract_returns_all_fact_sections() -> None:
                 "mode": "CURRENT",
                 "strategy": "HYBRID",
                 "limit": 10,
-                "project": "Alexandria-Hermes",
+                "project": "heterarchy-alexandria",
                 "include_scopes": ["PROJECT"],
             },
         )

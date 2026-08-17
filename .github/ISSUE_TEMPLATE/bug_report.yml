@@ -1,12 +1,12 @@
 name: Bug report
-description: Report a reproducible Alexandria-Hermes defect
+description: Report a reproducible heterarchy-alexandria defect
 title: "fix: "
 labels: [bug]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping improve Alexandria-Hermes. Do not include raw API keys, operator keys, OAuth tokens, provider secrets, private keys, or full unredacted conversation logs.
+        Thanks for helping improve heterarchy-alexandria. Do not include raw API keys, operator keys, OAuth tokens, provider secrets, private keys, or full unredacted conversation logs.
   - type: textarea
     id: summary
     attributes:
@@ -55,7 +55,7 @@ body:
       placeholder: |
         OS:
         Python:
-        Alexandria-Hermes commit:
+        heterarchy-alexandria commit:
   - type: checkboxes
     id: safety
     attributes:

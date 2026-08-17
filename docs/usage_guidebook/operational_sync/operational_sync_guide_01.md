@@ -2,7 +2,7 @@
 
 ## 목적
 
-Alexandria-Hermes에서 Obsidian Markdown을 원본으로 유지하면서 SQLite 검색 캐시와 embedding/vector index를 안전하게 동기화한다.
+heterarchy-alexandria에서 Obsidian Markdown을 원본으로 유지하면서 SQLite 검색 캐시와 embedding/vector index를 안전하게 동기화한다.
 
 이 가이드는 다음 증상에서 사용한다.
 
@@ -88,7 +88,7 @@ curl -sS http://127.0.0.1:8000/obsidian/status | jq
 
 ```bash
 curl -sS -X POST \
-  "http://127.0.0.1:8000/memory/contexts/retrieval/soft-rebuild?limit=1000&verification_query=운영%20안정성%20자동%20복구%20루프&project=alexandria-hermes" | jq
+  "http://127.0.0.1:8000/memory/contexts/retrieval/soft-rebuild?limit=1000&verification_query=운영%20안정성%20자동%20복구%20루프&project=heterarchy-alexandria" | jq
 ```
 
 응답에서 확인할 필드:
@@ -236,7 +236,7 @@ curl -sS -X POST http://127.0.0.1:8000/memory/contexts/retrieval/search \
     "query": "운영 안정성 자동 복구 루프",
     "strategy": "HYBRID",
     "limit": 3,
-    "project": "alexandria-hermes"
+    "project": "heterarchy-alexandria"
   }' | jq '{strategy, effective_strategy, warnings, matches: [.matches[] | {context_id: .context.id, title: .context.title, vector_score, why_retrieved}]}'
 ```
 

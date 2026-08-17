@@ -102,6 +102,7 @@ async def _service(
     tmp_path: Path,
     *,
     coordinator: IndexMaintenanceCoordinator | None = None,
+    alexandria_root: str = "Alexandria",
 ) -> tuple[Database, AsyncSession, ObsidianService]:
     database = Database(
         database_url=_database_url(tmp_path / "obsidian.db"), create_schema=True
@@ -111,7 +112,7 @@ async def _service(
     service = ObsidianService(
         repository=SqlAlchemyObsidianIndexRepository(session=session),
         vault_path=str(tmp_path / "vault"),
-        alexandria_root="Alexandria",
+        alexandria_root=alexandria_root,
         index_maintenance_coordinator=coordinator,
     )
     return database, session, service
@@ -146,7 +147,7 @@ def test_note_write_waits_for_active_vault_reindex_lane(tmp_path: Path) -> None:
                     alexandria_type=AlexandriaNoteType.CONTEXT,
                     note_id="queued-note",
                     relative_path=note_path,
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     frontmatter={"scope": "PROJECT"},
                 )
             )
@@ -191,7 +192,7 @@ def test_obsidian_index_bounds_and_overlaps_large_canonical_note_chunks(
                     + " ".join(f"검색토큰-{index}" for index in range(600)),
                     alexandria_type=AlexandriaNoteType.CONTEXT,
                     note_id=note_id,
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     frontmatter={"scope": "PROJECT"},
                 )
             )
@@ -309,7 +310,7 @@ def test_obsidian_reindex_searches_frontmatter_notes(tmp_path: Path) -> None:
                 "status: active\n"
                 "created_at: '2026-05-25'\n"
                 "source: human\n"
-                "project: alexandria-hermes\n"
+                "project: heterarchy-alexandria\n"
                 "---\n\n"
                 "# Obsidian Storage\n\nSQLite is a rebuildable search cache.\n",
                 encoding="utf-8",
@@ -330,6 +331,49 @@ def test_obsidian_reindex_searches_frontmatter_notes(tmp_path: Path) -> None:
         ]
 
     anyio.run(scenario)
+
+
+def test_obsidian_reindex_excludes_hidden_internal_vault_directories(
+    tmp_path: Path,
+) -> None:
+    """Vault-root scans must not treat Obsidian trash or metadata as managed notes."""
+
+    async def scenario() -> tuple[int, int, tuple[str, ...], list[str]]:
+        database, session, service = await _service(tmp_path, alexandria_root=".")
+        vault = tmp_path / "vault"
+        canonical_dir = vault / "Contexts" / "Projects"
+        canonical_dir.mkdir(parents=True)
+        canonical_body = (
+            "---\nalexandria_type: context\nid: ctx_identity_winner\n"
+            "title: Canonical Winner\nstatus: active\n---\n\n# Canonical Winner\n"
+        )
+        (canonical_dir / "Canonical Winner.md").write_text(
+            canonical_body,
+            encoding="utf-8",
+        )
+        trash_dir = vault / ".trash" / "Alexandria" / "Identity Quarantine"
+        trash_dir.mkdir(parents=True)
+        (trash_dir / "Historical Copy.md").write_text(
+            canonical_body.replace("Canonical Winner", "Historical Copy"),
+            encoding="utf-8",
+        )
+        obsidian_dir = vault / ".obsidian" / "plugins" / "example"
+        obsidian_dir.mkdir(parents=True)
+        (obsidian_dir / "README.md").write_text("# Plugin Metadata\n", encoding="utf-8")
+        try:
+            result = await service.reindex()
+            paths = await service.managed_markdown_paths()
+        finally:
+            await session.close()
+            await database.shutdown()
+        return result.files_seen, result.files_indexed, result.errors, paths
+
+    files_seen, files_indexed, errors, paths = anyio.run(scenario)
+
+    assert files_seen == 1
+    assert files_indexed == 1
+    assert errors == ()
+    assert paths == ["Contexts/Projects/Canonical Winner.md"]
 
 
 def test_obsidian_reindex_reports_skip_reasons_and_late_edge_resolution(
@@ -574,7 +618,7 @@ def test_obsidian_reindex_triggers_embedding_reindex_when_hook_is_configured(
                 "  - obsidian\n"
                 "status: active\n"
                 "source: human\n"
-                "project: alexandria-hermes\n"
+                "project: heterarchy-alexandria\n"
                 "---\n\n"
                 "# Reindex Hook\n\nTrigger embedding reindex.\n",
                 encoding="utf-8",
@@ -625,7 +669,7 @@ def test_obsidian_reindex_handles_note_id_change_for_same_path(
                 "  - obsidian\n"
                 "status: active\n"
                 "source: human\n"
-                "project: alexandria-hermes\n"
+                "project: heterarchy-alexandria\n"
                 "---\n\n"
                 "# Obsidian Storage\n\nOriginal id.\n",
                 encoding="utf-8",
@@ -640,7 +684,7 @@ def test_obsidian_reindex_handles_note_id_change_for_same_path(
                 "  - obsidian\n"
                 "status: active\n"
                 "source: human\n"
-                "project: alexandria-hermes\n"
+                "project: heterarchy-alexandria\n"
                 "---\n\n"
                 "# Obsidian Storage\n\nRenamed id.\n",
                 encoding="utf-8",
@@ -679,7 +723,7 @@ def test_obsidian_reindex_reads_existing_embeddings_before_file_row_flush(
             title=title,
             status="active",
             tags=["sqlite"],
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
             source="test",
             content_hash=content_hash,
             frontmatter={"id": "autoflush-note", "title": title},
@@ -1027,7 +1071,7 @@ def test_obsidian_save_note_writes_markdown_and_reindexes(tmp_path: Path) -> Non
                     alexandria_type=AlexandriaNoteType.SKILL,
                     note_id="skill_web_research",
                     tags=["research", "web-search"],
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     source="human",
                 )
             )
@@ -1359,7 +1403,7 @@ def test_obsidian_roundtrips_memory_skill_prompt_after_sqlite_rebuild(
         )
         compact = await memory_service.create(
             MemoryCompactCreate(
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
                 covered_from=datetime(2026, 5, 25, tzinfo=UTC),
                 covered_to=datetime(2026, 5, 26, tzinfo=UTC),
                 markdown_body=(
@@ -1374,7 +1418,7 @@ def test_obsidian_roundtrips_memory_skill_prompt_after_sqlite_rebuild(
                     "## Coverage\n"
                     "- covered_from: 2026-05-25T00:00:00+00:00\n"
                     "- covered_to: 2026-05-26T00:00:00+00:00\n"
-                    "- project: alexandria-hermes\n\n"
+                    "- project: heterarchy-alexandria\n\n"
                     "## Evidence Summary\n"
                     "- Storage decision source ref."
                 ),
@@ -1411,7 +1455,7 @@ def test_obsidian_roundtrips_memory_skill_prompt_after_sqlite_rebuild(
                     ),
                     alexandria_type=AlexandriaNoteType.SKILL,
                     note_id="skill_browser_verification",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     tags=["skill", "verification"],
                     source="import",
                     frontmatter={
@@ -1429,7 +1473,7 @@ def test_obsidian_roundtrips_memory_skill_prompt_after_sqlite_rebuild(
                     ),
                     alexandria_type=AlexandriaNoteType.PROMPT,
                     note_id="prompt_release_review",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     tags=["prompt", "release"],
                     source="import",
                     frontmatter={
@@ -1459,7 +1503,7 @@ def test_obsidian_roundtrips_memory_skill_prompt_after_sqlite_rebuild(
                 ObsidianSearchQuery(
                     query="canonical memory survives",
                     alexandria_type=AlexandriaNoteType.MEMORY_COMPACT,
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                 ),
                 refresh=False,
             )
@@ -1733,7 +1777,7 @@ def test_explicit_update_preserves_omitted_optional_fields(tmp_path: Path) -> No
                     relative_path="Alexandria/Skills/Drafts/presence.md",
                     tags=("keep-me",),
                     status="reviewed",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     source="human",
                 )
             )
@@ -1758,7 +1802,7 @@ def test_explicit_update_preserves_omitted_optional_fields(tmp_path: Path) -> No
 
         assert updated.note.tags == ("keep-me",)
         assert updated.note.status == "reviewed"
-        assert updated.note.project == "alexandria-hermes"
+        assert updated.note.project == "heterarchy-alexandria"
         assert updated.note.source == "human"
 
     anyio.run(scenario)
@@ -1899,7 +1943,7 @@ def test_obsidian_librarian_ask_delegates_with_auto_provider(
                     body="# Delegate Source\n\nObsidian delegate source marker.",
                     alexandria_type=AlexandriaNoteType.CONTEXT,
                     note_id="ctx_delegate_source",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     frontmatter={"scope": "PROJECT"},
                 )
             )
@@ -1907,7 +1951,7 @@ def test_obsidian_librarian_ask_delegates_with_auto_provider(
                 ObsidianLibrarianAsk(
                     query="Obsidian delegate source marker",
                     active_note_path=note.relative_path,
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     delegate_to_librarian=True,
                 )
             )
@@ -1988,7 +2032,7 @@ def test_obsidian_librarian_ask_includes_selection_in_delegate_brief(
                 ObsidianLibrarianAsk(
                     query="Plan the inventory move.",
                     selection=selection,
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     delegate_to_librarian=True,
                 )
             )
@@ -2024,7 +2068,7 @@ def test_obsidian_librarian_ask_uses_active_note_as_source(tmp_path: Path) -> No
                     body="# Active Context\n\nMarkdown is canonical.",
                     alexandria_type=AlexandriaNoteType.CONTEXT,
                     note_id="ctx_active_source",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     frontmatter={"scope": "PROJECT"},
                 )
             )
@@ -2032,7 +2076,7 @@ def test_obsidian_librarian_ask_uses_active_note_as_source(tmp_path: Path) -> No
                 ObsidianLibrarianAsk(
                     query="이 노트에서 확인한 원칙은?",
                     active_note_path=note.relative_path,
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                 )
             )
         finally:
@@ -2063,7 +2107,7 @@ def test_obsidian_librarian_source_miss_is_not_reported_as_no_related_notes(
             response = await service.ask_librarian(
                 ObsidianLibrarianAsk(
                     query="nonexistent dogfood inventory marker",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                 )
             )
         finally:
@@ -2106,14 +2150,14 @@ def test_obsidian_librarian_ask_respects_max_source_refs(tmp_path: Path) -> None
                         ),
                         alexandria_type=AlexandriaNoteType.CONTEXT,
                         note_id=f"ctx_vault_scope_{index}",
-                        project="alexandria-hermes",
+                        project="heterarchy-alexandria",
                         frontmatter={"scope": "PROJECT"},
                     )
                 )
             response = await service.ask_librarian(
                 ObsidianLibrarianAsk(
                     query="whole vault librarian scope marker",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     max_source_refs=4,
                 )
             )
@@ -2143,7 +2187,7 @@ def test_obsidian_librarian_vault_inventory_and_path_search(
                     relative_path=(
                         "Alexandria/Contexts/Projects/Loose Project Context.md"
                     ),
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     frontmatter={"scope": "PROJECT"},
                 )
             )
@@ -2197,7 +2241,7 @@ def test_obsidian_librarian_vault_inventory_accepts_implementation_history(
                 / "Alexandria"
                 / "Contexts"
                 / "Projects"
-                / "alexandria-hermes"
+                / "heterarchy-alexandria"
                 / "dev-size"
                 / "Implementation History"
             )
@@ -2207,7 +2251,7 @@ def test_obsidian_librarian_vault_inventory_accepts_implementation_history(
                 "alexandria_type: implementation_history\n"
                 "id: implementation_history_2026_07_17_prd\n"
                 "title: 2026-07-17 PRD implementation history\n"
-                "project: alexandria-hermes\n"
+                "project: heterarchy-alexandria\n"
                 "status: active\n"
                 "---\n\n"
                 "# 2026-07-17 PRD implementation history\n\n"
@@ -2220,7 +2264,7 @@ def test_obsidian_librarian_vault_inventory_accepts_implementation_history(
             inventory = await service.inventory_vault(
                 ObsidianVaultInventoryRequest(
                     scope_path=(
-                        "Alexandria/Contexts/Projects/alexandria-hermes/dev-size/"
+                        "Alexandria/Contexts/Projects/heterarchy-alexandria/dev-size/"
                         "Implementation History"
                     )
                 )
@@ -2228,7 +2272,7 @@ def test_obsidian_librarian_vault_inventory_accepts_implementation_history(
             matches = await service.search_vault_paths(
                 query="PRD implementation",
                 scope_path=(
-                    "Alexandria/Contexts/Projects/alexandria-hermes/dev-size/"
+                    "Alexandria/Contexts/Projects/heterarchy-alexandria/dev-size/"
                     "Implementation History"
                 ),
             )
@@ -2250,7 +2294,7 @@ def test_obsidian_librarian_vault_inventory_accepts_implementation_history(
             "implementation_history_2026_07_17_prd",
             AlexandriaNoteType.IMPLEMENTATION_HISTORY,
             (
-                "Alexandria/Contexts/Projects/alexandria-hermes/dev-size/"
+                "Alexandria/Contexts/Projects/heterarchy-alexandria/dev-size/"
                 "Implementation History/2026-07-17 PRD implementation history.md"
             ),
         )
@@ -2273,7 +2317,7 @@ def test_obsidian_librarian_review_queue_prioritizes_curation_candidates(
                     alexandria_type=AlexandriaNoteType.CONTEXT,
                     note_id="ctx_captured_context",
                     relative_path="Alexandria/_Inbox/Captures/Captured Context.md",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     frontmatter={"scope": "PROJECT"},
                 )
             )
@@ -2284,7 +2328,7 @@ def test_obsidian_librarian_review_queue_prioritizes_curation_candidates(
                     alexandria_type=AlexandriaNoteType.SKILL,
                     note_id="skill_draft_review",
                     relative_path="Alexandria/Skills/Drafts/Draft Skill.md",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                 )
             )
             await service.save_note(
@@ -2295,7 +2339,7 @@ def test_obsidian_librarian_review_queue_prioritizes_curation_candidates(
                     note_id="ctx_archived_draft",
                     relative_path="Alexandria/_Inbox/Captures/Archived Draft.md",
                     status="archived",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     frontmatter={"scope": "PROJECT"},
                 )
             )
@@ -2308,11 +2352,11 @@ def test_obsidian_librarian_review_queue_prioritizes_curation_candidates(
                     relative_path=(
                         "Alexandria/_Ops/Librarian/Chats/librarian_chat_review_noise.md"
                     ),
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                 )
             )
             queue = await service.librarian_review_queue(
-                ObsidianLibrarianReviewQueueRequest(project="alexandria-hermes")
+                ObsidianLibrarianReviewQueueRequest(project="heterarchy-alexandria")
             )
         finally:
             await session.close()
@@ -2367,7 +2411,7 @@ def test_obsidian_librarian_review_queue_surfaces_skill_curation_candidates_safe
                     note_id="skill_duplicate_primary",
                     relative_path="Alexandria/Skills/Active/Duplicate Skill.md",
                     status="active",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                 )
             )
             await service.save_note(
@@ -2378,7 +2422,7 @@ def test_obsidian_librarian_review_queue_surfaces_skill_curation_candidates_safe
                     note_id="skill_duplicate_secondary",
                     relative_path="Alexandria/Skills/Active/Duplicate Skill Copy.md",
                     status="active",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                 )
             )
             await service.save_note(
@@ -2389,7 +2433,7 @@ def test_obsidian_librarian_review_queue_surfaces_skill_curation_candidates_safe
                     note_id="skill_stale_candidate",
                     relative_path="Alexandria/Skills/Active/Stale Skill.md",
                     status="stale",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                 )
             )
             await service.save_note(
@@ -2400,14 +2444,14 @@ def test_obsidian_librarian_review_queue_surfaces_skill_curation_candidates_safe
                     note_id="skill_superseded_candidate",
                     relative_path="Alexandria/Skills/Active/Superseded Skill.md",
                     status="superseded",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                 )
             )
             queue = await service.librarian_review_queue(
-                ObsidianLibrarianReviewQueueRequest(project="alexandria-hermes")
+                ObsidianLibrarianReviewQueueRequest(project="heterarchy-alexandria")
             )
             plan = await service.plan_librarian_review_moves(
-                ObsidianLibrarianReviewQueueRequest(project="alexandria-hermes")
+                ObsidianLibrarianReviewQueueRequest(project="heterarchy-alexandria")
             )
         finally:
             await session.close()
@@ -2457,7 +2501,7 @@ def test_obsidian_librarian_review_apply_does_not_move_skill_curation_candidates
                     note_id="skill_duplicate_apply_primary",
                     relative_path="Alexandria/Skills/Active/Duplicate Apply Skill.md",
                     status="active",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                 )
             )
             duplicate_secondary = await service.save_note(
@@ -2470,7 +2514,7 @@ def test_obsidian_librarian_review_apply_does_not_move_skill_curation_candidates
                         "Alexandria/Skills/Active/Duplicate Apply Skill Copy.md"
                     ),
                     status="active",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                 )
             )
             superseded = await service.save_note(
@@ -2481,12 +2525,12 @@ def test_obsidian_librarian_review_apply_does_not_move_skill_curation_candidates
                     note_id="skill_superseded_apply_candidate",
                     relative_path="Alexandria/Skills/Active/Superseded Apply Skill.md",
                     status="superseded",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                 )
             )
             report = await service.apply_librarian_review_moves(
                 ObsidianLibrarianReviewApplyRequest(
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     report_path=(
                         "Alexandria/_Ops/Librarian/Reports/skill-curation-no-op-report"
                     ),
@@ -2539,12 +2583,12 @@ def test_obsidian_librarian_review_queue_generates_safe_move_plan(
                     relative_path=(
                         "Alexandria/_Inbox/Captures/Captured Move Candidate.md"
                     ),
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     frontmatter={"scope": "PROJECT"},
                 )
             )
             plan = await service.plan_librarian_review_moves(
-                ObsidianLibrarianReviewQueueRequest(project="alexandria-hermes")
+                ObsidianLibrarianReviewQueueRequest(project="heterarchy-alexandria")
             )
             source_exists = (tmp_path / "vault" / captured.relative_path).exists()
         finally:
@@ -2587,7 +2631,7 @@ def test_obsidian_librarian_review_queue_excludes_manual_review_from_move_plan(
                     alexandria_type=AlexandriaNoteType.SKILL,
                     note_id="skill_needs_human_draft",
                     relative_path="Alexandria/Skills/Drafts/Needs Human Draft.md",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                 )
             )
             await service.save_note(
@@ -2600,15 +2644,15 @@ def test_obsidian_librarian_review_queue_excludes_manual_review_from_move_plan(
                         "Alexandria/Contexts/Projects/Review Status Context.md"
                     ),
                     status="review",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     frontmatter={"scope": "PROJECT"},
                 )
             )
             queue = await service.librarian_review_queue(
-                ObsidianLibrarianReviewQueueRequest(project="alexandria-hermes")
+                ObsidianLibrarianReviewQueueRequest(project="heterarchy-alexandria")
             )
             plan = await service.plan_librarian_review_moves(
-                ObsidianLibrarianReviewQueueRequest(project="alexandria-hermes")
+                ObsidianLibrarianReviewQueueRequest(project="heterarchy-alexandria")
             )
         finally:
             await session.close()
@@ -2646,13 +2690,13 @@ def test_obsidian_librarian_review_queue_apply_moves_writes_report_and_reindexes
                     relative_path=(
                         "Alexandria/_Inbox/Captures/Captured Apply Candidate.md"
                     ),
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     frontmatter={"scope": "PROJECT"},
                 )
             )
             report = await service.apply_librarian_review_moves(
                 ObsidianLibrarianReviewApplyRequest(
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     report_path=(
                         "Alexandria/_Ops/Librarian/Reports/"
                         "review-apply-candidate-report"
@@ -2708,13 +2752,13 @@ def test_obsidian_librarian_review_queue_apply_empty_queue_is_no_op(
                     alexandria_type=AlexandriaNoteType.CONTEXT,
                     note_id="ctx_already_organized",
                     relative_path="Alexandria/Contexts/Projects/Already Organized.md",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     frontmatter={"scope": "PROJECT"},
                 )
             )
             report = await service.apply_librarian_review_moves(
                 ObsidianLibrarianReviewApplyRequest(
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     report_path=(
                         "Alexandria/_Ops/Librarian/Reports/review-apply-empty-report"
                     ),
@@ -2814,7 +2858,7 @@ def test_obsidian_librarian_vault_apply_moves_writes_reports_and_reindexes(
                     alexandria_type=AlexandriaNoteType.CONTEXT,
                     note_id="ctx_apply_source",
                     relative_path="Alexandria/Contexts/Projects/Apply Source.md",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     frontmatter={"scope": "PROJECT"},
                 )
             )
@@ -2971,7 +3015,7 @@ def test_obsidian_librarian_job_routes_run_vault_move_and_expose_report(
                     alexandria_type=AlexandriaNoteType.CONTEXT,
                     note_id="ctx_async_job_source",
                     relative_path=("Alexandria/Contexts/Projects/Async Job Source.md"),
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     frontmatter={"scope": "PROJECT"},
                 )
             )
@@ -3205,14 +3249,14 @@ def test_obsidian_librarian_ask_can_save_transcript(tmp_path: Path) -> None:
                     alexandria_type=AlexandriaNoteType.CONTEXT,
                     note_id="ctx_obsidian_storage",
                     tags=["obsidian"],
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     frontmatter={"scope": "PROJECT"},
                 )
             )
             response = await service.ask_librarian(
                 ObsidianLibrarianAsk(
                     query="canonical storage",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     save_transcript=True,
                 )
             )

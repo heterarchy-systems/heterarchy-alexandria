@@ -70,9 +70,9 @@ class _RecordingEngine:
 
 def test_advisory_lock_key_is_stable_and_namespaced() -> None:
     """Stable namespaces should map to stable but distinct signed lock keys."""
-    first = postgres_advisory_lock_key("alexandria-hermes:index-maintenance")
-    repeated = postgres_advisory_lock_key("alexandria-hermes:index-maintenance")
-    other = postgres_advisory_lock_key("alexandria-hermes:scheduler")
+    first = postgres_advisory_lock_key("heterarchy-alexandria:index-maintenance")
+    repeated = postgres_advisory_lock_key("heterarchy-alexandria:index-maintenance")
+    other = postgres_advisory_lock_key("heterarchy-alexandria:scheduler")
 
     assert first == repeated
     assert first != other

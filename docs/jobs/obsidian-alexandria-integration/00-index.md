@@ -3,7 +3,7 @@ alexandria_type: job_plan
 id: job_obsidian_alexandria_integration_00_index
 tags:
   - obsidian
-  - alexandria-hermes
+  - heterarchy-alexandria
   - integration-plan
   - index
 status: implemented
@@ -15,13 +15,13 @@ source: codex
 
 ## 목표
 
-Alexandria-Hermes를 **Obsidian/Markdown 원본 저장소**와 연결한다.
+heterarchy-alexandria를 **Obsidian/Markdown 원본 저장소**와 연결한다.
 SQLite는 원본 저장소가 아니라 검색, 색인, chunk, embedding, job 상태를 위한 보조 캐시로 유지한다.
 
 ```text
 Obsidian Markdown = canonical knowledge source
 SQLite = rebuildable search/index/operation cache
-Alexandria-Hermes = backend/CLI/MCP protocol layer
+heterarchy-alexandria = backend/CLI/MCP protocol layer
 Librarian = optional collaborator and Obsidian chat assistant
 ```
 

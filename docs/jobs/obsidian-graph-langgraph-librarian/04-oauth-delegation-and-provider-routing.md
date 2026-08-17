@@ -111,7 +111,7 @@ Plugin settings:
 
 ```text
 Alexandria API URL: http://127.0.0.1:8000
-Default project: alexandria-hermes
+Default project: heterarchy-alexandria
 Default provider: Codex OAuth / none
 Default profile: Research Critic / Skill Curator / none
 Auto-save transcripts: off

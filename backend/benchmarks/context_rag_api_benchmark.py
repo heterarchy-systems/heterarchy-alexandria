@@ -22,7 +22,7 @@ RAG_STATUS_PATH = "/memory/contexts/rag/status"
 DEFAULT_TOKEN_ENV = "ALEXANDRIA_BENCHMARK_BEARER_TOKEN"
 DEFAULT_QUERIES = (
     "Graph-aware Context Retrieval",
-    "Alexandria Hermes retrieval architecture",
+    "heterarchy-alexandria retrieval architecture",
     "Evidence Intelligence Morning Read",
     "Memory reconciliation graph integrity",
 )

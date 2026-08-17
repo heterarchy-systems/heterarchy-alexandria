@@ -52,7 +52,7 @@ def _retrieval_match(
         summary="Retrieval quality fixture.",
         content="Search quality evidence.",
         content_format=ContextContentFormat.MARKDOWN,
-        project="alexandria-hermes",
+        project="heterarchy-alexandria",
         scope=ContextScope.PROJECT,
         workspace_id="default",
         agent_id=None,

@@ -97,7 +97,7 @@ def _payload(*, reverse_sources: bool) -> MemoryCompactCreate:
     if reverse_sources:
         source_refs.reverse()
     return MemoryCompactCreate(
-        project="alexandria-hermes",
+        project="heterarchy-alexandria",
         covered_from=datetime(2026, 8, 1, tzinfo=UTC),
         covered_to=datetime(2026, 8, 10, tzinfo=UTC),
         markdown_body="Identical normalized Memory Compact body.\n",

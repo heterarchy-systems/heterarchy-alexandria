@@ -35,7 +35,7 @@ from app.obsidian.domain.repositories.obsidian_repository import (
     IObsidianIndexRepository,
 )
 from app.obsidian.infrastructure.markdown.paths import (
-    NOTE_SUFFIX,
+    discover_managed_markdown_paths,
     resolve_note_path,
     validate_discovered_note_path,
 )
@@ -207,7 +207,7 @@ class ObsidianVaultLifecycleService:
                     relative_path=start_path,
                     tags=("alexandria", "start-here"),
                     status="active",
-                    source="alexandria-hermes",
+                    source="heterarchy-alexandria",
                     frontmatter={"kind": "project_context", "scope": "global"},
                 )
             )
@@ -241,7 +241,7 @@ class ObsidianVaultLifecycleService:
         diagnostics = _ReindexDiagnostics()
         seen_paths: set[str] = set()
         candidates: list[ContextReindexCandidate] = []
-        for path in sorted(root.rglob(f"*{NOTE_SUFFIX}")):
+        for path in discover_managed_markdown_paths(root):
             files_seen += 1
             relative_path = str(path.relative_to(config.vault_path))
             seen_paths.add(relative_path)

@@ -3,7 +3,7 @@ title: Bootstrap CLI
 status: implemented
 created: 2026-05-26
 updated: 2026-05-26
-owner: alexandria-hermes
+owner: heterarchy-alexandria
 scope: cli
 ---
 
@@ -12,7 +12,7 @@ scope: cli
 ## Command
 
 ```bash
-alexandria-hermes librarian bootstrap-obsidian-oauth \
+heterarchy-alexandria librarian bootstrap-obsidian-oauth \
   --provider-name codex-oauth \
   --model gpt-5.5
 ```
@@ -20,7 +20,7 @@ alexandria-hermes librarian bootstrap-obsidian-oauth \
 Optional OAuth start:
 
 ```bash
-alexandria-hermes librarian bootstrap-obsidian-oauth \
+heterarchy-alexandria librarian bootstrap-obsidian-oauth \
   --provider-name codex-oauth \
   --start-oauth
 ```

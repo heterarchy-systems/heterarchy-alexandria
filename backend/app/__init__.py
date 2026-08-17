@@ -1,1 +1,1 @@
-"""Alexandria-Hermes backend application package."""
+"""heterarchy-alexandria backend application package."""

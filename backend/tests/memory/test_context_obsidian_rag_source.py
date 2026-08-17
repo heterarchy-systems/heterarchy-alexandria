@@ -199,7 +199,7 @@ def test_obsidian_fts_bulk_hydrates_ranked_candidates(tmp_path: Path) -> None:
                             ),
                             alexandria_type=AlexandriaNoteType.CONTEXT,
                             note_id=f"bulk_recall_note_{index}",
-                            project="alexandria-hermes",
+                            project="heterarchy-alexandria",
                             frontmatter={"scope": "PROJECT"},
                         )
                     )
@@ -212,7 +212,7 @@ def test_obsidian_fts_bulk_hydrates_ranked_candidates(tmp_path: Path) -> None:
                     kind=None,
                     scope_identity=validated_scope_identity(
                         (ContextScope.PROJECT, ContextScope.GLOBAL),
-                        "alexandria-hermes",
+                        "heterarchy-alexandria",
                         None,
                         None,
                         None,
@@ -281,7 +281,7 @@ def test_obsidian_vector_bulk_hydrates_ranked_candidates(tmp_path: Path) -> None
                             ),
                             alexandria_type=AlexandriaNoteType.CONTEXT,
                             note_id=f"vector_recall_note_{index}",
-                            project="alexandria-hermes",
+                            project="heterarchy-alexandria",
                             frontmatter={"scope": "PROJECT"},
                         )
                     )
@@ -306,7 +306,7 @@ def test_obsidian_vector_bulk_hydrates_ranked_candidates(tmp_path: Path) -> None
                     kind=None,
                     scope_identity=validated_scope_identity(
                         (ContextScope.PROJECT, ContextScope.GLOBAL),
-                        "alexandria-hermes",
+                        "heterarchy-alexandria",
                         None,
                         None,
                         None,
@@ -371,7 +371,7 @@ def test_obsidian_embedding_input_includes_title_heading_and_content(
                     ),
                     alexandria_type=AlexandriaNoteType.CONTEXT,
                     note_id="metadata_embedding_note",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     frontmatter={"scope": "PROJECT"},
                 )
             )
@@ -420,7 +420,7 @@ def test_context_rag_excludes_librarian_ops_and_superseded_notes_by_default(
                     body="# Canonical\n\nlibrarian-curation-policy durable guidance.",
                     alexandria_type=AlexandriaNoteType.CONTEXT,
                     note_id="canonical_librarian_policy",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     status="active",
                     frontmatter={"scope": "PROJECT"},
                 )
@@ -432,7 +432,7 @@ def test_context_rag_excludes_librarian_ops_and_superseded_notes_by_default(
                     alexandria_type=AlexandriaNoteType.LIBRARIAN_CHAT,
                     note_id="librarian_chat_noise",
                     relative_path="_Ops/Librarian/Chats/librarian_chat_noise.md",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     status="active",
                 )
             )
@@ -442,7 +442,7 @@ def test_context_rag_excludes_librarian_ops_and_superseded_notes_by_default(
                     body="# Superseded\n\nlibrarian-curation-policy outdated draft.",
                     alexandria_type=AlexandriaNoteType.CONTEXT,
                     note_id="superseded_librarian_policy",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     status="superseded",
                     frontmatter={"scope": "PROJECT"},
                 )
@@ -453,7 +453,7 @@ def test_context_rag_excludes_librarian_ops_and_superseded_notes_by_default(
                     body="# Archived\n\nlibrarian-curation-policy archived note.",
                     alexandria_type=AlexandriaNoteType.CONTEXT,
                     note_id="archived_librarian_policy",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     status="archived",
                     frontmatter={"scope": "PROJECT"},
                 )
@@ -468,7 +468,7 @@ def test_context_rag_excludes_librarian_ops_and_superseded_notes_by_default(
                 query="librarian-curation-policy",
                 strategy=RagStrategy.FTS_ONLY,
                 limit=10,
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
             )
             return [match.context.id for match in pack.matches]
 
@@ -1544,7 +1544,7 @@ def test_context_rag_returns_one_best_chunk_per_obsidian_note(
                     ),
                     alexandria_type=AlexandriaNoteType.CONTEXT,
                     note_id="multi_chunk_librarian_playbook",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     frontmatter={"scope": "PROJECT"},
                 )
             )
@@ -1554,7 +1554,7 @@ def test_context_rag_returns_one_best_chunk_per_obsidian_note(
                     body="# Single\n\ncontext-dedupe-token separate guidance.",
                     alexandria_type=AlexandriaNoteType.CONTEXT,
                     note_id="single_chunk_librarian_playbook",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     frontmatter={"scope": "PROJECT"},
                 )
             )
@@ -1568,7 +1568,7 @@ def test_context_rag_returns_one_best_chunk_per_obsidian_note(
                 query="context-dedupe-token",
                 strategy=RagStrategy.FTS_ONLY,
                 limit=10,
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
             )
             return [match.context.id for match in pack.matches]
 

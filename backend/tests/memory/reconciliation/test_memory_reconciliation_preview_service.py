@@ -89,11 +89,11 @@ def _claim(
     polarity: MemoryClaimPolarity = MemoryClaimPolarity.POSITIVE,
 ) -> CanonicalClaim:
     return CanonicalClaim(
-        subject="Alexandria-Hermes",
+        subject="heterarchy-alexandria",
         predicate="uses",
         object=object_value,
         scope=ContextScope.PROJECT,
-        project="Alexandria-Hermes",
+        project="heterarchy-alexandria",
         polarity=polarity,
     )
 
@@ -108,9 +108,9 @@ def _request(
         candidate=MemoryCandidateCreate(
             candidate_id="candidate-1",
             title="Current storage decision",
-            body=f"Alexandria-Hermes uses {object_value}.",
+            body=f"heterarchy-alexandria uses {object_value}.",
             scope=ContextScope.PROJECT,
-            project="Alexandria-Hermes",
+            project="heterarchy-alexandria",
             canonical_claims=(_claim(object_value=object_value, polarity=polarity),),
             tags=("memory", "memory", " decision "),
             recorded_at=NOW,
@@ -141,9 +141,9 @@ def _conflicting_pack() -> ContextPack:
         kind=ContextKind.MEMORY,
         title="Existing storage decision",
         summary="The current storage decision.",
-        content="Alexandria-Hermes uses Redis.",
+        content="heterarchy-alexandria uses Redis.",
         content_format=ContextContentFormat.MARKDOWN,
-        project="Alexandria-Hermes",
+        project="heterarchy-alexandria",
         scope=ContextScope.PROJECT,
         workspace_id=None,
         agent_id=None,
@@ -183,7 +183,7 @@ def _conflicting_pack() -> ContextPack:
         created_at=NOW,
     )
     return ContextPack(
-        query="Alexandria-Hermes uses Redis",
+        query="heterarchy-alexandria uses Redis",
         strategy=RagStrategy.HYBRID,
         effective_strategy=RagStrategy.HYBRID,
         warnings=[],
@@ -222,10 +222,10 @@ def _preview_service(
 def test_candidate_service_normalizes_identity_tags_and_hash() -> None:
     candidate = MemoryCandidateService().create(_request().candidate)
 
-    assert candidate.project == "Alexandria-Hermes"
+    assert candidate.project == "heterarchy-alexandria"
     assert candidate.tags == ("memory", "decision")
     assert len(candidate.content_hash) == 64
-    assert candidate.canonical_claims[0].project == "Alexandria-Hermes"
+    assert candidate.canonical_claims[0].project == "heterarchy-alexandria"
 
 
 def test_candidate_service_rejects_missing_scope_identity_and_invalid_interval() -> (
@@ -276,7 +276,7 @@ def test_preview_without_matches_creates_unrelated_context_plan(tmp_path: Path) 
                 ]
                 assert "No existing Context candidate was recalled." in plan.warnings
                 assert await repository.get_plan(plan.plan_id) == plan
-                assert source.queries == ["Alexandria-Hermes uses Redis"]
+                assert source.queries == ["heterarchy-alexandria uses Redis"]
         finally:
             await database.shutdown()
 

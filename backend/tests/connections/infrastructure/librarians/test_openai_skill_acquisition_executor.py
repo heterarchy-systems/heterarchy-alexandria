@@ -442,7 +442,7 @@ def test_openai_skill_executor_uses_codex_oauth_and_streaming_response() -> None
         assert len(configs) == 1
         assert configs[0].base_url == "https://chatgpt.com/backend-api/codex"
         assert configs[0].default_headers == {
-            "User-Agent": "codex_cli_rs/0.0.0 (Alexandria Hermes)",
+            "User-Agent": "codex_cli_rs/0.0.0 (heterarchy-alexandria)",
             "originator": "codex_cli_rs",
             "ChatGPT-Account-ID": "acct-test-123",
         }

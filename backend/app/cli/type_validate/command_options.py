@@ -1,4 +1,4 @@
-"""Typed CLI option and enum contracts for Alexandria-Hermes commands."""
+"""Typed CLI option and enum contracts for heterarchy-alexandria commands."""
 
 from __future__ import annotations
 
@@ -49,7 +49,9 @@ RequiredToolOption = Annotated[
 ]
 ProjectOption = Annotated[
     str | None,
-    typer.Option("--project", help="Optional project filter, e.g. alexandria-hermes."),
+    typer.Option(
+        "--project", help="Optional project filter, e.g. heterarchy-alexandria."
+    ),
 ]
 MaxCompactAgeDaysOption = Annotated[
     int,

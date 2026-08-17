@@ -16,5 +16,5 @@ def test_cli_package_is_executable_from_backend_directory() -> None:
     )
 
     assert completed.returncode == 0
-    assert "Alexandria-Hermes command line client" in completed.stdout
+    assert "heterarchy-alexandria command line client" in completed.stdout
     assert "No module named app.cli.__main__" not in completed.stderr

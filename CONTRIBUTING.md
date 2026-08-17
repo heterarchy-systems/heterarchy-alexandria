@@ -1,6 +1,6 @@
 # Contributing
 
-This repository currently ships the Alexandria-Hermes backend, CLI, and MCP integration only. The old frontend package has been removed.
+This repository currently ships the heterarchy-alexandria backend, CLI, and MCP integration only. The old frontend package has been removed.
 
 ## Backend workflow
 

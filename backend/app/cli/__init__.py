@@ -1,4 +1,4 @@
-"""Alexandria-Hermes command line package."""
+"""heterarchy-alexandria command line package."""
 
 from app.cli.main import app, main
 

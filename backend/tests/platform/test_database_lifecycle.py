@@ -72,7 +72,7 @@ def test_postgres_connect_args_bound_commands_locks_and_idle_transactions() -> N
     assert connect_args["command_timeout"] == 30.0
     assert isinstance(server_settings, dict)
     assert server_settings == {
-        "application_name": "alexandria-hermes",
+        "application_name": "heterarchy-alexandria",
         "timezone": "UTC",
         "statement_timeout": "30000",
         "lock_timeout": "5000",

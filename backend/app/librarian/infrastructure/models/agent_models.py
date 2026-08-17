@@ -13,7 +13,7 @@ from app.shared.infrastructure.identifiers import ID_LENGTH, new_uuid
 
 
 class AgentProfileORM(Base):
-    """Profile record for user/agent identities using Alexandria Hermes."""
+    """Profile record for user/agent identities using heterarchy-alexandria."""
 
     __tablename__ = "agent_profiles"
 

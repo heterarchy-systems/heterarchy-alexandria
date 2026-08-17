@@ -108,18 +108,18 @@ class StaticRecallSource(IMemoryCandidateRecallSource):
 
 def _claim_payload() -> list[object]:
     claim = CanonicalClaim(
-        subject="Alexandria-Hermes",
+        subject="heterarchy-alexandria",
         predicate="uses",
         object="Obsidian",
         scope=ContextScope.PROJECT,
-        project="Alexandria-Hermes",
+        project="heterarchy-alexandria",
         polarity=MemoryClaimPolarity.POSITIVE,
     )
     return list(_CLAIMS_ADAPTER.dump_python((claim,), mode="json"))
 
 
 def _context(context_id: str, *, with_claims: bool = True) -> ContextRecord:
-    content = "Alexandria-Hermes uses Obsidian as canonical storage."
+    content = "heterarchy-alexandria uses Obsidian as canonical storage."
     metadata: dict[str, object] = {
         "content_hash": hashlib.sha256(content.encode("utf-8")).hexdigest(),
         "relative_path": f"Contexts/{context_id}.md",
@@ -133,7 +133,7 @@ def _context(context_id: str, *, with_claims: bool = True) -> ContextRecord:
         summary="Obsidian is canonical storage.",
         content=content,
         content_format=ContextContentFormat.MARKDOWN,
-        project="Alexandria-Hermes",
+        project="heterarchy-alexandria",
         scope=ContextScope.PROJECT,
         workspace_id=None,
         agent_id=None,
@@ -219,7 +219,7 @@ def _service(
 
 def _request() -> ExistingMemoryReconciliationRequest:
     return ExistingMemoryReconciliationRequest(
-        project="Alexandria-Hermes",
+        project="heterarchy-alexandria",
         scope=ContextScope.PROJECT,
         max_contexts=10,
         batch_size=1,
@@ -254,7 +254,7 @@ def test_existing_memory_preview_is_write_free(tmp_path: Path) -> None:
                 assert report.hard_delete_performed is False
                 assert await repository.get_temporal_state(context.id) is None
                 assert context_service.calls == [
-                    (1, 0, "Alexandria-Hermes", ContextScope.PROJECT, False)
+                    (1, 0, "heterarchy-alexandria", ContextScope.PROJECT, False)
                 ]
         finally:
             await database.shutdown()

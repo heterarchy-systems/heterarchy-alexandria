@@ -36,7 +36,7 @@ def _node(
         alexandria_type=AlexandriaNoteType.CONTEXT,
         title=title or note_id,
         status="active",
-        project="alexandria-hermes",
+        project="heterarchy-alexandria",
     )
 
 

@@ -52,7 +52,7 @@ API saves and recalls context.
 ## Restore Prompt
 Continue from the API context.
 """,
-        "project": "alexandria-hermes",
+        "project": "heterarchy-alexandria",
         "source_agent": "Hermes",
         "tags": ["api", "handoff"],
     }
@@ -75,7 +75,7 @@ async def _seed_api_context(
     title: str = "API handoff",
     summary: str = "API saves and recalls context.",
     content: str | None = None,
-    project: str | None = "alexandria-hermes",
+    project: str | None = "heterarchy-alexandria",
     scope: ContextScope = ContextScope.PROJECT,
     user_id: str | None = None,
     source_type: ContextSourceType = ContextSourceType.AGENT,
@@ -219,7 +219,7 @@ def test_context_api_hard_deletes_context_rows_chunks_access_events_and_search_i
             json={
                 "query": "API saves recalls",
                 "strategy": "HYBRID",
-                "project": "alexandria-hermes",
+                "project": "heterarchy-alexandria",
             },
         )
         delete_response = client.delete(f"/memory/contexts/{context_id}")
@@ -232,7 +232,7 @@ def test_context_api_hard_deletes_context_rows_chunks_access_events_and_search_i
             json={
                 "query": "API saves recalls",
                 "strategy": "HYBRID",
-                "project": "alexandria-hermes",
+                "project": "heterarchy-alexandria",
             },
         )
     counts = anyio.run(read_counts, context_id)
@@ -262,7 +262,7 @@ def test_context_api_lists_searches_accesses_and_archives_seeded_context(
     context_id = anyio.run(seed_context)
     with TestClient(app, raise_server_exceptions=False) as client:
         list_response = client.get(
-            "/memory/contexts", params={"project": "alexandria-hermes"}
+            "/memory/contexts", params={"project": "heterarchy-alexandria"}
         )
         get_response = client.get(f"/memory/contexts/{context_id}")
         chunks_response = client.get(f"/memory/contexts/{context_id}/chunks")
@@ -271,7 +271,7 @@ def test_context_api_lists_searches_accesses_and_archives_seeded_context(
             json={
                 "query": "API saves recalls",
                 "strategy": "HYBRID",
-                "project": "alexandria-hermes",
+                "project": "heterarchy-alexandria",
             },
         )
         access_response = client.post(f"/memory/contexts/{context_id}/access")
@@ -362,7 +362,7 @@ def test_context_api_gets_and_archives_source_qualified_obsidian_context(
                     alexandria_type=AlexandriaNoteType.CONTEXT,
                     note_id="ctx_router_canonical",
                     status="current",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     frontmatter={
                         "scope": "PROJECT",
                         "provenance": {
@@ -442,7 +442,7 @@ def test_context_api_supersedes_existing_canonical_contexts(tmp_path: Path) -> N
                         alexandria_type=AlexandriaNoteType.CONTEXT,
                         note_id=note_id,
                         status="current",
-                        project="alexandria-hermes",
+                        project="heterarchy-alexandria",
                         frontmatter={"scope": "PROJECT"},
                     )
                 )
@@ -513,7 +513,7 @@ def test_context_api_filters_recall_by_memory_scope(tmp_path: Path) -> None:
                 "Project scoped recall",
                 "Scoped recall token.",
                 scoped_content,
-                "alexandria-hermes",
+                "heterarchy-alexandria",
                 ContextScope.PROJECT,
             )
             return await _seed_api_context(
@@ -521,7 +521,7 @@ def test_context_api_filters_recall_by_memory_scope(tmp_path: Path) -> None:
                 "User scoped recall",
                 "Scoped recall token.",
                 scoped_content,
-                "alexandria-hermes",
+                "heterarchy-alexandria",
                 ContextScope.USER,
                 "ha_nori",
             )

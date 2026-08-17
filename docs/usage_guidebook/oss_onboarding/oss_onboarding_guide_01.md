@@ -2,7 +2,7 @@
 
 ## 목적
 
-Alexandria-Hermes 문서를 유명 OSS 프로젝트의 온보딩 패턴에 맞춰 유지한다.
+heterarchy-alexandria 문서를 유명 OSS 프로젝트의 온보딩 패턴에 맞춰 유지한다.
 
 참고한 패턴:
 
@@ -14,7 +14,7 @@ Alexandria-Hermes 문서를 유명 OSS 프로젝트의 온보딩 패턴에 맞�
 - mem0/Zep: memory add/search/retrieve의 짧은 aha loop 제공
 - Backend/CLI/MCP: README는 짧고, 상세는 docs로 위임
 
-## Alexandria-Hermes 문서 원칙
+## heterarchy-alexandria 문서 원칙
 
 1. README는 판매문서 + 5분 quickstart 역할을 한다.
 2. 설치 문서는 성공 상태를 health가 아니라 `capture → recall → inspect`로 정의한다.

@@ -51,7 +51,7 @@ def _note(
         title=note_id,
         status="active",
         tags=[],
-        project="alexandria-hermes",
+        project="heterarchy-alexandria",
         source="test",
         content_hash=f"hash-{note_id}",
         frontmatter_json={},

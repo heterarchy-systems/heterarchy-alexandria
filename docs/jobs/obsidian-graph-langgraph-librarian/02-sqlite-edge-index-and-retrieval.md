@@ -80,8 +80,8 @@ POST /obsidian/graph/edges
 CLI:
 
 ```bash
-alexandria-hermes obsidian related --path "START_HERE.md"
-alexandria-hermes obsidian graph rebuild
+heterarchy-alexandria obsidian related --path "START_HERE.md"
+heterarchy-alexandria obsidian graph rebuild
 ```
 
 MCP:

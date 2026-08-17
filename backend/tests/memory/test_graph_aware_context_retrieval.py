@@ -394,7 +394,7 @@ async def _search(
     return await service.search(
         "resume decision lineage",
         strategy=RagStrategy.HYBRID,
-        project="alexandria-hermes",
+        project="heterarchy-alexandria",
         limit=5,
     )
 
@@ -416,7 +416,7 @@ def _match(
     note_id: str,
     *,
     score: float,
-    project: str = "alexandria-hermes",
+    project: str = "heterarchy-alexandria",
 ) -> ContextSearchMatch:
     context = ContextRecord(
         id=note_id,
@@ -478,7 +478,7 @@ def _projection() -> ObsidianGraphProjection:
             alexandria_type=note_type,
             title=note_id.title(),
             status="current",
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
         )
         for note_id, note_type in (
             ("decision", AlexandriaNoteType.CONTEXT),
@@ -503,7 +503,7 @@ def _node(
         alexandria_type=note_type,
         title=note_id.title(),
         status="current",
-        project="alexandria-hermes",
+        project="heterarchy-alexandria",
     )
 
 
@@ -515,7 +515,7 @@ def _curation_projection() -> ObsidianGraphProjection:
             alexandria_type=note_type,
             title=note_id.title(),
             status="current",
-            project="alexandria-hermes",
+            project="heterarchy-alexandria",
         )
         for note_id, note_type in (
             ("decision", AlexandriaNoteType.CONTEXT),

@@ -18,7 +18,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import create_async_engine
 
 _BACKEND_ROOT = Path(__file__).resolve().parents[1]
-_TEST_RUNTIME_ROOT = Path(tempfile.mkdtemp(prefix="alexandria-hermes-tests-"))
+_TEST_RUNTIME_ROOT = Path(tempfile.mkdtemp(prefix="heterarchy-alexandria-tests-"))
 _TEST_VAULT_PATH = _TEST_RUNTIME_ROOT / "vault"
 _TEST_ALEXANDRIA_ROOT = _TEST_VAULT_PATH / "Alexandria"
 _TEST_DATABASE_NAME = f"alexandria_test_{uuid4().hex[:16]}"

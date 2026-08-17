@@ -82,7 +82,7 @@ def test_create_app_exposes_local_oauth_routes_without_shadowing_rest_routes(
         default_app.state.container.wire(packages=_ROUTER_PACKAGES)
 
     assert root.status_code == 200
-    assert root.json()["service"] == "alexandria-hermes"
+    assert root.json()["service"] == "heterarchy-alexandria"
     assert authorization_metadata.status_code == 200
     assert authorization_metadata.json()["authorization_endpoint"] == (
         f"{ISSUER}/authorize"

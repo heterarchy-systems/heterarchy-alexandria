@@ -1,4 +1,4 @@
-"""Alembic environment for Alexandria-Hermes backend migrations."""
+"""Alembic environment for heterarchy-alexandria backend migrations."""
 
 from __future__ import annotations
 

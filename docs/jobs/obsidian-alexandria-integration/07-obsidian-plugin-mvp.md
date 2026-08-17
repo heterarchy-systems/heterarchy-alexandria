@@ -16,7 +16,7 @@ source: codex
 ## 목표
 
 Obsidian 안에 Alexandria 사서와 대화하는 최소 side pane을 만든다.
-Plugin은 UI bridge이며, 지식 원본/검색/사서 판단은 Alexandria-Hermes backend가 맡는다.
+Plugin은 UI bridge이며, 지식 원본/검색/사서 판단은 heterarchy-alexandria backend가 맡는다.
 
 ## MVP UX
 
@@ -38,7 +38,7 @@ Plugin은 UI bridge이며, 지식 원본/검색/사서 판단은 Alexandria-Herm
 ```text
 Alexandria API URL: http://127.0.0.1:8000
 Operator API key: optional, stored in Obsidian plugin settings if needed
-Default project: alexandria-hermes
+Default project: heterarchy-alexandria
 Auto-save transcripts: false by default
 ```
 

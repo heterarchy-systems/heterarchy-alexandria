@@ -2,7 +2,7 @@
 
 ## 목적
 
-처음 사용하는 사람이 Alexandria-Hermes의 핵심 가치인 **durable context 재사용**을 5분 안에 확인한다.
+처음 사용하는 사람이 heterarchy-alexandria의 핵심 가치인 **durable context 재사용**을 5분 안에 확인한다.
 
 이 가이드는 설치가 끝난 뒤 다음 성공 상태를 만든다.
 
@@ -16,7 +16,7 @@ context 저장
 ## 전제
 
 - backend가 `http://localhost:8000`에서 실행 중이다.
-- `alexandria-hermes` CLI 또는 `./bin/alexandria-hermes`를 실행할 수 있다.
+- `heterarchy-alexandria` CLI 또는 `./bin/heterarchy-alexandria`를 실행할 수 있다.
 - 실제 secret/API key/token 값은 예제에 넣지 않는다.
 
 ## 1. 첫 context 저장
@@ -25,14 +25,14 @@ context 저장
 cat > /tmp/alexandria-first-context.md <<'MD'
 # First Alexandria context
 
-Alexandria-Hermes is a local-first agent library.
+heterarchy-alexandria is a local-first agent library.
 Use Context Vault for durable decisions, handoffs, plans, memory compacts, and reusable agent context.
 MD
 
-alexandria-hermes --base-url http://localhost:8000 context save \
+heterarchy-alexandria --base-url http://localhost:8000 context save \
   --title "First Alexandria context" \
   --kind DECISION \
-  --project alexandria-hermes \
+  --project heterarchy-alexandria \
   --content-file /tmp/alexandria-first-context.md
 ```
 
@@ -41,10 +41,10 @@ alexandria-hermes --base-url http://localhost:8000 context save \
 처음 smoke test는 embedding/model 상태와 무관하게 재현되도록 `FTS_ONLY`를 사용한다.
 
 ```bash
-alexandria-hermes --base-url http://localhost:8000 context recall \
+heterarchy-alexandria --base-url http://localhost:8000 context recall \
   "durable decisions handoffs memory compacts" \
   --strategy FTS_ONLY \
-  --project alexandria-hermes \
+  --project heterarchy-alexandria \
   --limit 3
 ```
 
@@ -56,7 +56,7 @@ alexandria-hermes --base-url http://localhost:8000 context recall \
 ## 3. RAG 상태 확인
 
 ```bash
-alexandria-hermes --base-url http://localhost:8000 context doctor-rag
+heterarchy-alexandria --base-url http://localhost:8000 context doctor-rag
 ```
 
 해석:
@@ -70,7 +70,7 @@ alexandria-hermes --base-url http://localhost:8000 context doctor-rag
 브라우저에서 확인한다.
 
 ```text
-alexandria-hermes context recall "<query>" --json
+heterarchy-alexandria context recall "<query>" --json
 ```
 
 `/contexts`에서 저장된 context가 보여야 한다. FTS/vector/RAG 상태는 `context doctor-rag`로 확인한다.
