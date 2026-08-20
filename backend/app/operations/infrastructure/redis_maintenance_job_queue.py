@@ -71,6 +71,7 @@ class RedisStreamWriter(Protocol):
         self,
         name: str,
         fields: dict[str, str],
+        *,
         maxlen: int,
         approximate: bool,
     ) -> str | bytes:
@@ -414,8 +415,8 @@ class RedisMaintenanceJobConsumer:
                 await writer.xadd(
                     self._config.dead_letter_stream_name,
                     _dead_letter_mapping(dead_letter),
-                    self._config.max_stream_length,
-                    True,
+                    maxlen=self._config.max_stream_length,
+                    approximate=True,
                 )
                 await self._ack(delivery.stream_id)
         except RedisError as exc:

@@ -102,7 +102,11 @@ async def _consumer_loop(
             continue
         if delivery is None:
             continue
-        await _process_delivery(delivery, consumer, database, container)
+        try:
+            await _process_delivery(delivery, consumer, database, container)
+        except MaintenanceQueueUnavailableError:
+            logger.exception("maintenance queue delivery transition failed")
+            await _interruptible_sleep(stop_event, 2.0)
 
 
 async def _process_delivery(
@@ -117,13 +121,24 @@ async def _process_delivery(
     except asyncio.CancelledError:
         raise
     except Exception as exc:
+        error_summary = _safe_error_summary(exc)
+        logger.error(
+            "maintenance job execution failed",
+            exc_info=(type(exc), exc, exc.__traceback__),
+            extra={
+                "job_id": delivery.job.job_id,
+                "kind": delivery.job.kind.value,
+                "attempt": attempt,
+                "error_summary": error_summary,
+            },
+        )
         terminal = await consumer.mark_failed(
             delivery,
             attempt,
-            _safe_error_summary(exc),
+            error_summary,
         )
-        logger.exception(
-            "maintenance job failed",
+        logger.warning(
+            "maintenance job failure transition persisted",
             extra={
                 "job_id": delivery.job.job_id,
                 "kind": delivery.job.kind.value,

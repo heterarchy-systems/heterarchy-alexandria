@@ -33,7 +33,7 @@ class _FakeRedis:
         self.status_fields = _status_fields()
         self.hset_calls: list[dict[str, str]] = []
         self.xack_calls: list[tuple[str, str, str]] = []
-        self.xadd_calls: list[dict[str, str]] = []
+        self.xadd_calls: list[tuple[str, dict[str, str], int, bool]] = []
         self.expire_calls: list[tuple[str, int]] = []
         self.attempt = 1
 
@@ -64,13 +64,13 @@ class _FakeRedis:
 
     async def xadd(
         self,
-        _stream: str,
+        stream: str,
         fields: dict[str, str],
+        *,
         maxlen: int,
         approximate: bool,
     ) -> str:
-        del maxlen, approximate
-        self.xadd_calls.append(dict(fields))
+        self.xadd_calls.append((stream, dict(fields), maxlen, approximate))
         return "2-0"
 
 
@@ -155,7 +155,11 @@ def test_terminal_failure_is_dead_lettered_and_acknowledged() -> None:
     terminal, fake = anyio.run(scenario)
 
     assert terminal is True
-    assert fake.xadd_calls[-1]["job_id"] == "job-1"
+    stream_name, fields, maxlen, approximate = fake.xadd_calls[-1]
+    assert stream_name == "alexandria:maintenance:dead:v1"
+    assert fields["job_id"] == "job-1"
+    assert maxlen == 10000
+    assert approximate is True
     assert fake.xack_calls[-1][-1] == "1-0"
     assert fake.hset_calls[-1]["status"] == MaintenanceJobStatus.FAILED.value
 

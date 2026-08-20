@@ -126,12 +126,15 @@ class ContextEmbeddingReindexService:
             scanned += forced_scanned
         if self._batch_transaction is not None:
             await self._batch_transaction.release_read_transaction()
-        updated = await _apply_embedding_source_batches(
-            provider=provider,
-            source_batches=source_batches,
-        )
-        if self._batch_transaction is not None and source_batches:
-            await self._batch_transaction.commit_embedding_updates()
+        updated = 0
+        for source_batch in source_batches:
+            updates = await _embedding_updates(
+                provider=provider,
+                chunks=list(source_batch.chunks),
+            )
+            updated += await source_batch.source.update_chunk_embeddings(updates)
+            if self._batch_transaction is not None:
+                await self._batch_transaction.commit_embedding_updates()
         return ContextReindexResult(
             scanned=scanned,
             updated=updated,
@@ -177,21 +180,6 @@ async def _select_embedding_source_batches(
             )
         )
     return source_batches, scanned
-
-
-async def _apply_embedding_source_batches(
-    *,
-    provider: EmbeddingProvider,
-    source_batches: list[_EmbeddingSourceBatch],
-) -> int:
-    updated = 0
-    for source_batch in source_batches:
-        updates = await _embedding_updates(
-            provider=provider,
-            chunks=list(source_batch.chunks),
-        )
-        updated += await source_batch.source.update_chunk_embeddings(updates)
-    return updated
 
 
 async def _embed_documents(

@@ -144,8 +144,8 @@ class _RecordingSession:
         self.active = False
 
 
-def test_reindex_selects_all_sources_before_inference_and_commits_one_batch() -> None:
-    """Read transactions end before CPU work and force selection remains resumable."""
+def test_reindex_commits_each_source_batch_before_next_inference() -> None:
+    """Each durable update commits before later CPU work can idle its transaction."""
 
     async def scenario() -> tuple[list[str], int, int]:
         events: list[str] = []
@@ -174,6 +174,7 @@ def test_reindex_selects_all_sources_before_inference_and_commits_one_batch() ->
         "release",
         "embed:1",
         "update:1",
+        "commit",
         "embed:1",
         "update:1",
         "commit",
