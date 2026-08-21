@@ -39,7 +39,7 @@ SERVICE_GRAPH_READ_MODEL=disabled \
 
 ```bash
 cd backend
-uv run python benchmarks/context_rag_api_benchmark.py \
+uv run python -m benchmarks.context_rag_api_benchmark \
   --base-url http://127.0.0.1:18012 \
   --project heterarchy-alexandria \
   --query "Graph-aware Context Retrieval" \

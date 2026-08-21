@@ -121,7 +121,7 @@ class _HybridEmbeddingService:
     def __init__(self, vector_matches: list[ContextSearchMatch]) -> None:
         self._vector_matches = vector_matches
 
-    async def health_with_index_status(self) -> RagDependencyHealth:
+    async def recall_health(self) -> RagDependencyHealth:
         return RagDependencyHealth(
             fts=RagHealthState.HEALTHY,
             vector=RagHealthState.HEALTHY,
@@ -195,17 +195,26 @@ def test_available_graph_lane_explains_lineage_and_curation_evidence() -> None:
     repository = FakeObsidianGraphProjectionRepository()
     anyio.run(_replace_projection, repository, _projection())
     provider = ObsidianGraphContextSignalService(repository=repository)
+    fts_matches = [_match("decision", score=0.9), _match("skill", score=0.8)]
+    vector_matches = [_match("skill", score=0.95), _match("decision", score=0.7)]
+
+    baseline = anyio.run(_search, fts_matches, vector_matches, None)
 
     pack = anyio.run(
         _search,
-        [_match("decision", score=0.9), _match("skill", score=0.8)],
-        [_match("skill", score=0.95), _match("decision", score=0.7)],
+        fts_matches,
+        vector_matches,
         provider,
     )
 
     decision = next(match for match in pack.matches if match.context.id == "decision")
     assert [evidence.signal for evidence in decision.graph_evidence] == ["lineage"]
-    assert decision.score == pack.matches[0].score
+    assert [match.context.id for match in pack.matches] == [
+        match.context.id for match in baseline.matches
+    ]
+    assert [match.score for match in pack.matches] == [
+        match.score for match in baseline.matches
+    ]
     assert "graph lineage" in decision.why_retrieved
     assert "graph://decision/derived_from/skill" in pack.context_pack
     assert "Legacy" not in pack.context_pack

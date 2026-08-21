@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "query": "exact Obsidian note title or focused question",
+      "expected_titles": [
+        "Expected Obsidian Note Title"
+      ],
+      "project": "replace-with-project-when-note-is-project-scoped"
+    },
+    {
+      "query": "known Context Vault fact",
+      "expected_context_ids": [
+        "replace-with-stable-context-id"
+      ],
+      "project": "replace-with-project-when-note-is-project-scoped"
+    }
+  ]
+}

@@ -33,6 +33,13 @@ def test_context_service_provider_retains_async_mode_after_sync_override() -> No
     anyio.run(_exercise_synchronous_context_service_override)
 
 
+def test_embedding_provider_is_process_scoped_singleton() -> None:
+    """The expensive local embedding model must be reused across Context services."""
+    assert isinstance(
+        app.state.container.memory.embedding_provider, providers.Singleton
+    )
+
+
 def test_disabled_graph_mode_discards_even_a_supplied_projection_repository() -> None:
     """Disabled mode must never construct a Context graph evidence provider."""
     repository = cast(IObsidianGraphProjectionRepository, object())

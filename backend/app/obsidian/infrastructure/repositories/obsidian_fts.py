@@ -13,12 +13,22 @@ from app.obsidian.infrastructure.models.obsidian_index_models import (
     ObsidianFileORM,
 )
 from app.shared.utils.text_metrics import extract_word_tokens
-from sqlalchemy import Select, bindparam, cast as sql_cast, func, literal_column, select
+from sqlalchemy import (
+    Select,
+    bindparam,
+    case,
+    cast as sql_cast,
+    func,
+    literal_column,
+    select,
+    union,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql.elements import ColumnElement
 
 MAX_FTS_TOKEN_COUNT = 32
 MAX_FTS_TOKEN_LENGTH = 64
+EXACT_TITLE_FTS_RANK_BOOST = 1.0
 
 type ObsidianFtsRow = tuple[str, str, float]
 type ObsidianFtsStatement = Select[ObsidianFtsRow]
@@ -92,23 +102,42 @@ def build_obsidian_fts_query(
         + separator
         + ObsidianFileORM.relative_path,
     )
+    exact_title_boost = case(
+        (
+            func.lower(func.trim(ObsidianFileORM.title)) == bindparam("exact_title"),
+            EXACT_TITLE_FTS_RANK_BOOST,
+        ),
+        else_=0.0,
+    )
     rank = cast(
         ColumnElement[float],
         (
             func.ts_rank_cd(chunk_document, query)
             + (func.ts_rank_cd(note_document, query) * 0.5)
+            + exact_title_boost
         ).label("rank"),
+    )
+    chunk_candidates = select(ObsidianChunkORM.id.label("chunk_id")).where(
+        chunk_document.op("@@")(query)
+    )
+    note_candidates = (
+        select(ObsidianChunkORM.id.label("chunk_id"))
+        .select_from(ObsidianFileORM)
+        .join(ObsidianChunkORM, ObsidianChunkORM.note_id == ObsidianFileORM.note_id)
+        .where(note_document.op("@@")(query))
+    )
+    candidates = union(chunk_candidates, note_candidates).subquery(
+        "obsidian_fts_candidates"
     )
     statement = (
         select(ObsidianChunkORM.id, ObsidianChunkORM.note_id, rank)
         .join(ObsidianFileORM, ObsidianFileORM.note_id == ObsidianChunkORM.note_id)
-        .where(
-            ObsidianFileORM.index_status == bindparam("indexed_status"),
-            chunk_document.op("@@")(query) | note_document.op("@@")(query),
-        )
+        .join(candidates, candidates.c.chunk_id == ObsidianChunkORM.id)
+        .where(ObsidianFileORM.index_status == bindparam("indexed_status"))
     )
     parameters: dict[str, ObsidianFtsParameter] = {
         "query": normalized,
+        "exact_title": query_text.strip().lower(),
         "limit": limit,
         "indexed_status": "indexed",
     }

@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import sys
 from collections.abc import Iterable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
+from threading import Event
 from types import ModuleType
 from typing import ClassVar
 
@@ -153,6 +155,44 @@ def test_default_model_registers_e5_and_uses_retrieval_prefixes(
     configured_provider = FastEmbedEmbeddingProvider(threads=6)
     configured_provider.embed_query("configured")
     assert _TextEmbeddingStandin.instances[1].threads == 6
+
+
+def test_fastembed_lazy_model_initialization_is_serialized(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Concurrent first queries should construct one shared FastEmbed model instance."""
+    _install_fastembed_standin(monkeypatch)
+    provider = FastEmbedEmbeddingProvider()
+    constructor_entered = Event()
+    release_constructor = Event()
+    original_init = _TextEmbeddingStandin.__init__
+
+    def slow_init(
+        self: _TextEmbeddingStandin,
+        *,
+        model_name: str,
+        cache_dir: str | None = None,
+        threads: int | None = None,
+    ) -> None:
+        constructor_entered.set()
+        assert release_constructor.wait(timeout=1.0)
+        original_init(
+            self,
+            model_name=model_name,
+            cache_dir=cache_dir,
+            threads=threads,
+        )
+
+    monkeypatch.setattr(_TextEmbeddingStandin, "__init__", slow_init)
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        first = executor.submit(provider.embed_query, "first")
+        assert constructor_entered.wait(timeout=1.0)
+        second = executor.submit(provider.embed_query, "second")
+        release_constructor.set()
+        assert first.result(timeout=1.0) == [12.0]
+        assert second.result(timeout=1.0) == [13.0]
+
+    assert len(_TextEmbeddingStandin.instances) == 1
 
 
 def test_e5_custom_model_registration_is_idempotent(

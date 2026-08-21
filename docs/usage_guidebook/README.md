@@ -43,7 +43,7 @@ docs/usage_guidebook/install_onboard/install_onboard_guide_01.md
 | mcp_runtime | [mcp_runtime_guide_01.md](mcp_runtime/mcp_runtime_guide_01.md) | MCP snippet과 Hermes runtime 등록 차이 |
 | self_acquisition | [self_acquisition_guide_01.md](self_acquisition/self_acquisition_guide_01.md) | 사서 없이 Hermes가 직접 조사/후보 제출하는 흐름 |
 | context_recall | [context_recall_guide_01.md](context_recall/context_recall_guide_01.md) | context 저장 후 recall/Context Pack을 확인하는 첫 기능 smoke test |
-| context_rag_benchmark | [context_rag_benchmark_guide_01.md](context_rag_benchmark/context_rag_benchmark_guide_01.md) | FTS·Vector·Hybrid 검색 성능 기준선과 Graph-enabled 측정 조건 |
+| context_rag_benchmark | [context_rag_benchmark_guide_02.md](context_rag_benchmark/context_rag_benchmark_guide_02.md) | PostgreSQL/pgvector·Neo4j·MCP v2 환경의 Golden Query 품질과 latency 기준선 |
 | memory_compacts | [memory_compacts_guide_01.md](memory_compacts/memory_compacts_guide_01.md) | 장기기억 요약의 24시간 coverage window와 weekly rollup 기준 |
 | obsidian_integration | [obsidian_integration_guide_01.md](obsidian_integration/obsidian_integration_guide_01.md) | Obsidian Markdown 원본 저장소, SQLite index/cache, 사서 대화 흐름 |
 | library_assets | [library_assets_guide_01.md](library_assets/library_assets_guide_01.md) | skills/prompts candidate search와 selected full-load 흐름 |

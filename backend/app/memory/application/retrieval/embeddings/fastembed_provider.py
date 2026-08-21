@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
+from threading import Lock
 from typing import TYPE_CHECKING, Final
 
 from app.memory.application.retrieval.embeddings.embedding_contract import (
@@ -57,6 +58,7 @@ class FastEmbedEmbeddingProvider(EmbeddingProvider):
         self._cache_dir = cache_dir
         self._threads = threads
         self._model: TextEmbedding | None = None
+        self._model_initialization_lock = Lock()
 
     @property
     def provider_name(self) -> str:
@@ -172,28 +174,33 @@ class FastEmbedEmbeddingProvider(EmbeddingProvider):
         return self._model_name == _MULTILINGUAL_E5_SMALL_MODEL
 
     def _embedding_model(self) -> TextEmbedding:
-        if self._model is None:
-            # lazy import justified: optional FastEmbed dependency loads only when embeddings are requested.
-            from fastembed import TextEmbedding
-
-            if self._uses_multilingual_e5_small:
-                self._register_multilingual_e5_small(TextEmbedding)
-                self._repair_incomplete_multilingual_e5_cache()
-            embedding_threads = (
-                self._threads if self._uses_multilingual_e5_small else None
-            )
-            if self._cache_dir is None:
-                self._model = TextEmbedding(
-                    model_name=self._model_name,
-                    threads=embedding_threads,
-                )
-            else:
-                self._model = TextEmbedding(
-                    model_name=self._model_name,
-                    cache_dir=self._cache_dir,
-                    threads=embedding_threads,
-                )
         model = self._model
+        if model is not None:
+            return model
+        with self._model_initialization_lock:
+            model = self._model
+            if model is None:
+                # lazy import justified: optional FastEmbed dependency loads only when embeddings are requested.
+                from fastembed import TextEmbedding
+
+                if self._uses_multilingual_e5_small:
+                    self._register_multilingual_e5_small(TextEmbedding)
+                    self._repair_incomplete_multilingual_e5_cache()
+                embedding_threads = (
+                    self._threads if self._uses_multilingual_e5_small else None
+                )
+                if self._cache_dir is None:
+                    model = TextEmbedding(
+                        model_name=self._model_name,
+                        threads=embedding_threads,
+                    )
+                else:
+                    model = TextEmbedding(
+                        model_name=self._model_name,
+                        cache_dir=self._cache_dir,
+                        threads=embedding_threads,
+                    )
+                self._model = model
         return model
 
     @staticmethod

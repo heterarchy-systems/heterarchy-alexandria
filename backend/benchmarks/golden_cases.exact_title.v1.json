@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "query": "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20",
+      "expected_titles": [
+        "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20"
+      ],
+      "project": "heterarchy-alexandria"
+    },
+    {
+      "query": "Neo4j 기능 05 Graph-aware Context Retrieval",
+      "expected_titles": [
+        "Neo4j 기능 05 Graph-aware Context Retrieval"
+      ],
+      "project": "alexandria-hermes"
+    },
+    {
+      "query": "Alexandria Memory Steward Contract",
+      "expected_titles": [
+        "Alexandria Memory Steward Contract"
+      ],
+      "project": "alexandria-hermes"
+    },
+    {
+      "query": "Alexandria-Hermes Source Index",
+      "expected_titles": [
+        "Alexandria-Hermes Source Index"
+      ],
+      "project": "alexandria-hermes"
+    }
+  ]
+}

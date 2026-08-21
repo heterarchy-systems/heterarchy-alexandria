@@ -15,7 +15,10 @@ from app.memory.application.contexts.records.context_service import ContextServi
 from app.memory.application.retrieval.embeddings.embedding_contract import (
     EmbeddingProvider,
 )
-from app.memory.domain.entities.context_read_models import ContextPack
+from app.memory.domain.entities.context_read_models import (
+    ContextEmbeddingSourceStatus,
+    ContextPack,
+)
 from app.memory.domain.event_enum.context_enums import (
     ContextAccessActorType,
     ContextAccessMethod,
@@ -32,6 +35,7 @@ from app.memory.infrastructure.repositories.context_repository import (
 )
 from app.shared.exceptions.memory_context_exceptions import MemoryContextNotFoundError
 from app.shared.infrastructure.database import Database
+from app.shared.types.extra_types import JSONObject
 from sqlalchemy import func, select
 from sqlalchemy.exc import OperationalError
 from tests.memory.context_seed import seed_context
@@ -915,7 +919,7 @@ def test_rag_health_degrades_when_embedding_status_probe_hits_storage_error(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """RAG status should not 500 when embedding index status probe fails."""
+    """RAG status should not 500 when detailed embedding diagnostics fail."""
 
     async def scenario() -> None:
         async with (
@@ -924,20 +928,21 @@ def test_rag_health_degrades_when_embedding_status_probe_hits_storage_error(
         ):
             repository = SqlAlchemyContextRepository(session=session)
 
-            async def failing_embedding_index_status(
+            async def failing_embedding_source_status(
                 *,
                 model_name: str,
                 dimensions: int,
                 fingerprint_key: str,
-            ) -> RagHealthState:
+                current_fingerprint: JSONObject,
+            ) -> ContextEmbeddingSourceStatus:
                 raise OperationalError(
                     "SELECT context_chunks.id", {}, OSError("disk I/O error")
                 )
 
             monkeypatch.setattr(
                 repository,
-                "embedding_index_status",
-                failing_embedding_index_status,
+                "embedding_source_status",
+                failing_embedding_source_status,
             )
             service = ContextService(
                 repository=repository,

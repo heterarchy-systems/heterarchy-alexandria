@@ -50,19 +50,18 @@ class ContextEmbeddingHealthService:
             vector_retrieval_enabled=self._vector_retrieval_enabled,
         )
 
-    async def health_with_index_status(self) -> RagDependencyHealth:
-        """Return dependency health including persisted fingerprint status.
+    async def recall_health(self) -> RagDependencyHealth:
+        """Return the lightweight dependency health required by one recall request.
 
         Returns:
-            Health state that marks vector recall unavailable on mismatch.
+            Health state based on the first persisted fingerprint mismatch without
+            calculating source-level diagnostic row counts.
         """
         health = self.health()
         provider = self._provider
-        if (
-            provider is None
-            or not self._vector_retrieval_enabled
-            or health.vector is not RagHealthState.HEALTHY
-            or health.embedding is not RagHealthState.HEALTHY
+        if provider is None or not _requires_embedding_index_probe(
+            health=health,
+            vector_retrieval_enabled=self._vector_retrieval_enabled,
         ):
             return health
         try:
@@ -70,27 +69,45 @@ class ContextEmbeddingHealthService:
                 provider=provider,
                 sources=self._search_sources,
             )
+        except SQLAlchemyError as exc:
+            return _embedding_index_status_probe_failed_health(health, exc)
+        return _health_with_embedding_index_status(
+            health=health,
+            index_status=index_status,
+            source_statuses=(),
+        )
+
+    async def health_with_index_status(self) -> RagDependencyHealth:
+        """Return dependency health including persisted fingerprint diagnostics.
+
+        Returns:
+            Health state and source-level embedding fingerprint row counts.
+        """
+        health = self.health()
+        provider = self._provider
+        if provider is None or not _requires_embedding_index_probe(
+            health=health,
+            vector_retrieval_enabled=self._vector_retrieval_enabled,
+        ):
+            return health
+        try:
             source_statuses = await _embedding_source_statuses(
                 provider=provider,
                 sources=self._search_sources,
             )
         except SQLAlchemyError as exc:
             return _embedding_index_status_probe_failed_health(health, exc)
-        if index_status is not RagHealthState.REINDEX_REQUIRED:
-            return replace(health, source_statuses=tuple(source_statuses))
-        warnings = [
-            *health.warnings,
-            (
-                "Embedding index status is REINDEX_REQUIRED; vector recall "
-                "is disabled across configured sources until all source "
-                "fingerprints match; run retrieval reindex before vector recall."
-            ),
-        ]
-        return replace(
-            health,
-            embedding=RagHealthState.REINDEX_REQUIRED,
-            default_strategy=RagStrategy.FTS_ONLY,
-            warnings=tuple(warnings),
+        index_status = (
+            RagHealthState.REINDEX_REQUIRED
+            if any(
+                status.status is RagHealthState.REINDEX_REQUIRED
+                for status in source_statuses
+            )
+            else RagHealthState.HEALTHY
+        )
+        return _health_with_embedding_index_status(
+            health=health,
+            index_status=index_status,
             source_statuses=tuple(source_statuses),
         )
 
@@ -113,6 +130,38 @@ class ContextEmbeddingHealthService:
             provider=provider,
             sources=self._search_sources,
         )
+
+
+def _requires_embedding_index_probe(
+    health: RagDependencyHealth,
+    vector_retrieval_enabled: bool,
+) -> bool:
+    return (
+        vector_retrieval_enabled
+        and health.vector is RagHealthState.HEALTHY
+        and health.embedding is RagHealthState.HEALTHY
+    )
+
+
+def _health_with_embedding_index_status(
+    health: RagDependencyHealth,
+    index_status: RagHealthState,
+    source_statuses: tuple[ContextEmbeddingSourceStatus, ...],
+) -> RagDependencyHealth:
+    if index_status is not RagHealthState.REINDEX_REQUIRED:
+        return replace(health, source_statuses=source_statuses)
+    warning = (
+        "Embedding index status is REINDEX_REQUIRED; vector recall is disabled "
+        "across configured sources until all source fingerprints match; run "
+        "retrieval reindex before vector recall."
+    )
+    return replace(
+        health,
+        embedding=RagHealthState.REINDEX_REQUIRED,
+        default_strategy=RagStrategy.FTS_ONLY,
+        warnings=(*health.warnings, warning),
+        source_statuses=source_statuses,
+    )
 
 
 def _embedding_index_status_probe_failed_health(

@@ -69,6 +69,14 @@ class ContextEmbeddingService:
         """
         return self._health_service.health()
 
+    async def recall_health(self) -> RagDependencyHealth:
+        """Return lightweight embedding health for one search request.
+
+        Returns:
+            Recall health without source-level diagnostic row counts.
+        """
+        return await self._health_service.recall_health()
+
     async def health_with_index_status(self) -> RagDependencyHealth:
         """Return dependency health including persisted fingerprint status.
 

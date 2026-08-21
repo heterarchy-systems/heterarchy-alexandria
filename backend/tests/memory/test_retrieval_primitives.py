@@ -231,11 +231,11 @@ def test_hybrid_rank_fusion_combines_context_evidence_across_chunks() -> None:
     assert len(ranked) == 1
     assert ranked[0].fts_score == fts_match.fts_score
     assert ranked[0].vector_score == vector_match.vector_score
-    assert "reciprocal rank fusion" in ranked[0].why_retrieved
+    assert "best-lane reciprocal-rank fusion" in ranked[0].why_retrieved
 
 
-def test_hybrid_rank_fusion_does_not_let_vector_scale_erase_fts_rank() -> None:
-    """Rank fusion should compare lane positions instead of raw score magnitude."""
+def test_hybrid_rank_fusion_uses_semantic_tiebreaker_for_equal_lane_ranks() -> None:
+    """Equal isolated lane ranks should prefer semantic evidence by a minimal margin."""
     lexical = _retrieval_match(
         "lexical",
         "1",
@@ -257,4 +257,39 @@ def test_hybrid_rank_fusion_does_not_let_vector_scale_erase_fts_rank() -> None:
         limit=2,
     )
 
-    assert [match.context.id for match in ranked] == ["lexical", "semantic"]
+    assert [match.context.id for match in ranked] == ["semantic", "lexical"]
+
+
+def test_hybrid_rank_fusion_does_not_double_count_correlated_lane_noise() -> None:
+    """Cross-lane overlap should not outrank a stronger semantic-first result by addition."""
+    lexical_noise = _retrieval_match(
+        "noise",
+        "1",
+        score=0.000004,
+        fts_score=0.000004,
+        vector_score=None,
+    )
+    semantic = _retrieval_match(
+        "semantic",
+        "1",
+        score=0.99,
+        fts_score=None,
+        vector_score=0.99,
+    )
+    semantic_noise = _retrieval_match(
+        "noise",
+        "2",
+        score=0.95,
+        fts_score=None,
+        vector_score=0.95,
+    )
+
+    ranked = merge_hybrid_matches(
+        fts_matches=[lexical_noise],
+        vector_matches=[semantic, semantic_noise],
+        limit=2,
+    )
+
+    assert [match.context.id for match in ranked] == ["semantic", "noise"]
+    assert ranked[1].fts_score == lexical_noise.fts_score
+    assert ranked[1].vector_score == semantic_noise.vector_score

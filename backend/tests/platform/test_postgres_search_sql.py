@@ -12,11 +12,11 @@ from app.memory.domain.event_enum.context_enums import (
     ContextRecallLifecycleStatus,
     ContextScope,
 )
-from app.memory.infrastructure.repositories.contexts.search.fts import (
-    build_context_fts_query,
-)
 from app.memory.infrastructure.repositories.contexts.embeddings.vector_query import (
     build_context_vector_query,
+)
+from app.memory.infrastructure.repositories.contexts.search.fts import (
+    build_context_fts_query,
 )
 from app.obsidian.infrastructure.repositories.obsidian_fts import (
     build_obsidian_fts_query,
@@ -104,6 +104,10 @@ def test_postgres_obsidian_fts_uses_base_tables_and_jsonb_tags() -> None:
         in sql
     )
     assert "cast(obsidian_files.tags as jsonb) @>" in lowered
+    assert "lower(trim(obsidian_files.title))" in lowered
+    assert "union" in lowered
+    assert "obsidian_fts_candidates" in lowered
+    assert query.parameters["exact_title"] == "운영 안정성"
     assert "obsidian_chunk_fts" not in lowered
     assert "json_each" not in lowered
     assert "match" not in lowered

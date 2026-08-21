@@ -9,6 +9,7 @@ from app.memory.domain.entities.context_read_models import ContextSearchMatch
 HYBRID_CANDIDATE_MULTIPLIER = 6
 MAX_HYBRID_CANDIDATE_LIMIT = 50
 RECIPROCAL_RANK_FUSION_CONSTANT = 60
+VECTOR_RECIPROCAL_RANK_WEIGHT = 1.01
 
 
 @dataclass(slots=True)
@@ -43,7 +44,7 @@ def merge_hybrid_matches(
     vector_matches: list[ContextSearchMatch],
     limit: int,
 ) -> list[ContextSearchMatch]:
-    """Merge FTS and vector matches using context-level reciprocal rank fusion.
+    """Merge FTS and vector matches using best-lane reciprocal-rank fusion.
 
     Args:
         fts_matches: Ranked FTS matches.
@@ -66,6 +67,8 @@ def merge_hybrid_matches(
                 continue
             seen_context_ids.add(context_id)
             contribution = 1.0 / (RECIPROCAL_RANK_FUSION_CONSTANT + rank)
+            if source_name == "vector":
+                contribution *= VECTOR_RECIPROCAL_RANK_WEIGHT
             evidence = evidence_by_context.get(context_id)
             if evidence is None:
                 evidence = _ContextFusionEvidence(
@@ -76,7 +79,9 @@ def merge_hybrid_matches(
                 )
                 evidence_by_context[context_id] = evidence
                 first_seen += 1
-            evidence.fused_score += contribution
+            # FTS and vector search the same canonical content, so summing both
+            # reciprocal-rank contributions can double-count correlated noise.
+            evidence.fused_score = max(evidence.fused_score, contribution)
             if contribution > evidence.representative_contribution:
                 evidence.representative = match
                 evidence.representative_contribution = contribution
@@ -100,7 +105,7 @@ def _fused_context_match(evidence: _ContextFusionEvidence) -> ContextSearchMatch
     if has_fts and has_vector:
         why_retrieved = (
             "Context ranked across lexical and semantic vector evidence "
-            "using reciprocal rank fusion."
+            "using best-lane reciprocal-rank fusion."
         )
     return ContextSearchMatch(
         context=representative.context,

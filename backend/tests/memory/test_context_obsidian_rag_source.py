@@ -180,6 +180,62 @@ def test_context_rag_search_includes_obsidian_vault_fts_source(
     assert "obsidian:" in context_pack
 
 
+def test_obsidian_fts_exact_title_outranks_body_frequency(tmp_path: Path) -> None:
+    """An exact note title should outrank a document that repeats query terms in body."""
+
+    async def scenario() -> list[tuple[str, float | None]]:
+        async with (
+            _temporary_database(tmp_path / "obsidian-rag-title-rank.db") as database,
+            database.session() as session,
+        ):
+            obsidian_service = ObsidianService(
+                repository=SqlAlchemyObsidianIndexRepository(session=session),
+                vault_path=str(tmp_path / "vault"),
+                alexandria_root="Alexandria",
+            )
+            await obsidian_service.save_note(
+                ObsidianSaveNote(
+                    title="Alexandria Memory Steward Contract",
+                    body="# Contract\n\nCanonical lifecycle policy.",
+                    alexandria_type=AlexandriaNoteType.CONTEXT,
+                    note_id="memory_steward_contract",
+                    project="alexandria-hermes",
+                    frontmatter={"scope": "PROJECT"},
+                )
+            )
+            await obsidian_service.save_note(
+                ObsidianSaveNote(
+                    title="Memory Steward Daily Health",
+                    body=(
+                        "# Daily Health\n\n"
+                        + "Alexandria Memory Steward Contract health evidence. " * 3
+                    ),
+                    alexandria_type=AlexandriaNoteType.CONTEXT,
+                    note_id="memory_steward_daily_health",
+                    project="alexandria-hermes",
+                    frontmatter={"scope": "PROJECT"},
+                )
+            )
+            service = ContextService(
+                repository=SqlAlchemyContextRepository(session=session),
+                extra_search_sources=[
+                    SqlAlchemyObsidianContextSearchSource(session=session)
+                ],
+            )
+            pack = await service.search(
+                query="Alexandria Memory Steward Contract",
+                strategy=RagStrategy.FTS_ONLY,
+                limit=2,
+                project="alexandria-hermes",
+            )
+            return [(match.context.title, match.fts_score) for match in pack.matches]
+
+    ranked = anyio.run(scenario)
+
+    assert ranked[0][0] == "Alexandria Memory Steward Contract", ranked
+    assert any(title == "Memory Steward Daily Health" for title, _score in ranked)
+
+
 def test_obsidian_fts_bulk_hydrates_ranked_candidates(tmp_path: Path) -> None:
     """FTS candidate hydration must use bounded queries instead of N+1 gets."""
 

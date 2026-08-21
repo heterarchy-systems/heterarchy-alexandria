@@ -108,7 +108,7 @@ class MemoryContainer(containers.DeclarativeContainer):
         instance_of=IndexMaintenanceCoordinator
     )
     external_api_rate_limiter = providers.Dependency()
-    embedding_provider = providers.Factory(
+    embedding_provider = providers.Singleton(
         create_embedding_provider,
         vector_enabled=app_config.provided.rag_vector_enabled,
         provider_name=app_config.provided.rag_embedding_provider,

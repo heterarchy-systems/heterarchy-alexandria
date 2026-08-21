@@ -144,24 +144,26 @@ class ContextSearchService:
                 else tuple(include_lifecycle_statuses)
             ),
         )
-        health = await self._embedding_service.health_with_index_status()
         effective = strategy
-        warnings = list(health.warnings)
-        if (
-            strategy is RagStrategy.HYBRID
-            and health.default_strategy is RagStrategy.FTS_ONLY
-        ):
-            effective = RagStrategy.FTS_ONLY
-            warnings.append("Vector retrieval degraded; using FTS_ONLY.")
-        if strategy is RagStrategy.VECTOR_ONLY and (
-            health.vector is not RagHealthState.HEALTHY
-            or health.embedding is not RagHealthState.HEALTHY
-        ):
-            effective = RagStrategy.FTS_ONLY
-            warnings.append(
-                "VECTOR_ONLY requested but vector dependencies are degraded; "
-                "using FTS_ONLY."
-            )
+        warnings: list[str] = []
+        if strategy is not RagStrategy.FTS_ONLY:
+            health = await self._embedding_service.recall_health()
+            warnings.extend(health.warnings)
+            if (
+                strategy is RagStrategy.HYBRID
+                and health.default_strategy is RagStrategy.FTS_ONLY
+            ):
+                effective = RagStrategy.FTS_ONLY
+                warnings.append("Vector retrieval degraded; using FTS_ONLY.")
+            if strategy is RagStrategy.VECTOR_ONLY and (
+                health.vector is not RagHealthState.HEALTHY
+                or health.embedding is not RagHealthState.HEALTHY
+            ):
+                effective = RagStrategy.FTS_ONLY
+                warnings.append(
+                    "VECTOR_ONLY requested but vector dependencies are degraded; "
+                    "using FTS_ONLY."
+                )
         if effective is RagStrategy.FTS_ONLY:
             matches = await self._search_fts_sources(
                 ContextFtsRecall(query=query, recall_filter=recall_filter)
@@ -225,7 +227,6 @@ class ContextSearchService:
         self,
         recall: ContextFtsRecall,
     ) -> list[ContextSearchMatch]:
-        matches_by_context_id: dict[str, ContextSearchMatch] = {}
         for query_variant in context_query_variants(recall.query):
             variant_matches: list[ContextSearchMatch] = []
             variant_recall = ContextFtsRecall(
@@ -238,11 +239,9 @@ class ContextSearchService:
                 variant_matches,
                 recall.recall_filter.limit,
             )
-            for match in ranked_variant:
-                matches_by_context_id.setdefault(match.context.id, match)
-                if len(matches_by_context_id) >= recall.recall_filter.limit:
-                    return list(matches_by_context_id.values())
-        return list(matches_by_context_id.values())
+            if ranked_variant:
+                return ranked_variant
+        return []
 
 
 def _preserves_primary_ranking(
