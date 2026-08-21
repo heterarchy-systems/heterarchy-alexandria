@@ -8,9 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.mcp_server.local_oauth.contracts import (
     LocalOAuthAuthorizationCodeRecord,
     LocalOAuthClientConnectionRecord,
+    LocalOAuthTokenRecord,
+)
+from app.mcp_server.local_oauth.local_oauth_enums import (
     LocalOAuthClientConnectionStatus,
     LocalOAuthTokenKind,
-    LocalOAuthTokenRecord,
 )
 from app.mcp_server.local_oauth.orm import (
     McpOAuthAuthorizationCodeORM,
