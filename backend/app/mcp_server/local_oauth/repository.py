@@ -20,13 +20,13 @@ from app.mcp_server.local_oauth.orm import (
     McpOAuthPairingCodeORM,
     McpOAuthTokenORM,
 )
-from app.mcp_server.local_oauth.persistence.local_oauth_credential_repository import (
-    LocalOAuthCredentialRepository,
+from app.mcp_server.local_oauth.persistence.local_oauth_grant_repository import (
+    LocalOAuthGrantRepository,
 )
 from app.shared.types.extra_types import JSONObject, JSONValue
 
 
-class LocalMcpOAuthRepository(LocalOAuthCredentialRepository):
+class LocalMcpOAuthRepository(LocalOAuthGrantRepository):
     """Persist one OAuth transaction aggregate with atomic consume/rotation steps.
 
     The public method count is intentionally above the normal review threshold because
