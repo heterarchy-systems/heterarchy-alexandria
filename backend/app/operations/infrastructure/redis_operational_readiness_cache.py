@@ -7,7 +7,7 @@ from typing import Protocol
 
 from pydantic import TypeAdapter, ValidationError
 
-from app.operations.application.operational_readiness_cache import (
+from app.operations.application.readiness.operational_readiness_cache import (
     OperationalReadinessCache,
 )
 from app.operations.domain.entities.operational_readiness import (
@@ -37,7 +37,6 @@ class RedisReadinessClient(Protocol):
         self,
         key: str,
         value: bytes,
-        *,
         ex: int,
     ) -> bool | None:
         """Store one value with a bounded lifetime.
@@ -57,7 +56,6 @@ class RedisOperationalReadinessCache(OperationalReadinessCache):
 
     def __init__(
         self,
-        *,
         client: RedisReadinessClient,
         ttl_seconds: int,
         key: str = DEFAULT_READINESS_CACHE_KEY,
@@ -122,7 +120,7 @@ class RedisOperationalReadinessCache(OperationalReadinessCache):
             self._log_failure(operation="set", error=exc)
 
     @staticmethod
-    def _log_failure(*, operation: str, error: Exception) -> None:
+    def _log_failure(operation: str, error: Exception) -> None:
         logger.warning(
             "Redis readiness cache operation failed and will be bypassed",
             extra={

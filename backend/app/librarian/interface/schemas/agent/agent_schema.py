@@ -2,13 +2,23 @@
 
 from __future__ import annotations
 
-from typing import Final, cast
+from typing import Annotated, Final, cast
 
-from pydantic import ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    ConfigDict,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
 
 from app.librarian.domain.event_enum.collaboration_enums import LibrarianProfileRole
 from app.librarian.domain.types.agent_payload_types import AgentUpdatePayload
-from app.shared.schemas.common_schemas import StrictRootSchemaModel, StrictSchemaModel
+from app.shared.schemas.common_schemas import (
+    StrictRootSchemaModel,
+    StrictSchemaModel,
+    described_field,
+    schema_list_default,
+)
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 from app.shared.serialization.model_codec import schema_payload
 from app.shared.types.extra_types import JSONValue
@@ -49,18 +59,50 @@ class AgentCreateRequest(StrictSchemaModel):
         },
     )
 
-    name: str
-    provider: str
-    description: str | None = None
-    capabilities: list[str]
-    preferred_librarian_provider: str | None = None
-    preferred_librarian_model: str | None = None
-    max_librarian_agents: int = Field(default=1, ge=1, le=6)
-    librarian_role_prompt: str | None = Field(default=None, max_length=4096)
-    librarian_role: LibrarianProfileRole = LibrarianProfileRole.DEFAULT_SEARCH
-    librarian_specialties: list[str] = Field(default_factory=list)
-    librarian_routing_priority: int = Field(default=100, ge=0)
-    librarian_enabled: bool = True
+    name: Annotated[str, described_field("Name for this agent create request.")]
+    provider: Annotated[str, described_field("Provider for this agent create request.")]
+    description: Annotated[
+        str | None, described_field("Description for this agent create request.")
+    ] = None
+    capabilities: Annotated[
+        list[str], described_field("Capabilities for this agent create request.")
+    ]
+    preferred_librarian_provider: Annotated[
+        str | None,
+        described_field("Preferred librarian provider for this agent create request."),
+    ] = None
+    preferred_librarian_model: Annotated[
+        str | None,
+        described_field("Preferred librarian model for this agent create request."),
+    ] = None
+    max_librarian_agents: Annotated[
+        int,
+        described_field(
+            "Max librarian agents for this agent create request.", ge=1, le=6
+        ),
+    ] = 1
+    librarian_role_prompt: Annotated[
+        str | None,
+        StringConstraints(strict=True, max_length=4096),
+        described_field("Librarian role prompt for this agent create request."),
+    ] = None
+    librarian_role: Annotated[
+        LibrarianProfileRole,
+        described_field("Librarian role for this agent create request."),
+    ] = LibrarianProfileRole.DEFAULT_SEARCH
+    librarian_specialties: Annotated[
+        list[str],
+        described_field("Librarian specialties for this agent create request."),
+    ] = schema_list_default()
+    librarian_routing_priority: Annotated[
+        int,
+        described_field(
+            "Librarian routing priority for this agent create request.", ge=0
+        ),
+    ] = 100
+    librarian_enabled: Annotated[
+        bool, described_field("Librarian enabled for this agent create request.")
+    ] = True
 
 
 class AgentPatchRequest(StrictSchemaModel):
@@ -85,18 +127,54 @@ class AgentPatchRequest(StrictSchemaModel):
         }
     )
 
-    name: str | None = None
-    provider: str | None = None
-    description: str | None = None
-    capabilities: list[str] | None = None
-    preferred_librarian_provider: str | None = None
-    preferred_librarian_model: str | None = None
-    max_librarian_agents: int | None = Field(default=None, ge=1, le=6)
-    librarian_role_prompt: str | None = Field(default=None, max_length=4096)
-    librarian_role: LibrarianProfileRole | None = None
-    librarian_specialties: list[str] | None = None
-    librarian_routing_priority: int | None = Field(default=None, ge=0)
-    librarian_enabled: bool | None = None
+    name: Annotated[
+        str | None, described_field("Name for this agent patch request.")
+    ] = None
+    provider: Annotated[
+        str | None, described_field("Provider for this agent patch request.")
+    ] = None
+    description: Annotated[
+        str | None, described_field("Description for this agent patch request.")
+    ] = None
+    capabilities: Annotated[
+        list[str] | None, described_field("Capabilities for this agent patch request.")
+    ] = None
+    preferred_librarian_provider: Annotated[
+        str | None,
+        described_field("Preferred librarian provider for this agent patch request."),
+    ] = None
+    preferred_librarian_model: Annotated[
+        str | None,
+        described_field("Preferred librarian model for this agent patch request."),
+    ] = None
+    max_librarian_agents: Annotated[
+        int | None,
+        described_field(
+            "Max librarian agents for this agent patch request.", ge=1, le=6
+        ),
+    ] = None
+    librarian_role_prompt: Annotated[
+        str | None,
+        StringConstraints(strict=True, max_length=4096),
+        described_field("Librarian role prompt for this agent patch request."),
+    ] = None
+    librarian_role: Annotated[
+        LibrarianProfileRole | None,
+        described_field("Librarian role for this agent patch request."),
+    ] = None
+    librarian_specialties: Annotated[
+        list[str] | None,
+        described_field("Librarian specialties for this agent patch request."),
+    ] = None
+    librarian_routing_priority: Annotated[
+        int | None,
+        described_field(
+            "Librarian routing priority for this agent patch request.", ge=0
+        ),
+    ] = None
+    librarian_enabled: Annotated[
+        bool | None, described_field("Librarian enabled for this agent patch request.")
+    ] = None
 
     @model_validator(mode="after")
     def require_actionable_patch(self) -> AgentPatchRequest:
@@ -150,21 +228,48 @@ class AgentResponse(StrictSchemaModel):
         },
     )
 
-    id: str
-    name: str
-    provider: str
-    description: str | None
-    capabilities: list[str]
-    preferred_librarian_provider: str | None
-    preferred_librarian_model: str | None
-    max_librarian_agents: int
-    librarian_role_prompt: str | None
-    librarian_role: LibrarianProfileRole
-    librarian_specialties: list[str]
-    librarian_routing_priority: int
-    librarian_enabled: bool
-    created_at: AwareTimestamp
-    updated_at: AwareTimestamp
+    id: Annotated[str, described_field("Stable identifier for this agent response.")]
+    name: Annotated[str, described_field("Name for this agent response.")]
+    provider: Annotated[str, described_field("Provider for this agent response.")]
+    description: Annotated[
+        str | None, described_field("Description for this agent response.")
+    ]
+    capabilities: Annotated[
+        list[str], described_field("Capabilities for this agent response.")
+    ]
+    preferred_librarian_provider: Annotated[
+        str | None,
+        described_field("Preferred librarian provider for this agent response."),
+    ]
+    preferred_librarian_model: Annotated[
+        str | None,
+        described_field("Preferred librarian model for this agent response."),
+    ]
+    max_librarian_agents: Annotated[
+        int, described_field("Max librarian agents for this agent response.")
+    ]
+    librarian_role_prompt: Annotated[
+        str | None, described_field("Librarian role prompt for this agent response.")
+    ]
+    librarian_role: Annotated[
+        LibrarianProfileRole, described_field("Librarian role for this agent response.")
+    ]
+    librarian_specialties: Annotated[
+        list[str], described_field("Librarian specialties for this agent response.")
+    ]
+    librarian_routing_priority: Annotated[
+        int, described_field("Librarian routing priority for this agent response.")
+    ]
+    librarian_enabled: Annotated[
+        bool, described_field("Librarian enabled for this agent response.")
+    ]
+    created_at: Annotated[
+        AwareTimestamp, described_field("Creation timestamp for this agent response.")
+    ]
+    updated_at: Annotated[
+        AwareTimestamp,
+        described_field("Last-update timestamp for this agent response."),
+    ]
 
     @field_validator("librarian_specialties", mode="before")
     @classmethod

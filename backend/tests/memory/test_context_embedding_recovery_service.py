@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import anyio
-from app.memory.application.context_embedding_recovery_service import (
+from app.memory.application.contexts.embedding.context_embedding_recovery_service import (
     ContextEmbeddingRecoveryService,
 )
 from app.memory.domain.entities.context_read_models import ContextReindexResult

@@ -21,7 +21,6 @@ class ObsidianGraphService:
 
     def __init__(
         self,
-        *,
         repository: IObsidianIndexQueryRepository,
         graph_repository: IObsidianGraphProjectionRepository | None,
     ) -> None:
@@ -31,7 +30,6 @@ class ObsidianGraphService:
     async def related_notes_by_path(
         self,
         relative_path: str,
-        *,
         limit: int = 10,
     ) -> list[ObsidianRelatedNote]:
         """Return graph-related notes for one vault-relative path.
@@ -56,7 +54,6 @@ class ObsidianGraphService:
     async def related_notes(
         self,
         note_id: str,
-        *,
         limit: int = 10,
     ) -> list[ObsidianRelatedNote]:
         """Return graph-related notes for one stable note id.
@@ -87,7 +84,6 @@ class ObsidianGraphService:
 
     async def _hydrate_related(
         self,
-        *,
         graph_repository: IObsidianGraphProjectionRepository,
         note_id: str,
         limit: int,

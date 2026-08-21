@@ -2,22 +2,45 @@
 
 from __future__ import annotations
 
-from pydantic import Field
+from typing import Annotated
+
+from pydantic import StringConstraints
 
 from app.librarian.domain.entities.budget_policy import BudgetPolicy
 from app.librarian.domain.entities.context_pack_compact import ContextPackCompact
-from app.librarian.domain.entities.source_ref import SourceRef, SourceRefType
-from app.shared.schemas.common_schemas import StrictSchemaModel
+from app.librarian.domain.entities.source_ref import SourceRef
+from app.librarian.domain.event_enum.source_ref_enums import SourceRefType
+from app.shared.schemas.common_schemas import (
+    StrictSchemaModel,
+    described_field,
+    schema_list_default,
+)
 
 
 class SourceRefSchema(StrictSchemaModel):
     """I/O schema for a lazy-load source reference."""
 
-    source_type: SourceRefType
-    source_id: str = Field(min_length=1)
-    title: str = Field(min_length=1)
-    detail_path: str = Field(min_length=1)
-    preview: str | None = None
+    source_type: Annotated[
+        SourceRefType, described_field("Source type for this source ref.")
+    ]
+    source_id: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1),
+        described_field("Source identifier for this source ref."),
+    ]
+    title: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1),
+        described_field("Title for this source ref."),
+    ]
+    detail_path: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1),
+        described_field("Detail path for this source ref."),
+    ]
+    preview: Annotated[str | None, described_field("Preview for this source ref.")] = (
+        None
+    )
 
     def to_entity(self) -> SourceRef:
         """Convert schema to domain entity.
@@ -37,9 +60,15 @@ class SourceRefSchema(StrictSchemaModel):
 class BudgetPolicySchema(StrictSchemaModel):
     """I/O schema for packet budget policy."""
 
-    max_input_chars: int = Field(default=12_000, ge=1)
-    max_source_refs: int = Field(default=20, ge=1, le=100)
-    max_preview_chars: int = Field(default=800, ge=1)
+    max_input_chars: Annotated[
+        int, described_field("Max input chars for this budget policy.", ge=1)
+    ] = 12000
+    max_source_refs: Annotated[
+        int, described_field("Max source refs for this budget policy.", ge=1, le=100)
+    ] = 20
+    max_preview_chars: Annotated[
+        int, described_field("Max preview chars for this budget policy.", ge=1)
+    ] = 800
 
     def to_entity(self) -> BudgetPolicy:
         """Convert schema to domain entity.
@@ -57,8 +86,15 @@ class BudgetPolicySchema(StrictSchemaModel):
 class ContextPackCompactSchema(StrictSchemaModel):
     """I/O schema for compact context supplied to the compiler."""
 
-    markdown_body: str = Field(min_length=1)
-    source_refs: list[SourceRefSchema] = Field(default_factory=list)
+    markdown_body: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1),
+        described_field("Markdown body for this context pack compact."),
+    ]
+    source_refs: Annotated[
+        list[SourceRefSchema],
+        described_field("Source refs for this context pack compact."),
+    ] = schema_list_default()
 
     def to_entity(self) -> ContextPackCompact:
         """Convert schema to domain entity.
@@ -77,18 +113,47 @@ class ContextPackCompactSchema(StrictSchemaModel):
 class LibrarianBriefPreviewRequest(StrictSchemaModel):
     """Request to compile a preview knowledge packet."""
 
-    prompt: str = Field(min_length=1)
-    project: str | None = None
-    budget: BudgetPolicySchema = Field(default_factory=BudgetPolicySchema)
-    context_compact: ContextPackCompactSchema | None = None
-    source_refs: list[SourceRefSchema] = Field(default_factory=list)
+    prompt: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1),
+        described_field("Prompt for this librarian brief preview request."),
+    ]
+    project: Annotated[
+        str | None, described_field("Project for this librarian brief preview request.")
+    ] = None
+    budget: Annotated[
+        BudgetPolicySchema,
+        described_field("Budget for this librarian brief preview request."),
+    ] = BudgetPolicySchema()
+    context_compact: Annotated[
+        ContextPackCompactSchema | None,
+        described_field("Context compact for this librarian brief preview request."),
+    ] = None
+    source_refs: Annotated[
+        list[SourceRefSchema],
+        described_field("Source refs for this librarian brief preview request."),
+    ] = schema_list_default()
 
 
 class LibrarianBriefPreviewResponse(StrictSchemaModel):
     """Compiled librarian brief preview response."""
 
-    prompt: str
-    project: str | None
-    packet_markdown: str
-    source_refs: list[SourceRefSchema]
-    budget_policy: BudgetPolicySchema
+    prompt: Annotated[
+        str, described_field("Prompt for this librarian brief preview response.")
+    ]
+    project: Annotated[
+        str | None,
+        described_field("Project for this librarian brief preview response."),
+    ]
+    packet_markdown: Annotated[
+        str,
+        described_field("Packet markdown for this librarian brief preview response."),
+    ]
+    source_refs: Annotated[
+        list[SourceRefSchema],
+        described_field("Source refs for this librarian brief preview response."),
+    ]
+    budget_policy: Annotated[
+        BudgetPolicySchema,
+        described_field("Budget policy for this librarian brief preview response."),
+    ]

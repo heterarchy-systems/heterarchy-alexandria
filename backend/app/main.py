@@ -38,11 +38,11 @@ from app.mcp_server.interface.routers.protected_resource_metadata_router import 
     router as protected_resource_metadata_router,
 )
 from app.mcp_server.local_oauth.runtime import build_local_mcp_oauth_runtime
-from app.mcp_server.type_validate.auth_contracts import McpAuthMode
-from app.memory.application.context_embedding_recovery_service import (
+from app.mcp_server.type_validate.oauth.mcp_auth_enums import McpAuthMode
+from app.memory.application.contexts.embedding.context_embedding_recovery_service import (
     ContextEmbeddingRecoveryService,
 )
-from app.memory.application.context_service import ContextService
+from app.memory.application.contexts.records.context_service import ContextService
 from app.memory.interface.routers.context_retrieval_router import (
     router as context_retrieval_router,
 )
@@ -78,7 +78,7 @@ from app.operations.interface.routers.recovery_run_router import (
 from app.platform.config.app_config import AppConfig
 from app.platform.config.redis_config import RedisConfig
 from app.platform.health_router import install_health_routes
-from app.platform.lifecycle.dependency_health import PlatformDependency
+from app.platform.lifecycle.dependency_health_enums import PlatformDependency
 from app.platform.lifecycle.state import LifecycleState
 from app.platform.logging.formatter.config import configure_logging
 from app.platform.middleware.database_session import install_database_session_middleware
@@ -96,7 +96,6 @@ logger = logging.getLogger(__name__)
 
 
 async def _recover_embeddings_after_startup(
-    *,
     container: ApplicationContainer,
     database: Database,
 ) -> None:

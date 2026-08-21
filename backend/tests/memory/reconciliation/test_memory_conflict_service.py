@@ -9,7 +9,7 @@ from pathlib import Path
 
 import anyio
 import pytest
-from app.memory.application.reconciliation.memory_conflict_service import (
+from app.memory.application.reconciliation.conflicts.memory_conflict_service import (
     MemoryConflictService,
 )
 from app.memory.domain.entities.memory_reconciliation import MemoryConflictSet

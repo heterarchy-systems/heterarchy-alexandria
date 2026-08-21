@@ -1,6 +1,6 @@
 """Redis Streams maintenance job submission and status routes."""
 
-from __future__ import annotations
+from typing import Annotated
 
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, HTTPException, Response, status
@@ -18,6 +18,7 @@ from app.operations.interface.schemas.operations.maintenance_job_schema import (
     MaintenanceJobResponse,
     MaintenanceQueueStatusResponse,
 )
+from app.shared.type_validation.strict_json_body import model_validate_json_body
 
 router = APIRouter(prefix="/operations/maintenance", tags=["operations"])
 
@@ -35,11 +36,15 @@ router = APIRouter(prefix="/operations/maintenance", tags=["operations"])
 )
 @inject
 async def enqueue_embedding_reindex_job(
-    request: EmbeddingReindexJobRequest,
+    request: Annotated[
+        EmbeddingReindexJobRequest,
+        Depends(model_validate_json_body(EmbeddingReindexJobRequest)),
+    ],
     response: Response,
-    submitter: MaintenanceJobSubmitter | None = Depends(
-        Provide[ApplicationContainer.maintenance_job_submitter]
-    ),
+    submitter: Annotated[
+        MaintenanceJobSubmitter | None,
+        Depends(Provide[ApplicationContainer.maintenance_job_submitter]),
+    ],
 ) -> MaintenanceJobResponse:
     """Queue one bounded embedding reindex operation.
 
@@ -87,9 +92,10 @@ async def enqueue_embedding_reindex_job(
 @inject
 async def get_maintenance_job(
     job_id: str,
-    submitter: MaintenanceJobSubmitter | None = Depends(
-        Provide[ApplicationContainer.maintenance_job_submitter]
-    ),
+    submitter: Annotated[
+        MaintenanceJobSubmitter | None,
+        Depends(Provide[ApplicationContainer.maintenance_job_submitter]),
+    ],
 ) -> MaintenanceJobResponse:
     """Return one maintenance job snapshot.
 
@@ -124,9 +130,10 @@ async def get_maintenance_job(
 )
 @inject
 async def get_maintenance_queue_status(
-    submitter: MaintenanceJobSubmitter | None = Depends(
-        Provide[ApplicationContainer.maintenance_job_submitter]
-    ),
+    submitter: Annotated[
+        MaintenanceJobSubmitter | None,
+        Depends(Provide[ApplicationContainer.maintenance_job_submitter]),
+    ],
 ) -> MaintenanceQueueStatusResponse:
     """Return aggregate Redis Streams backlog and worker evidence.
 

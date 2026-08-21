@@ -19,7 +19,6 @@ class _LibrarianHitEvidence:
 
 
 def fuse_librarian_search_hits(
-    *,
     ranked_hit_lists: list[list[ObsidianSearchHit]],
     limit: int,
 ) -> list[ObsidianSearchHit]:

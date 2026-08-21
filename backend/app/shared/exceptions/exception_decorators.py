@@ -8,6 +8,7 @@ from app.shared.exceptions.common_exceptions import (
     RedisExceptionArgValue,
     RedisExceptionAware,
     RedisExceptionDecorator,
+    RedisExceptionHandler,
     RedisExceptionKwargs,
     RedisExceptionPayload,
     RedisExceptionPolicy,
@@ -39,7 +40,6 @@ class RouteExceptionWithDetail(Protocol):
 
 
 def _resolve_redis_exception_policy(
-    *,
     error: Exception,
     mapping: RedisExceptionPolicyMap,
 ) -> RedisExceptionPolicy:
@@ -50,7 +50,6 @@ def _resolve_redis_exception_policy(
 
 
 def redis_exceptions(
-    *,
     mapping: RedisExceptionPolicyMap,
     default_return: RedisExceptionResult = None,
 ) -> RedisExceptionDecorator:
@@ -64,7 +63,7 @@ def redis_exceptions(
         공통 Redis 예외 정책을 적용한 비동기 데코레이터.
     """
 
-    def decorator(func: Callable[..., Awaitable[RedisExceptionResult]]):
+    def decorator(func: RedisExceptionHandler) -> RedisExceptionHandler:
         @wraps(func)
         async def wrapper(
             self: RedisExceptionAware,

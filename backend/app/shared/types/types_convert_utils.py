@@ -102,7 +102,7 @@ def optional_string_value(value: JSONValue | None) -> str | None:
     return None
 
 
-def string_value(value: JSONValue | None, *, default: str = "") -> str:
+def string_value(value: JSONValue | None, default: str = "") -> str:
     """Return a string value or a caller-provided default.
 
     Args:
@@ -117,7 +117,7 @@ def string_value(value: JSONValue | None, *, default: str = "") -> str:
     return default
 
 
-def bool_value(value: JSONValue | None, *, default: bool = False) -> bool:
+def bool_value(value: JSONValue | None, default: bool = False) -> bool:
     """Return a boolean value or a caller-provided default.
 
     Args:

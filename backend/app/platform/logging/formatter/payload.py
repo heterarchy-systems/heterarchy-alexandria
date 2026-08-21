@@ -37,7 +37,6 @@ def should_include_error_stack(app_env: str) -> bool:
 
 
 def format_error_stack(
-    *,
     exc_type: type[BaseException] | None,
     exc_value: BaseException | None,
     exc_tb: TracebackType | None,
@@ -64,7 +63,6 @@ def format_error_stack(
 
 
 def build_error_payload(
-    *,
     record: logging.LogRecord,
     include_stack: bool,
 ) -> JsonLogError | None:
@@ -138,7 +136,6 @@ def build_http_context(extra_reader: LogRecordExtraReader) -> JsonLogHttpContext
 
 
 def build_log_payload(
-    *,
     record: logging.LogRecord,
     service_context: JsonLogServiceContext,
     include_error_stack: bool,

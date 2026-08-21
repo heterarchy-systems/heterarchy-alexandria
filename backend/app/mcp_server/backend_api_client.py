@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
 import httpx
-from pydantic import AliasChoices, Field, field_validator
+from pydantic import AliasChoices, field_validator
 from pydantic_settings import BaseSettings
 
+from app.shared.schemas.common_schemas import described_field
 from app.shared.types.extra_types import JSONObject, JSONValue
 from app.shared.utils.config import settings_model_config
 from app.shared.utils.http_helpers.json_payloads import (
@@ -29,14 +32,20 @@ class AlexandriaApiSettings(BaseSettings):
         "populate_by_name": True,
     }
 
-    base_url: str = Field(
-        default=DEFAULT_ALEXANDRIA_API_URL,
-        validation_alias=AliasChoices("ALEXANDRIA_API_URL", "HERMES_API_URL"),
-    )
-    timeout: float = Field(
-        default=DEFAULT_MCP_TIMEOUT_SECONDS,
-        validation_alias="ALEXANDRIA_API_TIMEOUT_SECONDS",
-    )
+    base_url: Annotated[
+        str,
+        described_field(
+            "Base URL for this alexandria API settings.",
+            validation_alias=AliasChoices("ALEXANDRIA_API_URL", "HERMES_API_URL"),
+        ),
+    ] = DEFAULT_ALEXANDRIA_API_URL
+    timeout: Annotated[
+        float,
+        described_field(
+            "Timeout for this alexandria API settings.",
+            validation_alias="ALEXANDRIA_API_TIMEOUT_SECONDS",
+        ),
+    ] = DEFAULT_MCP_TIMEOUT_SECONDS
 
     @classmethod
     def from_env(cls) -> AlexandriaApiSettings:
@@ -150,7 +159,6 @@ class AlexandriaApiClient:
     async def post_query(
         self,
         path: str,
-        *,
         params: JSONObject,
     ) -> JSONValue:
         """Send a POST request whose bounded operation inputs are query parameters.

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from app.main import app
-from app.mcp_server.type_validate.auth_contracts import McpAuthMode
+from app.mcp_server.type_validate.oauth.mcp_auth_enums import McpAuthMode
 from app.platform.config.app_config import AppConfig
 from fastapi.testclient import TestClient
 

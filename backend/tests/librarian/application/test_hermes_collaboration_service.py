@@ -20,11 +20,11 @@ from app.connections.domain.repositories.librarian_repository import (
     ILibrarianProviderRepository,
     IProviderSecretRepository,
 )
-from app.librarian.application.delegate_execution_contracts import (
+from app.librarian.application.delegation.delegate_execution_contracts import (
     LibrarianDelegateExecutor,
     LibrarianExecutionPlan,
 )
-from app.librarian.application.hermes_collaboration_service import (
+from app.librarian.application.delegation.hermes_collaboration_service import (
     HermesCollaborationService,
 )
 from app.librarian.domain.contracts.agent_contracts import AgentCreate, AgentUpdate

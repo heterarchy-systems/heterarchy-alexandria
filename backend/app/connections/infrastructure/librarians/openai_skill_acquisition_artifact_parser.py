@@ -134,7 +134,6 @@ def _required_text(payload: dict[str, JSONValue], key: str) -> str:
 def _optional_text(
     payload: dict[str, JSONValue],
     key: str,
-    *,
     strip: bool = True,
 ) -> str | None:
     value = payload.get(key)

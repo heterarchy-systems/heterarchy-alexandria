@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from app.connections.domain.event_enum.provider_enums import (
     OAuthConnectionStatus,
     OAuthPollStatus,
 )
-from app.shared.schemas.common_schemas import StrictSchemaModel
+from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 from pydantic import ConfigDict
 
@@ -34,13 +34,37 @@ class LibrarianOAuthStartResponse(StrictSchemaModel):
         }
     )
 
-    provider_id: str
-    status: OAuthPollStatus
-    user_code: str
-    verification_uri: str
-    verification_uri_complete: str | None
-    expires_at: AwareTimestamp
-    interval_seconds: int
+    provider_id: Annotated[
+        str,
+        described_field(
+            "Provider identifier for this librarian o auth start response."
+        ),
+    ]
+    status: Annotated[
+        OAuthPollStatus,
+        described_field("Status for this librarian o auth start response."),
+    ]
+    user_code: Annotated[
+        str, described_field("User code for this librarian o auth start response.")
+    ]
+    verification_uri: Annotated[
+        str,
+        described_field("Verification URI for this librarian o auth start response."),
+    ]
+    verification_uri_complete: Annotated[
+        str | None,
+        described_field(
+            "Verification URI complete for this librarian o auth start response."
+        ),
+    ]
+    expires_at: Annotated[
+        AwareTimestamp,
+        described_field("Expires at for this librarian o auth start response."),
+    ]
+    interval_seconds: Annotated[
+        int,
+        described_field("Interval seconds for this librarian o auth start response."),
+    ]
 
 
 class LibrarianOAuthStatusResponse(StrictSchemaModel):
@@ -61,11 +85,38 @@ class LibrarianOAuthStatusResponse(StrictSchemaModel):
         }
     )
 
-    provider_id: str
-    status: OAuthConnectionStatus
-    connected: bool
-    expires_at: AwareTimestamp | None
-    refresh_required: bool
-    reconnect_required: bool
-    next_action: Literal["none", "poll", "refresh", "start_oauth"]
-    message: str | None
+    provider_id: Annotated[
+        str,
+        described_field(
+            "Provider identifier for this librarian o auth status response."
+        ),
+    ]
+    status: Annotated[
+        OAuthConnectionStatus,
+        described_field("Status for this librarian o auth status response."),
+    ]
+    connected: Annotated[
+        bool, described_field("Connected for this librarian o auth status response.")
+    ]
+    expires_at: Annotated[
+        AwareTimestamp | None,
+        described_field("Expires at for this librarian o auth status response."),
+    ]
+    refresh_required: Annotated[
+        bool,
+        described_field("Refresh required for this librarian o auth status response."),
+    ]
+    reconnect_required: Annotated[
+        bool,
+        described_field(
+            "Reconnect required for this librarian o auth status response."
+        ),
+    ]
+    next_action: Annotated[
+        Literal["none", "poll", "refresh", "start_oauth"],
+        described_field("Next action for this librarian o auth status response."),
+    ]
+    message: Annotated[
+        str | None,
+        described_field("Message for this librarian o auth status response."),
+    ]

@@ -2,99 +2,208 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from app.memory.domain.event_enum.context_enums import (
     ContextAccessActorType,
     ContextAccessMethod,
     ContextContentFormat,
-    ContextGraphDirection,
-    ContextGraphSignalType,
     ContextImportance,
     ContextKind,
     ContextRecallLifecycleStatus,
     ContextScope,
     ContextSourceType,
     ContextStorageStatus,
-    RagHealthState,
-    RagStrategy,
 )
-from app.memory.domain.types.context_payload_types import ContextRetrievalSource
-from app.shared.schemas.common_schemas import StrictRootSchemaModel, StrictSchemaModel
+from app.shared.schemas.common_schemas import (
+    StrictRootSchemaModel,
+    StrictSchemaModel,
+    described_field,
+)
 from app.shared.schemas.datetime_schemas import AwareTimestamp
-from app.shared.types.extra_types import JSONObject, JSONValue
-from pydantic import Field, field_validator, model_validator
+from app.shared.types.extra_types import JSONObject
+from pydantic import StringConstraints, field_validator
 
 
 class ContextProvenanceResponse(StrictSchemaModel):
     """Generalized Context origin and evidence references."""
 
-    source_actor_id: str | None
-    source_actor_type: ContextSourceType | None
-    source_run_id: str | None
-    external_run_id: str | None
-    artifact_refs: list[str]
-    evidence_refs: list[str]
-    confidence: ContextImportance | None
+    source_actor_id: Annotated[
+        str | None,
+        described_field(
+            "Source actor identifier for this context provenance response."
+        ),
+    ]
+    source_actor_type: Annotated[
+        ContextSourceType | None,
+        described_field("Source actor type for this context provenance response."),
+    ]
+    source_run_id: Annotated[
+        str | None,
+        described_field("Source run identifier for this context provenance response."),
+    ]
+    external_run_id: Annotated[
+        str | None,
+        described_field(
+            "External run identifier for this context provenance response."
+        ),
+    ]
+    artifact_refs: Annotated[
+        list[str],
+        described_field("Artifact refs for this context provenance response."),
+    ]
+    evidence_refs: Annotated[
+        list[str],
+        described_field("Evidence refs for this context provenance response."),
+    ]
+    confidence: Annotated[
+        ContextImportance | None,
+        described_field("Confidence for this context provenance response."),
+    ]
 
 
 class ContextLifecycleResponse(StrictSchemaModel):
     """Context lifecycle, integrity, and supersede metadata."""
 
-    status: ContextRecallLifecycleStatus
-    content_hash: str | None
-    version: int | None
-    supersedes_context_id: str | None
-    superseded_by_context_id: str | None
+    status: Annotated[
+        ContextRecallLifecycleStatus,
+        described_field("Status for this context lifecycle response."),
+    ]
+    content_hash: Annotated[
+        str | None, described_field("Content hash for this context lifecycle response.")
+    ]
+    version: Annotated[
+        int | None, described_field("Version for this context lifecycle response.")
+    ]
+    supersedes_context_id: Annotated[
+        str | None,
+        described_field(
+            "Supersedes context identifier for this context lifecycle response."
+        ),
+    ]
+    superseded_by_context_id: Annotated[
+        str | None,
+        described_field(
+            "Superseded by context identifier for this context lifecycle response."
+        ),
+    ]
 
 
 class ContextResponse(StrictSchemaModel):
     """Stored context response."""
 
-    id: str
-    canonical_context_id: str
-    kind: ContextKind
-    title: str
-    summary: str
-    content: str
-    content_format: ContextContentFormat
-    project: str | None
-    scope: ContextScope
-    workspace_id: str | None
-    agent_id: str | None
-    user_id: str | None
-    session_id: str | None
-    visibility: ContextScope
-    source_agent: str
-    source_type: ContextSourceType
-    importance: ContextImportance
-    tags: list[str]
-    status: ContextStorageStatus
-    lifecycle_status: ContextRecallLifecycleStatus
-    provenance: ContextProvenanceResponse
-    lifecycle: ContextLifecycleResponse
-    quality_score: int
-    warnings: list[str]
-    restore_prompt: str | None
-    metadata: JSONObject
-    created_at: AwareTimestamp
-    updated_at: AwareTimestamp
-    last_accessed_at: AwareTimestamp | None
-    expires_at: AwareTimestamp | None
-    archived_at: AwareTimestamp | None
-    access_count: int
-    is_archived: bool
+    id: Annotated[str, described_field("Stable identifier for this context response.")]
+    canonical_context_id: Annotated[
+        str, described_field("Canonical context identifier for this context response.")
+    ]
+    kind: Annotated[ContextKind, described_field("Kind for this context response.")]
+    title: Annotated[str, described_field("Title for this context response.")]
+    summary: Annotated[str, described_field("Summary for this context response.")]
+    content: Annotated[str, described_field("Content for this context response.")]
+    content_format: Annotated[
+        ContextContentFormat,
+        described_field("Content format for this context response."),
+    ]
+    project: Annotated[
+        str | None, described_field("Project for this context response.")
+    ]
+    scope: Annotated[ContextScope, described_field("Scope for this context response.")]
+    workspace_id: Annotated[
+        str | None, described_field("Workspace identifier for this context response.")
+    ]
+    agent_id: Annotated[
+        str | None, described_field("Agent identifier for this context response.")
+    ]
+    user_id: Annotated[
+        str | None, described_field("User identifier for this context response.")
+    ]
+    session_id: Annotated[
+        str | None, described_field("Session identifier for this context response.")
+    ]
+    visibility: Annotated[
+        ContextScope, described_field("Visibility for this context response.")
+    ]
+    source_agent: Annotated[
+        str, described_field("Source agent for this context response.")
+    ]
+    source_type: Annotated[
+        ContextSourceType, described_field("Source type for this context response.")
+    ]
+    importance: Annotated[
+        ContextImportance, described_field("Importance for this context response.")
+    ]
+    tags: Annotated[list[str], described_field("Tags for this context response.")]
+    status: Annotated[
+        ContextStorageStatus, described_field("Status for this context response.")
+    ]
+    lifecycle_status: Annotated[
+        ContextRecallLifecycleStatus,
+        described_field("Lifecycle status for this context response."),
+    ]
+    provenance: Annotated[
+        ContextProvenanceResponse,
+        described_field("Provenance for this context response."),
+    ]
+    lifecycle: Annotated[
+        ContextLifecycleResponse,
+        described_field("Lifecycle for this context response."),
+    ]
+    quality_score: Annotated[
+        int, described_field("Quality score for this context response.")
+    ]
+    warnings: Annotated[
+        list[str], described_field("Warnings for this context response.")
+    ]
+    restore_prompt: Annotated[
+        str | None, described_field("Restore prompt for this context response.")
+    ]
+    metadata: Annotated[
+        JSONObject, described_field("Metadata for this context response.")
+    ]
+    created_at: Annotated[
+        AwareTimestamp, described_field("Creation timestamp for this context response.")
+    ]
+    updated_at: Annotated[
+        AwareTimestamp,
+        described_field("Last-update timestamp for this context response."),
+    ]
+    last_accessed_at: Annotated[
+        AwareTimestamp | None,
+        described_field("Last accessed at for this context response."),
+    ]
+    expires_at: Annotated[
+        AwareTimestamp | None, described_field("Expires at for this context response.")
+    ]
+    archived_at: Annotated[
+        AwareTimestamp | None, described_field("Archived at for this context response.")
+    ]
+    access_count: Annotated[
+        int, described_field("Access count for this context response.")
+    ]
+    is_archived: Annotated[
+        bool, described_field("Is archived for this context response.")
+    ]
 
 
 class ContextListResponse(StrictSchemaModel):
     """Paginated context list response."""
 
-    items: list[ContextResponse]
-    total: int
+    items: Annotated[
+        list[ContextResponse], described_field("Items for this context list response.")
+    ]
+    total: Annotated[int, described_field("Total for this context list response.")]
 
 
 class ContextSupersedeRequest(StrictSchemaModel):
     """Request to link one canonical Context to its replacement."""
 
-    replacement_context_id: str = Field(min_length=1)
+    replacement_context_id: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1),
+        described_field(
+            "Replacement context identifier for this context supersede request."
+        ),
+    ]
 
     @field_validator("replacement_context_id")
     @classmethod
@@ -116,22 +225,45 @@ class ContextSupersedeRequest(StrictSchemaModel):
 class ContextSupersedeResponse(StrictSchemaModel):
     """Bidirectional canonical Context supersede result."""
 
-    superseded: ContextResponse
-    replacement: ContextResponse
+    superseded: Annotated[
+        ContextResponse,
+        described_field("Superseded for this context supersede response."),
+    ]
+    replacement: Annotated[
+        ContextResponse,
+        described_field("Replacement for this context supersede response."),
+    ]
 
 
 class ContextChunkResponse(StrictSchemaModel):
     """Stored context chunk response."""
 
-    id: str
-    context_id: str
-    chunk_index: int
-    heading: str | None
-    content: str
-    token_count: int
-    content_hash: str
-    metadata: JSONObject
-    created_at: AwareTimestamp
+    id: Annotated[
+        str, described_field("Stable identifier for this context chunk response.")
+    ]
+    context_id: Annotated[
+        str, described_field("Context identifier for this context chunk response.")
+    ]
+    chunk_index: Annotated[
+        int, described_field("Chunk index for this context chunk response.")
+    ]
+    heading: Annotated[
+        str | None, described_field("Heading for this context chunk response.")
+    ]
+    content: Annotated[str, described_field("Content for this context chunk response.")]
+    token_count: Annotated[
+        int, described_field("Token count for this context chunk response.")
+    ]
+    content_hash: Annotated[
+        str, described_field("Content hash for this context chunk response.")
+    ]
+    metadata: Annotated[
+        JSONObject, described_field("Metadata for this context chunk response.")
+    ]
+    created_at: Annotated[
+        AwareTimestamp,
+        described_field("Creation timestamp for this context chunk response."),
+    ]
 
 
 class ContextChunkResponseList(StrictRootSchemaModel[list[ContextChunkResponse]]):
@@ -141,182 +273,58 @@ class ContextChunkResponseList(StrictRootSchemaModel[list[ContextChunkResponse]]
 class ContextAccessEventRequest(StrictSchemaModel):
     """Payload for recording one Context Vault access event."""
 
-    actor_name: str = Field(default="Alexandria UI", min_length=1)
-    actor_type: ContextAccessActorType = ContextAccessActorType.UI
-    access_method: ContextAccessMethod = ContextAccessMethod.DETAIL_VIEW
-    source_surface: str | None = "context-detail"
+    actor_name: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1),
+        described_field("Actor name for this context access event request."),
+    ] = "Alexandria UI"
+    actor_type: Annotated[
+        ContextAccessActorType,
+        described_field("Actor type for this context access event request."),
+    ] = ContextAccessActorType.UI
+    access_method: Annotated[
+        ContextAccessMethod,
+        described_field("Access method for this context access event request."),
+    ] = ContextAccessMethod.DETAIL_VIEW
+    source_surface: Annotated[
+        str | None,
+        described_field("Source surface for this context access event request."),
+    ] = "context-detail"
 
 
 class ContextAccessEventResponse(StrictSchemaModel):
     """Stored context access event response."""
 
-    id: str
-    context_id: str
-    accessed_at: AwareTimestamp
-    actor_name: str
-    actor_type: ContextAccessActorType
-    access_method: ContextAccessMethod
-    source_surface: str | None
+    id: Annotated[
+        str,
+        described_field("Stable identifier for this context access event response."),
+    ]
+    context_id: Annotated[
+        str,
+        described_field("Context identifier for this context access event response."),
+    ]
+    accessed_at: Annotated[
+        AwareTimestamp,
+        described_field("Accessed at for this context access event response."),
+    ]
+    actor_name: Annotated[
+        str, described_field("Actor name for this context access event response.")
+    ]
+    actor_type: Annotated[
+        ContextAccessActorType,
+        described_field("Actor type for this context access event response."),
+    ]
+    access_method: Annotated[
+        ContextAccessMethod,
+        described_field("Access method for this context access event response."),
+    ]
+    source_surface: Annotated[
+        str | None,
+        described_field("Source surface for this context access event response."),
+    ]
 
 
 class ContextAccessEventResponseList(
     StrictRootSchemaModel[list[ContextAccessEventResponse]]
 ):
     """Root response schema for context access event arrays."""
-
-
-class ContextSearchRequest(StrictSchemaModel):
-    """Payload for RAG context search."""
-
-    query: str = Field(min_length=1)
-    strategy: RagStrategy = RagStrategy.HYBRID
-    limit: int = Field(default=5, ge=1, le=50)
-    project: str | None = None
-    kind: ContextKind | None = None
-    include_scopes: list[ContextScope] = Field(default_factory=list)
-    workspace_id: str | None = None
-    agent_id: str | None = None
-    user_id: str | None = None
-    session_id: str | None = None
-    include_lifecycle_statuses: list[ContextRecallLifecycleStatus] = Field(
-        default_factory=list
-    )
-
-    @field_validator("include_scopes", "include_lifecycle_statuses", mode="before")
-    @classmethod
-    def default_include_scopes(cls, value: JSONValue) -> JSONValue:
-        """Normalize legacy null scope filters to an empty list.
-
-        Args:
-            value: Raw boundary value.
-
-        Returns:
-            Empty list for legacy nulls, otherwise the original value for
-            Pydantic to validate against the typed field contract.
-        """
-        if value is None:
-            return []
-        return value
-
-    @model_validator(mode="after")
-    def validate_requested_scope_identities(self) -> ContextSearchRequest:
-        """Reject explicit scope lanes whose required identity is absent.
-
-        Returns:
-            Validated search request.
-        """
-        requirements = (
-            (ContextScope.PROJECT, self.project, "MISSING_PROJECT"),
-            (ContextScope.AGENT, self.agent_id, "MISSING_AGENT_ID"),
-            (ContextScope.USER, self.user_id, "MISSING_USER_ID"),
-            (ContextScope.SESSION, self.session_id, "MISSING_SESSION_ID"),
-        )
-        missing = [
-            field_name
-            for scope, identity, field_name in requirements
-            if scope in self.include_scopes
-            and (identity is None or not identity.strip())
-        ]
-        if missing:
-            raise ValueError("scope identity is required: " + ", ".join(missing))
-        return self
-
-
-class ContextGraphEvidenceResponse(StrictSchemaModel):
-    """One graph relationship explaining optional recall evidence."""
-
-    signal: ContextGraphSignalType
-    relation: str
-    direction: ContextGraphDirection
-    source_context_id: str
-    target_context_id: str
-    target_title: str
-    distance: int
-    evidence_ref: str
-
-
-class ContextSearchMatchResponse(StrictSchemaModel):
-    """One retrieved context chunk with scores."""
-
-    context: ContextResponse
-    chunk: ContextChunkResponse
-    score: float
-    fts_score: float | None
-    vector_score: float | None
-    why_retrieved: str
-    canonical_context_id: str
-    lifecycle_status: ContextRecallLifecycleStatus
-    source: ContextRetrievalSource
-    retrieval_strategy: RagStrategy
-    graph_evidence: list[ContextGraphEvidenceResponse] | None = Field(
-        default=None,
-        exclude_if=lambda value: value is None,
-    )
-
-
-class ContextPackResponse(StrictSchemaModel):
-    """RAG context pack response."""
-
-    query: str
-    strategy: RagStrategy
-    effective_strategy: RagStrategy
-    warnings: list[str]
-    recall_scopes: list[ContextScope]
-    matches: list[ContextSearchMatchResponse]
-    context_pack: str
-
-
-class ContextEmbeddingSourceStatusResponse(StrictSchemaModel):
-    """Source-level embedding fingerprint diagnostics."""
-
-    source_name: str
-    status: RagHealthState
-    total_rows: int
-    current_rows: int
-    stale_rows: int
-    missing_rows: int
-    current_fingerprint: JSONObject
-    stored_fingerprints: list[JSONObject]
-
-
-class RagStatusResponse(StrictSchemaModel):
-    """Context RAG health response."""
-
-    fts: RagHealthState
-    vector: RagHealthState
-    embedding: RagHealthState
-    default_strategy: RagStrategy
-    model_name: str
-    dimensions: int
-    fingerprint: JSONObject | None
-    warnings: list[str]
-    source_statuses: list[ContextEmbeddingSourceStatusResponse] = Field(
-        default_factory=list
-    )
-
-
-class ContextReindexResponse(StrictSchemaModel):
-    """Context embedding reindex response."""
-
-    scanned: int
-    updated: int
-    skipped: int
-    warnings: list[str]
-
-
-class ContextSoftRebuildResponse(StrictSchemaModel):
-    """Context embedding/vector soft rebuild response."""
-
-    mode: str
-    source_preservation: str
-    hard_delete_performed: bool
-    before: RagStatusResponse
-    source_status_before: list[ContextEmbeddingSourceStatusResponse]
-    reindex: ContextReindexResponse
-    after: RagStatusResponse
-    source_status_after: list[ContextEmbeddingSourceStatusResponse]
-    verification_query: str | None
-    verification_matches: int
-    verification_context_ids: list[str]
-    verification_warnings: list[str]
-    warnings: list[str]

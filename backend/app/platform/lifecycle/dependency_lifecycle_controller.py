@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from threading import Lock
 
-from app.platform.lifecycle.dependency_health import PlatformDependency
+from app.platform.lifecycle.dependency_health_enums import PlatformDependency
 from app.platform.lifecycle.dependency_status_store import DependencyStatusStore
 
 
@@ -14,7 +14,6 @@ class DependencyLifecycleController:
 
     def __init__(
         self,
-        *,
         store: DependencyStatusStore,
         lock: Lock,
         lifecycle_accepts_traffic: Callable[[], bool],

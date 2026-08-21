@@ -4,34 +4,34 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 
-from app.memory.application.context_embedding_recovery_service import (
+from app.memory.application.contexts.embedding.context_embedding_recovery_service import (
     ContextEmbeddingRecoveryService,
 )
-from app.memory.application.context_service import ContextService
-from app.obsidian.application.graph.obsidian_graph_note_diagnostics_service import (
+from app.memory.application.contexts.records.context_service import ContextService
+from app.obsidian.application.graph.diagnostics.obsidian_graph_note_diagnostics_service import (
     ObsidianGraphNoteDiagnosticsService,
 )
-from app.obsidian.application.graph.obsidian_graph_projection_rebuild_service import (
+from app.obsidian.application.graph.obsidian_graph_service import ObsidianGraphService
+from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild_service import (
     ObsidianGraphProjectionRebuildService,
 )
-from app.obsidian.application.graph.obsidian_graph_projection_source_builder import (
+from app.obsidian.application.graph.projection.obsidian_graph_projection_source_builder import (
     ObsidianGraphProjectionSourceBuilder,
 )
-from app.obsidian.application.graph.obsidian_graph_service import ObsidianGraphService
-from app.obsidian.application.librarian.obsidian_librarian_job_service import (
+from app.obsidian.application.librarian.workflow.obsidian_librarian_job_service import (
     ObsidianLibrarianJobService,
 )
-from app.obsidian.application.librarian.obsidian_librarian_workflow_service import (
+from app.obsidian.application.librarian.workflow.obsidian_librarian_workflow_service import (
     ObsidianLibrarianWorkflowService,
 )
-from app.obsidian.application.service.obsidian_canonical_identity_service import (
+from app.obsidian.application.service.notes.obsidian_canonical_identity_service import (
     ObsidianCanonicalIdentityService,
 )
-from app.obsidian.application.service.obsidian_report_bundle_service import (
+from app.obsidian.application.service.notes.obsidian_report_bundle_service import (
     ObsidianReportBundleService,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
-from app.obsidian.application.service.obsidian_vault_reindex_service import (
+from app.obsidian.application.service.vault.obsidian_vault_reindex_service import (
     ObsidianVaultReindexService,
 )
 from app.obsidian.infrastructure.graph.sqlalchemy_obsidian_graph_projection_source import (

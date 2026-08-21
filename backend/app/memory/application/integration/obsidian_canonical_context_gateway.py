@@ -7,7 +7,7 @@ from app.memory.application.integration.obsidian_context_read_mapper import (
     context_record_from_obsidian_note,
 )
 from app.memory.domain.entities.context_read_models import ContextRecord
-from app.memory.domain.repositories.canonical_context_repository import (
+from app.memory.domain.repositories.contexts.canonical_context_repository import (
     ICanonicalContextRepository,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService

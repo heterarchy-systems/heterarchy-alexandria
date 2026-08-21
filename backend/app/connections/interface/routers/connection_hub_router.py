@@ -1,10 +1,8 @@
 """Server-rendered connection hub for local Alexandria operators."""
 
-from __future__ import annotations
-
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Final
+from typing import Annotated, Final
 
 from app.connections.interface.schemas.connection_hub_schema import (
     ConnectionHubStatusResponse,
@@ -13,12 +11,12 @@ from app.connections.interface.schemas.connection_hub_schema import (
     McpPairingCodeResponse,
 )
 from app.container import ApplicationContainer
-from app.mcp_server.local_oauth.contracts import (
-    LocalOAuthClientConnectionRecord,
+from app.mcp_server.local_oauth.contracts import LocalOAuthClientConnectionRecord
+from app.mcp_server.local_oauth.local_oauth_enums import (
     LocalOAuthClientConnectionStatus,
 )
 from app.mcp_server.local_oauth.provider import LocalMcpOAuthProvider
-from app.mcp_server.type_validate.auth_contracts import McpAuthMode
+from app.mcp_server.type_validate.oauth.mcp_auth_enums import McpAuthMode
 from app.platform.config.app_config import AppConfig
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -186,7 +184,9 @@ def connection_hub_status(request: Request) -> ConnectionHubStatusResponse:
 @inject
 async def create_mcp_pairing_code(
     request: Request,
-    configured_app: AppConfig = Depends(Provide[ApplicationContainer.app_config]),
+    configured_app: Annotated[
+        AppConfig, Depends(Provide[ApplicationContainer.app_config])
+    ],
 ) -> McpPairingCodeResponse:
     """Create one local-only, short-lived approval code for MCP OAuth.
 
@@ -226,7 +226,9 @@ async def create_mcp_pairing_code(
 @inject
 async def list_mcp_oauth_clients(
     request: Request,
-    configured_app: AppConfig = Depends(Provide[ApplicationContainer.app_config]),
+    configured_app: Annotated[
+        AppConfig, Depends(Provide[ApplicationContainer.app_config])
+    ],
 ) -> McpOAuthClientConnectionListResponse:
     """Return OAuth clients registered against the local MCP endpoint.
 
@@ -257,7 +259,9 @@ async def list_mcp_oauth_clients(
 async def disconnect_mcp_oauth_client(
     client_id: str,
     request: Request,
-    configured_app: AppConfig = Depends(Provide[ApplicationContainer.app_config]),
+    configured_app: Annotated[
+        AppConfig, Depends(Provide[ApplicationContainer.app_config])
+    ],
 ) -> None:
     """Hard-delete one MCP OAuth client and all related credential state.
 
@@ -286,7 +290,9 @@ async def disconnect_mcp_oauth_client(
 async def extend_mcp_oauth_client(
     client_id: str,
     request: Request,
-    configured_app: AppConfig = Depends(Provide[ApplicationContainer.app_config]),
+    configured_app: Annotated[
+        AppConfig, Depends(Provide[ApplicationContainer.app_config])
+    ],
 ) -> McpOAuthClientConnectionResponse:
     """Extend active refresh tokens for one connected MCP OAuth client.
 

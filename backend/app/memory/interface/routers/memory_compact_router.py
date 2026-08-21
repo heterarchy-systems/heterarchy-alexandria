@@ -1,31 +1,38 @@
 """Routes for Memory Compact artifacts."""
 
-from __future__ import annotations
-
 from datetime import UTC, datetime, timedelta
+from typing import Annotated
 
 from app.container import ApplicationContainer
-from app.memory.application.context_service import ContextService
-from app.memory.application.memory_compact_service import MemoryCompactService
+from app.memory.application.contexts.records.context_service import ContextService
+from app.memory.application.memory_compacts.lifecycle.memory_compact_service import (
+    MemoryCompactService,
+)
 from app.memory.domain.entities.context_read_models import RagDependencyHealth
 from app.memory.domain.entities.memory_compact import MemoryCompact
 from app.memory.domain.event_enum.context_enums import RagHealthState
 from app.memory.domain.event_enum.memory_compact_enums import (
     MemoryCompactStatus,
 )
+from app.memory.interface.schemas.memory_compact.memory_compact_review_schema import (
+    MemoryCompactReviewRequest,
+    MemoryCompactReviewResponse,
+)
 from app.memory.interface.schemas.memory_compact.memory_compact_schema import (
     MemoryCompactCreateRequest,
     MemoryCompactListResponse,
     MemoryCompactRagGateResponse,
     MemoryCompactResponse,
-    MemoryCompactReviewRequest,
-    MemoryCompactReviewResponse,
 )
 from app.shared.exceptions.exception_decorators import router_exception_status
 from app.shared.exceptions.route_exceptions import (
     MEMORY_COMPACT_ROUTE_EXCEPTION_MAPPING,
 )
 from app.shared.schemas.datetime_schemas import AwareTimestamp
+from app.shared.type_validation.strict_json_body import (
+    model_validate_json_body,
+    model_validate_optional_json_body,
+)
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from typing_extensions import TypedDict
@@ -54,15 +61,16 @@ class RagHealthGateBlockDetail(TypedDict, closed=True):
 @router_exception_status(MEMORY_COMPACT_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def list_memory_compacts(
+    service: Annotated[
+        MemoryCompactService,
+        Depends(Provide[ApplicationContainer.memory.memory_compact_service]),
+    ],
     project: str | None = Query(default=None),
     compact_status: MemoryCompactStatus | None = Query(default=None, alias="status"),
     covered_after: AwareTimestamp | None = Query(default=None),
     covered_before: AwareTimestamp | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
-    service: MemoryCompactService = Depends(
-        Provide[ApplicationContainer.memory.memory_compact_service]
-    ),
 ) -> MemoryCompactListResponse:
     """List Memory Compact artifacts.
 
@@ -102,11 +110,12 @@ async def list_memory_compacts(
 @router_exception_status(MEMORY_COMPACT_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def get_current_memory_compact(
+    service: Annotated[
+        MemoryCompactService,
+        Depends(Provide[ApplicationContainer.memory.memory_compact_service]),
+    ],
     project: str | None = Query(default=None),
     max_compact_age_days: int = Query(default=30, ge=1, le=365_000),
-    service: MemoryCompactService = Depends(
-        Provide[ApplicationContainer.memory.memory_compact_service]
-    ),
 ) -> MemoryCompactResponse:
     """Read current Memory Compact for a project.
 
@@ -135,9 +144,10 @@ async def get_current_memory_compact(
 @inject
 async def get_memory_compact(
     compact_id: str,
-    service: MemoryCompactService = Depends(
-        Provide[ApplicationContainer.memory.memory_compact_service]
-    ),
+    service: Annotated[
+        MemoryCompactService,
+        Depends(Provide[ApplicationContainer.memory.memory_compact_service]),
+    ],
 ) -> MemoryCompactResponse:
     """Read one Memory Compact.
 
@@ -162,13 +172,17 @@ async def get_memory_compact(
 @router_exception_status(MEMORY_COMPACT_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def create_memory_compact(
-    request: MemoryCompactCreateRequest,
-    service: MemoryCompactService = Depends(
-        Provide[ApplicationContainer.memory.memory_compact_service]
-    ),
-    context_service: ContextService = Depends(
-        Provide[ApplicationContainer.memory.context_service]
-    ),
+    request: Annotated[
+        MemoryCompactCreateRequest,
+        Depends(model_validate_json_body(MemoryCompactCreateRequest)),
+    ],
+    service: Annotated[
+        MemoryCompactService,
+        Depends(Provide[ApplicationContainer.memory.memory_compact_service]),
+    ],
+    context_service: Annotated[
+        ContextService, Depends(Provide[ApplicationContainer.memory.context_service])
+    ],
 ) -> MemoryCompactResponse:
     """Create a Memory Compact artifact.
 
@@ -198,12 +212,13 @@ async def create_memory_compact(
 @inject
 async def mark_memory_compact_current(
     compact_id: str,
-    service: MemoryCompactService = Depends(
-        Provide[ApplicationContainer.memory.memory_compact_service]
-    ),
-    context_service: ContextService = Depends(
-        Provide[ApplicationContainer.memory.context_service]
-    ),
+    service: Annotated[
+        MemoryCompactService,
+        Depends(Provide[ApplicationContainer.memory.memory_compact_service]),
+    ],
+    context_service: Annotated[
+        ContextService, Depends(Provide[ApplicationContainer.memory.context_service])
+    ],
 ) -> MemoryCompactResponse:
     """Mark one compact as current.
 
@@ -234,10 +249,14 @@ async def mark_memory_compact_current(
 @inject
 async def review_memory_compact(
     compact_id: str,
-    request: MemoryCompactReviewRequest | None = None,
-    service: MemoryCompactService = Depends(
-        Provide[ApplicationContainer.memory.memory_compact_service]
-    ),
+    request: Annotated[
+        MemoryCompactReviewRequest | None,
+        Depends(model_validate_optional_json_body(MemoryCompactReviewRequest)),
+    ],
+    service: Annotated[
+        MemoryCompactService,
+        Depends(Provide[ApplicationContainer.memory.memory_compact_service]),
+    ],
 ) -> MemoryCompactReviewResponse:
     """Review one Memory Compact against the librarian rubric.
 
@@ -264,9 +283,10 @@ async def review_memory_compact(
 @inject
 async def delete_memory_compact(
     compact_id: str,
-    service: MemoryCompactService = Depends(
-        Provide[ApplicationContainer.memory.memory_compact_service]
-    ),
+    service: Annotated[
+        MemoryCompactService,
+        Depends(Provide[ApplicationContainer.memory.memory_compact_service]),
+    ],
 ) -> Response:
     """Hard delete one Memory Compact.
 
@@ -292,9 +312,10 @@ async def delete_memory_compact(
 @inject
 async def archive_memory_compact(
     compact_id: str,
-    service: MemoryCompactService = Depends(
-        Provide[ApplicationContainer.memory.memory_compact_service]
-    ),
+    service: Annotated[
+        MemoryCompactService,
+        Depends(Provide[ApplicationContainer.memory.memory_compact_service]),
+    ],
 ) -> MemoryCompactResponse:
     """Archive one Memory Compact.
 
@@ -364,7 +385,6 @@ def _rag_health_blockers(health: RagDependencyHealth) -> list[str]:
 
 
 def _rag_health_block_detail(
-    *,
     blockers: list[str],
     warnings: list[str],
 ) -> RagHealthGateBlockDetail:

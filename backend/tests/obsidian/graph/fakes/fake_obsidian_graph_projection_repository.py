@@ -4,14 +4,16 @@ from __future__ import annotations
 
 from app.obsidian.domain.contracts.obsidian_graph_projection_contracts import (
     ObsidianGraphContextEvidence,
-    ObsidianGraphContextSignalType,
-    ObsidianGraphDirection,
     ObsidianGraphProjection,
     ObsidianGraphProjectionEdge,
     ObsidianGraphProjectionIssueCount,
     ObsidianGraphProjectionNode,
     ObsidianGraphProjectionState,
     ObsidianGraphRelatedNote,
+)
+from app.obsidian.domain.event_enum.obsidian_graph_enums import (
+    ObsidianGraphContextSignalType,
+    ObsidianGraphDirection,
 )
 from app.obsidian.domain.event_enum.obsidian_enums import (
     AlexandriaNoteType,

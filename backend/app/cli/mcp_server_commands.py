@@ -22,7 +22,7 @@ from app.cli.type_validate.mcp_protocol_payload_contracts import (
 )
 from app.mcp_server import server_runtime
 from app.mcp_server.backend_api_client import AlexandriaApiError, AlexandriaApiSettings
-from app.mcp_server.type_validate.transport_contracts import McpTransport
+from app.mcp_server.type_validate.mcp_transport_enums import McpTransport
 from app.shared.types.extra_types import JSONValue
 
 mcp_app = typer.Typer(

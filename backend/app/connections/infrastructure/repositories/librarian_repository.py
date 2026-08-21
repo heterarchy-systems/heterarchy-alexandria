@@ -48,7 +48,7 @@ class SqlAlchemyLibrarianProviderRepository(ILibrarianProviderRepository):
     """Persistence for librarian provider configuration."""
 
     def __init__(
-        self, *, session: AsyncSession, secret_cipher: SecretCipher | None = None
+        self, session: AsyncSession, secret_cipher: SecretCipher | None = None
     ) -> None:
         """Initialize repository.
 
@@ -152,7 +152,7 @@ class ProviderSecretRepository(IProviderSecretRepositoryPort):
     """Separate access to secret records for test and redaction safety."""
 
     def __init__(
-        self, *, session: AsyncSession, secret_cipher: SecretCipher | None = None
+        self, session: AsyncSession, secret_cipher: SecretCipher | None = None
     ) -> None:
         """Initialize secret repository.
 
@@ -193,7 +193,7 @@ class ProviderSecretRepository(IProviderSecretRepositoryPort):
             )
             return None
 
-    async def set_secret(self, *, provider_id: str, key_name: str, value: str) -> None:
+    async def set_secret(self, provider_id: str, key_name: str, value: str) -> None:
         """Upsert one provider secret by key.
 
         Args:

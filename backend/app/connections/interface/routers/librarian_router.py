@@ -1,6 +1,6 @@
 """Routes for librarian provider settings and operations."""
 
-from __future__ import annotations
+from typing import Annotated
 
 from app.connections.application.librarian_service import LibrarianService
 from app.connections.interface.schemas.librarian.provider_schema import (
@@ -17,6 +17,7 @@ from app.shared.exceptions.route_exceptions import (
     CONNECTIONS_PROVIDER_TEST_EXCEPTION_MAPPING,
     CONNECTIONS_ROUTE_EXCEPTION_MAPPING,
 )
+from app.shared.type_validation.strict_json_body import model_validate_json_body
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, HTTPException, status
 
@@ -36,10 +37,14 @@ router = APIRouter(
 @router_exception_status(CONNECTIONS_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def create_librarian_provider(
-    request: LibrarianProviderCreateRequest,
-    service: LibrarianService = Depends(
-        Provide[ApplicationContainer.connections.librarian_service]
-    ),
+    request: Annotated[
+        LibrarianProviderCreateRequest,
+        Depends(model_validate_json_body(LibrarianProviderCreateRequest)),
+    ],
+    service: Annotated[
+        LibrarianService,
+        Depends(Provide[ApplicationContainer.connections.librarian_service]),
+    ],
 ) -> LibrarianProviderResponse:
     """Create provider settings.
 
@@ -73,9 +78,10 @@ async def create_librarian_provider(
 @router_exception_status(CONNECTIONS_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def list_librarian_providers(
-    service: LibrarianService = Depends(
-        Provide[ApplicationContainer.connections.librarian_service]
-    ),
+    service: Annotated[
+        LibrarianService,
+        Depends(Provide[ApplicationContainer.connections.librarian_service]),
+    ],
 ) -> LibrarianProviderResponseList:
     """List all configured providers.
 
@@ -101,9 +107,10 @@ async def list_librarian_providers(
 @inject
 async def get_librarian_provider(
     provider_id: str,
-    service: LibrarianService = Depends(
-        Provide[ApplicationContainer.connections.librarian_service]
-    ),
+    service: Annotated[
+        LibrarianService,
+        Depends(Provide[ApplicationContainer.connections.librarian_service]),
+    ],
 ) -> LibrarianProviderResponse:
     """Read one provider by id.
 
@@ -130,10 +137,14 @@ async def get_librarian_provider(
 @inject
 async def patch_librarian_provider(
     provider_id: str,
-    request: LibrarianProviderPatchRequest,
-    service: LibrarianService = Depends(
-        Provide[ApplicationContainer.connections.librarian_service]
-    ),
+    request: Annotated[
+        LibrarianProviderPatchRequest,
+        Depends(model_validate_json_body(LibrarianProviderPatchRequest)),
+    ],
+    service: Annotated[
+        LibrarianService,
+        Depends(Provide[ApplicationContainer.connections.librarian_service]),
+    ],
 ) -> LibrarianProviderResponse:
     """Patch provider settings.
 
@@ -169,9 +180,10 @@ async def patch_librarian_provider(
 @inject
 async def delete_librarian_provider(
     provider_id: str,
-    service: LibrarianService = Depends(
-        Provide[ApplicationContainer.connections.librarian_service]
-    ),
+    service: Annotated[
+        LibrarianService,
+        Depends(Provide[ApplicationContainer.connections.librarian_service]),
+    ],
 ) -> None:
     """Delete provider and associated secrets.
 
@@ -193,10 +205,14 @@ async def delete_librarian_provider(
 @inject
 async def test_librarian_provider(
     provider_id: str,
-    request: LibrarianProviderTestRequest,
-    service: LibrarianService = Depends(
-        Provide[ApplicationContainer.connections.librarian_service]
-    ),
+    request: Annotated[
+        LibrarianProviderTestRequest,
+        Depends(model_validate_json_body(LibrarianProviderTestRequest)),
+    ],
+    service: Annotated[
+        LibrarianService,
+        Depends(Provide[ApplicationContainer.connections.librarian_service]),
+    ],
 ) -> LibrarianProviderTestResponse:
     """Run quick provider validation.
 

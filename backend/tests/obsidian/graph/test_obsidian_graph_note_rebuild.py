@@ -7,13 +7,13 @@ import os
 from pathlib import Path
 
 import anyio
-from app.obsidian.application.graph.obsidian_graph_note_diagnostics_service import (
+from app.obsidian.application.graph.diagnostics.obsidian_graph_note_diagnostics_service import (
     ObsidianGraphNoteDiagnosticsService,
 )
-from app.obsidian.application.graph.obsidian_graph_projection_rebuild_service import (
+from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild_service import (
     ObsidianGraphProjectionRebuildService,
 )
-from app.obsidian.application.graph.obsidian_graph_projection_source_builder import (
+from app.obsidian.application.graph.projection.obsidian_graph_projection_source_builder import (
     ObsidianGraphProjectionSourceBuilder,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService

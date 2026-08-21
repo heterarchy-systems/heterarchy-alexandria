@@ -9,7 +9,7 @@ from pathlib import Path
 
 import anyio
 import pytest
-from app.memory.application.reconciliation.memory_temporal_recall_service import (
+from app.memory.application.reconciliation.conflicts.memory_temporal_recall_service import (
     MemoryTemporalRecallService,
     temporal_state_from_context_metadata,
 )

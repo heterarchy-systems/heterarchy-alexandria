@@ -6,10 +6,10 @@ from dataclasses import replace
 from datetime import UTC, datetime
 
 from app.main import app
-from app.memory.application.reconciliation.memory_candidate_service import (
+from app.memory.application.reconciliation.candidates.memory_candidate_service import (
     MemoryCandidateService,
 )
-from app.memory.application.reconciliation.memory_reconciliation_plan_service import (
+from app.memory.application.reconciliation.plans.memory_reconciliation_plan_service import (
     MemoryReconciliationPlanService,
 )
 from app.memory.domain.contracts.memory_reconciliation_contracts import (

@@ -8,8 +8,12 @@ from typing import cast
 
 import anyio
 import pytest
-from app.memory.application.context_embedding_service import ContextEmbeddingService
-from app.memory.application.context_search_service import ContextSearchService
+from app.memory.application.contexts.embedding.context_embedding_service import (
+    ContextEmbeddingService,
+)
+from app.memory.application.contexts.records.context_search_service import (
+    ContextSearchService,
+)
 from app.memory.domain.contracts.context_contracts import ContextChunkEmbeddingUpdate
 from app.memory.domain.contracts.context_recall_contracts import (
     ContextFtsRecall,
@@ -34,14 +38,16 @@ from app.memory.domain.event_enum.context_enums import (
     RagHealthState,
     RagStrategy,
 )
-from app.memory.domain.repositories.context_graph_signal_provider import (
+from app.memory.domain.repositories.contexts.context_graph_signal_provider import (
     ContextGraphEnrichmentResult,
     IContextGraphSignalProvider,
 )
-from app.memory.domain.repositories.context_search_source import IContextSearchSource
+from app.memory.domain.repositories.contexts.context_search_source import (
+    IContextSearchSource,
+)
 from app.memory.domain.types.context_payload_types import ContextMetadataPayload
 from app.memory.interface.schemas.context.context_mapping import match_payload
-from app.obsidian.application.graph.obsidian_graph_context_signal_service import (
+from app.obsidian.application.graph.projection.obsidian_graph_context_signal_service import (
     ObsidianGraphContextSignalService,
 )
 from app.obsidian.domain.contracts.obsidian_graph_projection_contracts import (

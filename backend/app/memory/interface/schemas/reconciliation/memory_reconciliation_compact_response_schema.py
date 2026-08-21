@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from app.memory.domain.entities.memory_reconciliation import (
     MemoryCompactFact,
     MemoryCompactFactBuckets,
@@ -11,22 +13,49 @@ from app.memory.domain.event_enum.reconciliation_enums import (
     MemoryCompactFactCategory,
     MemoryCompactSafetyIssue,
 )
-from app.shared.schemas.common_schemas import StrictSchemaModel
+from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 
 
 class MemoryCompactFactResponse(StrictSchemaModel):
     """One temporally classified fact prepared for safe compaction."""
 
-    context_id: str
-    title: str
-    content: str
-    category: MemoryCompactFactCategory
-    valid_from: AwareTimestamp | None
-    valid_to: AwareTimestamp | None
-    evidence_refs: list[str]
-    conflict_set_ids: list[str]
-    relation_summary: list[str]
+    context_id: Annotated[
+        str,
+        described_field("Context identifier for this memory compact fact response."),
+    ]
+    title: Annotated[
+        str, described_field("Title for this memory compact fact response.")
+    ]
+    content: Annotated[
+        str, described_field("Content for this memory compact fact response.")
+    ]
+    category: Annotated[
+        MemoryCompactFactCategory,
+        described_field("Category for this memory compact fact response."),
+    ]
+    valid_from: Annotated[
+        AwareTimestamp | None,
+        described_field("Valid from for this memory compact fact response."),
+    ]
+    valid_to: Annotated[
+        AwareTimestamp | None,
+        described_field("Valid to for this memory compact fact response."),
+    ]
+    evidence_refs: Annotated[
+        list[str],
+        described_field("Evidence refs for this memory compact fact response."),
+    ]
+    conflict_set_ids: Annotated[
+        list[str],
+        described_field(
+            "Conflict set identifiers for this memory compact fact response."
+        ),
+    ]
+    relation_summary: Annotated[
+        list[str],
+        described_field("Relation summary for this memory compact fact response."),
+    ]
 
     @classmethod
     def from_entity(cls, value: MemoryCompactFact) -> MemoryCompactFactResponse:
@@ -54,11 +83,34 @@ class MemoryCompactFactResponse(StrictSchemaModel):
 class MemoryCompactFactBucketsResponse(StrictSchemaModel):
     """Fact sections that must remain separate during Memory Compact generation."""
 
-    current_facts: list[MemoryCompactFactResponse]
-    historical_facts: list[MemoryCompactFactResponse]
-    open_conflicts: list[MemoryCompactFactResponse]
-    uncertain_claims: list[MemoryCompactFactResponse]
-    superseded_facts: list[MemoryCompactFactResponse]
+    current_facts: Annotated[
+        list[MemoryCompactFactResponse],
+        described_field("Current facts for this memory compact fact buckets response."),
+    ]
+    historical_facts: Annotated[
+        list[MemoryCompactFactResponse],
+        described_field(
+            "Historical facts for this memory compact fact buckets response."
+        ),
+    ]
+    open_conflicts: Annotated[
+        list[MemoryCompactFactResponse],
+        described_field(
+            "Open conflicts for this memory compact fact buckets response."
+        ),
+    ]
+    uncertain_claims: Annotated[
+        list[MemoryCompactFactResponse],
+        described_field(
+            "Uncertain claims for this memory compact fact buckets response."
+        ),
+    ]
+    superseded_facts: Annotated[
+        list[MemoryCompactFactResponse],
+        described_field(
+            "Superseded facts for this memory compact fact buckets response."
+        ),
+    ]
 
     @classmethod
     def from_entity(
@@ -100,11 +152,30 @@ class MemoryCompactFactBucketsResponse(StrictSchemaModel):
 class MemoryCompactSafetyReviewResponse(StrictSchemaModel):
     """Safe pre-publication review for reconciliation-aware Memory Compact input."""
 
-    buckets: MemoryCompactFactBucketsResponse
-    issues: list[MemoryCompactSafetyIssue]
-    safe_to_publish: bool
-    warnings: list[str]
-    rendered_markdown: str
+    buckets: Annotated[
+        MemoryCompactFactBucketsResponse,
+        described_field("Buckets for this memory compact safety review response."),
+    ]
+    issues: Annotated[
+        list[MemoryCompactSafetyIssue],
+        described_field("Issues for this memory compact safety review response."),
+    ]
+    safe_to_publish: Annotated[
+        bool,
+        described_field(
+            "Safe to publish for this memory compact safety review response."
+        ),
+    ]
+    warnings: Annotated[
+        list[str],
+        described_field("Warnings for this memory compact safety review response."),
+    ]
+    rendered_markdown: Annotated[
+        str,
+        described_field(
+            "Rendered markdown for this memory compact safety review response."
+        ),
+    ]
 
     @classmethod
     def from_entity(

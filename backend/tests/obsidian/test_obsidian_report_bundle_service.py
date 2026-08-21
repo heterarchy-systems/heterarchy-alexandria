@@ -9,18 +9,18 @@ from pathlib import Path
 
 import anyio
 import pytest
-from app.obsidian.application.graph.obsidian_graph_projection_rebuild_service import (
+from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild_service import (
     ObsidianGraphProjectionRebuildService,
 )
-from app.obsidian.application.graph.obsidian_graph_projection_source_builder import (
+from app.obsidian.application.graph.projection.obsidian_graph_projection_source_builder import (
     ObsidianGraphProjectionSourceBuilder,
 )
 from app.obsidian.application.graph.obsidian_graph_service import ObsidianGraphService
-from app.obsidian.application.service.obsidian_report_bundle_service import (
+from app.obsidian.application.service.notes.obsidian_report_bundle_service import (
     ObsidianReportBundleService,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
-from app.obsidian.application.service.obsidian_vault_reindex_service import (
+from app.obsidian.application.service.vault.obsidian_vault_reindex_service import (
     ObsidianVaultReindexService,
 )
 from app.obsidian.domain.contracts.obsidian_contracts import (

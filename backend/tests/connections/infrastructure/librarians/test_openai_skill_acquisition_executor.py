@@ -26,7 +26,7 @@ from app.connections.infrastructure.librarians.openai_adapter import (
 from app.connections.infrastructure.librarians.openai_skill_acquisition_executor import (
     OpenAISkillAcquisitionExecutor,
 )
-from app.librarian.application.skill_acquisition_runner import (
+from app.librarian.application.skill_acquisition.skill_acquisition_runner import (
     SkillAcquisitionExecutionRequest,
 )
 from app.shared.exceptions.librarian_exceptions import (

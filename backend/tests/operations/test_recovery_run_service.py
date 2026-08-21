@@ -7,11 +7,21 @@ from types import SimpleNamespace
 
 import anyio
 import pytest
-from app.operations.application.recovery_plan_contracts import RecoveryPlanRequest
-from app.operations.application.recovery_plan_service import RecoveryPlanService
-from app.operations.application.recovery_run_errors import RecoveryInProgressError
-from app.operations.application.recovery_run_manifest import _write_active_lock
-from app.operations.application.recovery_run_service import RecoveryRunService
+from app.operations.application.recovery.planning.recovery_plan_contracts import (
+    RecoveryPlanRequest,
+)
+from app.operations.application.recovery.planning.recovery_plan_service import (
+    RecoveryPlanService,
+)
+from app.operations.application.recovery.execution.recovery_run_errors import (
+    RecoveryInProgressError,
+)
+from app.operations.application.recovery.execution.recovery_run_manifest import (
+    _write_active_lock,
+)
+from app.operations.application.recovery.execution.recovery_run_service import (
+    RecoveryRunService,
+)
 from app.operations.domain.entities.recovery_plan import (
     RecoveryPlan,
     RecoveryPlanStep,

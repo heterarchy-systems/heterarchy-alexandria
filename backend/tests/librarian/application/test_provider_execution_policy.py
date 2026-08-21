@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import anyio
-from app.librarian.application.provider_execution_policy import (
+from app.librarian.application.delegation.provider_execution_policy import (
     provider_can_execute,
 )
 from app.connections.domain.entities.read_models import LibrarianProvider

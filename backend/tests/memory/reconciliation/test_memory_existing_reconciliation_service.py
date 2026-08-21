@@ -9,19 +9,19 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import anyio
-from app.memory.application.reconciliation.memory_candidate_recall_service import (
+from app.memory.application.reconciliation.candidates.memory_candidate_recall_service import (
     MemoryCandidateRecallService,
 )
-from app.memory.application.reconciliation.memory_candidate_service import (
+from app.memory.application.reconciliation.candidates.memory_candidate_service import (
     MemoryCandidateService,
 )
-from app.memory.application.reconciliation.memory_existing_reconciliation_service import (
+from app.memory.application.reconciliation.runtime.memory_existing_reconciliation_service import (
     MemoryExistingReconciliationService,
 )
-from app.memory.application.reconciliation.memory_reconciliation_plan_service import (
+from app.memory.application.reconciliation.plans.memory_reconciliation_plan_service import (
     MemoryReconciliationPlanService,
 )
-from app.memory.application.reconciliation.memory_relation_classifier import (
+from app.memory.application.reconciliation.candidates.memory_relation_classifier import (
     MemoryRelationClassifier,
 )
 from app.memory.domain.contracts.memory_existing_reconciliation_contracts import (
@@ -47,7 +47,7 @@ from app.memory.domain.event_enum.reconciliation_enums import (
     MemoryClaimPolarity,
     MemoryRelationType,
 )
-from app.memory.domain.repositories.memory_candidate_recall_source import (
+from app.memory.domain.repositories.contexts.memory_candidate_recall_source import (
     IMemoryCandidateRecallSource,
 )
 from app.memory.infrastructure.repositories.memory_reconciliation_repository import (

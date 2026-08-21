@@ -3,33 +3,35 @@
 from __future__ import annotations
 
 import os
-
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
 import anyio
-from app.memory.application.context_service import ContextService
-from app.memory.domain.event_enum.context_enums import ContextStorageStatus
-from app.memory.infrastructure.repositories.context_repository import (
-    SqlAlchemyContextRepository,
-)
-from app.memory.infrastructure.repositories.contexts.obsidian_context_mapping import (
-    is_recall_visible,
-)
+from app.memory.application.contexts.records.context_service import ContextService
 from app.memory.domain.event_enum.context_enums import (
     ContextRecallLifecycleStatus,
     ContextScope,
+    ContextStorageStatus,
     RagStrategy,
 )
-from app.memory.interface.schemas.context.context_schema import ContextSearchRequest
+from app.memory.infrastructure.repositories.context_repository import (
+    SqlAlchemyContextRepository,
+)
+from app.memory.infrastructure.repositories.contexts.obsidian.obsidian_context_mapping import (
+    is_recall_visible,
+)
+from app.memory.interface.schemas.context.context_retrieval_schema import (
+    ContextSearchRequest,
+)
 from app.obsidian.domain.event_enum.obsidian_enums import (
     AlexandriaNoteType,
     ObsidianIndexStatus,
 )
 from app.obsidian.infrastructure.models.obsidian_index_models import ObsidianFileORM
 from app.shared.infrastructure.database import Database
+from app.shared.serialization.orjson_codec import dumps_json
 from tests.memory.context_seed import seed_context
 
 
@@ -188,11 +190,13 @@ def test_obsidian_administrative_statuses_remain_index_safe() -> None:
 
 
 def test_search_request_accepts_explicit_administrative_lifecycle_statuses() -> None:
-    request = ContextSearchRequest.model_validate(
-        {
-            "query": "lifecycle",
-            "include_lifecycle_statuses": ["SUPERSEDED", "ARCHIVED"],
-        }
+    request = ContextSearchRequest.model_validate_json(
+        dumps_json(
+            {
+                "query": "lifecycle",
+                "include_lifecycle_statuses": ["SUPERSEDED", "ARCHIVED"],
+            }
+        )
     )
 
     assert request.include_lifecycle_statuses == ["SUPERSEDED", "ARCHIVED"]

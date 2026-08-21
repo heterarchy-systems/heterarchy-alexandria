@@ -5,67 +5,71 @@ from __future__ import annotations
 from app.connections.infrastructure.librarians.memory_relation_proposal_provider import (
     ConfiguredMemoryRelationProposalProvider,
 )
-from app.memory.application.context_embedding_recovery_service import (
+from app.memory.application.contexts.embedding.context_embedding_recovery_service import (
     ContextEmbeddingRecoveryService,
 )
-from app.memory.application.context_service import ContextService
+from app.memory.application.contexts.records.context_service import ContextService
 from app.memory.application.integration.obsidian_canonical_context_gateway import (
     ObsidianCanonicalContextGateway,
 )
-from app.memory.application.memory_compact_service import MemoryCompactService
-from app.memory.application.reconciliation.context_memory_candidate_recall_source import (
+from app.memory.application.memory_compacts.lifecycle.memory_compact_service import (
+    MemoryCompactService,
+)
+from app.memory.application.reconciliation.candidates.context_memory_candidate_recall_source import (
     ContextMemoryCandidateRecallSource,
 )
-from app.memory.application.reconciliation.memory_candidate_recall_service import (
+from app.memory.application.reconciliation.candidates.memory_candidate_recall_service import (
     MemoryCandidateRecallService,
 )
-from app.memory.application.reconciliation.memory_candidate_service import (
+from app.memory.application.reconciliation.candidates.memory_candidate_service import (
     MemoryCandidateService,
 )
-from app.memory.application.reconciliation.memory_compact_reconciliation_policy import (
-    MemoryCompactReconciliationPolicy,
-)
-from app.memory.application.reconciliation.memory_compact_reconciliation_service import (
-    MemoryCompactReconciliationService,
-)
-from app.memory.application.reconciliation.memory_conflict_service import (
-    MemoryConflictService,
-)
-from app.memory.application.reconciliation.memory_existing_reconciliation_service import (
-    MemoryExistingReconciliationService,
-)
-from app.memory.application.reconciliation.memory_reconciliation_apply_service import (
-    MemoryReconciliationApplyService,
-)
-from app.memory.application.reconciliation.memory_reconciliation_plan_service import (
-    MemoryReconciliationPlanService,
-)
-from app.memory.application.reconciliation.memory_reconciliation_preview_service import (
-    MemoryReconciliationPreviewService,
-)
-from app.memory.application.reconciliation.memory_reconciliation_query_service import (
-    MemoryReconciliationQueryService,
-)
-from app.memory.application.reconciliation.memory_reconciliation_readiness_service import (
-    MemoryReconciliationReadinessService,
-)
-from app.memory.application.reconciliation.memory_relation_classifier import (
+from app.memory.application.reconciliation.candidates.memory_relation_classifier import (
     MemoryRelationClassifier,
 )
-from app.memory.application.reconciliation.memory_temporal_recall_service import (
+from app.memory.application.reconciliation.compacts.memory_compact_reconciliation_policy import (
+    MemoryCompactReconciliationPolicy,
+)
+from app.memory.application.reconciliation.compacts.memory_compact_reconciliation_service import (
+    MemoryCompactReconciliationService,
+)
+from app.memory.application.reconciliation.conflicts.memory_conflict_service import (
+    MemoryConflictService,
+)
+from app.memory.application.reconciliation.conflicts.memory_temporal_recall_service import (
     MemoryTemporalRecallService,
 )
-from app.memory.application.reconciliation.obsidian_memory_canonical_mutation_gateway import (
+from app.memory.application.reconciliation.plans.memory_reconciliation_apply_service import (
+    MemoryReconciliationApplyService,
+)
+from app.memory.application.reconciliation.plans.memory_reconciliation_plan_service import (
+    MemoryReconciliationPlanService,
+)
+from app.memory.application.reconciliation.plans.memory_reconciliation_preview_service import (
+    MemoryReconciliationPreviewService,
+)
+from app.memory.application.reconciliation.plans.memory_reconciliation_query_service import (
+    MemoryReconciliationQueryService,
+)
+from app.memory.application.reconciliation.runtime.memory_existing_reconciliation_service import (
+    MemoryExistingReconciliationService,
+)
+from app.memory.application.reconciliation.runtime.memory_reconciliation_readiness_service import (
+    MemoryReconciliationReadinessService,
+)
+from app.memory.application.reconciliation.runtime.obsidian_memory_canonical_mutation_gateway import (
     ObsidianMemoryCanonicalMutationGateway,
 )
-from app.memory.application.retrieval.embedding_factory import create_embedding_provider
+from app.memory.application.retrieval.embeddings.embedding_factory import (
+    create_embedding_provider,
+)
 from app.memory.infrastructure.context_embedding_batch_transaction import (
     SqlAlchemyContextEmbeddingBatchTransaction,
 )
 from app.memory.infrastructure.repositories.context_repository import (
     SqlAlchemyContextRepository,
 )
-from app.memory.infrastructure.repositories.contexts.obsidian_search_source import (
+from app.memory.infrastructure.repositories.contexts.search.obsidian_search_source import (
     SqlAlchemyObsidianContextSearchSource,
 )
 from app.memory.infrastructure.repositories.memory_compact_repository import (

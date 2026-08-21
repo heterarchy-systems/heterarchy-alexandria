@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import cast
 
 import anyio
-from app.obsidian.application.service.obsidian_canonical_identity_service import (
+from app.obsidian.application.service.notes.obsidian_canonical_identity_service import (
     ObsidianCanonicalIdentityService,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService

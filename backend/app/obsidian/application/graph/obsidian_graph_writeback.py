@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from app.obsidian.application.graph.obsidian_graph_link_renderer import (
+from app.obsidian.application.graph.diagnostics.obsidian_graph_link_renderer import (
     add_or_update_alexandria_links_section,
 )
-from app.obsidian.application.graph.obsidian_graph_relation_targets import (
+from app.obsidian.application.graph.relations.obsidian_graph_relation_targets import (
     source_refs_from_json,
 )
 from app.obsidian.domain.contracts.obsidian_contracts import ObsidianSaveNote
@@ -15,7 +15,6 @@ from app.shared.types.extra_types import JSONObject
 
 
 def graph_link_save_payload(
-    *,
     note: ObsidianNote,
     response: JSONObject,
 ) -> ObsidianSaveNote:
@@ -56,7 +55,6 @@ def graph_link_save_payload(
 
 def _graph_link_refs(
     refs: list[JSONObject],
-    *,
     active_note_path: str,
 ) -> list[JSONObject]:
     applied: list[JSONObject] = []

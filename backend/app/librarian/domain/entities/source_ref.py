@@ -3,20 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import StrEnum
 
+from app.librarian.domain.event_enum.source_ref_enums import SourceRefType
 from app.librarian.domain.types.librarian_brief_payload_types import SourceRefPayload
 from app.shared.exceptions.librarian_exceptions import LibrarianValidationError
-
-
-class SourceRefType(StrEnum):
-    """Lazy-loadable source categories exposed to librarian delegates."""
-
-    CONTEXT = "CONTEXT"
-    MEMORY_COMPACT = "MEMORY_COMPACT"
-    LIBRARY_ITEM = "LIBRARY_ITEM"
-    SKILL = "SKILL"
-    PROMPT = "PROMPT"
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

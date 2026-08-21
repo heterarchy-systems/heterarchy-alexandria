@@ -8,11 +8,13 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import anyio
-from app.memory.application.context_service import ContextService
+from app.memory.application.contexts.records.context_service import ContextService
 from app.memory.application.integration.obsidian_canonical_context_gateway import (
     ObsidianCanonicalContextGateway,
 )
-from app.memory.application.retrieval.embedding_contract import EmbeddingProvider
+from app.memory.application.retrieval.embeddings.embedding_contract import (
+    EmbeddingProvider,
+)
 from app.memory.domain.contracts.context_recall_contracts import (
     ContextFtsRecall,
     ContextRecallFilter,
@@ -29,7 +31,7 @@ from app.memory.infrastructure.models.context_models import ContextChunkORM
 from app.memory.infrastructure.repositories.context_repository import (
     SqlAlchemyContextRepository,
 )
-from app.memory.infrastructure.repositories.contexts.obsidian_search_source import (
+from app.memory.infrastructure.repositories.contexts.search.obsidian_search_source import (
     SqlAlchemyObsidianContextSearchSource,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService

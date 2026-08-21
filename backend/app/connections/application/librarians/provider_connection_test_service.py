@@ -22,7 +22,6 @@ class ProviderConnectionTestService:
 
     def __init__(
         self,
-        *,
         provider_repository: ILibrarianProviderRepository,
         credential_repository: IProviderSecretRepository,
         client_factory: LibrarianProviderClientFactory,

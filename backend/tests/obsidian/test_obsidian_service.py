@@ -21,16 +21,18 @@ from app.librarian.domain.types.hermes_collaboration_payload_types import (
     HermesLibrarianAskPayload,
 )
 from app.main import app
-from app.memory.application.memory_compact_service import MemoryCompactService
+from app.memory.application.memory_compacts.lifecycle.memory_compact_service import (
+    MemoryCompactService,
+)
 from app.memory.domain.event_enum.memory_compact_enums import MemoryCompactStatus
-from app.memory.domain.repositories.memory_compact_repository_contracts import (
+from app.memory.domain.repositories.memory_compacts.memory_compact_repository_contracts import (
     MemoryCompactCreate,
     MemoryCompactSourceRefCreate,
 )
 from app.memory.infrastructure.repositories.memory_compact_repository import (
     ObsidianMemoryCompactRepository,
 )
-from app.obsidian.application.librarian.obsidian_librarian_job_service import (
+from app.obsidian.application.librarian.workflow.obsidian_librarian_job_service import (
     ObsidianLibrarianJobService,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService

@@ -5,7 +5,7 @@ from __future__ import annotations
 from app.connections.application.librarian_service import LibrarianService
 from app.connections.application.librarians.oauth_service import LibrarianOAuthService
 from app.connections.infrastructure.librarians.clients import LibrarianClientFactory
-from app.connections.infrastructure.librarians.openai_codex_oauth_adapter import (
+from app.connections.infrastructure.librarians.oauth.openai_codex_oauth_adapter import (
     OpenAICodexOAuthClient,
 )
 from app.connections.infrastructure.repositories.librarian_repository import (

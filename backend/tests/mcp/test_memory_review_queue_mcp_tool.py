@@ -6,7 +6,7 @@ import anyio
 import httpx
 from app.mcp_server.backend_api_client import AlexandriaApiClient, AlexandriaApiSettings
 from app.mcp_server.server_runtime import build_mcp_server
-from app.mcp_server.tools.memory_reconciliation_tools import (
+from app.mcp_server.tools.reconciliation.memory_reconciliation_tools import (
     alexandria_list_memory_reconciliation_review_queue,
 )
 from app.shared.serialization.orjson_codec import dumps_json

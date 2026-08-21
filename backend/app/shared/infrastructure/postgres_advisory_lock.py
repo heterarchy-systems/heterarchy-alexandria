@@ -30,7 +30,6 @@ class PostgresAdvisoryLock:
     def __init__(
         self,
         engine: AsyncEngine,
-        *,
         namespace: str,
         poll_interval_seconds: float = 0.25,
     ) -> None:
@@ -50,7 +49,6 @@ class PostgresAdvisoryLock:
     @asynccontextmanager
     async def operation(
         self,
-        *,
         wait: bool,
         shared: bool,
     ) -> AsyncIterator[None]:
@@ -100,7 +98,6 @@ class PostgresAdvisoryLock:
 
     async def _wait_until_acquired(
         self,
-        *,
         connection: AsyncConnection,
         shared: bool,
     ) -> bool:
@@ -124,7 +121,6 @@ class PostgresAdvisoryLock:
 
     async def _release_or_invalidate(
         self,
-        *,
         raw_connection: AsyncConnection,
         connection: AsyncConnection,
         shared: bool,

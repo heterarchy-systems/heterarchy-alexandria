@@ -2,17 +2,22 @@
 
 from __future__ import annotations
 
-from typing import cast
+from typing import Annotated, cast
 
 from app.connections.domain.event_enum.provider_enums import AuthType, ProviderType
 from app.connections.domain.types.librarian_provider_payload_types import (
     LibrarianProviderPatchPayload,
 )
-from app.shared.schemas.common_schemas import StrictRootSchemaModel, StrictSchemaModel
+from app.shared.schemas.common_schemas import (
+    StrictRootSchemaModel,
+    StrictSchemaModel,
+    described_field,
+    schema_dict_default,
+)
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 from app.shared.serialization.model_codec import schema_payload
 from app.shared.types.extra_types import JSONObject
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict
 
 
 class LibrarianProviderCreateRequest(StrictSchemaModel):
@@ -34,21 +39,41 @@ class LibrarianProviderCreateRequest(StrictSchemaModel):
         }
     )
 
-    name: str
-    provider_type: ProviderType
-    auth_type: AuthType
-    enabled: bool = True
-    config: JSONObject = Field(default_factory=dict)
-    api_key: str | None = Field(
-        default=None,
-        repr=False,
-        json_schema_extra={"writeOnly": True},
-    )
-    oauth_access_token: str | None = Field(
-        default=None,
-        repr=False,
-        json_schema_extra={"writeOnly": True},
-    )
+    name: Annotated[
+        str, described_field("Name for this librarian provider create request.")
+    ]
+    provider_type: Annotated[
+        ProviderType,
+        described_field("Provider type for this librarian provider create request."),
+    ]
+    auth_type: Annotated[
+        AuthType,
+        described_field("Auth type for this librarian provider create request."),
+    ]
+    enabled: Annotated[
+        bool,
+        described_field("Whether this librarian provider create request is enabled."),
+    ] = True
+    config: Annotated[
+        JSONObject,
+        described_field("Config for this librarian provider create request."),
+    ] = schema_dict_default()
+    api_key: Annotated[
+        str | None,
+        described_field(
+            "API key for this librarian provider create request.",
+            repr=False,
+            json_schema_extra={"writeOnly": True},
+        ),
+    ] = None
+    oauth_access_token: Annotated[
+        str | None,
+        described_field(
+            "OAuth access token for this librarian provider create request.",
+            repr=False,
+            json_schema_extra={"writeOnly": True},
+        ),
+    ] = None
 
 
 class LibrarianProviderPatchRequest(StrictSchemaModel):
@@ -65,21 +90,41 @@ class LibrarianProviderPatchRequest(StrictSchemaModel):
         }
     )
 
-    name: str | None = None
-    provider_type: ProviderType | None = None
-    auth_type: AuthType | None = None
-    enabled: bool | None = None
-    config: JSONObject | None = None
-    api_key: str | None = Field(
-        default=None,
-        repr=False,
-        json_schema_extra={"writeOnly": True},
-    )
-    oauth_access_token: str | None = Field(
-        default=None,
-        repr=False,
-        json_schema_extra={"writeOnly": True},
-    )
+    name: Annotated[
+        str | None, described_field("Name for this librarian provider patch request.")
+    ] = None
+    provider_type: Annotated[
+        ProviderType | None,
+        described_field("Provider type for this librarian provider patch request."),
+    ] = None
+    auth_type: Annotated[
+        AuthType | None,
+        described_field("Auth type for this librarian provider patch request."),
+    ] = None
+    enabled: Annotated[
+        bool | None,
+        described_field("Whether this librarian provider patch request is enabled."),
+    ] = None
+    config: Annotated[
+        JSONObject | None,
+        described_field("Config for this librarian provider patch request."),
+    ] = None
+    api_key: Annotated[
+        str | None,
+        described_field(
+            "API key for this librarian provider patch request.",
+            repr=False,
+            json_schema_extra={"writeOnly": True},
+        ),
+    ] = None
+    oauth_access_token: Annotated[
+        str | None,
+        described_field(
+            "OAuth access token for this librarian provider patch request.",
+            repr=False,
+            json_schema_extra={"writeOnly": True},
+        ),
+    ] = None
 
     def to_payload(self) -> LibrarianProviderPatchPayload:
         """Return a typed service-layer patch payload.
@@ -113,14 +158,31 @@ class LibrarianProviderResponse(StrictSchemaModel):
         }
     )
 
-    id: str
-    name: str
-    provider_type: ProviderType
-    auth_type: AuthType
-    enabled: bool
-    config: JSONObject
-    created_at: AwareTimestamp
-    updated_at: AwareTimestamp
+    id: Annotated[
+        str, described_field("Stable identifier for this librarian provider response.")
+    ]
+    name: Annotated[str, described_field("Name for this librarian provider response.")]
+    provider_type: Annotated[
+        ProviderType,
+        described_field("Provider type for this librarian provider response."),
+    ]
+    auth_type: Annotated[
+        AuthType, described_field("Auth type for this librarian provider response.")
+    ]
+    enabled: Annotated[
+        bool, described_field("Whether this librarian provider response is enabled.")
+    ]
+    config: Annotated[
+        JSONObject, described_field("Config for this librarian provider response.")
+    ]
+    created_at: Annotated[
+        AwareTimestamp,
+        described_field("Creation timestamp for this librarian provider response."),
+    ]
+    updated_at: Annotated[
+        AwareTimestamp,
+        described_field("Last-update timestamp for this librarian provider response."),
+    ]
 
 
 class LibrarianProviderResponseList(
@@ -138,7 +200,9 @@ class LibrarianProviderTestRequest(StrictSchemaModel):
         }
     )
 
-    test_query: str = "ping"
+    test_query: Annotated[
+        str, described_field("Test query for this librarian provider test request.")
+    ] = "ping"
 
 
 class LibrarianProviderTestResponse(StrictSchemaModel):
@@ -156,6 +220,18 @@ class LibrarianProviderTestResponse(StrictSchemaModel):
         }
     )
 
-    provider_id: str
-    ok: bool
-    message: str
+    provider_id: Annotated[
+        str,
+        described_field(
+            "Provider identifier for this librarian provider test response."
+        ),
+    ]
+    ok: Annotated[
+        bool,
+        described_field(
+            "Whether this librarian provider test response operation succeeded."
+        ),
+    ]
+    message: Annotated[
+        str, described_field("Message for this librarian provider test response.")
+    ]

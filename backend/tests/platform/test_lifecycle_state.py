@@ -4,14 +4,16 @@ from __future__ import annotations
 
 import pytest
 from app.platform.lifecycle.dependency_health import (
-    DependencyHealthStatus,
-    PlatformDependency,
     dependency_status_when_lifecycle_drains,
     dependency_status_when_marked_healthy,
 )
+from app.platform.lifecycle.dependency_health_enums import (
+    DependencyHealthStatus,
+    PlatformDependency,
+)
 from app.platform.lifecycle.dependency_status_store import DependencyStatusStore
 from app.platform.lifecycle.state import LifecycleState
-from app.platform.lifecycle.status import LifecycleStatus
+from app.platform.lifecycle.lifecycle_enums import LifecycleStatus
 
 
 def test_dependency_status_store_marks_all_healthy_dependencies_draining() -> None:

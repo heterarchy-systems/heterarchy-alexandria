@@ -2,24 +2,9 @@
 
 from __future__ import annotations
 
-from enum import StrEnum
-
-
-class DependencyHealthStatus(StrEnum):
-    """Shared dependency health states."""
-
-    DISABLED = "disabled"
-    STARTING = "starting"
-    OK = "ok"
-    DRAINING = "draining"
-    UNAVAILABLE = "unavailable"
-
-
-class PlatformDependency(StrEnum):
-    """Platform dependency identifiers managed by lifecycle state."""
-
-    REDIS = "redis"
-    DATABASE = "database"
+from app.platform.lifecycle.dependency_health_enums import (
+    DependencyHealthStatus,
+)
 
 
 def dependency_is_ready(status: DependencyHealthStatus) -> bool:
@@ -57,7 +42,6 @@ def dependency_status_when_lifecycle_drains(
 
 
 def dependency_status_when_marked_healthy(
-    *,
     lifecycle_accepts_traffic: bool,
 ) -> DependencyHealthStatus:
     """Return dependency status when a dependency reports healthy.

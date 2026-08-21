@@ -18,7 +18,7 @@ FORBIDDEN_DYNAMIC_ATTRIBUTE_CALLS = {"getattr", "hasattr", "setattr"}
 class DynamicAttributeVisitor(ast.NodeVisitor):
     """Collect dynamic attribute access violations."""
 
-    def __init__(self, *, path: Path, lines: list[str]) -> None:
+    def __init__(self, path: Path, lines: list[str]) -> None:
         """Initialize dynamic attribute visitor.
 
         Args:

@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 class SqlAlchemyObsidianGraphProjectionSource(IObsidianGraphProjectionSourceRepository):
     """Read graph projection source rows without modifying PostgreSQL or Markdown."""
 
-    def __init__(self, *, session: AsyncSession) -> None:
+    def __init__(self, session: AsyncSession) -> None:
         """Create the read-only projection source adapter.
 
         Args:

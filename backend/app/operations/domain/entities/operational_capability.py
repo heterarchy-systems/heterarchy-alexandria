@@ -4,16 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from enum import StrEnum
 
-
-class OperationalCapabilityState(StrEnum):
-    """One capability's independent serving state."""
-
-    READY = "READY"
-    DEGRADED = "DEGRADED"
-    BLOCKED = "BLOCKED"
-    OPTIONAL = "OPTIONAL"
+from app.operations.domain.event_enum.operational_capability_enums import (
+    OperationalCapabilityState,
+)
 
 
 @dataclass(frozen=True, slots=True)

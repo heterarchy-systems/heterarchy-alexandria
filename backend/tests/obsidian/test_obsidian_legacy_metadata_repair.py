@@ -8,7 +8,7 @@ from pathlib import Path
 
 import anyio
 import pytest
-from app.obsidian.application.service.obsidian_legacy_metadata_repair_service import (
+from app.obsidian.application.service.notes.obsidian_legacy_metadata_repair_service import (
     ObsidianLegacyMetadataRepairService,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService

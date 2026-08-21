@@ -23,7 +23,6 @@ def sha256_text_hexdigest(text: str) -> str:
 
 def extract_word_tokens(
     text: str,
-    *,
     max_tokens: int | None = None,
     max_token_length: int | None = None,
 ) -> tuple[str, ...]:

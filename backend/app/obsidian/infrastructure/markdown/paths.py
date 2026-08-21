@@ -61,7 +61,6 @@ def resolve_note_path(vault_path: str | Path, relative_path: str | Path) -> Path
 
 def discover_managed_markdown_paths(
     scan_root: Path,
-    *,
     managed_root: Path | None = None,
 ) -> list[Path]:
     """Discover managed Markdown while excluding vault-internal hidden directories.

@@ -5,12 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
-from app.platform.lifecycle.dependency_health import (
-    DependencyHealthStatus,
-    dependency_is_ready,
-)
+from app.platform.lifecycle.dependency_health import dependency_is_ready
+from app.platform.lifecycle.dependency_health_enums import DependencyHealthStatus
 from app.platform.lifecycle.dependency_status_store import DependencyStatusStore
-from app.platform.lifecycle.status import LifecycleStatus
+from app.platform.lifecycle.lifecycle_enums import LifecycleStatus
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,7 +72,6 @@ def lifecycle_accepts_traffic(status: LifecycleStatus) -> bool:
 
 
 def lifecycle_is_ready(
-    *,
     status: LifecycleStatus,
     dependencies: DependencyStatusStore,
 ) -> bool:

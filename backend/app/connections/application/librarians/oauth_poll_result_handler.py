@@ -24,7 +24,6 @@ class LibrarianOAuthPollResultHandler:
 
     def __init__(
         self,
-        *,
         secret_store: LibrarianOAuthSecretStore,
         evaluator: LibrarianOAuthStatusEvaluator,
     ) -> None:
@@ -39,7 +38,6 @@ class LibrarianOAuthPollResultHandler:
 
     async def handle(
         self,
-        *,
         provider_id: str,
         poll_result: OAuthPollResult,
     ) -> LibrarianOAuthStatusPayload:

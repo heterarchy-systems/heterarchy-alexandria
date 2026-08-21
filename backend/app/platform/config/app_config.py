@@ -6,42 +6,21 @@ variables. Most service fields use the ``SERVICE_`` prefix.
 
 from __future__ import annotations
 
-from typing import Final, Literal
 from urllib.parse import ParseResult, urlparse
 
-from app.mcp_server.type_validate.auth_contracts import McpAuthMode
-from app.memory.application.retrieval.embedding_contract import (
-    DEFAULT_EMBEDDING_DIMENSIONS,
-    DEFAULT_EMBEDDING_MODEL,
-    DEFAULT_EMBEDDING_THREADS,
+from app.mcp_server.type_validate.oauth.mcp_auth_enums import McpAuthMode
+from app.platform.config.app_config_fields import (
+    _LOCAL_HTTP_HOSTS,
+    AppConfigFields,
 )
-from app.memory.application.retrieval.embedding_factory import EmbeddingProviderName
-from app.shared.utils.config import settings_model_config
 from pydantic import (
-    AliasChoices,
-    Field,
     SecretStr,
     field_validator,
     model_validator,
 )
-from pydantic_settings import BaseSettings
-
-DEFAULT_CODEX_OAUTH_ISSUER: Final[str] = "https://auth.openai.com"
-DEFAULT_CODEX_OAUTH_CLIENT_ID: Final[str] = "app_EMoamEEZ73f0CkXaXp7hrann"
-DEFAULT_CODEX_OAUTH_DEVICE_EXPIRES_IN_SECONDS: Final[int] = 900
-DEFAULT_CODEX_OAUTH_MIN_POLL_INTERVAL_SECONDS: Final[int] = 3
-DEFAULT_MEMORY_RECONCILIATION_MODEL: Final[str] = "gpt-5.5"
-DEFAULT_MEMORY_RECONCILIATION_PROVIDER_TIMEOUT_SECONDS: Final[float] = 30.0
-DEFAULT_MCP_LOCAL_ACCESS_TOKEN_TTL_SECONDS: Final[int] = 60 * 60
-DEFAULT_MCP_LOCAL_REFRESH_TOKEN_TTL_SECONDS: Final[int] = 30 * 24 * 60 * 60
-DEFAULT_MCP_LOCAL_AUTHORIZATION_CODE_TTL_SECONDS: Final[int] = 5 * 60
-DEFAULT_MCP_LOCAL_APPROVAL_TTL_SECONDS: Final[int] = 10 * 60
-DEFAULT_MCP_LOCAL_PAIRING_CODE_TTL_SECONDS: Final[int] = 5 * 60
-DEFAULT_MCP_LOCAL_MAX_APPROVAL_ATTEMPTS: Final[int] = 5
-_LOCAL_HTTP_HOSTS: Final[frozenset[str]] = frozenset({"localhost", "127.0.0.1", "::1"})
 
 
-class AppConfig(BaseSettings):
+class AppConfig(AppConfigFields):
     """Common service settings model.
 
     Role:
@@ -50,128 +29,6 @@ class AppConfig(BaseSettings):
         because Pydantic validators and normalized configuration projections must
         remain attached to the single external settings boundary.
     """
-
-    model_config = {
-        **settings_model_config(env_prefix="SERVICE_"),
-        "populate_by_name": True,
-    }
-
-    app_name: str = Field(default="heterarchy-alexandria")
-    app_env: Literal["local", "stage", "prod"] = Field(default="local")
-    app_version: str = Field(default="0.1.0")
-    app_log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
-    secret_encryption_key: str | None = Field(default=None)
-
-    mcp_transport_host: str = Field(default="0.0.0.0", min_length=1)
-    mcp_auth_mode: McpAuthMode = Field(default=McpAuthMode.NONE)
-    mcp_oauth_issuer: str | None = Field(default=None)
-    mcp_oauth_audience: str | None = Field(default=None)
-    mcp_oauth_jwks_url: str | None = Field(default=None)
-    mcp_oauth_resource: str | None = Field(default=None)
-    mcp_oauth_authorization_servers: str | None = Field(default=None)
-    mcp_oauth_required_scope: str = Field(default="alexandria:mcp")
-    mcp_local_approval_key: SecretStr | None = Field(
-        default=None,
-        validation_alias=AliasChoices(
-            "SERVICE_MCP_LOCAL_APPROVAL_KEY",
-            "ALEXANDRIA_OPERATOR_API_KEY",
-        ),
-        repr=False,
-    )
-    mcp_local_access_token_ttl_seconds: int = Field(
-        default=DEFAULT_MCP_LOCAL_ACCESS_TOKEN_TTL_SECONDS,
-        ge=5 * 60,
-        le=24 * 60 * 60,
-    )
-    mcp_local_refresh_token_ttl_seconds: int = Field(
-        default=DEFAULT_MCP_LOCAL_REFRESH_TOKEN_TTL_SECONDS,
-        ge=24 * 60 * 60,
-        le=365 * 24 * 60 * 60,
-    )
-    mcp_local_authorization_code_ttl_seconds: int = Field(
-        default=DEFAULT_MCP_LOCAL_AUTHORIZATION_CODE_TTL_SECONDS,
-        ge=60,
-        le=10 * 60,
-    )
-    mcp_local_approval_ttl_seconds: int = Field(
-        default=DEFAULT_MCP_LOCAL_APPROVAL_TTL_SECONDS,
-        ge=60,
-        le=30 * 60,
-    )
-    mcp_local_pairing_code_ttl_seconds: int = Field(
-        default=DEFAULT_MCP_LOCAL_PAIRING_CODE_TTL_SECONDS,
-        ge=60,
-        le=10 * 60,
-    )
-    mcp_local_max_approval_attempts: int = Field(
-        default=DEFAULT_MCP_LOCAL_MAX_APPROVAL_ATTEMPTS,
-        ge=1,
-        le=10,
-    )
-
-    codex_oauth_issuer: str = Field(default=DEFAULT_CODEX_OAUTH_ISSUER, min_length=1)
-    codex_oauth_client_id: str = Field(
-        default=DEFAULT_CODEX_OAUTH_CLIENT_ID,
-        min_length=1,
-    )
-    codex_oauth_device_expires_in_seconds: int = Field(
-        default=DEFAULT_CODEX_OAUTH_DEVICE_EXPIRES_IN_SECONDS,
-        ge=60,
-        le=60 * 60,
-    )
-    codex_oauth_min_poll_interval_seconds: int = Field(
-        default=DEFAULT_CODEX_OAUTH_MIN_POLL_INTERVAL_SECONDS,
-        ge=1,
-        le=60,
-    )
-
-    memory_reconciliation_provider_id: str | None = Field(default=None)
-    memory_reconciliation_model: str = Field(
-        default=DEFAULT_MEMORY_RECONCILIATION_MODEL,
-        min_length=1,
-    )
-    memory_reconciliation_provider_timeout_seconds: float = Field(
-        default=DEFAULT_MEMORY_RECONCILIATION_PROVIDER_TIMEOUT_SECONDS,
-        gt=0,
-        le=300,
-    )
-
-    graph_read_model: Literal["disabled", "neo4j"] = Field(default="disabled")
-    neo4j_uri: str | None = Field(default=None, min_length=1, repr=False)
-    neo4j_username: str | None = Field(default=None, min_length=1, repr=False)
-    neo4j_password: SecretStr | None = Field(
-        default=None,
-        min_length=1,
-        repr=False,
-    )
-    neo4j_database: str = Field(default="neo4j", min_length=1, repr=False)
-
-    rag_vector_enabled: bool = Field(default=True)
-    rag_embedding_provider: EmbeddingProviderName = Field(default="fastembed")
-    rag_embedding_model: str = Field(default=DEFAULT_EMBEDDING_MODEL, min_length=1)
-    rag_embedding_dimensions: int = Field(default=DEFAULT_EMBEDDING_DIMENSIONS, ge=1)
-    rag_embedding_cache_dir: str | None = Field(default=None)
-    rag_embedding_threads: int = Field(default=DEFAULT_EMBEDDING_THREADS, ge=1, le=32)
-    rag_embedding_recovery_on_startup: bool = Field(default=False)
-    rag_embedding_recovery_on_vault_reindex: bool = Field(default=False)
-    rag_embedding_recovery_batch_size: int = Field(default=250, ge=1, le=1000)
-    rag_embedding_recovery_max_batches: int = Field(default=40, ge=1, le=1000)
-
-    obsidian_vault_path: str = Field(default="./data/obsidian-vault", min_length=1)
-    alexandria_obsidian_root: str = Field(default="Alexandria", min_length=1)
-    obsidian_vault_config_path: str = Field(
-        default="./data/obsidian-vault-config.json",
-        min_length=1,
-    )
-    memory_compact_note_dir: str = Field(
-        default="Alexandria/Memory Compacts",
-        min_length=1,
-    )
-    operational_backup_root: str = Field(
-        default="./data/operational-backups",
-        min_length=1,
-    )
-    operational_backup_retention_count: int = Field(default=10, ge=1, le=365)
 
     @field_validator(
         "mcp_oauth_issuer",
@@ -391,7 +248,7 @@ def _require_values(
         raise ValueError(f"{mode_name} requires: {', '.join(missing)}")
 
 
-def _validate_local_oauth_urls(*, issuer: str, resource: str) -> None:
+def _validate_local_oauth_urls(issuer: str, resource: str) -> None:
     issuer_url = urlparse(issuer)
     resource_url = urlparse(resource)
     _validate_oauth_url("mcp_oauth_issuer", issuer_url)

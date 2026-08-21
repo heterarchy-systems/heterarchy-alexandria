@@ -6,7 +6,7 @@ import asyncio
 
 
 async def wait_for_critical_task[ResultT](
-    task: asyncio.Task[ResultT],
+    task: asyncio.Future[ResultT],
 ) -> ResultT:
     """Wait for a critical task to finish before propagating cancellation.
 

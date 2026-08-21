@@ -29,7 +29,7 @@ from app.memory.interface.schemas.context.context_mapping import (
     match_payload,
     pack_payload,
 )
-from app.memory.interface.schemas.context.context_schema import (
+from app.memory.interface.schemas.context.context_retrieval_schema import (
     ContextSearchMatchResponse,
 )
 

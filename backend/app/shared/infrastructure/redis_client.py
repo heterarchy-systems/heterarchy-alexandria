@@ -4,9 +4,16 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Protocol
 
-from app.platform.config.redis_config import RedisConfig
 from redis.asyncio import Redis
+
+
+class RedisConnectionSettings(Protocol):
+    """Minimal settings contract required by the shared Redis lifecycle."""
+
+    url: str | None
+    max_connections: int
 
 
 def create_redis_client(redis_url: str, max_connections: int = 8) -> Redis:
@@ -30,7 +37,7 @@ def create_redis_client(redis_url: str, max_connections: int = 8) -> Redis:
 
 @asynccontextmanager
 async def initialize_redis_client(
-    config: RedisConfig,
+    config: RedisConnectionSettings,
 ) -> AsyncIterator[Redis | None]:
     """Provision and close one optional process-wide Redis client.
 

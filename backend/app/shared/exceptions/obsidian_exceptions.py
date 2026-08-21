@@ -34,7 +34,6 @@ class ObsidianIdentityConflictError(ObsidianDomainError):
 
     def __init__(
         self,
-        *,
         operation: str,
         requested_note_id: str | None,
         requested_path: str | None,
@@ -69,7 +68,6 @@ class ObsidianWriteTargetNotFoundError(ObsidianDomainError):
 
     def __init__(
         self,
-        *,
         requested_note_id: str | None,
         requested_path: str | None,
     ) -> None:

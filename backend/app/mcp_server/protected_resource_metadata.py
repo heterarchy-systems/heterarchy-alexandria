@@ -8,7 +8,9 @@ from app.mcp_server.http_mount import MCP_PUBLIC_PATH
 from app.mcp_server.interface.schemas.protected_resource_schemas import (
     McpProtectedResourceMetadata,
 )
-from app.platform.config.app_config import AppConfig
+from app.mcp_server.type_validate.oauth.config_contracts import (
+    McpProtectedResourceConfig,
+)
 from app.shared.types.extra_types import JSONObject
 
 
@@ -40,7 +42,10 @@ def mcp_resource_url(request: Request) -> str:
     return f"{request_origin(request)}{MCP_PUBLIC_PATH}"
 
 
-def protected_resource_metadata(request: Request, config: AppConfig) -> JSONObject:
+def protected_resource_metadata(
+    request: Request,
+    config: McpProtectedResourceConfig,
+) -> JSONObject:
     """Build validated OAuth protected-resource metadata for ChatGPT.
 
     Args:

@@ -9,10 +9,10 @@ from pathlib import Path
 import anyio
 import pytest
 from app.main import app as default_app, create_app
-from app.obsidian.application.graph.obsidian_graph_note_diagnostics_service import (
+from app.obsidian.application.graph.diagnostics.obsidian_graph_note_diagnostics_service import (
     ObsidianGraphNoteDiagnosticsService,
 )
-from app.obsidian.application.graph.obsidian_graph_projection_rebuild_service import (
+from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild_service import (
     ObsidianGraphProjectionStatusReport,
 )
 from app.obsidian.domain.entities.obsidian_note import ObsidianEdge, ObsidianNote

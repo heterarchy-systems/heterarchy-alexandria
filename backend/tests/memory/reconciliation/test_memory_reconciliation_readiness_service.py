@@ -8,7 +8,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import anyio
-from app.memory.application.reconciliation.memory_reconciliation_readiness_service import (
+from app.memory.application.reconciliation.runtime.memory_reconciliation_readiness_service import (
     MemoryReconciliationReadinessService,
 )
 from app.memory.domain.entities.context_read_models import ContextRecord
@@ -20,7 +20,7 @@ from app.memory.domain.event_enum.reconciliation_enums import (
     MemoryConflictStatus,
     MemoryReconciliationStatus,
 )
-from app.memory.domain.repositories.memory_reconciliation_readiness_repository import (
+from app.memory.domain.repositories.reconciliation.memory_reconciliation_readiness_repository import (
     IMemoryReconciliationReadinessRepository,
 )
 from app.memory.infrastructure.models.reconciliation_models import (

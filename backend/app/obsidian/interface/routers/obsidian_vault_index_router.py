@@ -1,18 +1,18 @@
 """Vault and index lifecycle routes for Obsidian-backed Alexandria storage."""
 
-from __future__ import annotations
+from typing import Annotated
 
 from app.container import ApplicationContainer
 from app.obsidian.application.service.obsidian_service import ObsidianService
-from app.obsidian.application.service.obsidian_vault_reindex_service import (
+from app.obsidian.application.service.vault.obsidian_vault_reindex_service import (
     ObsidianVaultReindexService,
 )
-from app.obsidian.interface.schemas.obsidian.obsidian_index_error_repair_schema import (
+from app.obsidian.interface.schemas.obsidian.maintenance.obsidian_index_error_repair_schema import (
     ObsidianIndexErrorRepairApplyRequest,
     ObsidianIndexErrorRepairPlanResponse,
     ObsidianIndexErrorRepairReportResponse,
 )
-from app.obsidian.interface.schemas.obsidian.obsidian_legacy_metadata_repair_schema import (
+from app.obsidian.interface.schemas.obsidian.maintenance.obsidian_legacy_metadata_repair_schema import (
     ObsidianLegacyMetadataRepairApplyRequest,
     ObsidianLegacyMetadataRepairPlanResponse,
     ObsidianLegacyMetadataRepairReportResponse,
@@ -26,6 +26,7 @@ from app.shared.exceptions.exception_decorators import router_exception_status
 from app.shared.exceptions.route_exceptions import (
     OBSIDIAN_ROUTE_EXCEPTION_MAPPING,
 )
+from app.shared.type_validation.strict_json_body import model_validate_json_body
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, status
 
@@ -42,9 +43,10 @@ router = APIRouter()
 @router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def obsidian_status(
-    service: ObsidianService = Depends(
-        Provide[ApplicationContainer.obsidian.obsidian_service]
-    ),
+    service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
 ) -> ObsidianStatusResponse:
     """Return Obsidian vault/index status.
 
@@ -68,9 +70,10 @@ async def obsidian_status(
 @router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def initialize_obsidian_vault(
-    service: ObsidianService = Depends(
-        Provide[ApplicationContainer.obsidian.obsidian_service]
-    ),
+    service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
 ) -> ObsidianNoteResponse:
     """Initialize the managed Obsidian vault layout.
 
@@ -97,9 +100,10 @@ async def initialize_obsidian_vault(
 @router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def reindex_obsidian_vault(
-    service: ObsidianVaultReindexService = Depends(
-        Provide[ApplicationContainer.obsidian.vault_reindex_service]
-    ),
+    service: Annotated[
+        ObsidianVaultReindexService,
+        Depends(Provide[ApplicationContainer.obsidian.vault_reindex_service]),
+    ],
 ) -> ObsidianReindexResponse:
     """Rebuild the Obsidian index cache.
 
@@ -126,9 +130,10 @@ async def reindex_obsidian_vault(
 @router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def plan_obsidian_index_error_repairs(
-    service: ObsidianService = Depends(
-        Provide[ApplicationContainer.obsidian.obsidian_service]
-    ),
+    service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
 ) -> ObsidianIndexErrorRepairPlanResponse:
     """Return a dry-run plan bound to the current Markdown bytes.
 
@@ -155,10 +160,14 @@ async def plan_obsidian_index_error_repairs(
 @router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def apply_obsidian_index_error_repairs(
-    request: ObsidianIndexErrorRepairApplyRequest,
-    service: ObsidianService = Depends(
-        Provide[ApplicationContainer.obsidian.obsidian_service]
-    ),
+    request: Annotated[
+        ObsidianIndexErrorRepairApplyRequest,
+        Depends(model_validate_json_body(ObsidianIndexErrorRepairApplyRequest)),
+    ],
+    service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
 ) -> ObsidianIndexErrorRepairReportResponse:
     """Apply an unchanged repair plan after writing verified backups.
 
@@ -188,9 +197,10 @@ async def apply_obsidian_index_error_repairs(
 @router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def plan_obsidian_legacy_metadata_repairs(
-    service: ObsidianService = Depends(
-        Provide[ApplicationContainer.obsidian.obsidian_service]
-    ),
+    service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
 ) -> ObsidianLegacyMetadataRepairPlanResponse:
     """Return a non-mutating, source-hash-bound metadata repair plan.
 
@@ -217,10 +227,14 @@ async def plan_obsidian_legacy_metadata_repairs(
 @router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def apply_obsidian_legacy_metadata_repairs(
-    request: ObsidianLegacyMetadataRepairApplyRequest,
-    service: ObsidianService = Depends(
-        Provide[ApplicationContainer.obsidian.obsidian_service]
-    ),
+    request: Annotated[
+        ObsidianLegacyMetadataRepairApplyRequest,
+        Depends(model_validate_json_body(ObsidianLegacyMetadataRepairApplyRequest)),
+    ],
+    service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
 ) -> ObsidianLegacyMetadataRepairReportResponse:
     """Apply the accepted repair plan and return per-document evidence.
 

@@ -33,13 +33,13 @@ from app.connections.infrastructure.librarians.provider_types import (
     parse_auth_type,
     parse_provider_type,
 )
-from app.librarian.application.skill_acquisition_runner import (
+from app.librarian.application.skill_acquisition.skill_acquisition_runner import (
     SkillAcquisitionExecutionRequest,
 )
 from app.librarian.domain.contracts.skill_acquisition_contracts import (
     SkillAcquisitionArtifact,
 )
-from app.operations.application.external_api_rate_limit import (
+from app.operations.application.readiness.external_api_rate_limit import (
     ExternalApiRateLimiter,
     ExternalApiRateLimitError,
     NoopExternalApiRateLimiter,
@@ -273,7 +273,6 @@ def _skill_acquisition_timeout_seconds(provider: LibrarianProvider) -> float:
 
 
 def _log_provider_timeout(
-    *,
     provider_id: str,
     provider_type: ProviderType | None,
     timeout_seconds: float,
@@ -289,7 +288,6 @@ def _log_provider_timeout(
 
 
 def _log_provider_execution_failure(
-    *,
     provider_id: str,
     provider_type: ProviderType | None,
     error: Exception,

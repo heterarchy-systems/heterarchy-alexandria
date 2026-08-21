@@ -13,13 +13,13 @@ from app.cli import (
     mcp_server_commands as cli_mcp,
     memory_steward_commands as cli_memory_steward,
 )
-from app.cli.type_validate.command_options import RequiredMcpTool
+from app.cli.type_validate.command_option_enums import RequiredMcpTool
 from app.cli.type_validate.mcp_protocol_payload_contracts import (
     decode_mcp_json_response,
     mcp_tool_names,
 )
 from app.mcp_server import server_runtime
-from app.mcp_server.type_validate.transport_contracts import McpTransport
+from app.mcp_server.type_validate.mcp_transport_enums import McpTransport
 from app.shared.serialization.orjson_codec import loads_json
 
 
@@ -27,11 +27,11 @@ class FakeMcpServer:
     """Tiny FastMCP stand-in for CLI launch verification."""
 
     def __init__(self) -> None:
-        self.runs: list[tuple[str, str | None]] = []
+        self.runs: list[tuple[str, dict[str, object]]] = []
 
-    def run(self, transport: str = "stdio", mount_path: str | None = None) -> None:
-        """Record the requested transport instead of blocking on a server loop."""
-        self.runs.append((transport, mount_path))
+    def run(self, transport: str = "stdio", **kwargs: object) -> None:
+        """Record the requested MCP v2 transport configuration."""
+        self.runs.append((transport, dict(kwargs)))
 
 
 def test_cli_maintenance_gateway_defers_backend_tool_gateway_import() -> None:
@@ -62,7 +62,7 @@ def test_cli_type_contracts_use_str_enums() -> None:
 
 
 def test_mcp_runtime_main_runs_selected_transport(monkeypatch) -> None:
-    """Runtime MCP entrypoint should run FastMCP with the requested transport."""
+    """Runtime entrypoint should pass MCP v2 transport-owned options."""
     fake_server = FakeMcpServer()
     monkeypatch.setattr(
         server_runtime,
@@ -73,7 +73,18 @@ def test_mcp_runtime_main_runs_selected_transport(monkeypatch) -> None:
     exit_code = server_runtime.main(["--transport", "streamable-http"])
 
     assert exit_code == 0
-    assert fake_server.runs == [("streamable-http", None)]
+    assert len(fake_server.runs) == 1
+    transport, options = fake_server.runs[0]
+    assert transport == "streamable-http"
+    assert options["host"] == server_runtime.DEFAULT_MCP_TRANSPORT_HOST
+    assert (
+        options["streamable_http_path"]
+        == server_runtime.DEFAULT_MCP_STREAMABLE_HTTP_PATH
+    )
+    assert options["json_response"] is True
+    assert options["transport_security"] == server_runtime.mcp_transport_security(
+        server_runtime.DEFAULT_MCP_TRANSPORT_HOST
+    )
 
 
 def test_cli_mcp_serve_defaults_to_stdio(monkeypatch) -> None:

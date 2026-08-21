@@ -9,7 +9,7 @@ from app.memory.domain.event_enum.reconciliation_enums import (
     MemoryConflictStatus,
     MemoryReconciliationStatus,
 )
-from app.memory.domain.repositories.memory_reconciliation_readiness_repository import (
+from app.memory.domain.repositories.reconciliation.memory_reconciliation_readiness_repository import (
     IMemoryReconciliationReadinessRepository,
 )
 from app.memory.infrastructure.models.reconciliation_models import (

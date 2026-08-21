@@ -2,67 +2,63 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
+from typing import Annotated
 
-from app.obsidian.application.notes.frontmatter_metadata_normalization import (
-    normalize_known_frontmatter_metadata,
-    normalize_string_collection,
-)
-from app.obsidian.application.service.obsidian_vault_reindex_service import (
+from app.obsidian.application.service.vault.obsidian_vault_reindex_service import (
     ObsidianVaultReindexReport,
 )
-from app.obsidian.domain.contracts.obsidian_contracts import (
-    ObsidianReportBundleOwner,
-    ObsidianReportBundleRequest,
-    ObsidianReportBundleVerify,
-    ObsidianSaveNote,
-    ObsidianSearchQuery,
-    ObsidianWriteNote,
-)
 from app.obsidian.domain.entities.obsidian_note import (
-    ObsidianCanonicalIdentityResult,
-    ObsidianExactPathStatus,
     ObsidianIndexError,
     ObsidianNote,
-    ObsidianNoteWriteResult,
     ObsidianReindexResult,
-    ObsidianRelatedNote,
-    ObsidianReportBundleResult,
-    ObsidianSearchHit,
     ObsidianVaultStatus,
 )
 from app.obsidian.domain.event_enum.obsidian_enums import (
     AlexandriaNoteType,
-    ObsidianEdgeSourceKind,
-    ObsidianFrontmatterMode,
     ObsidianIndexErrorCode,
     ObsidianIndexStatus,
-    ObsidianRelationType,
-    ObsidianReportBundleCompletionStatus,
-    ObsidianWriteMatchBy,
-    ObsidianWriteMode,
-    ObsidianWriteOperation,
 )
-from app.obsidian.interface.schemas.obsidian.obsidian_graph_projection_schema import (
+from app.obsidian.interface.schemas.obsidian.graph.obsidian_graph_projection_schema import (
     ObsidianGraphProjectionRebuildResponse,
 )
-from app.shared.schemas.common_schemas import StrictSchemaModel
+from app.shared.schemas.common_schemas import (
+    StrictSchemaModel,
+    described_field,
+    schema_dict_default,
+)
 from app.shared.schemas.datetime_schemas import AwareTimestamp
-from app.shared.types.extra_types import JSONObject, JSONValue
-from pydantic import Field, field_validator
+from app.shared.types.extra_types import JSONObject
 
 
 class ObsidianStatusResponse(StrictSchemaModel):
     """Current Obsidian vault/index status."""
 
-    vault_path: str
-    alexandria_root: str
-    vault_exists: bool
-    alexandria_root_exists: bool
-    indexed_notes: int
-    stale_notes: int
-    error_notes: int
-    index_errors: list[ObsidianIndexErrorResponse]
+    vault_path: Annotated[
+        str, described_field("Vault path for this Obsidian status response.")
+    ]
+    alexandria_root: Annotated[
+        str, described_field("Alexandria root for this Obsidian status response.")
+    ]
+    vault_exists: Annotated[
+        bool, described_field("Vault exists for this Obsidian status response.")
+    ]
+    alexandria_root_exists: Annotated[
+        bool,
+        described_field("Alexandria root exists for this Obsidian status response."),
+    ]
+    indexed_notes: Annotated[
+        int, described_field("Indexed notes for this Obsidian status response.")
+    ]
+    stale_notes: Annotated[
+        int, described_field("Stale notes for this Obsidian status response.")
+    ]
+    error_notes: Annotated[
+        int, described_field("Error notes for this Obsidian status response.")
+    ]
+    index_errors: Annotated[
+        list[ObsidianIndexErrorResponse],
+        described_field("Index errors for this Obsidian status response."),
+    ]
 
     @classmethod
     def from_entity(cls, status: ObsidianVaultStatus) -> ObsidianStatusResponse:
@@ -92,11 +88,24 @@ class ObsidianStatusResponse(StrictSchemaModel):
 class ObsidianIndexErrorResponse(StrictSchemaModel):
     """Structured note-index failure returned to operators."""
 
-    note_path: str
-    context_id: str | None
-    error_code: ObsidianIndexErrorCode
-    error_message: str
-    detected_at: AwareTimestamp
+    note_path: Annotated[
+        str, described_field("Note path for this Obsidian index error response.")
+    ]
+    context_id: Annotated[
+        str | None,
+        described_field("Context identifier for this Obsidian index error response."),
+    ]
+    error_code: Annotated[
+        ObsidianIndexErrorCode,
+        described_field("Error code for this Obsidian index error response."),
+    ]
+    error_message: Annotated[
+        str, described_field("Error message for this Obsidian index error response.")
+    ]
+    detected_at: Annotated[
+        AwareTimestamp,
+        described_field("Detected at for this Obsidian index error response."),
+    ]
 
     @classmethod
     def from_entity(cls, error: ObsidianIndexError) -> ObsidianIndexErrorResponse:
@@ -112,15 +121,37 @@ class ObsidianIndexErrorResponse(StrictSchemaModel):
 class ObsidianReindexResponse(StrictSchemaModel):
     """Vault reindex response."""
 
-    files_seen: int
-    files_indexed: int
-    files_skipped: int
-    stale_marked: int
-    errors: list[str]
-    error_details: list[ObsidianIndexErrorResponse]
-    skip_reasons: dict[str, int] = Field(default_factory=dict)
-    edge_targets_resolved: int = 0
-    graph_projection: ObsidianGraphProjectionRebuildResponse | None = None
+    files_seen: Annotated[
+        int, described_field("Files seen for this Obsidian reindex response.")
+    ]
+    files_indexed: Annotated[
+        int, described_field("Files indexed for this Obsidian reindex response.")
+    ]
+    files_skipped: Annotated[
+        int, described_field("Files skipped for this Obsidian reindex response.")
+    ]
+    stale_marked: Annotated[
+        int, described_field("Stale marked for this Obsidian reindex response.")
+    ]
+    errors: Annotated[
+        list[str], described_field("Errors for this Obsidian reindex response.")
+    ]
+    error_details: Annotated[
+        list[ObsidianIndexErrorResponse],
+        described_field("Error details for this Obsidian reindex response."),
+    ]
+    skip_reasons: Annotated[
+        dict[str, int],
+        described_field("Skip reasons for this Obsidian reindex response."),
+    ] = schema_dict_default()
+    edge_targets_resolved: Annotated[
+        int,
+        described_field("Edge targets resolved for this Obsidian reindex response."),
+    ] = 0
+    graph_projection: Annotated[
+        ObsidianGraphProjectionRebuildResponse | None,
+        described_field("Graph projection for this Obsidian reindex response."),
+    ] = None
 
     @classmethod
     def from_entity(cls, result: ObsidianReindexResult) -> ObsidianReindexResponse:
@@ -137,7 +168,7 @@ class ObsidianReindexResponse(StrictSchemaModel):
             files_indexed=result.files_indexed,
             files_skipped=result.files_skipped,
             stale_marked=result.stale_marked,
-            errors=result.errors,
+            errors=list(result.errors),
             error_details=[
                 ObsidianIndexErrorResponse.from_entity(error)
                 for error in result.error_details
@@ -165,7 +196,7 @@ class ObsidianReindexResponse(StrictSchemaModel):
             files_indexed=result.files_indexed,
             files_skipped=result.files_skipped,
             stale_marked=result.stale_marked,
-            errors=result.errors,
+            errors=list(result.errors),
             error_details=[
                 ObsidianIndexErrorResponse.from_entity(error)
                 for error in result.error_details
@@ -181,23 +212,49 @@ class ObsidianReindexResponse(StrictSchemaModel):
 class ObsidianNoteResponse(StrictSchemaModel):
     """One indexed Obsidian note response."""
 
-    id: str
-    alexandria_type: AlexandriaNoteType
-    path: str
-    title: str
-    status: str
-    tags: list[str]
-    project: str | None
-    source: str | None
-    content_hash: str
-    frontmatter: JSONObject
-    body: str
-    index_status: ObsidianIndexStatus
-    error_message: str | None
-    size_bytes: int
-    modified_at: AwareTimestamp
-    indexed_at: AwareTimestamp
-    wikilink: str
+    id: Annotated[
+        str, described_field("Stable identifier for this Obsidian note response.")
+    ]
+    alexandria_type: Annotated[
+        AlexandriaNoteType,
+        described_field("Alexandria type for this Obsidian note response."),
+    ]
+    path: Annotated[str, described_field("Path for this Obsidian note response.")]
+    title: Annotated[str, described_field("Title for this Obsidian note response.")]
+    status: Annotated[str, described_field("Status for this Obsidian note response.")]
+    tags: Annotated[list[str], described_field("Tags for this Obsidian note response.")]
+    project: Annotated[
+        str | None, described_field("Project for this Obsidian note response.")
+    ]
+    source: Annotated[
+        str | None, described_field("Source for this Obsidian note response.")
+    ]
+    content_hash: Annotated[
+        str, described_field("Content hash for this Obsidian note response.")
+    ]
+    frontmatter: Annotated[
+        JSONObject, described_field("Frontmatter for this Obsidian note response.")
+    ]
+    body: Annotated[str, described_field("Body for this Obsidian note response.")]
+    index_status: Annotated[
+        ObsidianIndexStatus,
+        described_field("Index status for this Obsidian note response."),
+    ]
+    error_message: Annotated[
+        str | None, described_field("Error message for this Obsidian note response.")
+    ]
+    size_bytes: Annotated[
+        int, described_field("Size bytes for this Obsidian note response.")
+    ]
+    modified_at: Annotated[
+        AwareTimestamp, described_field("Modified at for this Obsidian note response.")
+    ]
+    indexed_at: Annotated[
+        AwareTimestamp, described_field("Indexed at for this Obsidian note response.")
+    ]
+    wikilink: Annotated[
+        str, described_field("Wikilink for this Obsidian note response.")
+    ]
 
     @classmethod
     def from_entity(cls, note: ObsidianNote) -> ObsidianNoteResponse:
@@ -215,7 +272,7 @@ class ObsidianNoteResponse(StrictSchemaModel):
             path=note.relative_path,
             title=note.title,
             status=note.status,
-            tags=note.tags,
+            tags=list(note.tags),
             project=note.project,
             source=note.source,
             content_hash=note.content_hash,
@@ -228,499 +285,3 @@ class ObsidianNoteResponse(StrictSchemaModel):
             indexed_at=note.indexed_at,
             wikilink=f"[[{note.relative_path.removesuffix('.md')}]]",
         )
-
-
-class ObsidianExactPathStatusResponse(StrictSchemaModel):
-    """Exact managed-path existence response."""
-
-    exists: bool
-    note_id: str | None
-    path: str
-    index_status: ObsidianIndexStatus | None
-
-    @classmethod
-    def from_entity(
-        cls,
-        result: ObsidianExactPathStatus,
-    ) -> ObsidianExactPathStatusResponse:
-        """Create an exact-path response.
-
-        Args:
-            result: Value supplied to from_entity.
-
-        Returns:
-            Result produced by from_entity.
-        """
-        return cls(
-            exists=result.exists,
-            note_id=result.note_id,
-            path=result.relative_path,
-            index_status=result.index_status,
-        )
-
-
-class ObsidianCanonicalIdentityRequest(StrictSchemaModel):
-    """Logical report identity used for alias-aware resolution."""
-
-    project: str = Field(min_length=1)
-    report: str = Field(min_length=1)
-    date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
-    entity: str = Field(min_length=1)
-    edition: str | None = None
-
-
-class ObsidianCanonicalIdentityResponse(StrictSchemaModel):
-    """Canonical report family/path resolution response."""
-
-    canonical_report_family: str
-    canonical_entity: str
-    canonical_path: str
-    existing_note_id: str | None
-    aliases: list[str]
-    resolution: str
-    candidate_paths: list[str]
-
-    @classmethod
-    def from_entity(
-        cls,
-        result: ObsidianCanonicalIdentityResult,
-    ) -> ObsidianCanonicalIdentityResponse:
-        """Create a canonical identity response.
-
-        Args:
-            result: Value supplied to from_entity.
-
-        Returns:
-            Result produced by from_entity.
-        """
-        return cls(
-            canonical_report_family=result.canonical_report_family,
-            canonical_entity=result.canonical_entity,
-            canonical_path=result.canonical_path,
-            existing_note_id=result.existing_note_id,
-            aliases=result.aliases,
-            resolution=result.resolution,
-            candidate_paths=result.candidate_paths,
-        )
-
-
-class ObsidianSearchRequest(StrictSchemaModel):
-    """Search request for Obsidian-backed Alexandria notes."""
-
-    query: str = Field(min_length=1)
-    limit: int = Field(default=10, ge=1, le=50)
-    alexandria_type: AlexandriaNoteType | None = None
-    project: str | None = None
-    tags: list[str] = Field(default_factory=list)
-    refresh: bool = False
-
-    @field_validator("tags", mode="before")
-    @classmethod
-    def normalize_tags(cls, value: JSONValue) -> list[str]:
-        """Normalize tag filters without accepting nested or numeric values.
-
-        Args:
-            value: Raw tag filter input.
-
-        Returns:
-            Canonical ordered tag filters.
-        """
-        return normalize_string_collection(value)
-
-    def to_query(self) -> ObsidianSearchQuery:
-        """Convert to application search query.
-
-        Returns:
-            Application search query.
-        """
-        return ObsidianSearchQuery(
-            query=self.query,
-            limit=self.limit,
-            alexandria_type=_optional_note_type(self.alexandria_type),
-            project=self.project,
-            tags=tuple(self.tags),
-        )
-
-
-class ObsidianSearchHitResponse(StrictSchemaModel):
-    """One Obsidian search hit."""
-
-    note: ObsidianNoteResponse
-    excerpt: str
-    score: float
-    chunk_id: str | None
-    heading_path: str | None
-
-    @classmethod
-    def from_entity(cls, hit: ObsidianSearchHit) -> ObsidianSearchHitResponse:
-        """Create schema from search hit.
-
-        Args:
-            hit: Domain search hit.
-
-        Returns:
-            HTTP search hit schema.
-        """
-        return cls(
-            note=ObsidianNoteResponse.from_entity(hit.note),
-            excerpt=hit.excerpt,
-            score=hit.score,
-            chunk_id=hit.chunk_id,
-            heading_path=hit.heading_path,
-        )
-
-
-class ObsidianSearchResponse(StrictSchemaModel):
-    """Obsidian search response."""
-
-    items: list[ObsidianSearchHitResponse]
-    total: int
-
-
-class ObsidianRelatedNoteResponse(StrictSchemaModel):
-    """One graph-related Obsidian note."""
-
-    note: ObsidianNoteResponse
-    relation: ObsidianRelationType
-    source_kind: ObsidianEdgeSourceKind
-    direction: str
-    score: float
-    edge_id: str
-
-    @classmethod
-    def from_entity(cls, item: ObsidianRelatedNote) -> ObsidianRelatedNoteResponse:
-        """Create schema from related-note entity.
-
-        Args:
-            item: Related-note entity.
-
-        Returns:
-            HTTP related-note schema.
-        """
-        return cls(
-            note=ObsidianNoteResponse.from_entity(item.note),
-            relation=item.relation,
-            source_kind=item.source_kind,
-            direction=item.direction,
-            score=item.score,
-            edge_id=item.edge_id,
-        )
-
-
-class ObsidianRelatedNotesResponse(StrictSchemaModel):
-    """Related notes response."""
-
-    items: list[ObsidianRelatedNoteResponse]
-    total: int
-
-
-class ObsidianSaveNoteRequest(StrictSchemaModel):
-    """Request to create one Alexandria-managed Obsidian note."""
-
-    title: str = Field(min_length=1)
-    body: str = Field(min_length=1)
-    alexandria_type: AlexandriaNoteType
-    id: str | None = None
-    path: str | None = None
-    tags: list[str] = Field(default_factory=list)
-    status: str = "active"
-    project: str | None = None
-    source: str = "mcp"
-    frontmatter: JSONObject = Field(default_factory=dict)
-    expected_content_hash: str | None = Field(
-        default=None,
-        min_length=64,
-        max_length=64,
-        pattern=r"^[0-9a-f]{64}$",
-    )
-
-    @field_validator("tags", mode="before")
-    @classmethod
-    def normalize_tags(cls, value: JSONValue) -> list[str]:
-        """Normalize note tags at the external HTTP boundary.
-
-        Args:
-            value: Raw note tag input.
-
-        Returns:
-            Canonical ordered note tags.
-        """
-        return normalize_string_collection(value)
-
-    @field_validator("frontmatter", mode="before")
-    @classmethod
-    def normalize_frontmatter(cls, value: JSONObject) -> JSONObject:
-        """Normalize known typed metadata before building the internal command.
-
-        Args:
-            value: Raw JSON-compatible frontmatter payload.
-
-        Returns:
-            Copied frontmatter with canonical collection and Boolean values.
-        """
-        normalized = dict(value)
-        normalize_known_frontmatter_metadata(normalized)
-        return normalized
-
-    def to_command(self) -> ObsidianSaveNote:
-        """Convert request into application save command.
-
-        Returns:
-            Application save command.
-        """
-        return ObsidianSaveNote(
-            title=self.title,
-            body=self.body,
-            alexandria_type=_note_type(self.alexandria_type),
-            note_id=self.id,
-            relative_path=self.path,
-            tags=tuple(self.tags),
-            status=self.status,
-            project=self.project,
-            source=self.source,
-            frontmatter=self.frontmatter,
-            expected_content_hash=self.expected_content_hash,
-        )
-
-
-class ObsidianWriteNoteRequest(ObsidianSaveNoteRequest):
-    """Explicit note write request with exact identity and merge semantics."""
-
-    match_by: ObsidianWriteMatchBy
-    frontmatter_mode: ObsidianFrontmatterMode = ObsidianFrontmatterMode.MERGE
-
-    def to_write_command(self, write_mode: ObsidianWriteMode) -> ObsidianWriteNote:
-        """Convert the external request to an explicit application command.
-
-        Args:
-            write_mode: Value supplied to to_write_command.
-
-        Returns:
-            Result produced by to_write_command.
-        """
-        return ObsidianWriteNote(
-            note=self.to_command(),
-            write_mode=write_mode,
-            match_by=ObsidianWriteMatchBy(self.match_by),
-            frontmatter_mode=ObsidianFrontmatterMode(self.frontmatter_mode),
-            provided_fields=frozenset(self.model_fields_set),
-        )
-
-
-class ObsidianWritePipelineResponse(StrictSchemaModel):
-    """Observed stages completed by one explicit canonical note write."""
-
-    storage_status: str
-    metadata_status: str
-    fts_status: str
-    graph_edge_index_status: str
-    graph_projection_status: str
-
-
-class ObsidianNoteWriteResponse(StrictSchemaModel):
-    """Explicit write outcome without overloading note index status."""
-
-    operation: ObsidianWriteOperation
-    write_mode: ObsidianWriteMode
-    match_by: ObsidianWriteMatchBy
-    note: ObsidianNoteResponse
-    pipeline: ObsidianWritePipelineResponse
-    reindex_required: bool
-    warnings: list[str]
-
-    @classmethod
-    def from_entity(
-        cls,
-        result: ObsidianNoteWriteResult,
-    ) -> ObsidianNoteWriteResponse:
-        """Create a response from the domain write outcome.
-
-        Args:
-            result: Value supplied to from_entity.
-
-        Returns:
-            Result produced by from_entity.
-        """
-        return cls(
-            operation=result.operation,
-            write_mode=result.write_mode,
-            match_by=result.match_by,
-            note=ObsidianNoteResponse.from_entity(result.note),
-            pipeline=ObsidianWritePipelineResponse(
-                storage_status=result.storage_status,
-                metadata_status=result.metadata_status,
-                fts_status=result.fts_status,
-                graph_edge_index_status=result.graph_edge_index_status,
-                graph_projection_status=result.graph_projection_status,
-            ),
-            reindex_required=result.reindex_required,
-            warnings=result.warnings,
-        )
-
-
-class ObsidianReportBundleSourceRequest(ObsidianSaveNoteRequest):
-    """Canonical source payload for one report bundle."""
-
-    alexandria_type: AlexandriaNoteType = AlexandriaNoteType.CONTEXT
-
-    def to_command(self) -> ObsidianSaveNote:
-        """Apply generic Context defaults while preserving explicit metadata.
-
-        Returns:
-            Result produced by to_command.
-        """
-        command = super().to_command()
-        frontmatter = dict(command.frontmatter)
-        project_value = command.project or frontmatter.get("project")
-        project = project_value if isinstance(project_value, str) else None
-        if command.alexandria_type is AlexandriaNoteType.CONTEXT:
-            frontmatter.setdefault("scope", "PROJECT" if project else "GLOBAL")
-        return replace(command, project=project, frontmatter=frontmatter)
-
-
-class ObsidianReportBundleOwnerRequest(StrictSchemaModel):
-    """Existing graph owner to link to the report source."""
-
-    path: str = Field(min_length=1)
-    relation: ObsidianRelationType = ObsidianRelationType.CONTAINS
-
-    def to_command(self) -> ObsidianReportBundleOwner:
-        """Convert to an immutable owner contract.
-
-        Returns:
-            Result produced by to_command.
-        """
-        return ObsidianReportBundleOwner(
-            path=self.path,
-            relation=ObsidianRelationType(self.relation),
-        )
-
-
-class ObsidianReportBundleVerifyRequest(StrictSchemaModel):
-    """Requested post-write verification stages."""
-
-    index_status: bool = True
-    incoming_edges: bool = True
-    duplicates: bool = True
-
-    def to_command(self) -> ObsidianReportBundleVerify:
-        """Convert to an immutable verification contract.
-
-        Returns:
-            Result produced by to_command.
-        """
-        return ObsidianReportBundleVerify(
-            index_status=self.index_status,
-            incoming_edges=self.incoming_edges,
-            duplicates=self.duplicates,
-        )
-
-
-class ObsidianReportBundleRequestSchema(StrictSchemaModel):
-    """Idempotent Source/Index/Hub operation request."""
-
-    idempotency_key: str = Field(min_length=1, max_length=512)
-    source: ObsidianReportBundleSourceRequest
-    graph_owners: list[ObsidianReportBundleOwnerRequest] = Field(default_factory=list)
-    reindex: bool = True
-    verify: ObsidianReportBundleVerifyRequest = Field(
-        default_factory=ObsidianReportBundleVerifyRequest
-    )
-
-    def to_command(self) -> ObsidianReportBundleRequest:
-        """Convert to the application report bundle command.
-
-        Returns:
-            Result produced by to_command.
-        """
-        return ObsidianReportBundleRequest(
-            idempotency_key=self.idempotency_key,
-            source=self.source.to_command(),
-            graph_owners=tuple(owner.to_command() for owner in self.graph_owners),
-            reindex=self.reindex,
-            verify=self.verify.to_command(),
-        )
-
-
-class ObsidianReportBundleSourceResponse(StrictSchemaModel):
-    """Source write result included in a report bundle response."""
-
-    note_id: str
-    path: str
-    operation: ObsidianWriteOperation
-    index_status: ObsidianIndexStatus
-
-
-class ObsidianReportBundleGraphResponse(StrictSchemaModel):
-    """Expected and verified incoming graph edges."""
-
-    expected_incoming_edges: int
-    verified_incoming_edges: int
-    unresolved_links: list[str]
-
-
-class ObsidianReportBundleResponse(StrictSchemaModel):
-    """Checkpointable report bundle completion response."""
-
-    completion_status: ObsidianReportBundleCompletionStatus
-    idempotency_key: str
-    replayed: bool
-    source: ObsidianReportBundleSourceResponse | None
-    owner_operations: list[ObsidianWriteOperation]
-    graph: ObsidianReportBundleGraphResponse
-    duplicates: list[str]
-    failed_stage: str | None
-    rollback_performed: bool
-    errors: list[JSONObject]
-
-    @classmethod
-    def from_entity(
-        cls,
-        result: ObsidianReportBundleResult,
-    ) -> ObsidianReportBundleResponse:
-        """Create a public response from a report bundle outcome.
-
-        Args:
-            result: Value supplied to from_entity.
-
-        Returns:
-            Result produced by from_entity.
-        """
-        source = None
-        if result.source is not None:
-            source = ObsidianReportBundleSourceResponse(
-                note_id=result.source.note.note_id,
-                path=result.source.note.relative_path,
-                operation=result.source.operation,
-                index_status=result.source.note.index_status,
-            )
-        return cls(
-            completion_status=result.completion_status,
-            idempotency_key=result.idempotency_key,
-            replayed=result.replayed,
-            source=source,
-            owner_operations=[item.operation for item in result.owner_writes],
-            graph=ObsidianReportBundleGraphResponse(
-                expected_incoming_edges=result.graph.expected_incoming_edges,
-                verified_incoming_edges=result.graph.verified_incoming_edges,
-                unresolved_links=result.graph.unresolved_links,
-            ),
-            duplicates=result.duplicates,
-            failed_stage=result.failed_stage,
-            rollback_performed=result.rollback_performed,
-            errors=result.errors,
-        )
-
-
-def _note_type(value: AlexandriaNoteType | str) -> AlexandriaNoteType:
-    if isinstance(value, AlexandriaNoteType):
-        return value
-    return AlexandriaNoteType(value)
-
-
-def _optional_note_type(
-    value: AlexandriaNoteType | str | None,
-) -> AlexandriaNoteType | None:
-    if value is None:
-        return None
-    return _note_type(value)

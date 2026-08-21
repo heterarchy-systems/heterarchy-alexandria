@@ -98,7 +98,7 @@ def test_mcp_gateway_does_not_import_skill_evidence_http_schema() -> None:
     """Keep skill evidence JSON normalization outside Librarian HTTP schemas."""
     from pathlib import Path
 
-    gateway = Path("app/mcp_server/tools/skill_backend_gateway.py").read_text()
+    gateway = Path("app/mcp_server/tools/skills/skill_backend_gateway.py").read_text()
     policy = Path("app/mcp_server/tools/backend_gateway_policy.py").read_text()
 
     assert "SkillAcquisitionEvidenceItemRequest" not in gateway

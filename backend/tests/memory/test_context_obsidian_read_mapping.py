@@ -9,12 +9,12 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import anyio
-from app.memory.application.context_service import ContextService
+from app.memory.application.contexts.records.context_service import ContextService
 from app.memory.domain.event_enum.context_enums import ContextKind, RagStrategy
 from app.memory.infrastructure.repositories.context_repository import (
     SqlAlchemyContextRepository,
 )
-from app.memory.infrastructure.repositories.contexts.obsidian_search_source import (
+from app.memory.infrastructure.repositories.contexts.search.obsidian_search_source import (
     SqlAlchemyObsidianContextSearchSource,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService

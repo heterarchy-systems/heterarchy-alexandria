@@ -7,7 +7,9 @@ from pathlib import Path
 import anyio
 import pytest
 from app.main import app
-from app.memory.application.memory_compact_service import MemoryCompactService
+from app.memory.application.memory_compacts.lifecycle.memory_compact_service import (
+    MemoryCompactService,
+)
 from app.memory.domain.entities.context_read_models import RagDependencyHealth
 from app.memory.domain.event_enum.context_enums import RagHealthState, RagStrategy
 from app.memory.domain.event_enum.memory_compact_enums import MemoryCompactStatus
@@ -21,6 +23,8 @@ from app.memory.interface.routers.memory_compact_router import (
 from app.memory.interface.schemas.memory_compact.memory_compact_schema import (
     MemoryCompactCreateRequest,
 )
+from app.shared.serialization.orjson_codec import dumps_json
+from app.shared.types.extra_types import JSONObject
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from tests.shared.provider_overrides import override_library_provider
@@ -71,7 +75,7 @@ def _payload(
     covered_from: str = "2026-05-01T00:00:00Z",
     covered_to: str = "2026-05-10T00:00:00Z",
     source_id: str = "ctx-1",
-) -> dict[str, object]:
+) -> JSONObject:
     return {
         "project": "heterarchy-alexandria",
         "covered_from": covered_from,
@@ -87,6 +91,18 @@ def _payload(
             }
         ],
     }
+
+
+def _request(payload: JSONObject) -> MemoryCompactCreateRequest:
+    """Validate one decoded HTTP payload with strict JSON semantics.
+
+    Args:
+        payload: JSON-compatible Memory Compact request payload.
+
+    Returns:
+        Strictly validated Memory Compact create request.
+    """
+    return MemoryCompactCreateRequest.model_validate_json(dumps_json(payload))
 
 
 def test_memory_compact_api_hard_deletes_obsidian_note(tmp_path: Path) -> None:
@@ -461,7 +477,7 @@ def test_create_current_route_rejects_missing_required_sections(
         payload["markdown_body"] = "## Current State\n- Too thin."
         with pytest.raises(HTTPException) as raised:
             await create_memory_compact(
-                request=MemoryCompactCreateRequest(**payload),
+                request=_request(payload),
                 service=service,
                 context_service=_FakeContextService(RagHealthState.HEALTHY),
             )
@@ -486,7 +502,7 @@ def test_create_current_route_blocks_when_rag_unhealthy(tmp_path: Path) -> None:
         service = _open_service(tmp_path / "vault")
         with pytest.raises(HTTPException) as raised:
             await create_memory_compact(
-                request=MemoryCompactCreateRequest(**_payload("CURRENT")),
+                request=_request(_payload("CURRENT")),
                 service=service,
                 context_service=_FakeContextService(RagHealthState.REINDEX_REQUIRED),
             )
@@ -517,7 +533,7 @@ def test_create_current_route_blocks_when_rag_status_lookup_fails(
         service = _open_service(tmp_path / "vault")
         with pytest.raises(HTTPException) as raised:
             await create_memory_compact(
-                request=MemoryCompactCreateRequest(**_payload("CURRENT")),
+                request=_request(_payload("CURRENT")),
                 service=service,
                 context_service=_FailingContextService(),
             )
@@ -548,7 +564,7 @@ def test_create_current_route_blocks_when_rag_health_has_warnings(
         service = _open_service(tmp_path / "vault")
         with pytest.raises(HTTPException) as raised:
             await create_memory_compact(
-                request=MemoryCompactCreateRequest(**_payload("CURRENT")),
+                request=_request(_payload("CURRENT")),
                 service=service,
                 context_service=_FakeContextService(
                     RagHealthState.HEALTHY,
@@ -579,7 +595,7 @@ def test_create_current_route_allows_when_rag_healthy(tmp_path: Path) -> None:
     async def scenario() -> tuple[str, MemoryCompactStatus, dict[str, object] | None]:
         service = _open_service(tmp_path / "vault")
         current = await create_memory_compact(
-            request=MemoryCompactCreateRequest(**_payload("CURRENT")),
+            request=_request(_payload("CURRENT")),
             service=service,
             context_service=_FakeContextService(RagHealthState.HEALTHY),
         )
@@ -601,9 +617,7 @@ def test_mark_current_route_blocks_when_rag_unhealthy(tmp_path: Path) -> None:
 
     async def scenario() -> tuple[int, object, MemoryCompactStatus]:
         service = _open_service(tmp_path / "vault")
-        created = await service.create(
-            MemoryCompactCreateRequest(**_payload("DRAFT")).to_create()
-        )
+        created = await service.create(_request(_payload("DRAFT")).to_create())
         with pytest.raises(HTTPException) as raised:
             await mark_memory_compact_current(
                 compact_id=created.id,
@@ -634,9 +648,7 @@ def test_mark_current_route_blocks_when_rag_status_lookup_fails(
 
     async def scenario() -> tuple[int, object, MemoryCompactStatus]:
         service = _open_service(tmp_path / "vault")
-        created = await service.create(
-            MemoryCompactCreateRequest(**_payload("DRAFT")).to_create()
-        )
+        created = await service.create(_request(_payload("DRAFT")).to_create())
         with pytest.raises(HTTPException) as raised:
             await mark_memory_compact_current(
                 compact_id=created.id,
@@ -665,9 +677,7 @@ def test_mark_current_route_allows_when_rag_healthy(tmp_path: Path) -> None:
 
     async def scenario() -> tuple[str, MemoryCompactStatus, dict[str, object] | None]:
         service = _open_service(tmp_path / "vault")
-        created = await service.create(
-            MemoryCompactCreateRequest(**_payload("DRAFT")).to_create()
-        )
+        created = await service.create(_request(_payload("DRAFT")).to_create())
         current = await mark_memory_compact_current(
             compact_id=created.id,
             service=service,

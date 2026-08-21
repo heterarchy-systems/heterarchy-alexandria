@@ -6,7 +6,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 import anyio
-from app.obsidian.application.graph.obsidian_graph_projection_rebuild_service import (
+from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild_service import (
     ObsidianGraphProjectionRebuildService,
 )
 from app.obsidian.domain.contracts.obsidian_graph_projection_contracts import (
@@ -14,12 +14,14 @@ from app.obsidian.domain.contracts.obsidian_graph_projection_contracts import (
     ObsidianGraphProjectionBatch,
     ObsidianGraphProjectionEdge,
     ObsidianGraphProjectionIssue,
-    ObsidianGraphProjectionIssueCode,
     ObsidianGraphProjectionIssueCount,
     ObsidianGraphProjectionNode,
     ObsidianGraphProjectionSourceMetrics,
     ObsidianGraphProjectionSourceSnapshot,
     ObsidianGraphProjectionState,
+)
+from app.obsidian.domain.event_enum.obsidian_graph_enums import (
+    ObsidianGraphProjectionIssueCode,
 )
 from app.obsidian.domain.event_enum.obsidian_enums import (
     AlexandriaNoteType,

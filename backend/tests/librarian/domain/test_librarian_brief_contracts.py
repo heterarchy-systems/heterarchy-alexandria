@@ -5,7 +5,8 @@ from __future__ import annotations
 import pytest
 from app.librarian.domain.entities.budget_policy import BudgetPolicy
 from app.librarian.domain.entities.librarian_brief import LibrarianBrief
-from app.librarian.domain.entities.source_ref import SourceRef, SourceRefType
+from app.librarian.domain.entities.source_ref import SourceRef
+from app.librarian.domain.event_enum.source_ref_enums import SourceRefType
 from app.shared.exceptions.librarian_exceptions import LibrarianValidationError
 
 

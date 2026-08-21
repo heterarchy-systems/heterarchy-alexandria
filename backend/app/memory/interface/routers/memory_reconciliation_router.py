@@ -1,54 +1,57 @@
 """Memory reconciliation preview, apply, audit, and conflict routes."""
 
-from __future__ import annotations
+from typing import Annotated
 
 from app.container import ApplicationContainer
-from app.memory.application.reconciliation.memory_compact_reconciliation_service import (
+from app.memory.application.reconciliation.compacts.memory_compact_reconciliation_service import (
     MemoryCompactReconciliationService,
 )
-from app.memory.application.reconciliation.memory_conflict_service import (
+from app.memory.application.reconciliation.conflicts.memory_conflict_service import (
     MemoryConflictService,
 )
-from app.memory.application.reconciliation.memory_reconciliation_apply_service import (
-    MemoryReconciliationApplyService,
-)
-from app.memory.application.reconciliation.memory_reconciliation_preview_service import (
-    MemoryReconciliationPreviewService,
-)
-from app.memory.application.reconciliation.memory_reconciliation_query_service import (
-    MemoryReconciliationQueryService,
-)
-from app.memory.application.reconciliation.memory_temporal_recall_service import (
+from app.memory.application.reconciliation.conflicts.memory_temporal_recall_service import (
     MemoryTemporalRecallService,
 )
+from app.memory.application.reconciliation.plans.memory_reconciliation_apply_service import (
+    MemoryReconciliationApplyService,
+)
+from app.memory.application.reconciliation.plans.memory_reconciliation_preview_service import (
+    MemoryReconciliationPreviewService,
+)
+from app.memory.application.reconciliation.plans.memory_reconciliation_query_service import (
+    MemoryReconciliationQueryService,
+)
 from app.memory.domain.event_enum.reconciliation_enums import MemoryConflictStatus
-from app.memory.interface.schemas.reconciliation.memory_reconciliation_candidate_request_schema import (
+from app.memory.interface.schemas.reconciliation.candidate.memory_reconciliation_candidate_request_schema import (
     MemoryReconciliationApplyRequest,
     MemoryReconciliationPreviewHttpRequest,
+)
+from app.memory.interface.schemas.reconciliation.conflicts.memory_reconciliation_conflict_request_schema import (
+    MemoryConflictResolutionRequest,
+)
+from app.memory.interface.schemas.reconciliation.conflicts.memory_reconciliation_conflict_response_schema import (
+    MemoryConflictListResponse,
+    MemoryConflictResponse,
 )
 from app.memory.interface.schemas.reconciliation.memory_reconciliation_compact_response_schema import (
     MemoryCompactSafetyReviewResponse,
 )
-from app.memory.interface.schemas.reconciliation.memory_reconciliation_conflict_request_schema import (
-    MemoryConflictResolutionRequest,
-)
-from app.memory.interface.schemas.reconciliation.memory_reconciliation_conflict_response_schema import (
-    MemoryConflictListResponse,
-    MemoryConflictResponse,
-)
-from app.memory.interface.schemas.reconciliation.memory_reconciliation_plan_response_schema import (
+from app.memory.interface.schemas.reconciliation.memory_reconciliation_plan_detail_schema import (
     MemoryReconciliationPlanResponse,
     MemoryReconciliationResultResponse,
     MemoryReviewQueueResponse,
 )
-from app.memory.interface.schemas.reconciliation.memory_reconciliation_temporal_request_schema import (
+from app.memory.interface.schemas.reconciliation.temporal.memory_reconciliation_temporal_request_schema import (
     MemoryTemporalRecallHttpRequest,
 )
-from app.memory.interface.schemas.reconciliation.memory_reconciliation_temporal_response_schema import (
+from app.memory.interface.schemas.reconciliation.temporal.memory_reconciliation_temporal_response_schema import (
     MemoryTemporalRecallResponse,
 )
 from app.shared.exceptions.exception_decorators import router_exception_status
 from app.shared.exceptions.route_exceptions import CONTEXT_ROUTE_EXCEPTION_MAPPING
+from app.shared.type_validation.strict_json_body import (
+    model_validate_json_body,
+)
 from app.shared.types.types_convert_utils import enum_value
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, Query, status
@@ -57,6 +60,7 @@ router = APIRouter(
     prefix="/memory/reconciliation",
     tags=["memory-reconciliation"],
 )
+_parse_temporal_recall = model_validate_json_body(MemoryTemporalRecallHttpRequest)
 
 
 @router.get(
@@ -72,10 +76,11 @@ router = APIRouter(
 @router_exception_status(CONTEXT_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def list_memory_reconciliation_review_queue(
+    service: Annotated[
+        MemoryReconciliationQueryService,
+        Depends(Provide[ApplicationContainer.memory.reconciliation_query_service]),
+    ],
     limit: int = Query(default=100, ge=1, le=1000),
-    service: MemoryReconciliationQueryService = Depends(
-        Provide[ApplicationContainer.memory.reconciliation_query_service]
-    ),
 ) -> MemoryReviewQueueResponse:
     """Return durable UNKNOWN and other review-required plans.
 
@@ -101,10 +106,14 @@ async def list_memory_reconciliation_review_queue(
 @router_exception_status(CONTEXT_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def preview_memory_reconciliation(
-    request: MemoryReconciliationPreviewHttpRequest,
-    service: MemoryReconciliationPreviewService = Depends(
-        Provide[ApplicationContainer.memory.reconciliation_preview_service]
-    ),
+    request: Annotated[
+        MemoryReconciliationPreviewHttpRequest,
+        Depends(model_validate_json_body(MemoryReconciliationPreviewHttpRequest)),
+    ],
+    service: Annotated[
+        MemoryReconciliationPreviewService,
+        Depends(Provide[ApplicationContainer.memory.reconciliation_preview_service]),
+    ],
 ) -> MemoryReconciliationPlanResponse:
     """Preview one candidate against existing Context memory.
 
@@ -132,10 +141,13 @@ async def preview_memory_reconciliation(
 @router_exception_status(CONTEXT_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def recall_memory_temporally(
-    request: MemoryTemporalRecallHttpRequest,
-    service: MemoryTemporalRecallService = Depends(
-        Provide[ApplicationContainer.memory.memory_temporal_recall_service]
-    ),
+    request: Annotated[
+        MemoryTemporalRecallHttpRequest, Depends(_parse_temporal_recall)
+    ],
+    service: Annotated[
+        MemoryTemporalRecallService,
+        Depends(Provide[ApplicationContainer.memory.memory_temporal_recall_service]),
+    ],
 ) -> MemoryTemporalRecallResponse:
     """Recall Contexts without collapsing temporal or conflict state.
 
@@ -164,10 +176,15 @@ async def recall_memory_temporally(
 @router_exception_status(CONTEXT_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def preview_reconciliation_aware_memory_compact(
-    request: MemoryTemporalRecallHttpRequest,
-    service: MemoryCompactReconciliationService = Depends(
-        Provide[ApplicationContainer.memory.memory_compact_reconciliation_service]
-    ),
+    request: Annotated[
+        MemoryTemporalRecallHttpRequest, Depends(_parse_temporal_recall)
+    ],
+    service: Annotated[
+        MemoryCompactReconciliationService,
+        Depends(
+            Provide[ApplicationContainer.memory.memory_compact_reconciliation_service]
+        ),
+    ],
 ) -> MemoryCompactSafetyReviewResponse:
     """Prepare safe fact buckets without creating or publishing a compact.
 
@@ -193,9 +210,10 @@ async def preview_reconciliation_aware_memory_compact(
 @inject
 async def get_memory_reconciliation_plan(
     plan_id: str,
-    service: MemoryReconciliationQueryService = Depends(
-        Provide[ApplicationContainer.memory.reconciliation_query_service]
-    ),
+    service: Annotated[
+        MemoryReconciliationQueryService,
+        Depends(Provide[ApplicationContainer.memory.reconciliation_query_service]),
+    ],
 ) -> MemoryReconciliationPlanResponse:
     """Return one persisted reconciliation plan.
 
@@ -220,10 +238,14 @@ async def get_memory_reconciliation_plan(
 @inject
 async def apply_memory_reconciliation(
     plan_id: str,
-    request: MemoryReconciliationApplyRequest,
-    service: MemoryReconciliationApplyService = Depends(
-        Provide[ApplicationContainer.memory.reconciliation_apply_service]
-    ),
+    request: Annotated[
+        MemoryReconciliationApplyRequest,
+        Depends(model_validate_json_body(MemoryReconciliationApplyRequest)),
+    ],
+    service: Annotated[
+        MemoryReconciliationApplyService,
+        Depends(Provide[ApplicationContainer.memory.reconciliation_apply_service]),
+    ],
 ) -> MemoryReconciliationResultResponse:
     """Apply one persisted reconciliation plan.
 
@@ -249,9 +271,10 @@ async def apply_memory_reconciliation(
 @inject
 async def get_memory_reconciliation_result(
     reconciliation_id: str,
-    service: MemoryReconciliationQueryService = Depends(
-        Provide[ApplicationContainer.memory.reconciliation_query_service]
-    ),
+    service: Annotated[
+        MemoryReconciliationQueryService,
+        Depends(Provide[ApplicationContainer.memory.reconciliation_query_service]),
+    ],
 ) -> MemoryReconciliationResultResponse:
     """Return one persisted reconciliation execution result.
 
@@ -276,11 +299,12 @@ async def get_memory_reconciliation_result(
 @router_exception_status(CONTEXT_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def list_memory_conflicts(
+    service: Annotated[
+        MemoryConflictService,
+        Depends(Provide[ApplicationContainer.memory.memory_conflict_service]),
+    ],
     conflict_status: MemoryConflictStatus | None = Query(default=None, alias="status"),
     limit: int = Query(default=100, ge=1, le=1000),
-    service: MemoryConflictService = Depends(
-        Provide[ApplicationContainer.memory.memory_conflict_service]
-    ),
 ) -> MemoryConflictListResponse:
     """List unresolved or resolved first-class memory conflicts.
 
@@ -312,9 +336,10 @@ async def list_memory_conflicts(
 @inject
 async def get_memory_conflict(
     conflict_set_id: str,
-    service: MemoryConflictService = Depends(
-        Provide[ApplicationContainer.memory.memory_conflict_service]
-    ),
+    service: Annotated[
+        MemoryConflictService,
+        Depends(Provide[ApplicationContainer.memory.memory_conflict_service]),
+    ],
 ) -> MemoryConflictResponse:
     """Return one durable memory conflict set.
 
@@ -338,9 +363,10 @@ async def get_memory_conflict(
 @inject
 async def mark_memory_conflict_reviewing(
     conflict_set_id: str,
-    service: MemoryConflictService = Depends(
-        Provide[ApplicationContainer.memory.memory_conflict_service]
-    ),
+    service: Annotated[
+        MemoryConflictService,
+        Depends(Provide[ApplicationContainer.memory.memory_conflict_service]),
+    ],
 ) -> MemoryConflictResponse:
     """Mark one open conflict as actively under review.
 
@@ -366,10 +392,14 @@ async def mark_memory_conflict_reviewing(
 @inject
 async def resolve_memory_conflict(
     conflict_set_id: str,
-    request: MemoryConflictResolutionRequest,
-    service: MemoryConflictService = Depends(
-        Provide[ApplicationContainer.memory.memory_conflict_service]
-    ),
+    request: Annotated[
+        MemoryConflictResolutionRequest,
+        Depends(model_validate_json_body(MemoryConflictResolutionRequest)),
+    ],
+    service: Annotated[
+        MemoryConflictService,
+        Depends(Provide[ApplicationContainer.memory.memory_conflict_service]),
+    ],
 ) -> MemoryConflictResponse:
     """Record an explicit final conflict resolution without deleting memory.
 

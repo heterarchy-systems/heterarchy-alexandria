@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from app.obsidian.application.graph.obsidian_graph_edge_builder import (
+from app.obsidian.application.graph.relations.obsidian_graph_edge_builder import (
     relation_edges_from_note,
 )
-from app.obsidian.application.graph.obsidian_graph_link_renderer import (
+from app.obsidian.application.graph.diagnostics.obsidian_graph_link_renderer import (
     add_or_update_alexandria_links_section,
 )
 from app.obsidian.domain.event_enum.obsidian_enums import (

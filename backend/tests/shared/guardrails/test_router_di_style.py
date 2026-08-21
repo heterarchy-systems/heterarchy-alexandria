@@ -66,8 +66,12 @@ def _depends_uses_provide(default: ast.expr | None) -> bool:
 
 
 def _contains_provide(node: ast.AST) -> bool:
-    if isinstance(node, ast.Subscript):
-        return isinstance(node.value, ast.Name) and node.value.id == "Provide"
+    if (
+        isinstance(node, ast.Subscript)
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "Provide"
+    ):
+        return True
     return any(_contains_provide(child) for child in ast.iter_child_nodes(node))
 
 
@@ -79,7 +83,18 @@ def test_backend_route_handlers_use_dependency_injector_provide() -> None:
                 *node.args.defaults,
                 *(default for default in node.args.kw_defaults if default is not None),
             ]
-            if not any(_depends_uses_provide(default) for default in defaults):
+            annotations = [
+                argument.annotation
+                for argument in (
+                    *node.args.posonlyargs,
+                    *node.args.args,
+                    *node.args.kwonlyargs,
+                )
+                if argument.annotation is not None
+            ]
+            if not any(
+                _depends_uses_provide(default) for default in defaults
+            ) and not any(_contains_provide(annotation) for annotation in annotations):
                 offenders.append(f"{path.name}:{node.name}")
 
     assert offenders == []

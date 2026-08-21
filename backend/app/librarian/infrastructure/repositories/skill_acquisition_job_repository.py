@@ -71,7 +71,7 @@ def _to_read_model(row: SkillAcquisitionJobORM) -> SkillAcquisitionJob:
 class SqlAlchemySkillAcquisitionJobRepository(ISkillAcquisitionJobRepository):
     """Persistence operations for durable skill-acquisition jobs."""
 
-    def __init__(self, *, session: AsyncSession) -> None:
+    def __init__(self, session: AsyncSession) -> None:
         """Initialize repository.
 
         Args:

@@ -29,7 +29,6 @@ class ExistingChunkEmbedding:
 
 
 async def existing_chunk_embeddings(
-    *,
     session: AsyncSession,
     note_id: str,
 ) -> dict[tuple[int, str], ExistingChunkEmbedding]:

@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from fastapi.responses import Response
 
 
-def response_headers(*, request_id: str, trace_id: str) -> dict[str, str]:
+def response_headers(request_id: str, trace_id: str) -> dict[str, str]:
     """Build response headers for request and trace identifiers.
 
     Args:
@@ -21,7 +23,6 @@ def response_headers(*, request_id: str, trace_id: str) -> dict[str, str]:
 
 
 def apply_response_headers(
-    *,
     response: Response,
     request_id: str,
     trace_id: str,
@@ -43,12 +44,17 @@ def apply_response_headers(
         response.headers[key] = value
 
 
-def json_response(payload: bytes, status_code: int) -> Response:
+def json_response(
+    payload: bytes | str,
+    status_code: int,
+    headers: Mapping[str, str] | None = None,
+) -> Response:
     """Wrap serialized JSON bytes into an application/json Response.
 
     Args:
         payload: See function signature.
         status_code: See function signature.
+        headers: Optional response headers for a protocol boundary.
 
     Returns:
         Return value.
@@ -57,5 +63,6 @@ def json_response(payload: bytes, status_code: int) -> Response:
         content=payload,
         status_code=status_code,
         media_type="application/json",
+        headers=headers,
     )
     return response

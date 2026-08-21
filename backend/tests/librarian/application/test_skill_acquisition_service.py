@@ -16,21 +16,23 @@ from app.connections.domain.repositories.librarian_repository import (
     ILibrarianProviderRepository,
     IProviderSecretRepository,
 )
-from app.librarian.application.skill_acquisition_service import SkillAcquisitionService
-from app.librarian.application.skill_artifact_publication_contracts import (
+from app.librarian.application.skill_acquisition.skill_acquisition_service import (
+    SkillAcquisitionService,
+)
+from app.librarian.application.skill_artifacts.skill_artifact_publication_contracts import (
     PublishedSkillArtifact,
     SkillArtifactPublicationError,
 )
-from app.librarian.application.skill_artifact_publisher import (
+from app.librarian.application.skill_artifacts.skill_artifact_publisher import (
     ObsidianSkillArtifactPublisher,
 )
-from app.librarian.application.skill_library_search_service import (
+from app.librarian.application.skill_library.skill_library_search_service import (
     SkillLibrarySearchService,
 )
-from app.librarian.application.skill_library_search_contracts import (
+from app.librarian.application.skill_library.skill_library_search_contracts import (
     SkillCapabilityBrief,
-    SkillSearchDecision,
 )
+from app.librarian.domain.event_enum.skill_search_enums import SkillSearchDecision
 from app.librarian.domain.contracts.skill_acquisition_contracts import (
     SkillAcquisitionArtifact,
     SkillAcquisitionEvidenceItem,

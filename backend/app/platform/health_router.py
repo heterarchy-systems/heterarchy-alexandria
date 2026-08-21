@@ -23,7 +23,6 @@ DependencyHealthRefresher = Callable[[], Awaitable[None]]
 
 def install_health_routes(
     app: FastAPI,
-    *,
     lifecycle: LifecycleState,
     refresh_dependency_health: DependencyHealthRefresher | None = None,
 ) -> None:

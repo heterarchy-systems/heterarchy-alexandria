@@ -145,7 +145,6 @@ class ObsidianIndexWriteStore:
     async def _replace_chunks(
         self,
         payload: ObsidianNoteIndex,
-        *,
         now: datetime,
     ) -> None:
         with self._session.no_autoflush:
@@ -203,7 +202,6 @@ class ObsidianIndexWriteStore:
     async def _replace_edges(
         self,
         payload: ObsidianNoteIndex,
-        *,
         now: datetime,
     ) -> None:
         await self._session.execute(

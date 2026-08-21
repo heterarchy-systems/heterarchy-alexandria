@@ -145,7 +145,7 @@ def _compact_from_frontmatter(
 
 
 def _source_refs_from_frontmatter(
-    value: CompactFrontmatterValue, *, compact_id: str
+    value: CompactFrontmatterValue, compact_id: str
 ) -> tuple[MemoryCompactSourceRef, ...]:
     if isinstance(value, str):
         return _source_refs_from_json(value, compact_id=compact_id)
@@ -162,7 +162,7 @@ def _source_refs_from_frontmatter(
 
 
 def _source_refs_from_json(
-    value: str | None, *, compact_id: str
+    value: str | None, compact_id: str
 ) -> tuple[MemoryCompactSourceRef, ...]:
     if not value:
         return ()
@@ -221,7 +221,6 @@ def _status_from_frontmatter(
 def _datetime_from_frontmatter(
     frontmatter: dict[str, CompactFrontmatterValue],
     keys: tuple[str, ...],
-    *,
     fallback: datetime | None = None,
 ) -> datetime:
     for key in keys:

@@ -9,7 +9,7 @@ from pydantic_settings import SettingsConfigDict
 _REPOSITORY_ENV_FILE = Path(__file__).resolve().parents[4] / ".env"
 
 
-def settings_model_config(*, env_prefix: str) -> SettingsConfigDict:
+def settings_model_config(env_prefix: str) -> SettingsConfigDict:
     """Build a shared ``SettingsConfigDict`` based on environment variable prefix.
 
     Args:

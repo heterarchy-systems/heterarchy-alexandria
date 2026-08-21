@@ -13,15 +13,17 @@ from typing import cast
 from dependency_injector import providers
 
 from app.container import ApplicationContainer
-from app.memory.application.context_service import ContextService
+from app.memory.application.contexts.records.context_service import ContextService
 from app.operations.application.maintenance_job_queue import (
     MaintenanceJobDelivery,
     MaintenanceQueueUnavailableError,
 )
 from app.operations.domain.entities.maintenance_job import EmbeddingReindexJobResult
 from app.operations.domain.event_enum.maintenance_job_enums import MaintenanceJobKind
-from app.operations.infrastructure.redis_maintenance_job_queue import (
+from app.operations.infrastructure.redis_maintenance_job_consumer import (
     RedisMaintenanceJobConsumer,
+)
+from app.operations.infrastructure.redis_maintenance_job_queue import (
     RedisMaintenanceJobSubmitter,
     create_maintenance_worker_client,
 )

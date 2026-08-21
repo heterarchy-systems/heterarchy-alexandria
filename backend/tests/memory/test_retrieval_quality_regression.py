@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import anyio
-from app.memory.application.context_service import ContextService
+from app.memory.application.contexts.records.context_service import ContextService
 from app.memory.domain.event_enum.context_enums import ContextKind, RagStrategy
 from app.memory.infrastructure.repositories.context_repository import (
     SqlAlchemyContextRepository,

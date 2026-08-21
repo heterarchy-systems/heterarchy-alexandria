@@ -1,20 +1,22 @@
 """Routes for the optional Obsidian graph projection read model."""
 
-from __future__ import annotations
+from typing import Annotated
 
 from app.container import ApplicationContainer
-from app.obsidian.application.graph.obsidian_graph_note_diagnostics_service import (
+from app.obsidian.application.graph.diagnostics.obsidian_graph_note_diagnostics_service import (
     ObsidianGraphNoteDiagnosticsService,
 )
-from app.obsidian.application.graph.obsidian_graph_projection_rebuild_service import (
+from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild_service import (
     ObsidianGraphProjectionRebuildService,
 )
-from app.obsidian.interface.schemas.obsidian.obsidian_graph_projection_schema import (
+from app.obsidian.interface.schemas.obsidian.graph.obsidian_graph_projection_schema import (
     ObsidianGraphBuildStatusResponse,
-    ObsidianGraphNoteLinkValidationResponse,
-    ObsidianGraphNoteRebuildResponse,
     ObsidianGraphProjectionRebuildResponse,
     ObsidianGraphProjectionStatusResponse,
+)
+from app.obsidian.interface.schemas.obsidian.graph.obsidian_graph_query_schema import (
+    ObsidianGraphNoteLinkValidationResponse,
+    ObsidianGraphNoteRebuildResponse,
 )
 from app.shared.exceptions.exception_decorators import router_exception_status
 from app.shared.exceptions.route_exceptions import OBSIDIAN_ROUTE_EXCEPTION_MAPPING
@@ -33,9 +35,12 @@ router = APIRouter()
 )
 @inject
 async def graph_projection_status(
-    service: ObsidianGraphProjectionRebuildService = Depends(
-        Provide[ApplicationContainer.obsidian.graph_projection_rebuild_service]
-    ),
+    service: Annotated[
+        ObsidianGraphProjectionRebuildService,
+        Depends(
+            Provide[ApplicationContainer.obsidian.graph_projection_rebuild_service]
+        ),
+    ],
 ) -> ObsidianGraphProjectionStatusResponse:
     """Return graph projection status without mutating Markdown.
 
@@ -62,9 +67,10 @@ async def graph_projection_status(
 @router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def graph_build_status(
-    service: ObsidianGraphNoteDiagnosticsService = Depends(
-        Provide[ApplicationContainer.obsidian.graph_note_diagnostics_service]
-    ),
+    service: Annotated[
+        ObsidianGraphNoteDiagnosticsService,
+        Depends(Provide[ApplicationContainer.obsidian.graph_note_diagnostics_service]),
+    ],
 ) -> ObsidianGraphBuildStatusResponse:
     """Return graph build status without mutating Markdown or Neo4j.
 
@@ -92,12 +98,13 @@ async def graph_build_status(
 @router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def validate_note_graph_links(
+    service: Annotated[
+        ObsidianGraphNoteDiagnosticsService,
+        Depends(Provide[ApplicationContainer.obsidian.graph_note_diagnostics_service]),
+    ],
     note_id: str | None = Query(default=None, min_length=1),
     path: str | None = Query(default=None, min_length=1),
     include_resolved_targets: bool = Query(default=False),
-    service: ObsidianGraphNoteDiagnosticsService = Depends(
-        Provide[ApplicationContainer.obsidian.graph_note_diagnostics_service]
-    ),
 ) -> ObsidianGraphNoteLinkValidationResponse:
     """Validate cached outgoing graph links for one exact note selector.
 
@@ -131,12 +138,13 @@ async def validate_note_graph_links(
 @router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def rebuild_note_graph(
+    service: Annotated[
+        ObsidianGraphNoteDiagnosticsService,
+        Depends(Provide[ApplicationContainer.obsidian.graph_note_diagnostics_service]),
+    ],
     note_id: str | None = Query(default=None, min_length=1),
     path: str | None = Query(default=None, min_length=1),
     replace_existing_edges: bool = Query(default=True),
-    service: ObsidianGraphNoteDiagnosticsService = Depends(
-        Provide[ApplicationContainer.obsidian.graph_note_diagnostics_service]
-    ),
 ) -> ObsidianGraphNoteRebuildResponse:
     """Refresh one note's cached edges and the snapshot graph projection.
 
@@ -170,11 +178,14 @@ async def rebuild_note_graph(
 @router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def rebuild_graph_projection(
+    service: Annotated[
+        ObsidianGraphProjectionRebuildService,
+        Depends(
+            Provide[ApplicationContainer.obsidian.graph_projection_rebuild_service]
+        ),
+    ],
     include_issue_details: bool = Query(default=False),
     issue_limit: int = Query(default=100, ge=1, le=500),
-    service: ObsidianGraphProjectionRebuildService = Depends(
-        Provide[ApplicationContainer.obsidian.graph_projection_rebuild_service]
-    ),
 ) -> ObsidianGraphProjectionRebuildResponse:
     """Rebuild graph projection without mutating canonical Markdown.
 

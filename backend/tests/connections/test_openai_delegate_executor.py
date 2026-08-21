@@ -25,7 +25,7 @@ from app.connections.infrastructure.librarians.openai_adapter import (
 from app.connections.infrastructure.librarians.openai_delegate_executor import (
     OpenAIProviderDelegateExecutor,
 )
-from app.librarian.application.delegate_execution_contracts import (
+from app.librarian.application.delegation.delegate_execution_contracts import (
     LibrarianExecutionPlan,
     LibrarianProfileResolution,
 )

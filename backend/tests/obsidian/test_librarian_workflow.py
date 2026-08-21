@@ -20,10 +20,10 @@ from app.librarian.domain.event_enum.collaboration_enums import (
 from app.librarian.domain.types.hermes_collaboration_payload_types import (
     HermesLibrarianAskPayload,
 )
-from app.obsidian.application.librarian.obsidian_librarian_graph_contracts import (
+from app.obsidian.application.librarian.graph.obsidian_librarian_graph_contracts import (
     ObsidianLibrarianDelegateService,
 )
-from app.obsidian.application.librarian.obsidian_librarian_workflow_service import (
+from app.obsidian.application.librarian.workflow.obsidian_librarian_workflow_service import (
     ObsidianLibrarianWorkflowService,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService

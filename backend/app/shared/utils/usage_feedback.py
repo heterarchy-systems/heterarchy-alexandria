@@ -6,7 +6,6 @@ from app.shared.types.extra_types import JSONObject
 
 
 def usage_feedback_value(
-    *,
     project: str | None,
     task_summary: str | None,
     feedback: str | None,

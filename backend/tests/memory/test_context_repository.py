@@ -11,8 +11,10 @@ from threading import Event
 
 import anyio
 import pytest
-from app.memory.application.context_service import ContextService
-from app.memory.application.retrieval.embedding_contract import EmbeddingProvider
+from app.memory.application.contexts.records.context_service import ContextService
+from app.memory.application.retrieval.embeddings.embedding_contract import (
+    EmbeddingProvider,
+)
 from app.memory.domain.entities.context_read_models import ContextPack
 from app.memory.domain.event_enum.context_enums import (
     ContextAccessActorType,

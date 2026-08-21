@@ -16,10 +16,10 @@ from app.obsidian.domain.entities.obsidian_note import (
     ObsidianVaultStatus,
 )
 from app.obsidian.domain.event_enum.obsidian_enums import ObsidianIndexErrorCode
-from app.operations.application.operational_database_probe import (
+from app.operations.application.readiness.operational_database_probe import (
     OperationalDatabaseProbe,
 )
-from app.operations.application.operational_readiness_service import (
+from app.operations.application.readiness.operational_readiness_service import (
     OperationalReadinessService,
 )
 from app.operations.domain.event_enum.operational_readiness_enums import (

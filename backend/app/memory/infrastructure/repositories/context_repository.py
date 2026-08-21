@@ -2,23 +2,25 @@
 
 from __future__ import annotations
 
-from app.memory.domain.repositories.context_repository import IContextRepository
-from app.memory.infrastructure.repositories.contexts.context_embedding_store import (
+from app.memory.domain.repositories.contexts.context_repository import (
+    IContextRepository,
+)
+from app.memory.infrastructure.repositories.contexts.embeddings.context_embedding_store import (
     ContextEmbeddingStore,
 )
-from app.memory.infrastructure.repositories.contexts.context_record_mutation_store import (
+from app.memory.infrastructure.repositories.contexts.records.context_record_mutation_store import (
     ContextRecordMutationStore,
 )
-from app.memory.infrastructure.repositories.contexts.context_record_query_store import (
+from app.memory.infrastructure.repositories.contexts.records.context_record_query_store import (
     ContextRecordQueryStore,
 )
-from app.memory.infrastructure.repositories.contexts.context_repository_delegates import (
+from app.memory.infrastructure.repositories.contexts.records.context_repository_delegates import (
     ContextEmbeddingRepositoryDelegate,
     ContextRecordMutationRepositoryDelegate,
     ContextRecordQueryRepositoryDelegate,
     ContextSearchRepositoryDelegate,
 )
-from app.memory.infrastructure.repositories.contexts.context_search_store import (
+from app.memory.infrastructure.repositories.contexts.search.context_search_store import (
     ContextSearchStore,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,7 +35,7 @@ class SqlAlchemyContextRepository(
 ):
     """Assemble focused Context stores behind the stable repository API."""
 
-    def __init__(self, *, session: AsyncSession) -> None:
+    def __init__(self, session: AsyncSession) -> None:
         """Create the repository facade.
 
         Args:

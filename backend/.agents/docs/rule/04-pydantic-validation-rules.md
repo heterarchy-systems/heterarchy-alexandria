@@ -1,106 +1,94 @@
-# Pydantic and Validation Rules
+# Pydantic v2 Validation Rules
 
-## 사용 대상
+## Canonical Base Models
 
-Pydantic v2는 검증과 직렬화가 필요한 경계에 사용한다.
+Production boundary schemas use only the repository canonical bases in `app.shared.schemas.common_schemas`.
 
-- FastAPI Request와 Response
-- MCP Input과 Output
-- JSON 또는 YAML에서 읽은 안정된 Contract
-- Obsidian Canonical Frontmatter
-- Search Request와 Result
-- Lifecycle Command와 Result
-- Librarian Draft와 Proposal
-- Audit와 Run Report
+- named-field models inherit `StrictSchemaModel`;
+- top-level root/collection contracts inherit `StrictRootSchemaModel`;
+- direct `pydantic.BaseModel` / `pydantic.RootModel` inheritance is forbidden outside the canonical base module.
 
-## 사용하지 않는 대상
-
-다음에 기계적으로 사용하지 않는다.
-
-- SQLAlchemy ORM Entity
-- 검증 완료 후 내부 계층 간 전달 DTO
-- 단순한 지역 계산 값
-- 성능상 중요한 Row Processing
-- Pydantic 전환의 실익이 없는 기존 내부 객체
-
-## ConfigDict
-
-안정된 Named-field Boundary Contract의 권장 기본:
+Canonical configuration is not optional:
 
 ```python
 ConfigDict(
     extra="forbid",
     frozen=True,
+    strict=True,
+    use_enum_values=True,
     validate_default=True,
 )
 ```
 
-모든 Schema에 동일 Config를 복사하지 않는다. 공통 Base를 도입할 경우 실제 저장소의 호환성을 먼저 확인한다.
+`StrictRootSchemaModel` uses the same contract except `extra`, which RootModel does not support.
 
-다음 옵션은 전역 기본이 아니다.
+Do not introduce a second base-model hierarchy with weaker settings.
 
-- `strict=True`
-- `use_enum_values=True`
-- `validate_assignment=True`
-- `str_strip_whitespace=True`
-- `populate_by_name=True`
-- `arbitrary_types_allowed=True`
-- `from_attributes=True`
+## Strict JSON Semantics
 
-## Raw Validation
+Strict Python-mode and strict JSON-mode validation intentionally differ for protocol encodings such as enum strings, UUIDs and datetimes.
 
-외부 또는 신뢰할 수 없는 값:
+FastAPI pre-decodes JSON before ordinary parameter validation. When that would lose Pydantic strict JSON semantics, route bodies must use the shared raw-body dependency and `model_validate_json()`.
 
-```python
-request = ContextCreateRequest.model_validate(raw_payload)
-frontmatter = ContextFrontmatter.model_validate(raw_frontmatter)
-```
+Do not solve this by disabling `strict=True` or adding broad before-validators that reintroduce coercion.
 
-JSON 문자열 또는 Byte:
+Provider/model output that is itself JSON should likewise be validated with `model_validate_json()` rather than `loads_json(...)` followed by Python-mode `model_validate(...)` when JSON-mode semantics are required.
 
-```python
-event = EventSchema.model_validate_json(raw_json)
-```
+## Field Metadata
 
-## Internal Construction
+Production schema modules do not call `pydantic.Field()` directly.
 
-이미 타입이 확인된 내부 값:
+Externally visible fields use the repository `described_field()` helper and every description must be non-empty and meaningful.
+
+`described_field()` is metadata only. It must not accept `default` or `default_factory`. Domain/API defaults remain explicit assignment values on the model field.
+
+Preferred form:
 
 ```python
-result = ContextCreateResult(
-    context_id=context_id,
-    status=status,
-)
+name: Annotated[
+    str,
+    StringConstraints(strict=True, min_length=1, max_length=200),
+    described_field("Stable display name for the provider."),
+]
+
+enabled: Annotated[
+    bool,
+    described_field("Whether this provider may be selected."),
+] = True
 ```
 
-같은 함수에서 만든 Dictionary Literal을 `model_validate`로 감싸 내부 Constructor처럼 사용하지 않는다.
+String constraints belong in `StringConstraints(strict=True, ...)` rather than hidden coercive validators.
 
-## RootModel
+## Collection Contracts
 
-Payload 전체가 Root Value일 때만 사용한다.
+Top-level HTTP/MCP collections use named RootModels instead of anonymous `list[Item]`, `tuple[Item, ...]`, or raw mapping contracts. Nested collections may remain normal typed fields when their meaning belongs to the containing schema.
 
-- 의미 있는 ID Collection
-- 중복 금지 Collection
-- Collection 자체가 Invariant를 소유하는 경우
+Prefer immutable tuples for internal/read-only collections. If the public JSON contract intentionally uses a list, normalize tuple-to-list explicitly at the mapper/interface boundary rather than relying on Pydantic coercion.
 
-일반 Named-field Contract에는 BaseModel을 사용한다.
+## Extra Fields and Defaults
 
-## Enum
+Unknown named-model fields are rejected through `extra="forbid"`.
 
-Scope, Lifecycle, Error Code처럼 공유되는 Symbolic Set은 Enum을 사용한다.
+Defaults are validated through `validate_default=True`. A default therefore must satisfy the same strict contract as an externally supplied value.
 
-작은 Contract 한 곳에서만 쓰는 값은 Literal을 사용할 수 있다.
+Do not use a default merely to make a required API field convenient for a caller.
 
-`use_enum_values=True`를 전역 적용하지 않는다. 내부 로직에서 Enum 의미가 필요한지 먼저 확인한다.
+## External Raw Mapping
 
-## Default
+Unknown external mapping data may first be represented by a bounded TypedDict/JSONValue parser, but it must be normalized and validated before entering the application/domain surface.
 
-Default는 Protocol 또는 Domain에 실제 기본값이 있을 때만 둔다.
+Do not use `cast()` as a replacement for runtime validation.
 
-Construction 편의를 위해 Required Field를 Default로 완화하지 않는다.
+## Legacy APIs
 
-## Nullability
+The following are forbidden in production code:
 
-`T | None`은 None이 실제 유효 상태일 때만 사용한다.
+- `pydantic.v1` imports;
+- Pydantic v1 `@validator` / `@root_validator` APIs;
+- direct `BaseModel` / `RootModel` subclasses outside the shared canonical base;
+- direct `Field()` calls outside the canonical field helper;
+- configuration weakening to silence modernization failures.
 
-누락, 미정, 빈 문자열, None을 같은 의미로 취급하지 않는다.
+## Verification
+
+The mechanical schema verifier must fail closed when canonical base settings, direct Pydantic inheritance, direct `Field()`, field descriptions, or banned legacy APIs violate this contract. Production code must pass the verifier; do not establish a permanent violation baseline.

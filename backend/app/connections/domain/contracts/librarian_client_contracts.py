@@ -20,7 +20,6 @@ class LibrarianProviderClientFactory(ABC):
     @abstractmethod
     async def test_connection(
         self,
-        *,
         provider: LibrarianProvider,
         secret_resolver: SecretResolver,
         test_query: str,

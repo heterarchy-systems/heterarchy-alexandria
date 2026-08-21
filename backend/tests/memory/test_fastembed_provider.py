@@ -10,11 +10,11 @@ from types import ModuleType
 from typing import ClassVar
 
 import pytest
-from app.memory.application.retrieval.embedding_contract import (
+from app.memory.application.retrieval.embeddings.embedding_contract import (
     DEFAULT_EMBEDDING_DIMENSIONS,
     DEFAULT_EMBEDDING_MODEL,
 )
-from app.memory.application.retrieval.fastembed_provider import (
+from app.memory.application.retrieval.embeddings.fastembed_provider import (
     FastEmbedEmbeddingProvider,
 )
 

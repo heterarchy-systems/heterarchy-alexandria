@@ -7,11 +7,11 @@ from app.mcp_server.oauth_bearer_verifier import (
     OAuthBearerTokenVerifier,
     OAuthBearerVerifierConfig,
 )
-from app.mcp_server.type_validate.auth_contracts import McpAuthMode
-from app.platform.config.app_config import AppConfig
+from app.mcp_server.type_validate.oauth.config_contracts import McpHttpAuthConfig
+from app.mcp_server.type_validate.oauth.mcp_auth_enums import McpAuthMode
 
 
-def build_mcp_http_auth_gate(config: AppConfig) -> McpHttpAuthGate:
+def build_mcp_http_auth_gate(config: McpHttpAuthConfig) -> McpHttpAuthGate:
     """Build the public MCP HTTP auth gate from application config.
 
     Args:

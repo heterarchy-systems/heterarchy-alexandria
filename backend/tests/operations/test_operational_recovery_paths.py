@@ -5,11 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from app.operations.application.operational_recovery_paths import (
+from app.operations.application.recovery.planning.operational_recovery_paths import (
     RECOVERY_DIRECTORY_NAME,
     recovery_directory,
 )
-from app.operations.application.recovery_run_manifest import _manifest_path_by_id
+from app.operations.application.recovery.execution.recovery_run_manifest import (
+    _manifest_path_by_id,
+)
 
 
 def test_recovery_directory_uses_persistent_data_root(

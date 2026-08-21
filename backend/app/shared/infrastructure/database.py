@@ -38,7 +38,6 @@ class Database:
 
     def __init__(
         self,
-        *,
         database_url: str,
         create_schema: bool = False,
     ) -> None:

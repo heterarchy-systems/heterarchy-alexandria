@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 class SqlAlchemyContextEmbeddingBatchTransaction:
     """Keep CPU inference outside transactions and commit each durable batch."""
 
-    def __init__(self, *, session: AsyncSession) -> None:
+    def __init__(self, session: AsyncSession) -> None:
         """Bind the transaction boundary to one request-local session.
 
         Args:

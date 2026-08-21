@@ -11,12 +11,12 @@ from mcp.server.auth.settings import (
 )
 from pydantic import AnyHttpUrl
 
-from app.mcp_server.local_oauth.provider import (
-    LocalMcpOAuthProvider,
-    LocalMcpOAuthSettings,
-)
+from app.mcp_server.local_oauth.contracts import LocalMcpOAuthSettings
+from app.mcp_server.local_oauth.provider import LocalMcpOAuthProvider
 from app.mcp_server.local_oauth.repository import LocalMcpOAuthRepository
-from app.platform.config.app_config import AppConfig
+from app.mcp_server.type_validate.oauth.config_contracts import (
+    LocalMcpOAuthRuntimeConfig,
+)
 from app.shared.infrastructure.database import Database
 from app.shared.security.secret_cipher import SecretCipher
 
@@ -30,8 +30,7 @@ class LocalMcpOAuthRuntime:
 
 
 def build_local_mcp_oauth_runtime(
-    *,
-    config: AppConfig,
+    config: LocalMcpOAuthRuntimeConfig,
     database: Database,
     secret_cipher: SecretCipher,
 ) -> LocalMcpOAuthRuntime:

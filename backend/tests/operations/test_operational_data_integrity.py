@@ -16,13 +16,13 @@ from app.obsidian.domain.entities.obsidian_note import (
     ObsidianVaultStatus,
 )
 from app.obsidian.domain.event_enum.obsidian_enums import ObsidianIndexErrorCode
-from app.operations.application.operational_data_integrity_service import (
+from app.operations.application.readiness.operational_data_integrity_service import (
     OperationalDataIntegrityService,
 )
-from app.operations.application.operational_overall_readiness import (
+from app.operations.application.readiness.operational_overall_readiness import (
     overall_readiness_status,
 )
-from app.operations.application.operational_readiness_service import (
+from app.operations.application.readiness.operational_readiness_service import (
     OperationalReadinessService,
 )
 from app.operations.domain.entities.operational_data_integrity import (
@@ -35,7 +35,7 @@ from app.operations.domain.event_enum.operational_data_integrity_enums import (
 from app.operations.domain.event_enum.operational_readiness_enums import (
     OperationalReadinessStatus,
 )
-from app.operations.interface.schemas.operations.operational_readiness_schema import (
+from app.operations.interface.schemas.operations.operational_readiness_detail_schema import (
     OperationalReadinessSnapshotResponse,
 )
 from app.shared.infrastructure.database import Database

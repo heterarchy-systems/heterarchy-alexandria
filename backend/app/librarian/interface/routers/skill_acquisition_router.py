@@ -1,22 +1,24 @@
 """Focused skill-library search and acquisition job routes."""
 
-from __future__ import annotations
-
 import logging
 from collections.abc import Awaitable, Callable
 from inspect import isawaitable
-from typing import cast
+from typing import Annotated, cast
 
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, BackgroundTasks, Depends, status
 
 from app.container import ApplicationContainer
-from app.librarian.application.skill_acquisition_runner import SkillAcquisitionRunner
-from app.librarian.application.skill_acquisition_service import SkillAcquisitionService
-from app.librarian.application.skill_artifact_publisher import (
+from app.librarian.application.skill_acquisition.skill_acquisition_runner import (
+    SkillAcquisitionRunner,
+)
+from app.librarian.application.skill_acquisition.skill_acquisition_service import (
+    SkillAcquisitionService,
+)
+from app.librarian.application.skill_artifacts.skill_artifact_publisher import (
     ObsidianSkillArtifactPublisher,
 )
-from app.librarian.application.skill_library_search_service import (
+from app.librarian.application.skill_library.skill_library_search_service import (
     SkillLibrarySearchService,
 )
 from app.librarian.domain.event_enum.collaboration_enums import (
@@ -25,22 +27,24 @@ from app.librarian.domain.event_enum.collaboration_enums import (
 from app.librarian.interface.schemas.librarian.skill_acquisition_schemas import (
     SkillAcquisitionJobRequest,
     SkillAcquisitionJobResponse,
+    skill_acquisition_job_response,
+)
+from app.librarian.interface.schemas.librarian.skill_search_schemas import (
     SkillCapabilitySearchRequest,
     SkillCapabilitySearchResponse,
-    skill_acquisition_job_response,
     skill_capability_search_response,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.shared.exceptions.exception_decorators import router_exception_status
 from app.shared.exceptions.route_exceptions import LIBRARIAN_ROUTE_EXCEPTION_MAPPING
 from app.shared.infrastructure.database import Database
+from app.shared.type_validation.strict_json_body import model_validate_json_body
 
 router = APIRouter(prefix="/librarians", tags=["skill-acquisition"])
 logger = logging.getLogger(__name__)
 
 
 async def _run_skill_acquisition_background_job(
-    *,
     database: Database,
     runner_factory: Callable[
         [], SkillAcquisitionRunner | Awaitable[SkillAcquisitionRunner]
@@ -98,10 +102,14 @@ async def _run_skill_acquisition_background_job(
 @router_exception_status(LIBRARIAN_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def search_skill_library(
-    request: SkillCapabilitySearchRequest,
-    obsidian_service: ObsidianService = Depends(
-        Provide[ApplicationContainer.obsidian.obsidian_service]
-    ),
+    request: Annotated[
+        SkillCapabilitySearchRequest,
+        Depends(model_validate_json_body(SkillCapabilitySearchRequest)),
+    ],
+    obsidian_service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
 ) -> SkillCapabilitySearchResponse:
     """Search existing skill artifacts before creating an acquisition job.
 
@@ -128,20 +136,26 @@ async def search_skill_library(
 @router_exception_status(LIBRARIAN_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def create_skill_acquisition_job(
-    request: SkillAcquisitionJobRequest,
+    request: Annotated[
+        SkillAcquisitionJobRequest,
+        Depends(model_validate_json_body(SkillAcquisitionJobRequest)),
+    ],
     background_tasks: BackgroundTasks,
-    service: SkillAcquisitionService = Depends(
-        Provide[ApplicationContainer.librarian.skill_acquisition_service]
-    ),
-    database: Database = Depends(Provide[ApplicationContainer.database]),
-    runner_factory: Callable[
-        [], SkillAcquisitionRunner | Awaitable[SkillAcquisitionRunner]
-    ] = Depends(
-        Provide[ApplicationContainer.librarian.skill_acquisition_runner.provider]
-    ),
-    obsidian_service_factory: Callable[
-        [], ObsidianService | Awaitable[ObsidianService]
-    ] = Depends(Provide[ApplicationContainer.obsidian.obsidian_service.provider]),
+    service: Annotated[
+        SkillAcquisitionService,
+        Depends(Provide[ApplicationContainer.librarian.skill_acquisition_service]),
+    ],
+    database: Annotated[Database, Depends(Provide[ApplicationContainer.database])],
+    runner_factory: Annotated[
+        Callable[[], SkillAcquisitionRunner | Awaitable[SkillAcquisitionRunner]],
+        Depends(
+            Provide[ApplicationContainer.librarian.skill_acquisition_runner.provider]
+        ),
+    ],
+    obsidian_service_factory: Annotated[
+        Callable[[], ObsidianService | Awaitable[ObsidianService]],
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service.provider]),
+    ],
 ) -> SkillAcquisitionJobResponse:
     """Create a durable acquisition job and queue autonomous execution.
 
@@ -188,9 +202,10 @@ async def create_skill_acquisition_job(
 @inject
 async def get_skill_acquisition_job(
     job_id: str,
-    service: SkillAcquisitionService = Depends(
-        Provide[ApplicationContainer.librarian.skill_acquisition_service]
-    ),
+    service: Annotated[
+        SkillAcquisitionService,
+        Depends(Provide[ApplicationContainer.librarian.skill_acquisition_service]),
+    ],
 ) -> SkillAcquisitionJobResponse:
     """Return one durable skill-acquisition job.
 

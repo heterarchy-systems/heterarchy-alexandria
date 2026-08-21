@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.memory.domain.repositories.memory_reconciliation_repository import (
+from app.memory.domain.repositories.reconciliation.memory_reconciliation_repository import (
     IMemoryReconciliationRepository,
 )
 from app.memory.infrastructure.repositories.reconciliation.reconciliation_conflict_store import (

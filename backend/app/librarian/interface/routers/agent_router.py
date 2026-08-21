@@ -1,6 +1,6 @@
 """Agent profile routes."""
 
-from __future__ import annotations
+from typing import Annotated
 
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, status
@@ -17,6 +17,7 @@ from app.librarian.interface.schemas.agent.agent_schema import (
 )
 from app.shared.exceptions.exception_decorators import router_exception_status
 from app.shared.exceptions.route_exceptions import LIBRARIAN_ROUTE_EXCEPTION_MAPPING
+from app.shared.type_validation.strict_json_body import model_validate_json_body
 from app.shared.types.types_convert_utils import now_utc
 
 router = APIRouter(
@@ -34,8 +35,23 @@ def _to_response(model: AgentProfile) -> AgentResponse:
     Returns:
         AgentResponse: Public agent response schema.
     """
-    validation = AgentResponse.model_validate(model)
-    return validation
+    return AgentResponse(
+        id=model.id,
+        name=model.name,
+        provider=model.provider,
+        description=model.description,
+        capabilities=list(model.capabilities),
+        preferred_librarian_provider=model.preferred_librarian_provider,
+        preferred_librarian_model=model.preferred_librarian_model,
+        max_librarian_agents=model.max_librarian_agents,
+        librarian_role_prompt=model.librarian_role_prompt,
+        librarian_role=model.librarian_role,
+        librarian_specialties=list(model.librarian_specialties or ()),
+        librarian_routing_priority=model.librarian_routing_priority,
+        librarian_enabled=model.librarian_enabled,
+        created_at=model.created_at,
+        updated_at=model.updated_at,
+    )
 
 
 def _create_payload(request: AgentCreateRequest) -> AgentCreatePayload:
@@ -76,10 +92,13 @@ def _create_payload(request: AgentCreateRequest) -> AgentCreatePayload:
 @router_exception_status(LIBRARIAN_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def create_agent(
-    request: AgentCreateRequest,
-    service: AgentService = Depends(
-        Provide[ApplicationContainer.librarian.agent_service]
-    ),
+    request: Annotated[
+        AgentCreateRequest,
+        Depends(model_validate_json_body(AgentCreateRequest)),
+    ],
+    service: Annotated[
+        AgentService, Depends(Provide[ApplicationContainer.librarian.agent_service])
+    ],
 ) -> AgentResponse:
     """Create an agent profile.
 
@@ -104,9 +123,9 @@ async def create_agent(
 @router_exception_status(LIBRARIAN_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def list_agents(
-    service: AgentService = Depends(
-        Provide[ApplicationContainer.librarian.agent_service]
-    ),
+    service: Annotated[
+        AgentService, Depends(Provide[ApplicationContainer.librarian.agent_service])
+    ],
 ) -> AgentResponseList:
     """List all agent profiles.
 
@@ -132,9 +151,9 @@ async def list_agents(
 @inject
 async def get_agent(
     agent_id: str,
-    service: AgentService = Depends(
-        Provide[ApplicationContainer.librarian.agent_service]
-    ),
+    service: Annotated[
+        AgentService, Depends(Provide[ApplicationContainer.librarian.agent_service])
+    ],
 ) -> AgentResponse:
     """Get one profile.
 
@@ -160,10 +179,13 @@ async def get_agent(
 @inject
 async def patch_agent(
     agent_id: str,
-    request: AgentPatchRequest,
-    service: AgentService = Depends(
-        Provide[ApplicationContainer.librarian.agent_service]
-    ),
+    request: Annotated[
+        AgentPatchRequest,
+        Depends(model_validate_json_body(AgentPatchRequest)),
+    ],
+    service: Annotated[
+        AgentService, Depends(Provide[ApplicationContainer.librarian.agent_service])
+    ],
 ) -> AgentResponse:
     """Patch one profile.
 
@@ -189,9 +211,9 @@ async def patch_agent(
 @inject
 async def delete_agent(
     agent_id: str,
-    service: AgentService = Depends(
-        Provide[ApplicationContainer.librarian.agent_service]
-    ),
+    service: Annotated[
+        AgentService, Depends(Provide[ApplicationContainer.librarian.agent_service])
+    ],
 ) -> None:
     """Delete one profile.
 

@@ -3,10 +3,6 @@
 from __future__ import annotations
 
 import pytest
-from app.obsidian.application.notes.frontmatter_metadata_normalization import (
-    normalize_boolean_metadata,
-    normalize_string_collection,
-)
 from app.obsidian.application.notes.obsidian_note_templates import (
     frontmatter_for_save,
 )
@@ -16,6 +12,10 @@ from app.obsidian.infrastructure.markdown.frontmatter import (
     frontmatter_json,
     parse_markdown_document,
     render_markdown_document,
+)
+from app.shared.type_validation.frontmatter_metadata_normalization import (
+    normalize_boolean_metadata,
+    normalize_string_collection,
 )
 from app.shared.types.extra_types import JSONValue
 

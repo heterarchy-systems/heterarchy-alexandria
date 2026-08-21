@@ -6,17 +6,21 @@ import anyio
 from datetime import datetime
 from pathlib import Path
 
-from app.memory.application.memory_compact_service import MemoryCompactService
+from app.memory.application.memory_compacts.lifecycle.memory_compact_service import (
+    MemoryCompactService,
+)
 from app.memory.domain.event_enum.memory_compact_enums import MemoryCompactStatus
-from app.memory.domain.repositories.memory_compact_repository_contracts import (
+from app.memory.domain.repositories.memory_compacts.memory_compact_repository_contracts import (
     MemoryCompactCreate,
     MemoryCompactSourceRefCreate,
 )
 from app.memory.infrastructure.repositories.memory_compact_repository import (
     ObsidianMemoryCompactRepository,
 )
-from app.mcp_server.tools.memory_steward_compact_refresh import refresh_compact_payload
-from app.mcp_server.type_validate.memory_steward_readiness_schemas import (
+from app.mcp_server.tools.memory_compacts.memory_steward_compact_refresh import (
+    refresh_compact_payload,
+)
+from app.mcp_server.type_validate.memory.memory_steward_readiness_schemas import (
     CurrentCompactPayload,
     RagStatusPayload,
     ReadinessSummaryPayload,

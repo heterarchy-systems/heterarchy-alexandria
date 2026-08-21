@@ -83,7 +83,7 @@ class IProviderSecretRepository(ABC):
         """
 
     @abstractmethod
-    async def set_secret(self, *, provider_id: str, key_name: str, value: str) -> None:
+    async def set_secret(self, provider_id: str, key_name: str, value: str) -> None:
         """Persist or update one provider secret.
 
         Args:

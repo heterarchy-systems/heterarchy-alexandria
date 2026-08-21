@@ -14,7 +14,7 @@ from app.memory.domain.entities.memory_reconciliation_diagnostics import (
 )
 from app.memory.domain.event_enum.context_enums import RagHealthState, RagStrategy
 from app.obsidian.domain.entities.obsidian_note import ObsidianVaultStatus
-from app.operations.application.operational_readiness_service import (
+from app.operations.application.readiness.operational_readiness_service import (
     OperationalReadinessService,
 )
 from app.operations.domain.event_enum.operational_readiness_enums import (

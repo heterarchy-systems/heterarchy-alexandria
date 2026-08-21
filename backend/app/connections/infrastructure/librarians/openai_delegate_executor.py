@@ -27,7 +27,7 @@ from app.connections.infrastructure.librarians.provider_types import (
     parse_auth_type,
     parse_provider_type,
 )
-from app.librarian.application.delegate_execution_contracts import (
+from app.librarian.application.delegation.delegate_execution_contracts import (
     LibrarianDelegateExecutor,
     LibrarianExecutionPlan,
 )
@@ -36,7 +36,7 @@ from app.librarian.domain.contracts.hermes_collaboration_contracts import (
     LibrarianDelegateResult,
 )
 from app.librarian.domain.event_enum.collaboration_enums import LibrarianDelegateStatus
-from app.operations.application.external_api_rate_limit import (
+from app.operations.application.readiness.external_api_rate_limit import (
     ExternalApiRateLimiter,
     ExternalApiRateLimitError,
     NoopExternalApiRateLimiter,
@@ -105,7 +105,6 @@ class OpenAIProviderDelegateExecutor(LibrarianDelegateExecutor):
 
     async def execute(
         self,
-        *,
         command: HermesLibrarianAskCommand,
         plan: LibrarianExecutionPlan,
         fallback: LibrarianDelegateResult,
@@ -178,7 +177,6 @@ class OpenAIProviderDelegateExecutor(LibrarianDelegateExecutor):
 
     async def _client_config(
         self,
-        *,
         provider_id: str,
         provider_type: ProviderType | None,
         auth_type: AuthType,
@@ -222,7 +220,6 @@ def _provider_scope(provider_type: ProviderType | None) -> str:
 
 
 def _log_provider_execution_failure(
-    *,
     provider_id: str,
     provider_type: ProviderType | None,
     error: Exception,

@@ -1,19 +1,20 @@
 """Existing-memory reconciliation dry-run and safe backfill routes."""
 
-from __future__ import annotations
+from typing import Annotated
 
 from app.container import ApplicationContainer
-from app.memory.application.reconciliation.memory_existing_reconciliation_service import (
+from app.memory.application.reconciliation.runtime.memory_existing_reconciliation_service import (
     MemoryExistingReconciliationService,
 )
-from app.memory.interface.schemas.reconciliation.memory_existing_reconciliation_request_schema import (
+from app.memory.interface.schemas.reconciliation.existing.memory_existing_reconciliation_request_schema import (
     ExistingMemoryReconciliationHttpRequest,
 )
-from app.memory.interface.schemas.reconciliation.memory_existing_reconciliation_response_schema import (
+from app.memory.interface.schemas.reconciliation.existing.memory_existing_reconciliation_response_schema import (
     ExistingMemoryReconciliationResponse,
 )
 from app.shared.exceptions.exception_decorators import router_exception_status
 from app.shared.exceptions.route_exceptions import CONTEXT_ROUTE_EXCEPTION_MAPPING
+from app.shared.type_validation.strict_json_body import model_validate_json_body
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, status
 
@@ -35,10 +36,16 @@ router = APIRouter(
 @router_exception_status(CONTEXT_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def preview_existing_memory_reconciliation(
-    request: ExistingMemoryReconciliationHttpRequest,
-    service: MemoryExistingReconciliationService = Depends(
-        Provide[ApplicationContainer.memory.memory_existing_reconciliation_service]
-    ),
+    request: Annotated[
+        ExistingMemoryReconciliationHttpRequest,
+        Depends(model_validate_json_body(ExistingMemoryReconciliationHttpRequest)),
+    ],
+    service: Annotated[
+        MemoryExistingReconciliationService,
+        Depends(
+            Provide[ApplicationContainer.memory.memory_existing_reconciliation_service]
+        ),
+    ],
 ) -> ExistingMemoryReconciliationResponse:
     """Return a write-free existing-memory reconciliation report.
 
@@ -67,10 +74,16 @@ async def preview_existing_memory_reconciliation(
 @router_exception_status(CONTEXT_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def apply_existing_memory_reconciliation(
-    request: ExistingMemoryReconciliationHttpRequest,
-    service: MemoryExistingReconciliationService = Depends(
-        Provide[ApplicationContainer.memory.memory_existing_reconciliation_service]
-    ),
+    request: Annotated[
+        ExistingMemoryReconciliationHttpRequest,
+        Depends(model_validate_json_body(ExistingMemoryReconciliationHttpRequest)),
+    ],
+    service: Annotated[
+        MemoryExistingReconciliationService,
+        Depends(
+            Provide[ApplicationContainer.memory.memory_existing_reconciliation_service]
+        ),
+    ],
 ) -> ExistingMemoryReconciliationResponse:
     """Apply safe and idempotent existing-memory read-model backfill.
 

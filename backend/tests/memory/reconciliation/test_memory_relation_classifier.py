@@ -7,7 +7,7 @@ from typing import cast
 
 import anyio
 import pytest
-from app.memory.application.reconciliation.memory_relation_classifier import (
+from app.memory.application.reconciliation.candidates.memory_relation_classifier import (
     MemoryRelationClassifier,
 )
 from app.memory.domain.entities.memory_reconciliation import (
@@ -26,7 +26,7 @@ from app.memory.domain.event_enum.reconciliation_enums import (
     MemoryDecisionSource,
     MemoryRelationType,
 )
-from app.memory.domain.repositories.memory_relation_proposal_provider import (
+from app.memory.domain.repositories.contexts.memory_relation_proposal_provider import (
     IMemoryRelationProposalProvider,
 )
 from app.memory.infrastructure.providers.openai_memory_relation_proposal_provider import (

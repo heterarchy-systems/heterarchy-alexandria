@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 
 from app.memory.domain.event_enum.context_enums import RagStrategy
-from app.operations.application.recovery_plan_policy import (
+from app.operations.application.recovery.planning.recovery_plan_policy import (
     _blocked_reasons,
     _next_actions,
     _steps,

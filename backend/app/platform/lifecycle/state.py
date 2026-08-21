@@ -13,19 +13,19 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from threading import Lock
 
-from app.platform.lifecycle.dependency_health import (
+from app.platform.lifecycle.dependency_health_enums import (
     DependencyHealthStatus as DependencyHealthStatus,
 )
 from app.platform.lifecycle.dependency_lifecycle_controller import (
     DependencyLifecycleController,
 )
 from app.platform.lifecycle.dependency_status_store import DependencyStatusStore
+from app.platform.lifecycle.lifecycle_enums import LifecycleStatus
 from app.platform.lifecycle.snapshot import (
     LifecycleSnapshot,
     lifecycle_accepts_traffic,
     lifecycle_is_ready,
 )
-from app.platform.lifecycle.status import LifecycleStatus
 from app.platform.lifecycle.transitions import (
     apply_drain_transition,
     apply_stopping_transition,
@@ -36,7 +36,7 @@ from app.platform.lifecycle.transitions import (
 class LifecycleState:
     """Track process lifecycle and expose focused dependency transitions."""
 
-    def __init__(self, *, started_at: datetime | None = None) -> None:
+    def __init__(self, started_at: datetime | None = None) -> None:
         """Initialize lifecycle state.
 
         Args:
@@ -77,7 +77,7 @@ class LifecycleState:
         with self._lock:
             self._status = apply_stopping_transition(self._dependencies)
 
-    def start_draining(self, *, reason: str, now: datetime | None = None) -> bool:
+    def start_draining(self, reason: str, now: datetime | None = None) -> bool:
         """Start draining state.
 
         Args:

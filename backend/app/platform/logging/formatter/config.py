@@ -19,7 +19,6 @@ class JsonFormatter(logging.Formatter):
 
     def __init__(
         self,
-        *,
         service_context: JsonLogServiceContext,
         include_error_stack: bool,
     ) -> None:

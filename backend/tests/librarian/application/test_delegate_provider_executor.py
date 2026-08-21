@@ -8,12 +8,14 @@ import anyio
 
 from app.connections.domain.entities.read_models import LibrarianProvider
 from app.connections.domain.event_enum.provider_enums import AuthType, ProviderType
-from app.librarian.application.delegate_execution_contracts import (
+from app.librarian.application.delegation.delegate_execution_contracts import (
     LibrarianDelegateExecutor,
     LibrarianExecutionPlan,
     LibrarianProfileResolution,
 )
-from app.librarian.application.delegate_execution_runner import execute_delegates
+from app.librarian.application.delegation.delegate_execution_runner import (
+    execute_delegates,
+)
 from app.librarian.domain.contracts.hermes_collaboration_contracts import (
     HermesLibrarianAskCommand,
     LibrarianDelegateResult,

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.platform.lifecycle.dependency_health import PlatformDependency
+from app.platform.lifecycle.dependency_health_enums import PlatformDependency
 from app.platform.lifecycle.state import LifecycleState
 from app.platform.schemas.health_schema import (
     heartbeat_payload_from_snapshot,

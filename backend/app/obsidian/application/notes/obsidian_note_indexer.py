@@ -6,15 +6,15 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path
 
-from app.obsidian.application.graph.obsidian_graph_edge_builder import (
+from app.obsidian.application.graph.relations.obsidian_graph_edge_builder import (
     relation_edges_from_note,
 )
-from app.obsidian.application.notes.obsidian_context_frontmatter_mapper import (
+from app.obsidian.application.notes.frontmatter.obsidian_context_frontmatter_mapper import (
     context_content_hash,
     context_identity_from_frontmatter,
     normalized_context_frontmatter,
 )
-from app.obsidian.application.notes.obsidian_frontmatter_redaction import (
+from app.obsidian.application.notes.frontmatter.obsidian_frontmatter_redaction import (
     frontmatter_contains_secret_field,
 )
 from app.obsidian.application.notes.obsidian_note_templates import (
@@ -39,7 +39,6 @@ from app.obsidian.infrastructure.markdown.frontmatter import (
 def note_index_from_path(
     path: Path,
     relative_path: str,
-    *,
     alexandria_root: str,
 ) -> ObsidianNoteIndex | None:
     """Read one Markdown file and build an index payload when managed.

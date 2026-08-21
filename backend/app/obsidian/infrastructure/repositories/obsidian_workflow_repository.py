@@ -8,7 +8,7 @@ from app.obsidian.domain.entities.obsidian_note import ObsidianLibrarianWorkflow
 from app.obsidian.domain.event_enum.obsidian_enums import (
     ObsidianLibrarianWorkflowStatus,
 )
-from app.obsidian.domain.repositories.obsidian_repository import (
+from app.obsidian.domain.repositories.obsidian_workflow_repository import (
     IObsidianWorkflowRepository,
 )
 from app.obsidian.infrastructure.models.obsidian_index_models import (
@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 class SqlAlchemyObsidianWorkflowRepository(IObsidianWorkflowRepository):
     """Persist Obsidian librarian workflow checkpoints through SQLAlchemy."""
 
-    def __init__(self, *, session: AsyncSession) -> None:
+    def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
     async def upsert_workflow(self, workflow: ObsidianLibrarianWorkflow) -> None:

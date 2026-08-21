@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from app.main import app
-from app.memory.application.reconciliation.memory_compact_reconciliation_policy import (
+from app.memory.application.reconciliation.compacts.memory_compact_reconciliation_policy import (
     MemoryCompactReconciliationPolicy,
 )
-from app.memory.application.reconciliation.memory_compact_reconciliation_service import (
+from app.memory.application.reconciliation.compacts.memory_compact_reconciliation_service import (
     MemoryCompactReconciliationService,
 )
 from app.memory.domain.contracts.memory_reconciliation_contracts import (

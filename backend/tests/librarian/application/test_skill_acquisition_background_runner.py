@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 
 import anyio
 import pytest
-from app.librarian.application.skill_acquisition_runner import (
+from app.librarian.application.skill_acquisition.skill_acquisition_runner import (
     SkillAcquisitionExecutionRequest,
     SkillAcquisitionRunner,
 )

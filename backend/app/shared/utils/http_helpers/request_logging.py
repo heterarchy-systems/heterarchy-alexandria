@@ -27,7 +27,6 @@ def should_skip_request_log(path: str, status_code: int) -> bool:
 
 
 def request_log_metadata(
-    *,
     response: Response,
 ) -> tuple[int, str, str]:
     """Determine request log level and event name based on response status.
@@ -65,7 +64,6 @@ class RequestLogContext:
 
     def __init__(
         self,
-        *,
         request_id: str,
         trace_id: str,
         http_method: str,
@@ -93,7 +91,7 @@ class RequestLogContext:
         self._duration_ms = duration_ms
         self._func = func
 
-    def extra(self, *, event: str) -> RequestLogExtra:
+    def extra(self, event: str) -> RequestLogExtra:
         """Build the structured log extra payload for a request event.
 
         Args:
@@ -117,7 +115,6 @@ class RequestLogContext:
     def log_outcome(
         self,
         logger: logging.Logger,
-        *,
         level: int,
         message: str,
         event: str,
@@ -135,7 +132,6 @@ class RequestLogContext:
     def log_exception(
         self,
         logger: logging.Logger,
-        *,
         message: str,
         event: str,
     ) -> None:

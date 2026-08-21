@@ -1,6 +1,6 @@
 """Routes for librarian provider OAuth lifecycle operations."""
 
-from __future__ import annotations
+from typing import Annotated
 
 from app.connections.application.librarians.oauth_service import LibrarianOAuthService
 from app.connections.interface.schemas.librarian.oauth_schema import (
@@ -30,9 +30,10 @@ router = APIRouter(
 @inject
 async def start_librarian_provider_oauth(
     provider_id: str,
-    service: LibrarianOAuthService = Depends(
-        Provide[ApplicationContainer.connections.librarian_oauth_service]
-    ),
+    service: Annotated[
+        LibrarianOAuthService,
+        Depends(Provide[ApplicationContainer.connections.librarian_oauth_service]),
+    ],
 ) -> LibrarianOAuthStartResponse:
     """Start OAuth device authorization for a provider.
 
@@ -59,9 +60,10 @@ async def start_librarian_provider_oauth(
 @inject
 async def poll_librarian_provider_oauth(
     provider_id: str,
-    service: LibrarianOAuthService = Depends(
-        Provide[ApplicationContainer.connections.librarian_oauth_service]
-    ),
+    service: Annotated[
+        LibrarianOAuthService,
+        Depends(Provide[ApplicationContainer.connections.librarian_oauth_service]),
+    ],
 ) -> LibrarianOAuthStatusResponse:
     """Poll OAuth device authorization and store tokens on success.
 
@@ -88,9 +90,10 @@ async def poll_librarian_provider_oauth(
 @inject
 async def refresh_librarian_provider_oauth(
     provider_id: str,
-    service: LibrarianOAuthService = Depends(
-        Provide[ApplicationContainer.connections.librarian_oauth_service]
-    ),
+    service: Annotated[
+        LibrarianOAuthService,
+        Depends(Provide[ApplicationContainer.connections.librarian_oauth_service]),
+    ],
 ) -> LibrarianOAuthStatusResponse:
     """Refresh OAuth token only when current token is near expiry.
 
@@ -117,9 +120,10 @@ async def refresh_librarian_provider_oauth(
 @inject
 async def get_librarian_provider_oauth_status(
     provider_id: str,
-    service: LibrarianOAuthService = Depends(
-        Provide[ApplicationContainer.connections.librarian_oauth_service]
-    ),
+    service: Annotated[
+        LibrarianOAuthService,
+        Depends(Provide[ApplicationContainer.connections.librarian_oauth_service]),
+    ],
 ) -> LibrarianOAuthStatusResponse:
     """Read public OAuth connection state.
 

@@ -5,8 +5,10 @@ from __future__ import annotations
 from datetime import datetime
 
 from app.memory.application.retrieval.chunker import chunk_markdown
-from app.memory.application.retrieval.embedding_contract import EmbeddingProvider
-from app.memory.application.retrieval.embedding_document import (
+from app.memory.application.retrieval.embeddings.embedding_contract import (
+    EmbeddingProvider,
+)
+from app.memory.application.retrieval.embeddings.embedding_document import (
     build_embedding_document_text,
 )
 from app.memory.domain.entities.context_read_models import ContextRecord
@@ -20,7 +22,9 @@ from app.memory.domain.event_enum.context_enums import (
 )
 from app.memory.domain.types.context_payload_types import ContextMetadataPayload
 from app.memory.infrastructure.models.context_models import ContextChunkORM, ContextORM
-from app.memory.infrastructure.repositories.contexts.mapping import map_context_row
+from app.memory.infrastructure.repositories.contexts.records.mapping import (
+    map_context_row,
+)
 from app.shared.types.embedding_types import normalize_embedding_vector
 from app.shared.types.types_convert_utils import now_utc
 from sqlalchemy.ext.asyncio import AsyncSession

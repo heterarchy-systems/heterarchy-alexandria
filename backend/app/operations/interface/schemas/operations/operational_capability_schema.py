@@ -2,24 +2,39 @@
 
 from __future__ import annotations
 
-from pydantic import Field
+from typing import Annotated
 
 from app.operations.domain.entities.operational_capability import (
     OperationalCapability,
     OperationalCapabilitySnapshot,
+)
+from app.operations.domain.event_enum.operational_capability_enums import (
     OperationalCapabilityState,
 )
-from app.shared.schemas.common_schemas import StrictSchemaModel
+from app.shared.schemas.common_schemas import (
+    StrictSchemaModel,
+    described_field,
+    schema_list_default,
+)
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 
 
 class OperationalCapabilityResponse(StrictSchemaModel):
     """One independently assessed platform capability."""
 
-    state: OperationalCapabilityState
-    ready: bool
-    blockers: list[str] = Field(default_factory=list)
-    warnings: list[str] = Field(default_factory=list)
+    state: Annotated[
+        OperationalCapabilityState,
+        described_field("State for this operational capability response."),
+    ]
+    ready: Annotated[
+        bool, described_field("Ready for this operational capability response.")
+    ]
+    blockers: Annotated[
+        list[str], described_field("Blockers for this operational capability response.")
+    ] = schema_list_default()
+    warnings: Annotated[
+        list[str], described_field("Warnings for this operational capability response.")
+    ] = schema_list_default()
 
     @classmethod
     def from_entity(
@@ -37,10 +52,28 @@ class OperationalCapabilityResponse(StrictSchemaModel):
 class OperationalCapabilitySnapshotResponse(StrictSchemaModel):
     """Core, semantic, and optional Librarian readiness."""
 
-    checked_at: AwareTimestamp
-    core_memory: OperationalCapabilityResponse
-    semantic_retrieval: OperationalCapabilityResponse
-    librarian: OperationalCapabilityResponse
+    checked_at: Annotated[
+        AwareTimestamp,
+        described_field(
+            "Checked at for this operational capability snapshot response."
+        ),
+    ]
+    core_memory: Annotated[
+        OperationalCapabilityResponse,
+        described_field(
+            "Core memory for this operational capability snapshot response."
+        ),
+    ]
+    semantic_retrieval: Annotated[
+        OperationalCapabilityResponse,
+        described_field(
+            "Semantic retrieval for this operational capability snapshot response."
+        ),
+    ]
+    librarian: Annotated[
+        OperationalCapabilityResponse,
+        described_field("Librarian for this operational capability snapshot response."),
+    ]
 
     @classmethod
     def from_entity(

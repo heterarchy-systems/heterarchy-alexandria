@@ -10,10 +10,12 @@ from app.mcp_server.oauth_bearer_verifier import (
     OAuthBearerTokenError,
     OAuthBearerTokenVerifier,
 )
-from app.mcp_server.type_validate.auth_contracts import (
+from app.mcp_server.type_validate.oauth.auth_contracts import (
     MCP_OAUTH_PROTECTED_RESOURCE_PATH,
-    McpAuthMode,
     McpHttpAuthResult,
+)
+from app.mcp_server.type_validate.oauth.mcp_auth_enums import (
+    McpAuthMode,
     OAuthBearerErrorCode,
 )
 

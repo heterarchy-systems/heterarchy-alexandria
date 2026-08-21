@@ -39,7 +39,6 @@ class ObsidianFtsQuery:
 
 def build_obsidian_fts_query(
     query_text: str,
-    *,
     limit: int,
     alexandria_type: AlexandriaNoteType | None = None,
     excluded_alexandria_types: Sequence[AlexandriaNoteType] | None = None,

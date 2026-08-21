@@ -7,9 +7,6 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path
 
-from app.obsidian.application.notes.frontmatter_metadata_normalization import (
-    normalize_known_frontmatter_metadata,
-)
 from app.obsidian.domain.contracts.obsidian_contracts import (
     ObsidianChunkIndex,
     ObsidianLibrarianAsk,
@@ -25,6 +22,9 @@ from app.obsidian.infrastructure.markdown.frontmatter import (
 from app.obsidian.infrastructure.markdown.paths import safe_filename
 from app.shared.infrastructure.identifiers import new_uuid
 from app.shared.search.markdown_text_chunking import split_markdown_text
+from app.shared.type_validation.frontmatter_metadata_normalization import (
+    normalize_known_frontmatter_metadata,
+)
 from app.shared.types.extra_types import JSONObject
 from app.shared.utils.text_metrics import count_word_tokens
 
@@ -33,7 +33,6 @@ LIBRARIAN_OPERATIONS_FOLDER = "_Ops/Librarian"
 
 def frontmatter_for_save(
     payload: ObsidianSaveNote,
-    *,
     note_id: str,
     title: str,
     redaction_warnings: list[str],
@@ -60,7 +59,7 @@ def frontmatter_for_save(
     return frontmatter
 
 
-def chunks_for_body(body: str, *, title: str) -> list[ObsidianChunkIndex]:
+def chunks_for_body(body: str, title: str) -> list[ObsidianChunkIndex]:
     if not body.strip():
         return [
             ObsidianChunkIndex(
@@ -102,7 +101,6 @@ def sha256_text(text: str) -> str:
 
 
 def default_note_path(
-    *,
     root: str,
     note_type: AlexandriaNoteType,
     title: str,

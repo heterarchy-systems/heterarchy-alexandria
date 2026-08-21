@@ -3,25 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import StrEnum
 from typing import Annotated
 
 import typer
 
-from app.mcp_server.type_validate.transport_contracts import McpTransport
-
-
-class RequiredMcpTool(StrEnum):
-    """MCP tools required for Memory Steward and Vault maintenance checks."""
-
-    MEMORY_STEWARD_READINESS = "alexandria_memory_steward_readiness"
-    MEMORY_STEWARD_REFRESH_CURRENT_COMPACT = (
-        "alexandria_memory_steward_refresh_current_compact"
-    )
-    VAULT_REVIEW_QUEUE = "alexandria_vault_review_queue"
-    VAULT_REVIEW_MOVE_PLAN = "alexandria_vault_review_move_plan"
-    VAULT_REVIEW_APPLY_MOVES = "alexandria_vault_review_apply_moves"
-
+from app.cli.type_validate.command_option_enums import RequiredMcpTool
+from app.mcp_server.type_validate.mcp_transport_enums import McpTransport
 
 DEFAULT_REQUIRED_MCP_TOOLS = tuple(tool.value for tool in RequiredMcpTool)
 

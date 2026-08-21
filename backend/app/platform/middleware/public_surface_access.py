@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from typing import Final
 
+from app.shared.schemas.http_schemas import ProtocolErrorResponse
+from app.shared.utils.http_helpers.response_headers import json_response
 from fastapi import FastAPI
 from starlette.middleware.base import RequestResponseEndpoint
 from starlette.requests import Request
-from starlette.responses import JSONResponse, Response
+from starlette.responses import Response
 
 _LOCAL_HOSTS: Final[frozenset[str]] = frozenset(
     {"127.0.0.1", "localhost", "::1", "testserver"}
@@ -61,8 +63,10 @@ def install_public_surface_access_middleware(app: FastAPI) -> None:
         """
         if _is_local_request(request) or _is_public_protocol_path(request.url.path):
             return await call_next(request)
-        return JSONResponse(
-            {"detail": "Public host exposes MCP OAuth protocol routes only"},
+        return json_response(
+            ProtocolErrorResponse(
+                detail="Public host exposes MCP OAuth protocol routes only"
+            ).model_dump_json(),
             status_code=403,
             headers=_DENIED_HEADERS,
         )

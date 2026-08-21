@@ -94,8 +94,18 @@ def test_package_cli_mcp_modules_are_explicit_packages() -> None:
     assert not (cli_root / "librarian_payloads.py").exists()
     assert (backend_root / "app" / "mcp_server" / "__init__.py").is_file()
     assert (
-        backend_root / "app" / "mcp_server" / "type_validate" / "transport_contracts.py"
+        backend_root / "app" / "mcp_server" / "type_validate" / "mcp_transport_enums.py"
     ).is_file()
     assert (backend_root / "app" / "mcp_server" / "tools" / "__init__.py").is_file()
     assert (backend_root / "app" / "mcp_server" / "server_runtime.py").is_file()
-    assert (backend_root / "app" / "mcp_server" / "backend_tool_gateway.py").is_file()
+    assert (
+        backend_root / "app" / "mcp_server" / "tools" / "backend_gateway_policy.py"
+    ).is_file()
+    assert (
+        backend_root
+        / "app"
+        / "mcp_server"
+        / "tools"
+        / "skills"
+        / "skill_backend_gateway.py"
+    ).is_file()

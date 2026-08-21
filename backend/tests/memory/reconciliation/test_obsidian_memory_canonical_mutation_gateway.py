@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import anyio
-from app.memory.application.reconciliation.obsidian_memory_canonical_mutation_gateway import (
+from app.memory.application.reconciliation.runtime.obsidian_memory_canonical_mutation_gateway import (
     ObsidianMemoryCanonicalMutationGateway,
 )
 from app.memory.domain.entities.memory_reconciliation import (

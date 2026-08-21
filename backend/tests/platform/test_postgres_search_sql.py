@@ -12,10 +12,10 @@ from app.memory.domain.event_enum.context_enums import (
     ContextRecallLifecycleStatus,
     ContextScope,
 )
-from app.memory.infrastructure.repositories.contexts.fts import (
+from app.memory.infrastructure.repositories.contexts.search.fts import (
     build_context_fts_query,
 )
-from app.memory.infrastructure.repositories.contexts.vector_query import (
+from app.memory.infrastructure.repositories.contexts.embeddings.vector_query import (
     build_context_vector_query,
 )
 from app.obsidian.infrastructure.repositories.obsidian_fts import (

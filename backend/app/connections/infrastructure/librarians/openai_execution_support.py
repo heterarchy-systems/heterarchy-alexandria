@@ -41,7 +41,6 @@ class OpenAIResponseSummaryFetcher:
         model: str,
         prompt: str,
         instructions: str,
-        *,
         enable_web_search: bool = False,
     ) -> str:
         """Fetch a non-streaming OpenAI Responses API summary.
@@ -123,7 +122,6 @@ class OpenAICodexClientConfigBuilder:
 
     async def build(
         self,
-        *,
         provider_id: str,
         timeout: float | None = None,
     ) -> OpenAIClientConfig | None:

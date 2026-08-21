@@ -32,7 +32,7 @@ class _BackendMaintenanceGatewayAdapter:
             JSON-compatible readiness payload.
         """
         # local import justified: CLI help must not import the broad MCP gateway.
-        from app.mcp_server.tools.memory_steward_readiness_tools import (
+        from app.mcp_server.tools.memory_compacts.memory_steward_readiness_tools import (
             alexandria_memory_steward_readiness,
         )
 
@@ -61,7 +61,7 @@ class _BackendMaintenanceGatewayAdapter:
             JSON-compatible review queue payload.
         """
         # local import justified: CLI help must not import the broad MCP gateway.
-        from app.mcp_server.tools.vault_maintenance_backend_gateway import (
+        from app.mcp_server.tools.obsidian.vault_maintenance_backend_gateway import (
             alexandria_vault_review_queue,
         )
 
@@ -91,7 +91,7 @@ class _BackendMaintenanceGatewayAdapter:
             JSON-compatible move-plan payload.
         """
         # local import justified: CLI help must not import the broad MCP gateway.
-        from app.mcp_server.tools.vault_maintenance_backend_gateway import (
+        from app.mcp_server.tools.obsidian.vault_maintenance_backend_gateway import (
             alexandria_vault_review_move_plan,
         )
 
@@ -129,7 +129,7 @@ class _BackendMaintenanceGatewayAdapter:
             JSON-compatible move application payload.
         """
         # local import justified: CLI help must not import the broad MCP gateway.
-        from app.mcp_server.tools.vault_maintenance_backend_gateway import (
+        from app.mcp_server.tools.obsidian.vault_maintenance_backend_gateway import (
             alexandria_vault_review_apply_moves,
         )
 
@@ -167,7 +167,7 @@ class _BackendMaintenanceGatewayAdapter:
             JSON-compatible compact refresh payload.
         """
         # local import justified: CLI help must not import the broad MCP gateway.
-        from app.mcp_server.tools.memory_steward_readiness_tools import (
+        from app.mcp_server.tools.memory_compacts.memory_steward_readiness_tools import (
             alexandria_memory_steward_refresh_current_compact,
         )
 

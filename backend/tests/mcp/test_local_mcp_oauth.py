@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import os
-
 import base64
 import hashlib
+import os
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -13,7 +12,10 @@ import anyio
 import httpx
 import pytest
 from app.mcp_server.backend_api_client import AlexandriaApiClient, AlexandriaApiSettings
-from app.mcp_server.local_oauth.contracts import LocalOAuthClientConnectionStatus
+from app.mcp_server.local_oauth.contracts import LocalMcpOAuthSettings
+from app.mcp_server.local_oauth.local_oauth_enums import (
+    LocalOAuthClientConnectionStatus,
+)
 from app.mcp_server.local_oauth.orm import (
     McpOAuthAuthorizationCodeORM,
     McpOAuthAuthorizationRequestORM,
@@ -21,14 +23,11 @@ from app.mcp_server.local_oauth.orm import (
     McpOAuthPairingCodeORM,
     McpOAuthTokenORM,
 )
-from app.mcp_server.local_oauth.provider import (
-    LocalMcpOAuthProvider,
-    LocalMcpOAuthSettings,
-    LocalOAuthApprovalError,
-)
+from app.mcp_server.local_oauth.provider import LocalMcpOAuthProvider
+from app.mcp_server.local_oauth.provider_approval import LocalOAuthApprovalError
 from app.mcp_server.local_oauth.repository import LocalMcpOAuthRepository
 from app.mcp_server.local_oauth.runtime import LocalMcpOAuthRuntime
-from app.mcp_server.server_runtime import build_mcp_server
+from app.mcp_server.server_runtime import build_mcp_server, mcp_transport_security
 from app.platform.config.app_config import AppConfig
 from app.shared.infrastructure.database import Database
 from app.shared.security.secret_cipher import SecretCipher
@@ -305,12 +304,16 @@ def test_local_oauth_http_flow_enforces_pkce_and_bearer_auth(tmp_path: Path) -> 
     )
     server = build_mcp_server(
         client=backend_client,
-        streamable_http_path="/mcp",
-        transport_host="localhost",
         local_oauth_runtime=runtime,
     )
+    mcp_app = server.streamable_http_app(
+        streamable_http_path="/mcp",
+        json_response=True,
+        host="localhost",
+        transport_security=mcp_transport_security("localhost"),
+    )
     try:
-        with TestClient(server.streamable_http_app(), base_url=ISSUER) as client:
+        with TestClient(mcp_app, base_url=ISSUER) as client:
             registration = client.post(
                 "/register",
                 json={

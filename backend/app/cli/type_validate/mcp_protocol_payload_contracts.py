@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from typing import Annotated
 
+from pydantic import ConfigDict, field_validator
+
+from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
 from app.shared.serialization.orjson_codec import loads_json
+from app.shared.type_validation.strict_json_value import model_validate_json_value
 from app.shared.types.extra_types import JSONObject, JSONValue
 
 
-class McpProtocolPayloadSchema(BaseModel):
+class McpProtocolPayloadSchema(StrictSchemaModel):
     """Base schema for partial MCP protocol response validation."""
 
     model_config = ConfigDict(
@@ -28,20 +32,26 @@ class McpToolPayload(McpProtocolPayloadSchema):
 class McpToolsResultPayload(McpProtocolPayloadSchema):
     """Validated subset of an MCP tools/list result."""
 
-    tools: tuple[McpToolPayload, ...] = Field(default_factory=tuple)
+    tools: Annotated[
+        tuple[McpToolPayload, ...],
+        described_field("Tools for this MCP tools result payload."),
+    ] = ()
 
     @field_validator("tools", mode="before")
     @classmethod
     def _filter_tool_objects(cls, value: JSONValue) -> JSONValue:
         if isinstance(value, list):
-            return [item for item in value if isinstance(item, dict)]
+            return tuple(item for item in value if isinstance(item, dict))
         return value
 
 
 class McpToolsListResponsePayload(McpProtocolPayloadSchema):
     """Validated subset of an MCP tools/list JSON-RPC response."""
 
-    result: McpToolsResultPayload = Field(default_factory=McpToolsResultPayload)
+    result: Annotated[
+        McpToolsResultPayload,
+        described_field("Result for this MCP tools list response payload."),
+    ] = McpToolsResultPayload()
 
 
 class McpSmokeStatusPayload(McpProtocolPayloadSchema):
@@ -79,7 +89,10 @@ def mcp_tool_names(payload: JSONValue) -> set[str]:
     Returns:
         Set of exposed MCP tool names.
     """
-    response = McpToolsListResponsePayload.model_validate(_object_or_empty(payload))
+    response = model_validate_json_value(
+        McpToolsListResponsePayload,
+        _object_or_empty(payload),
+    )
     return {tool.name for tool in response.result.tools if tool.name is not None}
 
 
@@ -92,7 +105,10 @@ def mcp_smoke_ok(payload: JSONValue) -> bool:
     Returns:
         True when all required MCP tools are exposed.
     """
-    return McpSmokeStatusPayload.model_validate(_object_or_empty(payload)).ok is True
+    return (
+        model_validate_json_value(McpSmokeStatusPayload, _object_or_empty(payload)).ok
+        is True
+    )
 
 
 def _object_or_empty(payload: JSONValue) -> JSONObject:
@@ -106,6 +122,12 @@ class McpSmokeToolsResultPayload(McpProtocolPayloadSchema):
 
     ok: bool
     mcp_url: str
-    required_tools: tuple[str, ...] = Field(default_factory=tuple)
-    missing_tools: tuple[str, ...] = Field(default_factory=tuple)
+    required_tools: Annotated[
+        tuple[str, ...],
+        described_field("Required tools for this MCP smoke tools result payload."),
+    ] = ()
+    missing_tools: Annotated[
+        tuple[str, ...],
+        described_field("Missing tools for this MCP smoke tools result payload."),
+    ] = ()
     tool_count: int

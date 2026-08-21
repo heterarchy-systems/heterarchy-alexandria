@@ -5,15 +5,13 @@ from __future__ import annotations
 from html import escape
 from typing import Final
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 from starlette.datastructures import UploadFile
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, RedirectResponse, Response
 
-from app.mcp_server.local_oauth.provider import (
-    LocalMcpOAuthProvider,
-    LocalOAuthApprovalError,
-)
+from app.mcp_server.local_oauth.provider import LocalMcpOAuthProvider
+from app.mcp_server.local_oauth.provider_approval import LocalOAuthApprovalError
 
 _COMMON_SECURITY_HEADERS: Final[dict[str, str]] = {
     "Cache-Control": "no-store",
@@ -31,13 +29,13 @@ _PAGE_SECURITY_HEADERS: Final[dict[str, str]] = {
 
 
 def register_local_oauth_approval_route(
-    server: FastMCP,
+    server: MCPServer,
     provider: LocalMcpOAuthProvider,
 ) -> None:
-    """Register the public browser approval route on one FastMCP server.
+    """Register the public browser approval route on one MCPServer server.
 
     Args:
-        server: FastMCP server receiving standard OAuth routes.
+        server: MCPServer server receiving standard OAuth routes.
         provider: Local authorization provider owning pending approvals.
     """
 
@@ -89,7 +87,6 @@ def register_local_oauth_approval_route(
 
 
 def _approval_html(
-    *,
     request_id: str,
     client_name: str,
     scopes: tuple[str, ...],

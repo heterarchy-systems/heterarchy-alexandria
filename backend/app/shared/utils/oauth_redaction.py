@@ -2,35 +2,13 @@
 
 from __future__ import annotations
 
-from enum import StrEnum
 from typing import Final
 
 from app.shared.types.extra_types import JSONObject, JSONValue
-
-
-class OAuthSensitiveResponseKey(StrEnum):
-    """OAuth response fields that must not be exposed to agents."""
-
-    ACCESS_TOKEN = "access_token"
-    API_KEY = "api_key"
-    CLIENT_SECRET = "client_secret"
-    DEVICE_CODE = "device_code"
-    ID_TOKEN = "id_token"
-    OAUTH_ACCESS_TOKEN = "oauth_access_token"
-    OAUTH_DEVICE_CODE = "oauth_device_code"
-    OAUTH_REFRESH_TOKEN = "oauth_refresh_token"
-    REFRESH_TOKEN = "refresh_token"
-    SECRET = "secret"
-    SECRETS = "secrets"
-    TOKEN = "token"
-    TOKENS = "tokens"
-
-
-class OAuthDeviceUserInstructionKey(StrEnum):
-    """Device-flow instruction fields hidden except for local operator UX."""
-
-    USER_CODE = "user_code"
-    VERIFICATION_URI_COMPLETE = "verification_uri_complete"
+from app.shared.types.oauth_redaction_enums import (
+    OAuthDeviceUserInstructionKey,
+    OAuthSensitiveResponseKey,
+)
 
 
 def _normalized_key(key: str) -> str:
@@ -55,7 +33,6 @@ _OAUTH_DEVICE_USER_INSTRUCTION_NORMALIZED_KEYS: Final[frozenset[str]] = frozense
 
 def without_oauth_sensitive_fields(
     payload: JSONValue,
-    *,
     keep_device_user_instructions: bool = False,
 ) -> JSONValue:
     """Remove OAuth credential fields from agent-facing responses.

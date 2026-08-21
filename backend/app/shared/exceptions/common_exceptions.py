@@ -60,7 +60,6 @@ class RedisExceptionAware(ABC):
     @abstractmethod
     async def _apply_redis_exception_policy(
         self,
-        *,
         error: Exception,
         policy: RedisExceptionPolicy,
         message_id: str,

@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import StrEnum
 
 from app.obsidian.domain.event_enum.obsidian_enums import (
     AlexandriaNoteType,
     ObsidianEdgeSourceKind,
     ObsidianRelationType,
+)
+from app.obsidian.domain.event_enum.obsidian_graph_enums import (
+    ObsidianGraphContextSignalType,
+    ObsidianGraphDirection,
+    ObsidianGraphProjectionIssueCode,
 )
 
 
@@ -49,14 +53,6 @@ class ObsidianGraphProjection:
         """Normalize projection collections to immutable tuples."""
         object.__setattr__(self, "nodes", tuple(self.nodes))
         object.__setattr__(self, "edges", tuple(self.edges))
-
-
-class ObsidianGraphProjectionIssueCode(StrEnum):
-    """Reasons an indexed row cannot be projected without qualification."""
-
-    INDEX_ERROR = "index_error"
-    MISSING_TARGET_NOTE = "missing_target_note"
-    AMBIGUOUS_TARGET_NOTE = "ambiguous_target_note"
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -139,24 +135,6 @@ class ObsidianGraphProjectionState:
     def __post_init__(self) -> None:
         """Normalize persisted diagnostic summaries to immutable tuples."""
         object.__setattr__(self, "issue_counts", tuple(self.issue_counts))
-
-
-class ObsidianGraphDirection(StrEnum):
-    """Direction of one projected relationship relative to a requested note."""
-
-    OUTGOING = "outgoing"
-    INCOMING = "incoming"
-
-
-class ObsidianGraphContextSignalType(StrEnum):
-    """Provider-owned semantic classification for Context graph evidence."""
-
-    GRAPH_PROXIMITY = "graph_proximity"
-    LINEAGE = "lineage"
-    DUPLICATE_CANDIDATE = "duplicate_candidate"
-    SUPERSEDES_CANDIDATE = "supersedes_candidate"
-    RESUME_PATH = "resume_path"
-    IMPACT_ANALYSIS = "impact_analysis"
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

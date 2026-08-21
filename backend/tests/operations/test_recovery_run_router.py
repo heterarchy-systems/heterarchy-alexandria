@@ -7,7 +7,9 @@ from types import SimpleNamespace
 
 import anyio
 import pytest
-from app.operations.application.recovery_run_service import RecoveryRunService
+from app.operations.application.recovery.execution.recovery_run_service import (
+    RecoveryRunService,
+)
 from app.operations.domain.entities.recovery_plan import RecoverySourceSnapshot
 from app.operations.domain.entities.recovery_run import RecoveryRun
 from app.operations.domain.event_enum.operational_recovery_enums import (

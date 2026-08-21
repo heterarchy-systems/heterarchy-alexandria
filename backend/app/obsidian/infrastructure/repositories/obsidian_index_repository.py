@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.obsidian.domain.repositories.obsidian_repository import (
+from app.obsidian.domain.repositories.obsidian_index_repository import (
     IObsidianIndexRepository,
 )
 from app.obsidian.infrastructure.repositories.obsidian_index_error_store import (
@@ -30,7 +30,7 @@ class SqlAlchemyObsidianIndexRepository(
 ):
     """Assemble focused Obsidian index stores behind the stable repository API."""
 
-    def __init__(self, *, session: AsyncSession) -> None:
+    def __init__(self, session: AsyncSession) -> None:
         """Create the repository facade.
 
         Args:

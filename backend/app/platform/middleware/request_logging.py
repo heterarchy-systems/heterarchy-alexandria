@@ -27,7 +27,6 @@ from fastapi.responses import Response
 
 def install_request_logging_middleware(
     app: FastAPI,
-    *,
     logger: logging.Logger,
 ) -> None:
     """Register JSON request logging middleware on the application.

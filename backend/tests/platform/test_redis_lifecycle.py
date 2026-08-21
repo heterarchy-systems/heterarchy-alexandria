@@ -8,7 +8,7 @@ import anyio
 import app.shared.infrastructure.redis_client as redis_client_module
 import pytest
 from app.container import create_operational_readiness_cache
-from app.operations.application.operational_readiness_cache import (
+from app.operations.application.readiness.operational_readiness_cache import (
     NoopOperationalReadinessCache,
 )
 from app.operations.infrastructure.redis_operational_readiness_cache import (

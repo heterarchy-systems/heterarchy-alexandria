@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import anyio
-from app.obsidian.application.service.obsidian_note_service import ObsidianNoteService
+from app.obsidian.application.service.notes.obsidian_note_service import (
+    ObsidianNoteService,
+)
 from app.obsidian.domain.contracts.obsidian_contracts import ObsidianSearchQuery
 from app.obsidian.domain.entities.obsidian_note import ObsidianReindexResult
 from app.obsidian.infrastructure.obsidian_vault_config_store import (

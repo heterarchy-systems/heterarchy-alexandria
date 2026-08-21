@@ -16,7 +16,7 @@ from app.connections.domain.repositories.librarian_repository import (
     ILibrarianProviderRepository,
     IProviderSecretRepository,
 )
-from app.librarian.application.skill_acquisition_provider_selector import (
+from app.librarian.application.skill_acquisition.skill_acquisition_provider_selector import (
     SkillAcquisitionProviderSelector,
 )
 

@@ -31,7 +31,6 @@ class LibrarianOAuthStatusEvaluator:
 
     def evaluate(
         self,
-        *,
         provider_id: str,
         credentials: OAuthCredentialSnapshot,
         now: datetime,
@@ -121,7 +120,6 @@ class LibrarianOAuthStatusEvaluator:
 
     def payload(
         self,
-        *,
         provider_id: str,
         status: OAuthConnectionStatus,
         connected: bool,
@@ -177,7 +175,6 @@ class LibrarianOAuthStatusEvaluator:
 
     def _missing_expiry_payload(
         self,
-        *,
         provider_id: str,
         refresh_token: str | None,
     ) -> LibrarianOAuthStatusPayload:
@@ -197,7 +194,6 @@ class LibrarianOAuthStatusEvaluator:
 
     def _refresh_required_payload(
         self,
-        *,
         provider_id: str,
         expires_at: datetime | None,
     ) -> LibrarianOAuthStatusPayload:

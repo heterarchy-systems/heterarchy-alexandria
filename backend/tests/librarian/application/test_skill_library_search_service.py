@@ -5,13 +5,13 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import anyio
-from app.librarian.application.skill_library_search_service import (
+from app.librarian.application.skill_library.skill_library_search_service import (
     SkillLibrarySearchService,
 )
-from app.librarian.application.skill_library_search_contracts import (
+from app.librarian.application.skill_library.skill_library_search_contracts import (
     SkillCapabilityBrief,
-    SkillSearchDecision,
 )
+from app.librarian.domain.event_enum.skill_search_enums import SkillSearchDecision
 from app.librarian.domain.event_enum.skill_acquisition_enums import RiskLevel
 from app.obsidian.domain.entities.obsidian_note import ObsidianNote, ObsidianSearchHit
 from app.obsidian.domain.event_enum.obsidian_enums import (

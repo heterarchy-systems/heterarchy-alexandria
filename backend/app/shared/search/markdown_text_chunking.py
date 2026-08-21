@@ -20,7 +20,6 @@ class SearchTextChunk:
 
 
 def split_markdown_text(
-    *,
     title: str,
     content: str,
     max_chars: int = DEFAULT_SEARCH_CHUNK_MAX_CHARS,
@@ -75,7 +74,6 @@ def split_markdown_text(
 
 def _split_large_section(
     section: str,
-    *,
     max_chars: int,
     overlap_chars: int,
 ) -> list[str]:
@@ -102,7 +100,7 @@ def _split_large_section(
     return chunks
 
 
-def _preferred_chunk_end(section: str, *, start: int, hard_end: int) -> int:
+def _preferred_chunk_end(section: str, start: int, hard_end: int) -> int:
     if hard_end >= len(section):
         return len(section)
     minimum_end = start + ((hard_end - start) // 2)

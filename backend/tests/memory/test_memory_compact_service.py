@@ -7,15 +7,17 @@ from pathlib import Path
 
 import anyio
 import pytest
-from app.memory.application.memory_compact_review_contracts import (
+from app.memory.application.memory_compacts.review.memory_compact_review_contracts import (
     MemoryCompactSourceObservation,
 )
-from app.memory.application.memory_compact_service import MemoryCompactService
+from app.memory.application.memory_compacts.lifecycle.memory_compact_service import (
+    MemoryCompactService,
+)
 from app.memory.domain.event_enum.memory_compact_enums import (
     MemoryCompactReviewVerdict,
     MemoryCompactStatus,
 )
-from app.memory.domain.repositories.memory_compact_repository_contracts import (
+from app.memory.domain.repositories.memory_compacts.memory_compact_repository_contracts import (
     MemoryCompactCreate,
     MemoryCompactSourceRefCreate,
 )

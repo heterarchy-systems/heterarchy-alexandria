@@ -72,7 +72,6 @@ class ReconciliationConflictStore:
 
     async def list(
         self,
-        *,
         status: MemoryConflictStatus | None = None,
         limit: int = 100,
     ) -> list[MemoryConflictSet]:

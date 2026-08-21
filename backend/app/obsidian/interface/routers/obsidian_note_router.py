@@ -1,42 +1,46 @@
 """Note, search, and graph routes for Obsidian-backed Alexandria storage."""
 
-from __future__ import annotations
+from typing import Annotated
 
 from app.container import ApplicationContainer
 from app.obsidian.application.graph.obsidian_graph_service import ObsidianGraphService
-from app.obsidian.application.service.obsidian_canonical_identity_service import (
+from app.obsidian.application.service.notes.obsidian_canonical_identity_service import (
     ObsidianCanonicalIdentityService,
-)
-from app.obsidian.application.service.obsidian_report_bundle_service import (
-    ObsidianReportBundleService,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.obsidian.domain.event_enum.obsidian_enums import ObsidianWriteMode
-from app.obsidian.interface.schemas.obsidian.obsidian_schema import (
+from app.obsidian.interface.routers.obsidian_report_bundle_router import (
+    router as report_bundle_router,
+)
+from app.obsidian.interface.schemas.obsidian.obsidian_note_write_schema import (
+    ObsidianNoteWriteResponse,
+    ObsidianSaveNoteRequest,
+    ObsidianWriteNoteRequest,
+)
+from app.obsidian.interface.schemas.obsidian.obsidian_path_identity_schema import (
     ObsidianCanonicalIdentityRequest,
     ObsidianCanonicalIdentityResponse,
     ObsidianExactPathStatusResponse,
-    ObsidianNoteResponse,
-    ObsidianNoteWriteResponse,
+)
+from app.obsidian.interface.schemas.obsidian.obsidian_schema import ObsidianNoteResponse
+from app.obsidian.interface.schemas.obsidian.obsidian_search_schema import (
     ObsidianRelatedNoteResponse,
     ObsidianRelatedNotesResponse,
-    ObsidianReportBundleRequestSchema,
-    ObsidianReportBundleResponse,
-    ObsidianSaveNoteRequest,
     ObsidianSearchHitResponse,
     ObsidianSearchRequest,
     ObsidianSearchResponse,
-    ObsidianWriteNoteRequest,
 )
 from app.shared.exceptions.exception_decorators import router_exception_status
 from app.shared.exceptions.route_exceptions import (
     OBSIDIAN_ROUTE_EXCEPTION_MAPPING,
     OBSIDIAN_SAVE_ROUTE_EXCEPTION_MAPPING,
 )
+from app.shared.type_validation.strict_json_body import model_validate_json_body
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, Query, status
 
 router = APIRouter()
+router.include_router(report_bundle_router)
 
 
 @router.post(
@@ -49,10 +53,13 @@ router = APIRouter()
 @router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def search_obsidian_notes(
-    request: ObsidianSearchRequest,
-    service: ObsidianService = Depends(
-        Provide[ApplicationContainer.obsidian.obsidian_service]
-    ),
+    request: Annotated[
+        ObsidianSearchRequest, Depends(model_validate_json_body(ObsidianSearchRequest))
+    ],
+    service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
 ) -> ObsidianSearchResponse:
     """Search indexed Obsidian notes.
 
@@ -78,11 +85,12 @@ async def search_obsidian_notes(
 @router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def related_obsidian_notes_by_path(
+    service: Annotated[
+        ObsidianGraphService,
+        Depends(Provide[ApplicationContainer.obsidian.graph_service]),
+    ],
     path: str = Query(min_length=1),
     limit: int = Query(default=10, ge=1, le=50),
-    service: ObsidianGraphService = Depends(
-        Provide[ApplicationContainer.obsidian.graph_service]
-    ),
 ) -> ObsidianRelatedNotesResponse:
     """Return related notes for one path.
 
@@ -109,10 +117,11 @@ async def related_obsidian_notes_by_path(
 @router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def read_obsidian_note_by_path(
+    service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
     path: str = Query(min_length=1),
-    service: ObsidianService = Depends(
-        Provide[ApplicationContainer.obsidian.obsidian_service]
-    ),
 ) -> ObsidianNoteResponse:
     """Read one Obsidian note by path.
 
@@ -137,10 +146,11 @@ async def read_obsidian_note_by_path(
 @router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def check_obsidian_note_path(
+    service: Annotated[
+        ObsidianCanonicalIdentityService,
+        Depends(Provide[ApplicationContainer.obsidian.canonical_identity_service]),
+    ],
     path: str = Query(min_length=1),
-    service: ObsidianCanonicalIdentityService = Depends(
-        Provide[ApplicationContainer.obsidian.canonical_identity_service]
-    ),
 ) -> ObsidianExactPathStatusResponse:
     """Check one exact canonical managed path without fuzzy matching.
 
@@ -168,10 +178,14 @@ async def check_obsidian_note_path(
 @router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def resolve_obsidian_canonical_identity(
-    request: ObsidianCanonicalIdentityRequest,
-    service: ObsidianCanonicalIdentityService = Depends(
-        Provide[ApplicationContainer.obsidian.canonical_identity_service]
-    ),
+    request: Annotated[
+        ObsidianCanonicalIdentityRequest,
+        Depends(model_validate_json_body(ObsidianCanonicalIdentityRequest)),
+    ],
+    service: Annotated[
+        ObsidianCanonicalIdentityService,
+        Depends(Provide[ApplicationContainer.obsidian.canonical_identity_service]),
+    ],
 ) -> ObsidianCanonicalIdentityResponse:
     """Resolve one logical report identity into a canonical family and path.
 
@@ -203,10 +217,11 @@ async def resolve_obsidian_canonical_identity(
 @inject
 async def related_obsidian_notes(
     note_id: str,
+    service: Annotated[
+        ObsidianGraphService,
+        Depends(Provide[ApplicationContainer.obsidian.graph_service]),
+    ],
     limit: int = Query(default=10, ge=1, le=50),
-    service: ObsidianGraphService = Depends(
-        Provide[ApplicationContainer.obsidian.graph_service]
-    ),
 ) -> ObsidianRelatedNotesResponse:
     """Return related notes for one stable note id.
 
@@ -234,9 +249,10 @@ async def related_obsidian_notes(
 @inject
 async def read_obsidian_note(
     note_id: str,
-    service: ObsidianService = Depends(
-        Provide[ApplicationContainer.obsidian.obsidian_service]
-    ),
+    service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
 ) -> ObsidianNoteResponse:
     """Read one Obsidian note by id.
 
@@ -261,10 +277,14 @@ async def read_obsidian_note(
 @router_exception_status(OBSIDIAN_SAVE_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def save_obsidian_note(
-    request: ObsidianSaveNoteRequest,
-    service: ObsidianService = Depends(
-        Provide[ApplicationContainer.obsidian.obsidian_service]
-    ),
+    request: Annotated[
+        ObsidianSaveNoteRequest,
+        Depends(model_validate_json_body(ObsidianSaveNoteRequest)),
+    ],
+    service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
 ) -> ObsidianNoteResponse:
     """Save one Obsidian Markdown note.
 
@@ -298,10 +318,14 @@ async def _write_obsidian_note(
 @router_exception_status(OBSIDIAN_SAVE_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def create_obsidian_note(
-    request: ObsidianWriteNoteRequest,
-    service: ObsidianService = Depends(
-        Provide[ApplicationContainer.obsidian.obsidian_service]
-    ),
+    request: Annotated[
+        ObsidianWriteNoteRequest,
+        Depends(model_validate_json_body(ObsidianWriteNoteRequest)),
+    ],
+    service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
 ) -> ObsidianNoteWriteResponse:
     """Create one canonical note with exact identity semantics.
 
@@ -325,10 +349,14 @@ async def create_obsidian_note(
 @router_exception_status(OBSIDIAN_SAVE_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def update_obsidian_note(
-    request: ObsidianWriteNoteRequest,
-    service: ObsidianService = Depends(
-        Provide[ApplicationContainer.obsidian.obsidian_service]
-    ),
+    request: Annotated[
+        ObsidianWriteNoteRequest,
+        Depends(model_validate_json_body(ObsidianWriteNoteRequest)),
+    ],
+    service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
 ) -> ObsidianNoteWriteResponse:
     """Update one existing canonical note with exact identity semantics.
 
@@ -352,10 +380,14 @@ async def update_obsidian_note(
 @router_exception_status(OBSIDIAN_SAVE_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def upsert_obsidian_note(
-    request: ObsidianWriteNoteRequest,
-    service: ObsidianService = Depends(
-        Provide[ApplicationContainer.obsidian.obsidian_service]
-    ),
+    request: Annotated[
+        ObsidianWriteNoteRequest,
+        Depends(model_validate_json_body(ObsidianWriteNoteRequest)),
+    ],
+    service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
 ) -> ObsidianNoteWriteResponse:
     """Create or update one canonical note without ambiguous identity fallback.
 
@@ -367,34 +399,3 @@ async def upsert_obsidian_note(
         Result produced by upsert_obsidian_note.
     """
     return await _write_obsidian_note(request, service, ObsidianWriteMode.UPSERT)
-
-
-@router.post(
-    "/report-bundles/upsert",
-    response_model=ObsidianReportBundleResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Upsert an idempotent report bundle",
-    description=(
-        "Preflight owners, upsert one canonical Source, update owner links, "
-        "reindex PostgreSQL and graph projection, then verify incoming edges."
-    ),
-)
-@router_exception_status(OBSIDIAN_SAVE_ROUTE_EXCEPTION_MAPPING)
-@inject
-async def upsert_obsidian_report_bundle(
-    request: ObsidianReportBundleRequestSchema,
-    service: ObsidianReportBundleService = Depends(
-        Provide[ApplicationContainer.obsidian.report_bundle_service]
-    ),
-) -> ObsidianReportBundleResponse:
-    """Execute one durable report bundle operation.
-
-    Args:
-        request: Value supplied to upsert_obsidian_report_bundle.
-        service: Value supplied to upsert_obsidian_report_bundle.
-
-    Returns:
-        Result produced by upsert_obsidian_report_bundle.
-    """
-    result = await service.upsert(request.to_command())
-    return ObsidianReportBundleResponse.from_entity(result)

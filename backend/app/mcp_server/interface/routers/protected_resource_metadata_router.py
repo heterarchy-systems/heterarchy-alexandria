@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 from app.mcp_server.protected_resource_metadata import protected_resource_metadata
-from app.mcp_server.type_validate.auth_contracts import (
+from app.mcp_server.type_validate.oauth.auth_contracts import (
     MCP_OAUTH_PROTECTED_RESOURCE_PATH,
 )
-from app.platform.config.app_config import AppConfig
+from app.mcp_server.type_validate.oauth.config_contracts import (
+    DefaultMcpProtectedResourceConfig,
+    McpProtectedResourceConfig,
+)
 from app.shared.types.extra_types import JSONObject
 from fastapi import APIRouter, Request
 
@@ -24,7 +29,7 @@ def read_mcp_protected_resource_metadata(request: Request) -> JSONObject:
         OAuth protected-resource metadata payload.
     """
     try:
-        config = request.app.state.app_config
+        config = cast(McpProtectedResourceConfig, request.app.state.app_config)
     except AttributeError:
-        config = AppConfig()
+        config = DefaultMcpProtectedResourceConfig()
     return protected_resource_metadata(request, config)

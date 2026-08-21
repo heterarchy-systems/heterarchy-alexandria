@@ -15,6 +15,7 @@ from app.memory.infrastructure.repositories.memory_compacts.critical_task import
 from app.memory.infrastructure.repositories.memory_compacts.obsidian_markdown_path_policy import (
     resolve_base_dir,
 )
+from asyncer import asyncify
 
 _CREATION_LOCK_NAME = ".memory-compact-creation.lock"
 _LOCK_RETRY_DELAY_SECONDS = 0.01
@@ -23,7 +24,7 @@ _LOCK_RETRY_DELAY_SECONDS = 0.01
 class MemoryCompactCreationLock:
     """Serialize Memory Compact check-and-create sections across processes."""
 
-    def __init__(self, *, vault_path: str | Path, relative_dir: str | Path) -> None:
+    def __init__(self, vault_path: str | Path, relative_dir: str | Path) -> None:
         """Resolve the concept-owned lock beside canonical compact notes.
 
         Args:
@@ -44,11 +45,11 @@ class MemoryCompactCreationLock:
         try:
             yield
         finally:
-            release_task = asyncio.create_task(asyncio.to_thread(_release, descriptor))
+            release_task = asyncio.ensure_future(asyncify(_release)(descriptor))
             await wait_for_critical_task(release_task)
 
     async def _acquire_without_cancellation_leak(self) -> int:
-        open_task = asyncio.create_task(asyncio.to_thread(self._open_descriptor))
+        open_task = asyncio.ensure_future(asyncify(self._open_descriptor)())
         try:
             descriptor = await wait_for_critical_task(open_task)
         except asyncio.CancelledError:

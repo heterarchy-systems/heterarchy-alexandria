@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from app.platform.lifecycle.dependency_health import DependencyHealthStatus
+from app.platform.lifecycle.dependency_health_enums import DependencyHealthStatus
+from app.platform.lifecycle.lifecycle_enums import LifecycleStatus
 from app.platform.lifecycle.snapshot import LifecycleSnapshot
-from app.platform.lifecycle.status import LifecycleStatus
-from pydantic import BaseModel, ConfigDict, StrictBool, StrictStr
+from app.shared.schemas.common_schemas import StrictSchemaModel
+from pydantic import ConfigDict, StrictBool, StrictStr
 
 
-class HealthPayloadModel(BaseModel):
+class HealthPayloadModel(StrictSchemaModel):
     """Common Pydantic settings shared by health payload models."""
 
     model_config = ConfigDict(

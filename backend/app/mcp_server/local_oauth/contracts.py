@@ -3,25 +3,30 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
-from enum import StrEnum
+from dataclasses import dataclass, field
 
+from app.mcp_server.local_oauth.local_oauth_enums import (
+    LocalOAuthClientConnectionStatus,
+    LocalOAuthTokenKind,
+)
 from app.shared.types.extra_types import JSONValue
 
 
-class LocalOAuthTokenKind(StrEnum):
-    """Persisted opaque token categories."""
+@dataclass(frozen=True, slots=True)
+class LocalMcpOAuthSettings:
+    """Security and expiry policy for one local MCP authorization server."""
 
-    ACCESS = "access"
-    REFRESH = "refresh"
-
-
-class LocalOAuthClientConnectionStatus(StrEnum):
-    """Public-safe lifecycle state for one registered MCP OAuth client."""
-
-    REGISTERED = "registered"
-    CONNECTED = "connected"
-    EXPIRED = "expired"
+    issuer_url: str
+    resource_url: str
+    required_scopes: tuple[str, ...]
+    default_scopes: tuple[str, ...]
+    access_token_ttl_seconds: int
+    refresh_token_ttl_seconds: int
+    authorization_code_ttl_seconds: int
+    approval_ttl_seconds: int
+    pairing_code_ttl_seconds: int
+    max_approval_attempts: int
+    approval_key: str = field(repr=False)
 
 
 @dataclass(frozen=True, slots=True)

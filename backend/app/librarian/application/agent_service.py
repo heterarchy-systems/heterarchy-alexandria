@@ -9,7 +9,7 @@ from app.connections.domain.repositories.librarian_repository import (
     ILibrarianProviderRepository,
     IProviderSecretRepository,
 )
-from app.librarian.application.agent_provider_assignment_policy import (
+from app.librarian.application.routing.agent_provider_assignment_policy import (
     AgentProviderAssignmentPolicy,
 )
 from app.librarian.domain.contracts.agent_contracts import AgentCreate, AgentUpdate

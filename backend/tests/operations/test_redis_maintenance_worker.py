@@ -19,7 +19,7 @@ from app.operations.domain.event_enum.maintenance_job_enums import (
     MaintenanceJobKind,
     MaintenanceJobStatus,
 )
-from app.operations.infrastructure.redis_maintenance_job_queue import (
+from app.operations.infrastructure.redis_maintenance_job_consumer import (
     RedisMaintenanceJobConsumer,
 )
 from app.operations.workers.redis_maintenance_worker import (

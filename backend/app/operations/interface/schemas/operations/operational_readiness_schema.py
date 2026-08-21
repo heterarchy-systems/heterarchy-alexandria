@@ -2,34 +2,23 @@
 
 from __future__ import annotations
 
-from pydantic import Field
+from typing import Annotated
 
 from app.memory.interface.schemas.context.context_mapping import source_status_payload
-from app.memory.interface.schemas.context.context_schema import (
+from app.memory.interface.schemas.context.context_retrieval_schema import (
     ContextEmbeddingSourceStatusResponse,
-)
-from app.operations.application.operational_overall_readiness import (
-    overall_readiness_status,
-)
-from app.operations.domain.entities.operational_data_integrity import (
-    OperationalDataIntegritySnapshot,
 )
 from app.operations.domain.entities.operational_readiness import (
     OperationalDatabaseSnapshot,
     OperationalRagSnapshot,
-    OperationalReadinessSnapshot,
     OperationalReconciliationSnapshot,
     OperationalVaultSnapshot,
 )
-from app.operations.domain.event_enum.operational_data_integrity_enums import (
-    OperationalDataIntegrityStatus,
-    OperationalDataIntegrityWarningCode,
+from app.shared.schemas.common_schemas import (
+    StrictSchemaModel,
+    described_field,
+    schema_list_default,
 )
-from app.operations.domain.event_enum.operational_readiness_enums import (
-    OperationalOverallStatus,
-    OperationalReadinessStatus,
-)
-from app.shared.schemas.common_schemas import StrictSchemaModel
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 from app.shared.types.extra_types import JSONObject
 
@@ -37,14 +26,39 @@ from app.shared.types.extra_types import JSONObject
 class OperationalVaultSnapshotResponse(StrictSchemaModel):
     """Vault state in the operational readiness response."""
 
-    exists: bool
-    readable: bool
-    vault_path: str
-    alexandria_root: str
-    alexandria_root_exists: bool
-    indexed_notes: int
-    stale_notes: int
-    error_notes: int
+    exists: Annotated[
+        bool, described_field("Exists for this operational vault snapshot response.")
+    ]
+    readable: Annotated[
+        bool, described_field("Readable for this operational vault snapshot response.")
+    ]
+    vault_path: Annotated[
+        str, described_field("Vault path for this operational vault snapshot response.")
+    ]
+    alexandria_root: Annotated[
+        str,
+        described_field(
+            "Alexandria root for this operational vault snapshot response."
+        ),
+    ]
+    alexandria_root_exists: Annotated[
+        bool,
+        described_field(
+            "Alexandria root exists for this operational vault snapshot response."
+        ),
+    ]
+    indexed_notes: Annotated[
+        int,
+        described_field("Indexed notes for this operational vault snapshot response."),
+    ]
+    stale_notes: Annotated[
+        int,
+        described_field("Stale notes for this operational vault snapshot response."),
+    ]
+    error_notes: Annotated[
+        int,
+        described_field("Error notes for this operational vault snapshot response."),
+    ]
 
     @classmethod
     def from_entity(
@@ -74,10 +88,26 @@ class OperationalVaultSnapshotResponse(StrictSchemaModel):
 class OperationalDatabaseSnapshotResponse(StrictSchemaModel):
     """Database state in the operational readiness response."""
 
-    reachable: bool
-    integrity: str
-    schema_version: str | None
-    corruption_detected: bool = False
+    reachable: Annotated[
+        bool,
+        described_field("Reachable for this operational database snapshot response."),
+    ]
+    integrity: Annotated[
+        str,
+        described_field("Integrity for this operational database snapshot response."),
+    ]
+    schema_version: Annotated[
+        str | None,
+        described_field(
+            "Schema version for this operational database snapshot response."
+        ),
+    ]
+    corruption_detected: Annotated[
+        bool,
+        described_field(
+            "Corruption detected for this operational database snapshot response."
+        ),
+    ] = False
 
     @classmethod
     def from_entity(
@@ -103,17 +133,39 @@ class OperationalDatabaseSnapshotResponse(StrictSchemaModel):
 class OperationalRagSnapshotResponse(StrictSchemaModel):
     """RAG state in the operational readiness response."""
 
-    fts: str
-    vector: str
-    embedding: str
-    effective_strategy: str
-    model_name: str
-    dimensions: int
-    fingerprint: JSONObject | None
-    source_statuses: list[ContextEmbeddingSourceStatusResponse] = Field(
-        default_factory=list
-    )
-    warnings: list[str] = Field(default_factory=list)
+    fts: Annotated[
+        str, described_field("FTS for this operational RAG snapshot response.")
+    ]
+    vector: Annotated[
+        str, described_field("Vector for this operational RAG snapshot response.")
+    ]
+    embedding: Annotated[
+        str, described_field("Embedding for this operational RAG snapshot response.")
+    ]
+    effective_strategy: Annotated[
+        str,
+        described_field(
+            "Effective strategy for this operational RAG snapshot response."
+        ),
+    ]
+    model_name: Annotated[
+        str, described_field("Model name for this operational RAG snapshot response.")
+    ]
+    dimensions: Annotated[
+        int, described_field("Dimensions for this operational RAG snapshot response.")
+    ]
+    fingerprint: Annotated[
+        JSONObject | None,
+        described_field("Fingerprint for this operational RAG snapshot response."),
+    ]
+    source_statuses: Annotated[
+        list[ContextEmbeddingSourceStatusResponse],
+        described_field("Source statuses for this operational RAG snapshot response."),
+    ] = schema_list_default()
+    warnings: Annotated[
+        list[str],
+        described_field("Warnings for this operational RAG snapshot response."),
+    ] = schema_list_default()
 
     @classmethod
     def from_entity(
@@ -149,22 +201,102 @@ class OperationalRagSnapshotResponse(StrictSchemaModel):
 class OperationalReconciliationSnapshotResponse(StrictSchemaModel):
     """Memory reconciliation state in the operational readiness response."""
 
-    configured: bool
-    reachable: bool
-    total_contexts: int
-    temporal_state_count: int
-    missing_temporal_states: int
-    backfill_complete: bool
-    total_plans: int
-    pending_review_plans: int
-    total_results: int
-    partial_apply_results: int
-    failed_results: int
-    open_conflicts: int
-    reviewing_conflicts: int
-    hard_delete_results: int
-    latest_failure_code: str | None
-    latest_failure_at: AwareTimestamp | None
+    configured: Annotated[
+        bool,
+        described_field(
+            "Configured for this operational reconciliation snapshot response."
+        ),
+    ]
+    reachable: Annotated[
+        bool,
+        described_field(
+            "Reachable for this operational reconciliation snapshot response."
+        ),
+    ]
+    total_contexts: Annotated[
+        int,
+        described_field(
+            "Total contexts for this operational reconciliation snapshot response."
+        ),
+    ]
+    temporal_state_count: Annotated[
+        int,
+        described_field(
+            "Temporal state count for this operational reconciliation snapshot response."
+        ),
+    ]
+    missing_temporal_states: Annotated[
+        int,
+        described_field(
+            "Missing temporal states for this operational reconciliation snapshot response."
+        ),
+    ]
+    backfill_complete: Annotated[
+        bool,
+        described_field(
+            "Backfill complete for this operational reconciliation snapshot response."
+        ),
+    ]
+    total_plans: Annotated[
+        int,
+        described_field(
+            "Total plans for this operational reconciliation snapshot response."
+        ),
+    ]
+    pending_review_plans: Annotated[
+        int,
+        described_field(
+            "Pending review plans for this operational reconciliation snapshot response."
+        ),
+    ]
+    total_results: Annotated[
+        int,
+        described_field(
+            "Total results for this operational reconciliation snapshot response."
+        ),
+    ]
+    partial_apply_results: Annotated[
+        int,
+        described_field(
+            "Partial apply results for this operational reconciliation snapshot response."
+        ),
+    ]
+    failed_results: Annotated[
+        int,
+        described_field(
+            "Failed results for this operational reconciliation snapshot response."
+        ),
+    ]
+    open_conflicts: Annotated[
+        int,
+        described_field(
+            "Open conflicts for this operational reconciliation snapshot response."
+        ),
+    ]
+    reviewing_conflicts: Annotated[
+        int,
+        described_field(
+            "Reviewing conflicts for this operational reconciliation snapshot response."
+        ),
+    ]
+    hard_delete_results: Annotated[
+        int,
+        described_field(
+            "Hard delete results for this operational reconciliation snapshot response."
+        ),
+    ]
+    latest_failure_code: Annotated[
+        str | None,
+        described_field(
+            "Latest failure code for this operational reconciliation snapshot response."
+        ),
+    ]
+    latest_failure_at: Annotated[
+        AwareTimestamp | None,
+        described_field(
+            "Latest failure at for this operational reconciliation snapshot response."
+        ),
+    ]
 
     @classmethod
     def from_entity(
@@ -196,107 +328,4 @@ class OperationalReconciliationSnapshotResponse(StrictSchemaModel):
             hard_delete_results=snapshot.hard_delete_results,
             latest_failure_code=snapshot.latest_failure_code,
             latest_failure_at=snapshot.latest_failure_at,
-        )
-
-
-class OperationalDataIntegrityWarningResponse(StrictSchemaModel):
-    """One aggregated canonical-data warning."""
-
-    code: OperationalDataIntegrityWarningCode
-    count: int
-    note_paths: list[str] = Field(default_factory=list)
-    fields: list[str] = Field(default_factory=list)
-
-
-class OperationalDataIntegritySnapshotResponse(StrictSchemaModel):
-    """Canonical managed-note integrity independent of infrastructure."""
-
-    status: OperationalDataIntegrityStatus = OperationalDataIntegrityStatus.NOT_CHECKED
-    scanned_notes: int = 0
-    warnings: list[OperationalDataIntegrityWarningResponse] = Field(
-        default_factory=list
-    )
-
-    @classmethod
-    def from_entity(
-        cls,
-        snapshot: OperationalDataIntegritySnapshot,
-    ) -> OperationalDataIntegritySnapshotResponse:
-        """Map the internal integrity snapshot to the HTTP contract.
-
-        Args:
-            snapshot: Internal data-integrity diagnostic snapshot.
-
-        Returns:
-            HTTP data-integrity response.
-        """
-        return cls(
-            status=snapshot.status,
-            scanned_notes=snapshot.scanned_notes,
-            warnings=[
-                OperationalDataIntegrityWarningResponse(
-                    code=warning.code,
-                    count=warning.count,
-                    note_paths=list(warning.note_paths),
-                    fields=list(warning.fields),
-                )
-                for warning in snapshot.warnings
-            ],
-        )
-
-
-class OperationalReadinessSnapshotResponse(StrictSchemaModel):
-    """Read-only operational readiness response."""
-
-    status: OperationalReadinessStatus
-    overall_status: OperationalOverallStatus
-    ready: bool
-    checked_at: AwareTimestamp
-    duration_ms: int
-    vault: OperationalVaultSnapshotResponse
-    database: OperationalDatabaseSnapshotResponse
-    rag: OperationalRagSnapshotResponse
-    reconciliation: OperationalReconciliationSnapshotResponse
-    active_recovery_run_id: str | None = None
-    last_successful_recovery_run_id: str | None = None
-    warnings: list[str] = Field(default_factory=list)
-    blockers: list[str] = Field(default_factory=list)
-    next_actions: list[str] = Field(default_factory=list)
-    data_integrity: OperationalDataIntegritySnapshotResponse = Field(
-        default_factory=OperationalDataIntegritySnapshotResponse
-    )
-
-    @classmethod
-    def from_entity(
-        cls,
-        snapshot: OperationalReadinessSnapshot,
-    ) -> OperationalReadinessSnapshotResponse:
-        """Create response schema from read model.
-
-        Args:
-            snapshot: Operational readiness read model.
-
-        Returns:
-            Operational readiness response schema.
-        """
-        return cls(
-            status=snapshot.status,
-            overall_status=overall_readiness_status(snapshot),
-            ready=snapshot.ready,
-            checked_at=snapshot.checked_at,
-            duration_ms=snapshot.duration_ms,
-            vault=OperationalVaultSnapshotResponse.from_entity(snapshot.vault),
-            database=OperationalDatabaseSnapshotResponse.from_entity(snapshot.database),
-            rag=OperationalRagSnapshotResponse.from_entity(snapshot.rag),
-            reconciliation=OperationalReconciliationSnapshotResponse.from_entity(
-                snapshot.reconciliation
-            ),
-            active_recovery_run_id=snapshot.active_recovery_run_id,
-            last_successful_recovery_run_id=snapshot.last_successful_recovery_run_id,
-            warnings=list(snapshot.warnings),
-            blockers=list(snapshot.blockers),
-            next_actions=list(snapshot.next_actions),
-            data_integrity=OperationalDataIntegritySnapshotResponse.from_entity(
-                snapshot.data_integrity
-            ),
         )

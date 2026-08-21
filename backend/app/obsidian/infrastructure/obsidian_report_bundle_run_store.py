@@ -14,7 +14,7 @@ from app.shared.types.extra_types import JSONObject
 class ObsidianReportBundleRunStore:
     """Persist non-canonical operation state outside the managed Markdown root."""
 
-    def __init__(self, *, vault_path: Path) -> None:
+    def __init__(self, vault_path: Path) -> None:
         self._root = vault_path / ".alexandria" / "report-bundle-runs"
 
     def load(self, idempotency_key: str) -> JSONObject | None:

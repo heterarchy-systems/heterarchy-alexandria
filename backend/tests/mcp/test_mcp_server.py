@@ -13,26 +13,30 @@ from app.mcp_server.backend_api_client import (
     AlexandriaApiClient,
     AlexandriaApiSettings,
 )
-from app.mcp_server.server_runtime import build_mcp_server
-from app.mcp_server.tools.context_backend_gateway import (
+from app.mcp_server.server_runtime import (
+    DEFAULT_MCP_TRANSPORT_HOST,
+    build_mcp_server,
+    mcp_transport_security,
+)
+from app.mcp_server.tools.contexts.context_backend_gateway import (
     alexandria_archive_context,
     alexandria_delete_context,
     alexandria_rag_status,
     alexandria_search,
     alexandria_supersede_context,
 )
-from app.mcp_server.tools.memory_compact_tools import (
+from app.mcp_server.tools.memory_compacts.memory_compact_tools import (
     alexandria_create_memory_compact,
     alexandria_get_current_memory_compact,
     alexandria_get_memory_compact,
     alexandria_list_memory_compact_artifacts,
     alexandria_review_memory_compact,
 )
-from app.mcp_server.tools.memory_steward_readiness_tools import (
+from app.mcp_server.tools.memory_compacts.memory_steward_readiness_tools import (
     alexandria_memory_steward_readiness,
     alexandria_memory_steward_refresh_current_compact,
 )
-from app.mcp_server.tools.obsidian_backend_gateway import (
+from app.mcp_server.tools.obsidian.obsidian_backend_gateway import (
     alexandria_check_path_exists,
     alexandria_create_note,
     alexandria_get_related_notes,
@@ -43,17 +47,7 @@ from app.mcp_server.tools.obsidian_backend_gateway import (
     alexandria_upsert_note,
     alexandria_upsert_report_bundle,
 )
-from app.mcp_server.tools.operations_backend_gateway import (
-    alexandria_operational_readiness,
-    alexandria_recover,
-    alexandria_recovery_run_status,
-)
-from app.mcp_server.tools.skill_backend_gateway import (
-    alexandria_search_skills,
-    alexandria_skill_acquisition_job_status,
-    alexandria_start_skill_acquisition,
-)
-from app.mcp_server.tools.vault_maintenance_backend_gateway import (
+from app.mcp_server.tools.obsidian.vault_maintenance_backend_gateway import (
     alexandria_get_graph_build_status,
     alexandria_get_graph_projection_status,
     alexandria_rebuild_graph_projection,
@@ -68,13 +62,26 @@ from app.mcp_server.tools.vault_maintenance_backend_gateway import (
     alexandria_vault_review_move_plan,
     alexandria_vault_review_queue,
 )
+from app.mcp_server.tools.operations.operations_backend_gateway import (
+    alexandria_operational_readiness,
+    alexandria_recover,
+    alexandria_recovery_run_status,
+)
+from app.mcp_server.tools.skills.skill_backend_gateway import (
+    alexandria_search_skills,
+    alexandria_skill_acquisition_job_status,
+    alexandria_start_skill_acquisition,
+)
 from app.memory.domain.event_enum.context_enums import (
     ContextRecallLifecycleStatus,
+    RagStrategy,
 )
 from app.memory.domain.event_enum.memory_compact_enums import (
     MemoryCompactStatus,
 )
-from app.memory.interface.schemas.context.context_schema import ContextSearchRequest
+from app.memory.interface.schemas.context.context_retrieval_schema import (
+    ContextSearchRequest,
+)
 from app.platform.config.app_config import AppConfig
 from app.shared.serialization.orjson_codec import dumps_json, loads_json
 from app.shared.types.extra_types import JSONValue
@@ -277,7 +284,9 @@ def test_mcp_client_sends_backend_http_without_custom_auth_headers() -> None:
     payload = _run_json(
         alexandria_search(
             client,
-            ContextSearchRequest(query="context recall", limit=3, strategy="FTS_ONLY"),
+            ContextSearchRequest(
+                query="context recall", limit=3, strategy=RagStrategy.FTS_ONLY
+            ),
         )
     )
 
@@ -2167,13 +2176,13 @@ def test_fastapi_app_accepts_tunnel_host_for_streamable_http_mcp() -> None:
     assert response.json()["result"]["serverInfo"]["name"] == "heterarchy-alexandria"
 
 
-def test_fastmcp_server_uses_tunnel_compatible_transport_host() -> None:
-    """FastMCP should not install localhost-only Host protection for tunnels."""
-    client, _ = _client()
-    server = build_mcp_server(client=client)
+def test_mcp_v2_transport_security_allows_tunnel_host() -> None:
+    """Non-local binds should explicitly disable localhost-only protection."""
+    tunnel_security = mcp_transport_security(DEFAULT_MCP_TRANSPORT_HOST)
 
-    assert server.settings.host == "0.0.0.0"
-    assert server.settings.transport_security is None
+    assert tunnel_security is not None
+    assert tunnel_security.enable_dns_rebinding_protection is False
+    assert mcp_transport_security("localhost") is None
 
 
 def test_fastmcp_server_registers_required_alexandria_tools() -> None:

@@ -35,7 +35,6 @@ class ObsidianVaultConfigStore:
 
     def __init__(
         self,
-        *,
         default_vault_path: str,
         default_alexandria_root: str,
         config_path: str | None,
@@ -77,9 +76,7 @@ class ObsidianVaultConfigStore:
             alexandria_root=payload["alexandria_root"],
         )
 
-    def normalized(
-        self, *, vault_path: str, alexandria_root: str
-    ) -> ObsidianVaultConfig:
+    def normalized(self, vault_path: str, alexandria_root: str) -> ObsidianVaultConfig:
         """Normalize raw vault settings without persisting them.
 
         Args:
@@ -119,7 +116,7 @@ class ObsidianVaultConfigStore:
         temp_path.write_bytes(dumps_pretty_json(payload))
         temp_path.replace(self._config_path)
 
-    def update(self, *, vault_path: str, alexandria_root: str) -> ObsidianVaultConfig:
+    def update(self, vault_path: str, alexandria_root: str) -> ObsidianVaultConfig:
         """Normalize and persist a runtime vault override.
 
         Args:

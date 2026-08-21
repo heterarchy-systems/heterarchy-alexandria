@@ -16,11 +16,15 @@ from app.connections.infrastructure.librarians.openai_skill_acquisition_executor
     OpenAISkillAcquisitionExecutor,
 )
 from app.librarian.application.agent_service import AgentService
-from app.librarian.application.hermes_collaboration_service import (
+from app.librarian.application.delegation.hermes_collaboration_service import (
     HermesCollaborationService,
 )
-from app.librarian.application.skill_acquisition_runner import SkillAcquisitionRunner
-from app.librarian.application.skill_acquisition_service import SkillAcquisitionService
+from app.librarian.application.skill_acquisition.skill_acquisition_runner import (
+    SkillAcquisitionRunner,
+)
+from app.librarian.application.skill_acquisition.skill_acquisition_service import (
+    SkillAcquisitionService,
+)
 from app.librarian.infrastructure.repositories.agent_repository import (
     SqlAlchemyAgentRepository,
 )

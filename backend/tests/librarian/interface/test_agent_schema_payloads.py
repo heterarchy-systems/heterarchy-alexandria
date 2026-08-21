@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 from app.librarian.interface.schemas.agent.agent_schema import AgentPatchRequest
+from app.shared.serialization.orjson_codec import dumps_json
 from pydantic import ValidationError
 
 
@@ -24,7 +25,9 @@ def test_agent_patch_payload_preserves_nullable_clear_requests() -> None:
 
 def test_agent_patch_payload_serializes_enum_values_for_application_boundary() -> None:
     """Agent patch conversion should use stable enum values from Pydantic."""
-    request = AgentPatchRequest(librarian_role="QUALITY_REVIEWER")
+    request = AgentPatchRequest.model_validate_json(
+        dumps_json({"librarian_role": "QUALITY_REVIEWER"})
+    )
 
     assert request.to_payload() == {"librarian_role": "QUALITY_REVIEWER"}
 

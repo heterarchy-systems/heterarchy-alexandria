@@ -2,21 +2,19 @@
 
 from __future__ import annotations
 
-from pydantic import Field
+from typing import Annotated
 
-from app.librarian.application.skill_library_search_contracts import (
-    SkillCapabilityBrief,
-    SkillSearchCandidate,
-    SkillSearchDecision,
-    SkillSearchResult,
-)
+from pydantic import StringConstraints
+
 from app.librarian.domain.entities.skill_acquisition_job import SkillAcquisitionJob
 from app.librarian.domain.event_enum.collaboration_enums import (
     SkillAcquisitionJobStage,
     SkillAcquisitionJobStatus,
 )
-from app.librarian.domain.event_enum.skill_acquisition_enums import RiskLevel
-from app.shared.schemas.common_schemas import StrictSchemaModel
+from app.shared.schemas.common_schemas import (
+    StrictSchemaModel,
+    described_field,
+)
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 from app.shared.types.extra_types import JSONValue
 
@@ -24,43 +22,145 @@ from app.shared.types.extra_types import JSONValue
 class SkillAcquisitionJobRequest(StrictSchemaModel):
     """Request payload for autonomous durable skill acquisition."""
 
-    prompt: str = Field(min_length=1)
-    agent_name: str = Field(default="Hermes", min_length=1)
-    project: str | None = None
-    task_summary: str | None = None
-    search_snapshot: dict[str, JSONValue] | None = None
-    acquisition_override_reason: str | None = None
+    prompt: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1),
+        described_field("Prompt for this skill acquisition job request."),
+    ]
+    agent_name: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1),
+        described_field("Agent name for this skill acquisition job request."),
+    ] = "Hermes"
+    project: Annotated[
+        str | None, described_field("Project for this skill acquisition job request.")
+    ] = None
+    task_summary: Annotated[
+        str | None,
+        described_field("Task summary for this skill acquisition job request."),
+    ] = None
+    search_snapshot: Annotated[
+        dict[str, JSONValue] | None,
+        described_field("Search snapshot for this skill acquisition job request."),
+    ] = None
+    acquisition_override_reason: Annotated[
+        str | None,
+        described_field(
+            "Acquisition override reason for this skill acquisition job request."
+        ),
+    ] = None
 
 
 class SkillAcquisitionJobResponse(StrictSchemaModel):
     """Public response for one durable skill-acquisition job."""
 
-    id: str
-    prompt: str
-    agent_name: str
-    project: str | None
-    task_summary: str | None
-    status: SkillAcquisitionJobStatus
-    skill_id: str | None
-    context_id: str | None
-    result_summary: str | None
-    evidence_urls: list[str]
-    error_message: str | None
-    result_available: bool
-    created_at: AwareTimestamp
-    updated_at: AwareTimestamp
-    completed_at: AwareTimestamp | None
-    stage: SkillAcquisitionJobStage | None
-    progress_summary: str | None
-    skill_note_path: str | None
-    reindex_status: str | None
-    verification_status: str | None
-    handoff: dict[str, JSONValue] | None
-    repair_hint: str | None
-    search_snapshot: dict[str, JSONValue] | None
-    acquisition_override_reason: str | None
-    prompt_reference: str | None
-    prompt_reference_hash: str | None
+    id: Annotated[
+        str,
+        described_field("Stable identifier for this skill acquisition job response."),
+    ]
+    prompt: Annotated[
+        str, described_field("Prompt for this skill acquisition job response.")
+    ]
+    agent_name: Annotated[
+        str, described_field("Agent name for this skill acquisition job response.")
+    ]
+    project: Annotated[
+        str | None, described_field("Project for this skill acquisition job response.")
+    ]
+    task_summary: Annotated[
+        str | None,
+        described_field("Task summary for this skill acquisition job response."),
+    ]
+    status: Annotated[
+        SkillAcquisitionJobStatus,
+        described_field("Status for this skill acquisition job response."),
+    ]
+    skill_id: Annotated[
+        str | None,
+        described_field("Skill identifier for this skill acquisition job response."),
+    ]
+    context_id: Annotated[
+        str | None,
+        described_field("Context identifier for this skill acquisition job response."),
+    ]
+    result_summary: Annotated[
+        str | None,
+        described_field("Result summary for this skill acquisition job response."),
+    ]
+    evidence_urls: Annotated[
+        list[str],
+        described_field("Evidence urls for this skill acquisition job response."),
+    ]
+    error_message: Annotated[
+        str | None,
+        described_field("Error message for this skill acquisition job response."),
+    ]
+    result_available: Annotated[
+        bool,
+        described_field("Result available for this skill acquisition job response."),
+    ]
+    created_at: Annotated[
+        AwareTimestamp,
+        described_field("Creation timestamp for this skill acquisition job response."),
+    ]
+    updated_at: Annotated[
+        AwareTimestamp,
+        described_field(
+            "Last-update timestamp for this skill acquisition job response."
+        ),
+    ]
+    completed_at: Annotated[
+        AwareTimestamp | None,
+        described_field("Completed at for this skill acquisition job response."),
+    ]
+    stage: Annotated[
+        SkillAcquisitionJobStage | None,
+        described_field("Stage for this skill acquisition job response."),
+    ]
+    progress_summary: Annotated[
+        str | None,
+        described_field("Progress summary for this skill acquisition job response."),
+    ]
+    skill_note_path: Annotated[
+        str | None,
+        described_field("Skill note path for this skill acquisition job response."),
+    ]
+    reindex_status: Annotated[
+        str | None,
+        described_field("Reindex status for this skill acquisition job response."),
+    ]
+    verification_status: Annotated[
+        str | None,
+        described_field("Verification status for this skill acquisition job response."),
+    ]
+    handoff: Annotated[
+        dict[str, JSONValue] | None,
+        described_field("Handoff for this skill acquisition job response."),
+    ]
+    repair_hint: Annotated[
+        str | None,
+        described_field("Repair hint for this skill acquisition job response."),
+    ]
+    search_snapshot: Annotated[
+        dict[str, JSONValue] | None,
+        described_field("Search snapshot for this skill acquisition job response."),
+    ]
+    acquisition_override_reason: Annotated[
+        str | None,
+        described_field(
+            "Acquisition override reason for this skill acquisition job response."
+        ),
+    ]
+    prompt_reference: Annotated[
+        str | None,
+        described_field("Prompt reference for this skill acquisition job response."),
+    ]
+    prompt_reference_hash: Annotated[
+        str | None,
+        described_field(
+            "Prompt reference hash for this skill acquisition job response."
+        ),
+    ]
 
 
 def skill_acquisition_job_response(
@@ -103,128 +203,3 @@ def skill_acquisition_job_response(
         prompt_reference_hash=job.prompt_reference_hash,
     )
     return response
-
-
-class SkillCapabilitySearchRequest(StrictSchemaModel):
-    """Search-first request before creating a skill-acquisition job."""
-
-    capability: str = Field(min_length=1)
-    task_goal: str | None = None
-    project: str | None = None
-    environment: str | None = None
-    required_tools: list[str] = Field(default_factory=list)
-    constraints: list[str] = Field(default_factory=list)
-    risk_tolerance: RiskLevel = RiskLevel.MEDIUM
-    success_criteria: list[str] = Field(default_factory=list)
-    limit: int = Field(default=5, ge=1, le=10)
-
-    def to_brief(self) -> SkillCapabilityBrief:
-        """Return the internal normalized capability brief.
-
-        Returns:
-            Application search brief.
-        """
-        return SkillCapabilityBrief(
-            capability=self.capability,
-            task_goal=self.task_goal,
-            project=self.project,
-            environment=self.environment,
-            required_tools=tuple(self.required_tools),
-            constraints=tuple(self.constraints),
-            risk_tolerance=self.risk_tolerance,
-            success_criteria=tuple(self.success_criteria),
-            limit=self.limit,
-        )
-
-
-class SkillSearchCandidateResponse(StrictSchemaModel):
-    """Normalized skill candidate returned by search-first evaluation."""
-
-    id: str
-    path: str
-    title: str
-    status: str
-    version: str | None
-    project: str | None
-    required_tools: list[str]
-    risk_level: RiskLevel
-    evidence: list[str]
-    matched_terms: list[str]
-    limitations: list[str]
-    score: float
-    sufficiency_score: int
-    hard_gates: dict[str, JSONValue]
-    why_match: list[str]
-    gaps: list[str]
-    recommended_action: str
-
-
-class SkillCapabilitySearchResponse(StrictSchemaModel):
-    """Search-first sufficiency result for one capability brief."""
-
-    decision: SkillSearchDecision
-    query: str
-    candidates: list[SkillSearchCandidateResponse]
-    recommended_action: str
-    gaps: list[str]
-    decision_explanation: dict[str, JSONValue]
-    handoff: dict[str, JSONValue] | None
-    search_error: str | None
-
-
-def skill_search_candidate_response(
-    candidate: SkillSearchCandidate,
-) -> SkillSearchCandidateResponse:
-    """Map one application candidate to the public response schema.
-
-    Args:
-        candidate: Application search candidate.
-
-    Returns:
-        Public candidate response schema.
-    """
-    return SkillSearchCandidateResponse(
-        id=candidate.id,
-        path=candidate.path,
-        title=candidate.title,
-        status=candidate.status,
-        version=candidate.version,
-        project=candidate.project,
-        required_tools=list(candidate.required_tools),
-        risk_level=candidate.risk_level,
-        evidence=list(candidate.evidence),
-        matched_terms=list(candidate.matched_terms),
-        limitations=list(candidate.limitations),
-        score=candidate.score,
-        sufficiency_score=candidate.sufficiency_score,
-        hard_gates=candidate.hard_gates,
-        why_match=list(candidate.why_match),
-        gaps=list(candidate.gaps),
-        recommended_action=candidate.recommended_action,
-    )
-
-
-def skill_capability_search_response(
-    result: SkillSearchResult,
-) -> SkillCapabilitySearchResponse:
-    """Map application search result to public response schema.
-
-    Args:
-        result: Application search result.
-
-    Returns:
-        Public search response schema.
-    """
-    return SkillCapabilitySearchResponse(
-        decision=result.decision,
-        query=result.query,
-        candidates=[
-            skill_search_candidate_response(candidate)
-            for candidate in result.candidates
-        ],
-        recommended_action=result.recommended_action,
-        gaps=list(result.gaps),
-        decision_explanation=result.decision_explanation,
-        handoff=result.handoff,
-        search_error=result.search_error,
-    )

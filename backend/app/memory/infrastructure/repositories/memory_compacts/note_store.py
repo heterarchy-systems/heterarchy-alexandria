@@ -24,7 +24,7 @@ from app.memory.infrastructure.repositories.memory_compacts.obsidian_markdown_se
 class MemoryCompactNoteStore:
     """Scan, read, atomically write, and delete Memory Compact Markdown notes."""
 
-    def __init__(self, *, vault_path: str | Path, relative_dir: str | Path) -> None:
+    def __init__(self, vault_path: str | Path, relative_dir: str | Path) -> None:
         """Create the note store.
 
         Args:
@@ -101,7 +101,6 @@ class MemoryCompactNoteStore:
     def _compact_path(
         self,
         compact_id: str,
-        *,
         created_at: datetime | None = None,
     ) -> Path | None:
         if not is_safe_note_id(compact_id):

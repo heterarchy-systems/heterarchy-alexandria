@@ -1,9 +1,9 @@
 """Context Vault routes."""
 
-from __future__ import annotations
+from typing import Annotated
 
 from app.container import ApplicationContainer
-from app.memory.application.context_service import ContextService
+from app.memory.application.contexts.records.context_service import ContextService
 from app.memory.domain.event_enum.context_enums import (
     ContextKind,
     ContextScope,
@@ -22,6 +22,7 @@ from app.memory.interface.schemas.context.context_schema import (
 from app.shared.exceptions.exception_decorators import router_exception_status
 from app.shared.exceptions.route_exceptions import CONTEXT_ROUTE_EXCEPTION_MAPPING
 from app.shared.schemas.datetime_schemas import AwareTimestamp
+from app.shared.type_validation.strict_json_body import model_validate_json_body
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, Query, Response, status
 
@@ -38,6 +39,9 @@ router = APIRouter(prefix="/memory/contexts", tags=["library-contexts"])
 @router_exception_status(CONTEXT_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def list_contexts(
+    service: Annotated[
+        ContextService, Depends(Provide[ApplicationContainer.memory.context_service])
+    ],
     kind: ContextKind | None = Query(default=None),
     project: str | None = Query(default=None),
     scope: ContextScope | None = Query(default=None),
@@ -54,9 +58,6 @@ async def list_contexts(
     include_archived: bool = Query(default=False),
     limit: int = Query(default=50, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
-    service: ContextService = Depends(
-        Provide[ApplicationContainer.memory.context_service]
-    ),
 ) -> ContextListResponse:
     """List contexts.
 
@@ -117,9 +118,9 @@ async def list_contexts(
 @inject
 async def context_chunks(
     context_id: str,
-    service: ContextService = Depends(
-        Provide[ApplicationContainer.memory.context_service]
-    ),
+    service: Annotated[
+        ContextService, Depends(Provide[ApplicationContainer.memory.context_service])
+    ],
 ) -> ContextChunkResponseList:
     """List chunks for one context.
 
@@ -148,9 +149,9 @@ async def context_chunks(
 @inject
 async def get_context(
     context_id: str,
-    service: ContextService = Depends(
-        Provide[ApplicationContainer.memory.context_service]
-    ),
+    service: Annotated[
+        ContextService, Depends(Provide[ApplicationContainer.memory.context_service])
+    ],
 ) -> ContextResponse:
     """Get one context.
 
@@ -177,9 +178,9 @@ async def get_context(
 @inject
 async def access_context(
     context_id: str,
-    service: ContextService = Depends(
-        Provide[ApplicationContainer.memory.context_service]
-    ),
+    service: Annotated[
+        ContextService, Depends(Provide[ApplicationContainer.memory.context_service])
+    ],
 ) -> ContextResponse:
     """Record access for one context.
 
@@ -205,9 +206,9 @@ async def access_context(
 @inject
 async def delete_context(
     context_id: str,
-    service: ContextService = Depends(
-        Provide[ApplicationContainer.memory.context_service]
-    ),
+    service: Annotated[
+        ContextService, Depends(Provide[ApplicationContainer.memory.context_service])
+    ],
 ) -> Response:
     """Hard delete one context.
 
@@ -233,9 +234,9 @@ async def delete_context(
 @inject
 async def archive_context(
     context_id: str,
-    service: ContextService = Depends(
-        Provide[ApplicationContainer.memory.context_service]
-    ),
+    service: Annotated[
+        ContextService, Depends(Provide[ApplicationContainer.memory.context_service])
+    ],
 ) -> ContextResponse:
     """Archive one context.
 
@@ -262,10 +263,13 @@ async def archive_context(
 @inject
 async def supersede_context(
     context_id: str,
-    request: ContextSupersedeRequest,
-    service: ContextService = Depends(
-        Provide[ApplicationContainer.memory.context_service]
-    ),
+    request: Annotated[
+        ContextSupersedeRequest,
+        Depends(model_validate_json_body(ContextSupersedeRequest)),
+    ],
+    service: Annotated[
+        ContextService, Depends(Provide[ApplicationContainer.memory.context_service])
+    ],
 ) -> ContextSupersedeResponse:
     """Link a canonical Context to its replacement.
 

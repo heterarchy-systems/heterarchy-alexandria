@@ -1,16 +1,16 @@
 """Librarian ask and resumable workflow routes for Obsidian-backed Alexandria storage."""
 
-from __future__ import annotations
+from typing import Annotated
 
 from app.container import ApplicationContainer
-from app.obsidian.application.librarian.obsidian_librarian_workflow_service import (
+from app.obsidian.application.librarian.workflow.obsidian_librarian_workflow_service import (
     ObsidianLibrarianWorkflowService,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.obsidian.domain.contracts.obsidian_contracts import (
     ObsidianLibrarianWorkflowResume,
 )
-from app.obsidian.interface.schemas.obsidian.obsidian_librarian_workflow_schema import (
+from app.obsidian.interface.schemas.obsidian.librarian.obsidian_librarian_workflow_schema import (
     ObsidianLibrarianAskRequest,
     ObsidianLibrarianAskResponse,
     ObsidianLibrarianWorkflowResponse,
@@ -20,6 +20,7 @@ from app.shared.exceptions.exception_decorators import router_exception_status
 from app.shared.exceptions.route_exceptions import (
     OBSIDIAN_ROUTE_EXCEPTION_MAPPING,
 )
+from app.shared.type_validation.strict_json_body import model_validate_json_body
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, status
 
@@ -36,10 +37,14 @@ router = APIRouter()
 @router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def ask_obsidian_librarian(
-    request: ObsidianLibrarianAskRequest,
-    service: ObsidianService = Depends(
-        Provide[ApplicationContainer.obsidian.obsidian_service]
-    ),
+    request: Annotated[
+        ObsidianLibrarianAskRequest,
+        Depends(model_validate_json_body(ObsidianLibrarianAskRequest)),
+    ],
+    service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
 ) -> ObsidianLibrarianAskResponse:
     """Ask the Obsidian-aware librarian adapter.
 
@@ -65,10 +70,14 @@ async def ask_obsidian_librarian(
 @router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def start_obsidian_librarian_workflow(
-    request: ObsidianLibrarianAskRequest,
-    service: ObsidianLibrarianWorkflowService = Depends(
-        Provide[ApplicationContainer.obsidian.workflow_service]
-    ),
+    request: Annotated[
+        ObsidianLibrarianAskRequest,
+        Depends(model_validate_json_body(ObsidianLibrarianAskRequest)),
+    ],
+    service: Annotated[
+        ObsidianLibrarianWorkflowService,
+        Depends(Provide[ApplicationContainer.obsidian.workflow_service]),
+    ],
 ) -> ObsidianLibrarianWorkflowResponse:
     """Start a resumable librarian workflow.
 
@@ -94,9 +103,10 @@ async def start_obsidian_librarian_workflow(
 @inject
 async def get_obsidian_librarian_workflow(
     thread_id: str,
-    service: ObsidianLibrarianWorkflowService = Depends(
-        Provide[ApplicationContainer.obsidian.workflow_service]
-    ),
+    service: Annotated[
+        ObsidianLibrarianWorkflowService,
+        Depends(Provide[ApplicationContainer.obsidian.workflow_service]),
+    ],
 ) -> ObsidianLibrarianWorkflowResponse:
     """Read a persisted librarian workflow.
 
@@ -122,10 +132,14 @@ async def get_obsidian_librarian_workflow(
 @inject
 async def resume_obsidian_librarian_workflow(
     thread_id: str,
-    request: ObsidianLibrarianWorkflowResumeRequest,
-    service: ObsidianLibrarianWorkflowService = Depends(
-        Provide[ApplicationContainer.obsidian.workflow_service]
-    ),
+    request: Annotated[
+        ObsidianLibrarianWorkflowResumeRequest,
+        Depends(model_validate_json_body(ObsidianLibrarianWorkflowResumeRequest)),
+    ],
+    service: Annotated[
+        ObsidianLibrarianWorkflowService,
+        Depends(Provide[ApplicationContainer.obsidian.workflow_service]),
+    ],
 ) -> ObsidianLibrarianWorkflowResponse:
     """Resume a persisted librarian workflow.
 
@@ -156,9 +170,10 @@ async def resume_obsidian_librarian_workflow(
 @inject
 async def cancel_obsidian_librarian_workflow(
     thread_id: str,
-    service: ObsidianLibrarianWorkflowService = Depends(
-        Provide[ApplicationContainer.obsidian.workflow_service]
-    ),
+    service: Annotated[
+        ObsidianLibrarianWorkflowService,
+        Depends(Provide[ApplicationContainer.obsidian.workflow_service]),
+    ],
 ) -> ObsidianLibrarianWorkflowResponse:
     """Cancel a persisted librarian workflow.
 

@@ -13,7 +13,7 @@ from app.mcp_server.oauth_bearer_verifier import (
     OAuthBearerVerifierConfig,
 )
 from app.mcp_server.protected_resource_metadata import protected_resource_metadata
-from app.mcp_server.type_validate.auth_contracts import McpAuthMode
+from app.mcp_server.type_validate.oauth.mcp_auth_enums import McpAuthMode
 from app.platform.config.app_config import AppConfig
 from app.shared.serialization.orjson_codec import dumps_json
 from cryptography.hazmat.primitives import hashes

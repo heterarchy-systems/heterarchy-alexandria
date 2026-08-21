@@ -9,15 +9,15 @@ from typing import cast
 
 import anyio
 import pytest
-from app.obsidian.application.graph.obsidian_graph_projection_rebuild_service import (
+from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild_service import (
     ObsidianGraphProjectionRebuildReport,
     ObsidianGraphProjectionRebuildService,
 )
-from app.obsidian.application.graph.obsidian_graph_projection_source_builder import (
+from app.obsidian.application.graph.projection.obsidian_graph_projection_source_builder import (
     ObsidianGraphProjectionSourceBuilder,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
-from app.obsidian.application.service.obsidian_vault_reindex_service import (
+from app.obsidian.application.service.vault.obsidian_vault_reindex_service import (
     ObsidianVaultReindexService,
 )
 from app.obsidian.domain.entities.obsidian_note import ObsidianReindexResult

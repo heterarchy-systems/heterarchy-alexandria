@@ -19,7 +19,6 @@ class DatabaseSessionScope:
 
     def __init__(
         self,
-        *,
         owner_identity: int,
         session_factory: async_sessionmaker[AsyncSession],
     ) -> None:

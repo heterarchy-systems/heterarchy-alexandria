@@ -14,11 +14,11 @@ from app.connections.domain.event_enum.provider_enums import (
     OAuthPollStatus,
     ProviderType,
 )
-from app.connections.infrastructure.librarians import openai_codex_oauth_adapter
-from app.connections.infrastructure.librarians.openai_codex_oauth_adapter import (
+from app.connections.infrastructure.librarians.oauth import openai_codex_oauth_adapter
+from app.connections.infrastructure.librarians.oauth.openai_codex_oauth_adapter import (
     OpenAICodexOAuthClient,
 )
-from app.connections.infrastructure.librarians.openai_codex_oauth_contracts import (
+from app.connections.infrastructure.librarians.oauth.openai_codex_oauth_contracts import (
     OpenAICodexOAuthSettings,
 )
 from app.shared.exceptions.connections_exceptions import (

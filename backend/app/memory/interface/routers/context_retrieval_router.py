@@ -1,15 +1,15 @@
 """Routes for Context Vault retrieval and embedding operations."""
 
-from __future__ import annotations
+from typing import Annotated
 
 from app.container import ApplicationContainer
-from app.memory.application.context_service import ContextService
+from app.memory.application.contexts.records.context_service import ContextService
 from app.memory.interface.schemas.context.context_mapping import (
     health_payload,
     pack_payload,
     soft_rebuild_payload,
 )
-from app.memory.interface.schemas.context.context_schema import (
+from app.memory.interface.schemas.context.context_retrieval_schema import (
     ContextPackResponse,
     ContextSearchRequest,
     ContextSoftRebuildResponse,
@@ -18,6 +18,7 @@ from app.memory.interface.schemas.context.context_schema import (
 from app.platform.config.app_config import AppConfig
 from app.shared.exceptions.exception_decorators import router_exception_status
 from app.shared.exceptions.route_exceptions import CONTEXT_ROUTE_EXCEPTION_MAPPING
+from app.shared.type_validation.strict_json_body import model_validate_json_body
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
@@ -34,10 +35,12 @@ router = APIRouter(prefix="/memory/contexts", tags=["library-contexts"])
 @router_exception_status(CONTEXT_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def search_contexts(
-    request: ContextSearchRequest,
-    service: ContextService = Depends(
-        Provide[ApplicationContainer.memory.context_service]
-    ),
+    request: Annotated[
+        ContextSearchRequest, Depends(model_validate_json_body(ContextSearchRequest))
+    ],
+    service: Annotated[
+        ContextService, Depends(Provide[ApplicationContainer.memory.context_service])
+    ],
 ) -> ContextPackResponse:
     """Search contexts for RAG.
 
@@ -75,9 +78,9 @@ async def search_contexts(
 @router_exception_status(CONTEXT_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def rag_status(
-    service: ContextService = Depends(
-        Provide[ApplicationContainer.memory.context_service]
-    ),
+    service: Annotated[
+        ContextService, Depends(Provide[ApplicationContainer.memory.context_service])
+    ],
 ) -> RagStatusResponse:
     """Return RAG dependency status.
 
@@ -103,9 +106,9 @@ async def rag_status(
 )
 @inject
 async def reindex_context_embeddings(
+    app_config: Annotated[AppConfig, Depends(Provide[ApplicationContainer.app_config])],
     limit: int = Query(default=100, ge=1, le=1000),
     force: bool = Query(default=False),
-    app_config: AppConfig = Depends(Provide[ApplicationContainer.app_config]),
 ) -> None:
     """Reject direct embedding execution so the API cannot bypass the queue.
 
@@ -142,12 +145,12 @@ async def reindex_context_embeddings(
 @router_exception_status(CONTEXT_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def soft_rebuild_context_embeddings(
+    service: Annotated[
+        ContextService, Depends(Provide[ApplicationContainer.memory.context_service])
+    ],
     limit: int = Query(default=100, ge=1, le=1000),
     verification_query: str | None = Query(default=None),
     project: str | None = Query(default=None),
-    service: ContextService = Depends(
-        Provide[ApplicationContainer.memory.context_service]
-    ),
 ) -> ContextSoftRebuildResponse:
     """Soft rebuild embedding/vector fields and return operator evidence.
 

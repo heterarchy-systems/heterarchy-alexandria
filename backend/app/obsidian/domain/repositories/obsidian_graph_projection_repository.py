@@ -17,7 +17,7 @@ class IObsidianGraphProjectionRepository(ABC):
     """Persist and inspect an optional Obsidian graph read model."""
 
     @abstractmethod
-    async def start_rebuild(self, *, run_id: str, projection_version: int) -> None:
+    async def start_rebuild(self, run_id: str, projection_version: int) -> None:
         """Prepare isolated staging state for an application-owned run.
 
         Args:
@@ -28,7 +28,6 @@ class IObsidianGraphProjectionRepository(ABC):
     @abstractmethod
     async def write_rebuild_batch(
         self,
-        *,
         run_id: str,
         projection_version: int,
         batch: ObsidianGraphProjection,
@@ -44,7 +43,6 @@ class IObsidianGraphProjectionRepository(ABC):
     @abstractmethod
     async def complete_rebuild(
         self,
-        *,
         run_id: str,
         projection_version: int,
         issue_counts: tuple[ObsidianGraphProjectionIssueCount, ...] = (),
@@ -58,7 +56,7 @@ class IObsidianGraphProjectionRepository(ABC):
         """
 
     @abstractmethod
-    async def abort_rebuild(self, *, run_id: str) -> None:
+    async def abort_rebuild(self, run_id: str) -> None:
         """Remove staging state for an unsuccessful run.
 
         Args:
@@ -76,7 +74,6 @@ class IObsidianGraphProjectionRepository(ABC):
     @abstractmethod
     async def related_notes(
         self,
-        *,
         note_id: str,
         limit: int,
     ) -> tuple[ObsidianGraphRelatedNote, ...]:
@@ -93,7 +90,6 @@ class IObsidianGraphProjectionRepository(ABC):
     @abstractmethod
     async def context_evidence(
         self,
-        *,
         note_ids: tuple[str, ...],
     ) -> tuple[ObsidianGraphContextEvidence, ...]:
         """Return active-run edges limited to the recalled context ids.

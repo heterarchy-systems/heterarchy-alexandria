@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime
 
-from app.memory.application.reconciliation.memory_reconciliation_observability import (
+from app.memory.application.reconciliation.runtime.memory_reconciliation_observability import (
     log_reconciliation_apply,
     log_reconciliation_preview,
 )
@@ -128,7 +128,7 @@ def test_preview_and_apply_logs_are_structured_and_content_safe(
     with caplog.at_level(
         logging.INFO,
         logger=(
-            "app.memory.application.reconciliation.memory_reconciliation_observability"
+            "app.memory.application.reconciliation.runtime.memory_reconciliation_observability"
         ),
     ):
         log_reconciliation_preview(plan, duration_ms=4.5, reused=False)

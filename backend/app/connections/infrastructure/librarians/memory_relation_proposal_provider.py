@@ -31,7 +31,7 @@ from app.memory.domain.entities.memory_reconciliation import (
 from app.memory.domain.entities.memory_relation_proposal import (
     MemoryRelationModelProposal,
 )
-from app.memory.domain.repositories.memory_relation_proposal_provider import (
+from app.memory.domain.repositories.contexts.memory_relation_proposal_provider import (
     IMemoryRelationProposalProvider,
 )
 from app.memory.infrastructure.providers.openai_memory_relation_proposal_provider import (
@@ -39,7 +39,7 @@ from app.memory.infrastructure.providers.openai_memory_relation_proposal_provide
     OpenAIResponseFetcher,
     fetch_openai_relation_proposal,
 )
-from app.operations.application.external_api_rate_limit import (
+from app.operations.application.readiness.external_api_rate_limit import (
     ExternalApiRateLimiter,
     ExternalApiRateLimitError,
     NoopExternalApiRateLimiter,
@@ -126,7 +126,6 @@ class ConfiguredMemoryRelationProposalProvider(IMemoryRelationProposalProvider):
 
     async def _client_config(
         self,
-        *,
         provider_id: str,
         provider_type: ProviderType | None,
         auth_type: AuthType,

@@ -22,7 +22,7 @@ class LazyImportVisitor(ast.NodeVisitor):
     independent application responsibilities.
     """
 
-    def __init__(self, *, path: Path, lines: list[str]) -> None:
+    def __init__(self, path: Path, lines: list[str]) -> None:
         """Initialize the lazy import visitor.
 
         Args:
@@ -138,7 +138,7 @@ class LazyImportVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def _check_local_import(
-        self, *, node: ast.Import | ast.ImportFrom, label: str
+        self, node: ast.Import | ast.ImportFrom, label: str
     ) -> None:
         """Check whether a local import violates the lazy-import policy.
 
@@ -155,7 +155,7 @@ class LazyImportVisitor(ast.NodeVisitor):
             return
         self._add_failure_if_unjustified(lineno=node.lineno, label=label)
 
-    def _add_failure_if_unjustified(self, *, lineno: int, label: str) -> None:
+    def _add_failure_if_unjustified(self, lineno: int, label: str) -> None:
         """Add a lazy-import violation unless a justification marker exists.
 
         Args:

@@ -5,13 +5,18 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from app.mcp_server.backend_api_client import AlexandriaApiClient
 from app.mcp_server.http_auth_gate import McpHttpAuthGate
 from app.mcp_server.local_oauth.runtime import LocalMcpOAuthRuntime
-from app.mcp_server.server_runtime import DEFAULT_MCP_TRANSPORT_HOST, build_mcp_server
+from app.mcp_server.server_runtime import (
+    DEFAULT_MCP_TRANSPORT_HOST,
+    build_mcp_server,
+    mcp_transport_security,
+)
+from app.shared.schemas.http_schemas import ProtocolErrorResponse
+from app.shared.utils.http_helpers.response_headers import json_response
 
 MCP_HTTP_MOUNT_PATH = "/"
 MCP_PUBLIC_PATH = "/mcp"
@@ -48,15 +53,20 @@ class McpHttpMount:
         if _is_public_mcp_request(scope):
             auth_result = await self._auth_gate.authorize(scope)
             if not auth_result.allowed:
-                response = JSONResponse(
-                    {"detail": auth_result.detail},
+                response = json_response(
+                    ProtocolErrorResponse(detail=auth_result.detail).model_dump_json(),
                     status_code=auth_result.status_code,
                     headers=dict(auth_result.headers),
                 )
                 await response(scope, receive, send)
                 return
         if self._app is None:
-            response = JSONResponse({"detail": "MCP server is not running"}, 503)
+            response = json_response(
+                ProtocolErrorResponse(
+                    detail="MCP server is not running"
+                ).model_dump_json(),
+                503,
+            )
             await response(scope, receive, send)
             return
         await self._app(scope, receive, send)
@@ -80,12 +90,15 @@ async def mcp_streamable_http_lifespan(
     """
     server = build_mcp_server(
         client=client,
-        streamable_http_path=MCP_PUBLIC_PATH,
-        transport_host=transport_host,
         local_oauth_runtime=local_oauth_runtime,
     )
-    mcp_app = server.streamable_http_app()
-    async with mcp_app.router.lifespan_context(mcp_app):
+    mcp_app = server.streamable_http_app(
+        streamable_http_path=MCP_PUBLIC_PATH,
+        json_response=True,
+        transport_security=mcp_transport_security(transport_host),
+        host=transport_host,
+    )
+    async with server.session_manager.run():
         yield mcp_app
 
 

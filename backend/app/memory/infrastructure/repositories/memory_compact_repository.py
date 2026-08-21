@@ -16,10 +16,10 @@ from app.memory.domain.event_enum.memory_compact_enums import (
     MemoryCompactReviewVerdict,
     MemoryCompactStatus,
 )
-from app.memory.domain.repositories.memory_compact_repository import (
+from app.memory.domain.repositories.memory_compacts.memory_compact_repository import (
     IMemoryCompactRepository,
 )
-from app.memory.domain.repositories.memory_compact_repository_contracts import (
+from app.memory.domain.repositories.memory_compacts.memory_compact_repository_contracts import (
     MemoryCompactCreate,
 )
 from app.memory.infrastructure.repositories.memory_compacts.creation_lock import (
@@ -34,6 +34,7 @@ from app.memory.infrastructure.repositories.memory_compacts.note_store import (
 from app.shared.exceptions.memory_compact_exceptions import MemoryCompactNotFoundError
 from app.shared.infrastructure.identifiers import new_uuid
 from app.shared.types.types_convert_utils import aware_utc_datetime
+from asyncer import asyncify
 
 
 class MemoryCompactCreateRepositoryDelegate:
@@ -77,12 +78,8 @@ class MemoryCompactCreateRepositoryDelegate:
             review_max_score=payload.review_max_score,
             reviewed_at=payload.reviewed_at,
         )
-        persistence_task = asyncio.create_task(
-            asyncio.to_thread(
-                _persist_created_compact,
-                self._store,
-                compact,
-            )
+        persistence_task = asyncio.ensure_future(
+            asyncify(_persist_created_compact)(self._store, compact)
         )
         await wait_for_critical_task(persistence_task)
         return compact
@@ -106,7 +103,6 @@ class MemoryCompactQueryRepositoryDelegate:
 
     async def list_compacts(
         self,
-        *,
         project: str | None = None,
         status: MemoryCompactStatus | None = None,
         covered_after: datetime | None = None,
@@ -127,7 +123,10 @@ class MemoryCompactQueryRepositoryDelegate:
         Returns:
             Page of compacts and total matching count.
         """
-        stored_compacts = await asyncio.to_thread(self._store.read_all)
+        stored_compacts = await asyncify(
+            self._store.read_all,
+            abandon_on_cancel=True,
+        )()
         compacts = _filter_compacts(
             stored_compacts,
             project=project,
@@ -139,7 +138,7 @@ class MemoryCompactQueryRepositoryDelegate:
         total = len(compacts)
         return compacts[offset : offset + limit], total
 
-    async def current(self, *, project: str | None = None) -> MemoryCompact | None:
+    async def current(self, project: str | None = None) -> MemoryCompact | None:
         """Read current compact for a project.
 
         Args:
@@ -165,7 +164,6 @@ class MemoryCompactLifecycleRepositoryDelegate:
     async def mark_current(
         self,
         compact_id: str,
-        *,
         review_verdict: MemoryCompactReviewVerdict | None = None,
         review_score: int | None = None,
         review_max_score: int | None = None,
@@ -240,7 +238,7 @@ class ObsidianMemoryCompactRepository(
 ):
     """Assemble focused Memory Compact responsibilities over one note store."""
 
-    def __init__(self, *, vault_path: str | Path, relative_dir: str | Path) -> None:
+    def __init__(self, vault_path: str | Path, relative_dir: str | Path) -> None:
         """Initialize repository.
 
         Args:
@@ -283,7 +281,6 @@ def _require_compact(
 def _supersede_current_project(
     store: MemoryCompactNoteStore,
     project: str | None,
-    *,
     excluded_id: str | None,
 ) -> None:
     now = datetime.now(UTC)
@@ -304,7 +301,6 @@ def _supersede_current_project(
 
 def _filter_compacts(
     compacts: list[MemoryCompact],
-    *,
     project: str | None,
     status: MemoryCompactStatus | None,
     covered_after: datetime | None,

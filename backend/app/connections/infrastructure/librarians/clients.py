@@ -51,7 +51,6 @@ class LibrarianClientFactory(LibrarianProviderClientFactory):
 
     async def test_connection(
         self,
-        *,
         provider: LibrarianProvider,
         secret_resolver: SecretResolver,
         test_query: str,
@@ -148,7 +147,6 @@ class LibrarianClientFactory(LibrarianProviderClientFactory):
 
     async def _test_openai_codex_oauth(
         self,
-        *,
         provider: LibrarianProvider,
         auth_type: AuthType,
         secret_resolver: SecretResolver,

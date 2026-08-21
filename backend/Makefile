@@ -1,4 +1,4 @@
-.PHONY: install-local format_check type_checking cli_smoke guardrails test ci
+.PHONY: install-local format_check type_checking cli_smoke guardrails test ci mechanical_check
 
 install-local:
 	uv sync --no-editable --reinstall-package heterarchy-alexandria
@@ -19,4 +19,7 @@ guardrails:
 test:
 	./scripts/run-postgres-tests.sh -q
 
-ci: format_check type_checking cli_smoke guardrails test
+mechanical_check:
+	uv run python .agents/verify_mechanical_contracts.py
+
+ci: format_check type_checking cli_smoke guardrails test mechanical_check

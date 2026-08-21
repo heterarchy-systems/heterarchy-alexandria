@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 
 import anyio
-from app.obsidian.application.notes.obsidian_frontmatter_redaction import (
+from app.obsidian.application.notes.frontmatter.obsidian_frontmatter_redaction import (
     frontmatter_contains_secret_field,
     redacted_frontmatter,
 )

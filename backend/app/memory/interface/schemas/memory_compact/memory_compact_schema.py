@@ -4,11 +4,6 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from app.memory.application.memory_compact_review_contracts import (
-    MemoryCompactReviewResult,
-    MemoryCompactRubricScore,
-    MemoryCompactSourceObservation,
-)
 from app.memory.domain.entities.memory_compact import (
     MemoryCompact,
     MemoryCompactSourceRef,
@@ -17,14 +12,18 @@ from app.memory.domain.event_enum.memory_compact_enums import (
     MemoryCompactReviewVerdict,
     MemoryCompactStatus,
 )
-from app.memory.domain.repositories.memory_compact_repository_contracts import (
+from app.memory.domain.repositories.memory_compacts.memory_compact_repository_contracts import (
     MemoryCompactCreate,
     MemoryCompactSourceRefCreate,
 )
-from app.shared.schemas.common_schemas import StrictSchemaModel
+from app.shared.schemas.common_schemas import (
+    StrictSchemaModel,
+    described_field,
+    schema_list_default,
+)
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 from app.shared.types.extra_types import JSONObject
-from pydantic import Field, StringConstraints
+from pydantic import StringConstraints
 
 NonBlankString = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
@@ -32,11 +31,28 @@ NonBlankString = Annotated[str, StringConstraints(strip_whitespace=True, min_len
 class MemoryCompactSourceRefRequest(StrictSchemaModel):
     """Request schema for a compact source reference."""
 
-    source_type: NonBlankString
-    source_id: NonBlankString
-    title: NonBlankString
-    detail_path: NonBlankString
-    source_hash: str | None = None
+    source_type: Annotated[
+        NonBlankString,
+        described_field("Source type for this memory compact source ref request."),
+    ]
+    source_id: Annotated[
+        NonBlankString,
+        described_field(
+            "Source identifier for this memory compact source ref request."
+        ),
+    ]
+    title: Annotated[
+        NonBlankString,
+        described_field("Title for this memory compact source ref request."),
+    ]
+    detail_path: Annotated[
+        NonBlankString,
+        described_field("Detail path for this memory compact source ref request."),
+    ]
+    source_hash: Annotated[
+        str | None,
+        described_field("Source hash for this memory compact source ref request."),
+    ] = None
 
     def to_create(self) -> MemoryCompactSourceRefCreate:
         """Convert request schema to service contract.
@@ -56,12 +72,30 @@ class MemoryCompactSourceRefRequest(StrictSchemaModel):
 class MemoryCompactCreateRequest(StrictSchemaModel):
     """Request schema for creating a Memory Compact."""
 
-    project: str | None = None
-    covered_from: AwareTimestamp
-    covered_to: AwareTimestamp
-    markdown_body: str = Field(min_length=1)
-    status: MemoryCompactStatus = MemoryCompactStatus.DRAFT
-    source_refs: list[MemoryCompactSourceRefRequest] = Field(default_factory=list)
+    project: Annotated[
+        str | None, described_field("Project for this memory compact create request.")
+    ] = None
+    covered_from: Annotated[
+        AwareTimestamp,
+        described_field("Covered from for this memory compact create request."),
+    ]
+    covered_to: Annotated[
+        AwareTimestamp,
+        described_field("Covered to for this memory compact create request."),
+    ]
+    markdown_body: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1),
+        described_field("Markdown body for this memory compact create request."),
+    ]
+    status: Annotated[
+        MemoryCompactStatus,
+        described_field("Status for this memory compact create request."),
+    ] = MemoryCompactStatus.DRAFT
+    source_refs: Annotated[
+        list[MemoryCompactSourceRefRequest],
+        described_field("Source refs for this memory compact create request."),
+    ] = schema_list_default()
 
     def to_create(self) -> MemoryCompactCreate:
         """Convert request schema to service contract.
@@ -84,13 +118,37 @@ class MemoryCompactCreateRequest(StrictSchemaModel):
 class MemoryCompactSourceRefResponse(StrictSchemaModel):
     """Response schema for compact source references."""
 
-    id: str
-    compact_id: str
-    source_type: str
-    source_id: str
-    title: str
-    detail_path: str
-    source_hash: str | None
+    id: Annotated[
+        str,
+        described_field(
+            "Stable identifier for this memory compact source ref response."
+        ),
+    ]
+    compact_id: Annotated[
+        str,
+        described_field(
+            "Compact identifier for this memory compact source ref response."
+        ),
+    ]
+    source_type: Annotated[
+        str, described_field("Source type for this memory compact source ref response.")
+    ]
+    source_id: Annotated[
+        str,
+        described_field(
+            "Source identifier for this memory compact source ref response."
+        ),
+    ]
+    title: Annotated[
+        str, described_field("Title for this memory compact source ref response.")
+    ]
+    detail_path: Annotated[
+        str, described_field("Detail path for this memory compact source ref response.")
+    ]
+    source_hash: Annotated[
+        str | None,
+        described_field("Source hash for this memory compact source ref response."),
+    ]
 
     @classmethod
     def from_entity(
@@ -118,38 +176,91 @@ class MemoryCompactSourceRefResponse(StrictSchemaModel):
 class MemoryCompactRagGateResponse(StrictSchemaModel):
     """RAG healthy-gate result attached to CURRENT create/promote responses."""
 
-    gate_status: str
-    checked_at: AwareTimestamp
-    fingerprint: JSONObject | None
-    warnings: list[str] = Field(default_factory=list)
+    gate_status: Annotated[
+        str, described_field("Gate status for this memory compact RAG gate response.")
+    ]
+    checked_at: Annotated[
+        AwareTimestamp,
+        described_field("Checked at for this memory compact RAG gate response."),
+    ]
+    fingerprint: Annotated[
+        JSONObject | None,
+        described_field("Fingerprint for this memory compact RAG gate response."),
+    ]
+    warnings: Annotated[
+        list[str],
+        described_field("Warnings for this memory compact RAG gate response."),
+    ] = schema_list_default()
 
 
 class MemoryCompactResponse(StrictSchemaModel):
     """Response schema for one Memory Compact."""
 
-    id: str
-    project: str | None
-    covered_from: AwareTimestamp
-    covered_to: AwareTimestamp
-    markdown_body: str
-    status: MemoryCompactStatus
-    source_refs: list[MemoryCompactSourceRefResponse]
-    created_at: AwareTimestamp
-    updated_at: AwareTimestamp
-    archived_at: AwareTimestamp | None
-    review_verdict: MemoryCompactReviewVerdict | None
-    review_score: int | None
-    review_max_score: int | None
-    reviewed_at: AwareTimestamp | None
-    warnings: list[str] = Field(default_factory=list)
-    deduplicated: bool = False
-    rag_gate: MemoryCompactRagGateResponse | None = None
+    id: Annotated[
+        str, described_field("Stable identifier for this memory compact response.")
+    ]
+    project: Annotated[
+        str | None, described_field("Project for this memory compact response.")
+    ]
+    covered_from: Annotated[
+        AwareTimestamp,
+        described_field("Covered from for this memory compact response."),
+    ]
+    covered_to: Annotated[
+        AwareTimestamp, described_field("Covered to for this memory compact response.")
+    ]
+    markdown_body: Annotated[
+        str, described_field("Markdown body for this memory compact response.")
+    ]
+    status: Annotated[
+        MemoryCompactStatus, described_field("Status for this memory compact response.")
+    ]
+    source_refs: Annotated[
+        list[MemoryCompactSourceRefResponse],
+        described_field("Source refs for this memory compact response."),
+    ]
+    created_at: Annotated[
+        AwareTimestamp,
+        described_field("Creation timestamp for this memory compact response."),
+    ]
+    updated_at: Annotated[
+        AwareTimestamp,
+        described_field("Last-update timestamp for this memory compact response."),
+    ]
+    archived_at: Annotated[
+        AwareTimestamp | None,
+        described_field("Archived at for this memory compact response."),
+    ]
+    review_verdict: Annotated[
+        MemoryCompactReviewVerdict | None,
+        described_field("Review verdict for this memory compact response."),
+    ]
+    review_score: Annotated[
+        int | None, described_field("Review score for this memory compact response.")
+    ]
+    review_max_score: Annotated[
+        int | None,
+        described_field("Review max score for this memory compact response."),
+    ]
+    reviewed_at: Annotated[
+        AwareTimestamp | None,
+        described_field("Reviewed at for this memory compact response."),
+    ]
+    warnings: Annotated[
+        list[str], described_field("Warnings for this memory compact response.")
+    ] = schema_list_default()
+    deduplicated: Annotated[
+        bool, described_field("Deduplicated for this memory compact response.")
+    ] = False
+    rag_gate: Annotated[
+        MemoryCompactRagGateResponse | None,
+        described_field("RAG gate for this memory compact response."),
+    ] = None
 
     @classmethod
     def from_entity(
         cls,
         compact: MemoryCompact,
-        *,
         warnings: list[str] | None = None,
         rag_gate: MemoryCompactRagGateResponse | None = None,
     ) -> MemoryCompactResponse:
@@ -192,8 +303,13 @@ class MemoryCompactResponse(StrictSchemaModel):
 class MemoryCompactListResponse(StrictSchemaModel):
     """Paginated Memory Compact response."""
 
-    items: list[MemoryCompactResponse]
-    total: int
+    items: Annotated[
+        list[MemoryCompactResponse],
+        described_field("Items for this memory compact list response."),
+    ]
+    total: Annotated[
+        int, described_field("Total for this memory compact list response.")
+    ]
 
 
 def _response_warnings(warnings: list[str]) -> list[str]:
@@ -214,112 +330,3 @@ def _current_warning_code(warning: str) -> str:
     if warning == "memory_compact_timestamp_missing":
         return "current_memory_compact_timestamp_missing"
     return warning
-
-
-class MemoryCompactSourceObservationRequest(StrictSchemaModel):
-    """Observed current source state for review-time freshness checks."""
-
-    source_id: str = Field(min_length=1)
-    detail_path: str | None = None
-    current_source_hash: str | None = None
-
-    def to_observation(self) -> MemoryCompactSourceObservation:
-        """Convert request schema to application review input.
-
-        Returns:
-            Source observation dataclass.
-        """
-        return MemoryCompactSourceObservation(
-            source_id=self.source_id,
-            detail_path=self.detail_path,
-            current_source_hash=self.current_source_hash,
-        )
-
-
-class MemoryCompactReviewRequest(StrictSchemaModel):
-    """Request schema for librarian review of a Memory Compact."""
-
-    source_observations: list[MemoryCompactSourceObservationRequest] = Field(
-        default_factory=list
-    )
-
-    def to_observations(self) -> tuple[MemoryCompactSourceObservation, ...]:
-        """Convert request schema to application review observations.
-
-        Returns:
-            Source observations tuple.
-        """
-        return tuple(
-            observation.to_observation() for observation in self.source_observations
-        )
-
-
-class MemoryCompactRubricScoreResponse(StrictSchemaModel):
-    """Response schema for a single rubric score."""
-
-    code: str
-    label: str
-    score: int
-    required: bool
-    reasons: list[str]
-
-    @classmethod
-    def from_result(
-        cls, score: MemoryCompactRubricScore
-    ) -> MemoryCompactRubricScoreResponse:
-        """Create response schema from rubric score.
-
-        Args:
-            score: Internal rubric score dataclass.
-
-        Returns:
-            Public rubric score response.
-        """
-        return cls(
-            code=score.code,
-            label=score.label,
-            score=score.score,
-            required=score.required,
-            reasons=list(score.reasons),
-        )
-
-
-class MemoryCompactReviewResponse(StrictSchemaModel):
-    """Response schema for librarian Memory Compact review."""
-
-    compact_id: str
-    verdict: MemoryCompactReviewVerdict
-    total_score: int
-    max_score: int
-    scores: list[MemoryCompactRubricScoreResponse]
-    missing_refs: list[str]
-    contradictions: list[str]
-    stale_reasons: list[str]
-    recommended_actions: list[str]
-
-    @classmethod
-    def from_result(
-        cls, result: MemoryCompactReviewResult
-    ) -> MemoryCompactReviewResponse:
-        """Create response schema from review result.
-
-        Args:
-            result: Application review result.
-
-        Returns:
-            Public review response.
-        """
-        return cls(
-            compact_id=result.compact_id,
-            verdict=result.verdict,
-            total_score=result.total_score,
-            max_score=result.max_score,
-            scores=[
-                MemoryCompactRubricScoreResponse.from_result(score)
-                for score in result.scores
-            ],
-            missing_refs=list(result.missing_refs),
-            contradictions=list(result.contradictions),
-            stale_reasons=list(result.stale_reasons),
-            recommended_actions=list(result.recommended_actions),
-        )

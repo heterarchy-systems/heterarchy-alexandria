@@ -33,7 +33,7 @@ def resolve_backend_root(reference_file: Path, backend_root: Path | None) -> Pat
     return backend_root or reference_file.resolve().parents[3]
 
 
-def should_check(path: Path, *, backend_root: Path) -> bool:
+def should_check(path: Path, backend_root: Path) -> bool:
     """Determine whether a path should be included in guard checks.
 
     Args:
@@ -59,7 +59,7 @@ def should_check(path: Path, *, backend_root: Path) -> bool:
 
 
 def iter_guard_target_paths(
-    *, reference_file: Path, backend_root: Path | None = None
+    reference_file: Path, backend_root: Path | None = None
 ) -> list[Path]:
     """Collect backend app files that should be scanned by guards.
 
@@ -91,7 +91,6 @@ def parse_module(path: Path) -> ast.AST:
 
 
 def has_justification(
-    *,
     lines: list[str],
     lineno: int,
     markers: tuple[str, ...],

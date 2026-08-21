@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Annotated
 
 from app.memory.domain.entities.memory_reconciliation import (
     CanonicalClaim,
@@ -14,14 +15,13 @@ from app.memory.domain.entities.memory_relation_proposal import (
     MemoryRelationModelProposal,
 )
 from app.memory.domain.event_enum.reconciliation_enums import MemoryRelationType
-from app.memory.domain.repositories.memory_relation_proposal_provider import (
+from app.memory.domain.repositories.contexts.memory_relation_proposal_provider import (
     IMemoryRelationProposalProvider,
 )
-from app.shared.schemas.common_schemas import StrictSchemaModel
-from app.shared.serialization.orjson_codec import loads_json
+from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
 from asyncer import asyncify
 from openai import OpenAI, OpenAIError
-from pydantic import Field, ValidationError
+from pydantic import StringConstraints, ValidationError
 
 _MODEL_INSTRUCTIONS = """
 You classify the relation between two durable memory candidates.
@@ -38,9 +38,21 @@ _MAX_BODY_CHARS = 4_000
 class MemoryRelationProposalPayload(StrictSchemaModel):
     """Strict external model response boundary."""
 
-    relation: MemoryRelationType
-    confidence: float = Field(ge=0.0, le=1.0)
-    reason: str = Field(min_length=1, max_length=1_000)
+    relation: Annotated[
+        MemoryRelationType,
+        described_field("Relation for this memory relation proposal payload."),
+    ]
+    confidence: Annotated[
+        float,
+        described_field(
+            "Confidence for this memory relation proposal payload.", ge=0.0, le=1.0
+        ),
+    ]
+    reason: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1, max_length=1000),
+        described_field("Reason for this memory relation proposal payload."),
+    ]
 
 
 OpenAIResponseFetcher = Callable[[OpenAI, str, str, str], str]
@@ -75,7 +87,7 @@ class OpenAIMemoryRelationProposalProvider(IMemoryRelationProposalProvider):
                 _proposal_prompt(candidate, existing),
                 _MODEL_INSTRUCTIONS,
             )
-            payload = MemoryRelationProposalPayload.model_validate(loads_json(text))
+            payload = MemoryRelationProposalPayload.model_validate_json(text)
         except (OpenAIError, ValidationError, ValueError, TypeError):
             return None
         return MemoryRelationModelProposal(

@@ -5,12 +5,12 @@ from __future__ import annotations
 from typing import cast
 
 import anyio
-import app.operations.application.operational_readiness_service as readiness_module
+import app.operations.application.readiness.operational_readiness_service as readiness_module
 import pytest
 from app.memory.domain.entities.context_read_models import RagDependencyHealth
 from app.memory.domain.event_enum.context_enums import RagHealthState, RagStrategy
 from app.obsidian.domain.entities.obsidian_note import ObsidianVaultStatus
-from app.operations.application.operational_readiness_service import (
+from app.operations.application.readiness.operational_readiness_service import (
     OperationalReadinessService,
 )
 from app.operations.domain.entities.operational_readiness import (

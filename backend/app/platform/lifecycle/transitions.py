@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from app.platform.lifecycle.dependency_status_store import DependencyStatusStore
-from app.platform.lifecycle.status import LifecycleStatus
+from app.platform.lifecycle.lifecycle_enums import LifecycleStatus
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,7 +50,6 @@ def apply_stopping_transition(dependencies: DependencyStatusStore) -> LifecycleS
 
 
 def apply_drain_transition(
-    *,
     status: LifecycleStatus,
     dependencies: DependencyStatusStore,
     reason: str,

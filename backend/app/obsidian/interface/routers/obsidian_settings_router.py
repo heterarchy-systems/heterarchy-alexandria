@@ -1,17 +1,18 @@
 """Routes for Obsidian backend runtime settings."""
 
-from __future__ import annotations
+from typing import Annotated
 
 from app.container import ApplicationContainer
 from app.obsidian.application.service.obsidian_service import ObsidianService
+from app.obsidian.interface.schemas.obsidian.maintenance.obsidian_settings_schema import (
+    ObsidianVaultSettingsUpdateRequest,
+)
 from app.obsidian.interface.schemas.obsidian.obsidian_schema import (
     ObsidianStatusResponse,
 )
-from app.obsidian.interface.schemas.obsidian.obsidian_settings_schema import (
-    ObsidianVaultSettingsUpdateRequest,
-)
 from app.shared.exceptions.exception_decorators import router_exception_status
 from app.shared.exceptions.route_exceptions import OBSIDIAN_ROUTE_EXCEPTION_MAPPING
+from app.shared.type_validation.strict_json_body import model_validate_json_body
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, status
 
@@ -34,10 +35,14 @@ router = APIRouter(
 @router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def configure_obsidian_vault_settings(
-    request: ObsidianVaultSettingsUpdateRequest,
-    service: ObsidianService = Depends(
-        Provide[ApplicationContainer.obsidian.obsidian_service]
-    ),
+    request: Annotated[
+        ObsidianVaultSettingsUpdateRequest,
+        Depends(model_validate_json_body(ObsidianVaultSettingsUpdateRequest)),
+    ],
+    service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
 ) -> ObsidianStatusResponse:
     """Apply runtime Obsidian vault settings.
 

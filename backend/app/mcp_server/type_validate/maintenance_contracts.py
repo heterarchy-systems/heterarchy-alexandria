@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from typing import Annotated
 
+from pydantic import ConfigDict, StringConstraints, field_validator
+
+from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
 from app.shared.types.extra_types import JSONObject
 
 
-class MaintenanceEmbeddingReindexToolRequest(BaseModel):
+class MaintenanceEmbeddingReindexToolRequest(StrictSchemaModel):
     """Validated MCP input for a queued embedding reindex job."""
 
     model_config = ConfigDict(
@@ -16,10 +19,30 @@ class MaintenanceEmbeddingReindexToolRequest(BaseModel):
         validate_default=True,
     )
 
-    requested_by: str = Field(default="mcp", min_length=1, max_length=120)
-    source_id: str = Field(default="manual", min_length=1, max_length=200)
-    limit: int = Field(default=250, ge=1, le=1000)
-    force: bool = False
+    requested_by: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1, max_length=120),
+        described_field(
+            "Requested by for this maintenance embedding reindex tool request."
+        ),
+    ] = "mcp"
+    source_id: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1, max_length=200),
+        described_field(
+            "Source identifier for this maintenance embedding reindex tool request."
+        ),
+    ] = "manual"
+    limit: Annotated[
+        int,
+        described_field(
+            "Limit for this maintenance embedding reindex tool request.", ge=1, le=1000
+        ),
+    ] = 250
+    force: Annotated[
+        bool,
+        described_field("Force for this maintenance embedding reindex tool request."),
+    ] = False
 
     @field_validator("requested_by", "source_id")
     @classmethod
@@ -43,12 +66,16 @@ class MaintenanceEmbeddingReindexToolRequest(BaseModel):
         }
 
 
-class MaintenanceJobIdToolRequest(BaseModel):
+class MaintenanceJobIdToolRequest(StrictSchemaModel):
     """Validated MCP input for one maintenance job lookup."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    job_id: str = Field(min_length=1, max_length=128)
+    job_id: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1, max_length=128),
+        described_field("Job identifier for this maintenance job ID tool request."),
+    ]
 
     @field_validator("job_id")
     @classmethod

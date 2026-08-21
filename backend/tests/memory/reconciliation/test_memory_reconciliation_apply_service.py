@@ -10,13 +10,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import anyio
-from app.memory.application.reconciliation.memory_reconciliation_apply_service import (
+from app.memory.application.reconciliation.plans.memory_reconciliation_apply_service import (
     MemoryReconciliationApplyService,
 )
-from app.memory.application.reconciliation.memory_reconciliation_plan_service import (
+from app.memory.application.reconciliation.plans.memory_reconciliation_plan_service import (
     MemoryReconciliationPlanService,
 )
-from app.memory.application.reconciliation.memory_relation_classifier import (
+from app.memory.application.reconciliation.candidates.memory_relation_classifier import (
     MemoryRelationClassifier,
 )
 from app.memory.domain.entities.memory_reconciliation import (
@@ -31,7 +31,7 @@ from app.memory.domain.event_enum.reconciliation_enums import (
     MemoryReconciliationStatus,
     MemoryRelationType,
 )
-from app.memory.domain.repositories.memory_canonical_mutation_gateway import (
+from app.memory.domain.repositories.contexts.memory_canonical_mutation_gateway import (
     IMemoryCanonicalMutationGateway,
 )
 from app.memory.infrastructure.repositories.memory_reconciliation_repository import (

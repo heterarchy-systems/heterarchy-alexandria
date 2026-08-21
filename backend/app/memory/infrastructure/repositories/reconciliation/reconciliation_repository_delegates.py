@@ -73,7 +73,6 @@ class ReconciliationPlanRepositoryDelegate:
 
     async def list_review_plans(
         self,
-        *,
         limit: int = 100,
     ) -> list[MemoryReconciliationPlan]:
         """List persisted plans that require explicit review.
@@ -201,7 +200,6 @@ class ReconciliationConflictRepositoryDelegate:
 
     async def list_conflicts(
         self,
-        *,
         status: MemoryConflictStatus | None = None,
         limit: int = 100,
     ) -> list[MemoryConflictSet]:

@@ -21,7 +21,7 @@ BROAD_DICT_PATTERN = re.compile(r"\b(?:dict|Mapping)\[[^\]]*\b(?:Any|object)\b[^
 class BroadTypeVisitor(ast.NodeVisitor):
     """Collect broad type usage inside type annotations."""
 
-    def __init__(self, *, path: Path, lines: list[str]) -> None:
+    def __init__(self, path: Path, lines: list[str]) -> None:
         """Initialize the broad type visitor.
 
         Args:

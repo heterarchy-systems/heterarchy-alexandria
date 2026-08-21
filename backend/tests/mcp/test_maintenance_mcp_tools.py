@@ -12,7 +12,7 @@ from app.mcp_server.backend_api_client import (
     AlexandriaApiSettings,
 )
 from app.mcp_server.server_runtime import build_mcp_server
-from app.mcp_server.tools.maintenance_backend_gateway import (
+from app.mcp_server.tools.operations.maintenance_backend_gateway import (
     alexandria_get_maintenance_job,
     alexandria_get_maintenance_queue_status,
     alexandria_reindex_context_embeddings,

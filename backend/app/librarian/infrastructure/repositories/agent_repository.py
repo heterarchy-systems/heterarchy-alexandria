@@ -41,7 +41,7 @@ def _to_read_model(row: AgentProfileORM) -> AgentProfile:
 class SqlAlchemyAgentRepository(IAgentRepository):
     """Persistence operations for agent profiles."""
 
-    def __init__(self, *, session: AsyncSession) -> None:
+    def __init__(self, session: AsyncSession) -> None:
         """Initialize repository.
 
         Args:

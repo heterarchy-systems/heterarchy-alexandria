@@ -13,7 +13,6 @@ _QUERY_SEGMENT_SPLIT_RE: Final[re.Pattern[str]] = re.compile(r"[,;\n.!?。]+")
 
 def focused_query_variants(
     query: str,
-    *,
     stop_tokens: Collection[str] = frozenset(),
     max_variants: int = 16,
 ) -> tuple[str, ...]:

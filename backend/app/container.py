@@ -13,10 +13,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.connections.containers import ConnectionsContainer
 from app.librarian.containers import LibrarianContainer
 from app.memory.containers import MemoryContainer
-from app.memory.domain.repositories.context_graph_signal_provider import (
+from app.memory.domain.repositories.contexts.context_graph_signal_provider import (
     IContextGraphSignalProvider,
 )
-from app.obsidian.application.graph.obsidian_graph_context_signal_service import (
+from app.obsidian.application.graph.projection.obsidian_graph_context_signal_service import (
     ObsidianGraphContextSignalService,
 )
 from app.obsidian.containers import ObsidianContainer
@@ -26,13 +26,13 @@ from app.obsidian.domain.repositories.obsidian_graph_projection_repository impor
 from app.obsidian.infrastructure.graph.neo4j_graph_projection_factory import (
     optional_neo4j_graph_projection_repository,
 )
-from app.operations.application.external_api_rate_limit import (
+from app.operations.application.maintenance_job_queue import MaintenanceJobSubmitter
+from app.operations.application.readiness.external_api_rate_limit import (
     ExternalApiRateLimiter,
     NoopExternalApiRateLimiter,
     RedisExternalApiRateLimiter,
 )
-from app.operations.application.maintenance_job_queue import MaintenanceJobSubmitter
-from app.operations.application.operational_readiness_cache import (
+from app.operations.application.readiness.operational_readiness_cache import (
     NoopOperationalReadinessCache,
     OperationalReadinessCache,
 )
@@ -57,7 +57,7 @@ from app.shared.security.secret_cipher import SecretCipher, SecretCipherSettings
 
 
 @asynccontextmanager
-async def initialize_database(*, database_url: str) -> AsyncGenerator[Database]:
+async def initialize_database(database_url: str) -> AsyncGenerator[Database]:
     """Provision Database with startup/shutdown lifecycle.
 
     Args:
@@ -186,7 +186,6 @@ def create_secret_cipher(config: AppConfig) -> SecretCipher:
 
 
 def create_graph_signal_provider(
-    *,
     config: AppConfig,
     repository: IObsidianGraphProjectionRepository | None,
 ) -> IContextGraphSignalProvider | None:

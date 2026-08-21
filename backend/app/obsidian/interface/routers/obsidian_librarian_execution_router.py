@@ -1,27 +1,27 @@
 """Routes for Obsidian librarian execution operations."""
 
-from __future__ import annotations
+from typing import Annotated
 
 from app.container import ApplicationContainer
-from app.obsidian.application.librarian.obsidian_librarian_job_service import (
+from app.obsidian.application.librarian.workflow.obsidian_librarian_job_service import (
     ObsidianLibrarianJobService,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
-from app.obsidian.interface.schemas.obsidian.obsidian_librarian_job_schema import (
+from app.obsidian.interface.schemas.obsidian.librarian.obsidian_librarian_job_schema import (
     ObsidianLibrarianJobResponse,
 )
-from app.obsidian.interface.schemas.obsidian.obsidian_librarian_review_schema import (
+from app.obsidian.interface.schemas.obsidian.librarian.obsidian_librarian_review_schema import (
     ObsidianLibrarianReviewApplyRequestSchema,
     ObsidianLibrarianReviewQueueItemResponse,
     ObsidianLibrarianReviewQueueRequestSchema,
     ObsidianLibrarianReviewQueueResponse,
 )
-from app.obsidian.interface.schemas.obsidian.obsidian_vault_inventory_schema import (
+from app.obsidian.interface.schemas.obsidian.maintenance.obsidian_vault_inventory_schema import (
     ObsidianVaultInventoryItemResponse,
     ObsidianVaultInventoryRequestSchema,
     ObsidianVaultInventoryResponse,
 )
-from app.obsidian.interface.schemas.obsidian.obsidian_vault_move_schema import (
+from app.obsidian.interface.schemas.obsidian.maintenance.obsidian_vault_move_schema import (
     ObsidianVaultMoveApplyRequestSchema,
     ObsidianVaultMovePlanRequestSchema,
     ObsidianVaultMovePlanResponse,
@@ -30,6 +30,7 @@ from app.obsidian.interface.schemas.obsidian.obsidian_vault_move_schema import (
 )
 from app.shared.exceptions.exception_decorators import router_exception_status
 from app.shared.exceptions.route_exceptions import OBSIDIAN_ROUTE_EXCEPTION_MAPPING
+from app.shared.type_validation.strict_json_body import model_validate_json_body
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, BackgroundTasks, Depends, status
 
@@ -50,9 +51,10 @@ router = APIRouter(
 @inject
 async def inventory_obsidian_vault_notes(
     request: ObsidianVaultInventoryRequestSchema,
-    service: ObsidianService = Depends(
-        Provide[ApplicationContainer.obsidian.obsidian_service]
-    ),
+    service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
 ) -> ObsidianVaultInventoryResponse:
     """Inventory managed notes for typed librarian execution planning.
 
@@ -82,9 +84,10 @@ async def inventory_obsidian_vault_notes(
 @inject
 async def list_obsidian_librarian_review_queue(
     request: ObsidianLibrarianReviewQueueRequestSchema,
-    service: ObsidianService = Depends(
-        Provide[ApplicationContainer.obsidian.obsidian_service]
-    ),
+    service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
 ) -> ObsidianLibrarianReviewQueueResponse:
     """List notes that need librarian curation.
 
@@ -116,9 +119,10 @@ async def list_obsidian_librarian_review_queue(
 @inject
 async def plan_obsidian_librarian_review_moves(
     request: ObsidianLibrarianReviewQueueRequestSchema,
-    service: ObsidianService = Depends(
-        Provide[ApplicationContainer.obsidian.obsidian_service]
-    ),
+    service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
 ) -> ObsidianVaultMovePlanResponse:
     """Plan safe note moves from the librarian review queue.
 
@@ -148,9 +152,10 @@ async def plan_obsidian_librarian_review_moves(
 @inject
 async def apply_obsidian_librarian_review_moves(
     request: ObsidianLibrarianReviewApplyRequestSchema,
-    service: ObsidianService = Depends(
-        Provide[ApplicationContainer.obsidian.obsidian_service]
-    ),
+    service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
 ) -> ObsidianVaultMoveReportResponse:
     """Apply safe note moves generated from the librarian review queue.
 
@@ -175,10 +180,14 @@ async def apply_obsidian_librarian_review_moves(
 @router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def search_obsidian_vault_paths(
-    request: ObsidianVaultPathSearchRequest,
-    service: ObsidianService = Depends(
-        Provide[ApplicationContainer.obsidian.obsidian_service]
-    ),
+    request: Annotated[
+        ObsidianVaultPathSearchRequest,
+        Depends(model_validate_json_body(ObsidianVaultPathSearchRequest)),
+    ],
+    service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
 ) -> ObsidianVaultInventoryResponse:
     """Search inventory metadata for typed librarian execution planning.
 
@@ -208,9 +217,10 @@ async def search_obsidian_vault_paths(
 @inject
 async def plan_obsidian_vault_moves(
     request: ObsidianVaultMovePlanRequestSchema,
-    service: ObsidianService = Depends(
-        Provide[ApplicationContainer.obsidian.obsidian_service]
-    ),
+    service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
 ) -> ObsidianVaultMovePlanResponse:
     """Plan safe moves for a typed librarian vault workflow.
 
@@ -236,9 +246,10 @@ async def plan_obsidian_vault_moves(
 @inject
 async def apply_obsidian_vault_moves(
     request: ObsidianVaultMoveApplyRequestSchema,
-    service: ObsidianService = Depends(
-        Provide[ApplicationContainer.obsidian.obsidian_service]
-    ),
+    service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
 ) -> ObsidianVaultMoveReportResponse:
     """Apply safe note moves for a typed librarian vault workflow.
 
@@ -268,9 +279,10 @@ async def apply_obsidian_vault_moves(
 async def start_obsidian_librarian_job(
     request: ObsidianVaultMoveApplyRequestSchema,
     background_tasks: BackgroundTasks,
-    job_service: ObsidianLibrarianJobService = Depends(
-        Provide[ApplicationContainer.obsidian.job_service]
-    ),
+    job_service: Annotated[
+        ObsidianLibrarianJobService,
+        Depends(Provide[ApplicationContainer.obsidian.job_service]),
+    ],
 ) -> ObsidianLibrarianJobResponse:
     """Start a best-effort in-process librarian vault execution job.
 
@@ -305,9 +317,10 @@ async def start_obsidian_librarian_job(
 @inject
 async def get_obsidian_librarian_job(
     job_id: str,
-    job_service: ObsidianLibrarianJobService = Depends(
-        Provide[ApplicationContainer.obsidian.job_service]
-    ),
+    job_service: Annotated[
+        ObsidianLibrarianJobService,
+        Depends(Provide[ApplicationContainer.obsidian.job_service]),
+    ],
 ) -> ObsidianLibrarianJobResponse:
     """Read one best-effort in-process librarian execution job status.
 
@@ -332,9 +345,10 @@ async def get_obsidian_librarian_job(
 @inject
 async def get_obsidian_librarian_job_report(
     job_id: str,
-    job_service: ObsidianLibrarianJobService = Depends(
-        Provide[ApplicationContainer.obsidian.job_service]
-    ),
+    job_service: Annotated[
+        ObsidianLibrarianJobService,
+        Depends(Provide[ApplicationContainer.obsidian.job_service]),
+    ],
 ) -> ObsidianVaultMoveReportResponse:
     """Read one completed librarian execution job report.
 

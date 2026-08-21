@@ -21,7 +21,6 @@ def model_to_dict(model: BaseModel) -> JSONObject:
 
 def schema_payload(
     schema: BaseModel,
-    *,
     by_alias: bool = False,
     exclude_none: bool = False,
     exclude_unset: bool = False,

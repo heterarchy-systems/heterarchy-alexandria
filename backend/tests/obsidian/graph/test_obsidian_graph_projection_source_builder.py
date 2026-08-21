@@ -8,10 +8,10 @@ from pathlib import Path
 
 import anyio
 import pytest
-from app.obsidian.application.graph.obsidian_graph_projection_source_builder import (
+from app.obsidian.application.graph.projection.obsidian_graph_projection_source_builder import (
     ObsidianGraphProjectionSourceBuilder,
 )
-from app.obsidian.domain.contracts.obsidian_graph_projection_contracts import (
+from app.obsidian.domain.event_enum.obsidian_graph_enums import (
     ObsidianGraphProjectionIssueCode,
 )
 from app.obsidian.domain.event_enum.obsidian_enums import (

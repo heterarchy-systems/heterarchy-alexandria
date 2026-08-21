@@ -18,7 +18,6 @@ class IndexWriteProcessLock(Protocol):
 
     def operation(
         self,
-        *,
         wait: bool,
         shared: bool,
     ) -> AbstractAsyncContextManager[None]:
@@ -52,7 +51,6 @@ class IndexMaintenanceCoordinator:
 
     def __init__(
         self,
-        *,
         process_lock: IndexWriteProcessLock | None = None,
         allow_concurrent_writes: bool = False,
     ) -> None:
@@ -89,7 +87,6 @@ class IndexMaintenanceCoordinator:
     async def operation(
         self,
         name: str,
-        *,
         wait: bool = False,
     ) -> AsyncIterator[None]:
         """Enter one exclusive maintenance operation.
@@ -123,7 +120,6 @@ class IndexMaintenanceCoordinator:
     @asynccontextmanager
     async def _lease(
         self,
-        *,
         name: str,
         wait: bool,
         requested_mode: IndexLeaseMode,
@@ -158,7 +154,6 @@ class IndexMaintenanceCoordinator:
 
     async def _acquire_local(
         self,
-        *,
         task_id: int,
         name: str,
         wait: bool,
@@ -182,7 +177,7 @@ class IndexMaintenanceCoordinator:
             await self._acquire_exclusive(task_id=task_id, name=name, wait=wait)
             return True, "exclusive"
 
-    async def _acquire_shared(self, *, task_id: int, name: str) -> None:
+    async def _acquire_shared(self, task_id: int, name: str) -> None:
         while (
             self._exclusive_owner_task_id is not None
             or self._waiting_exclusive_count > 0
@@ -193,7 +188,6 @@ class IndexMaintenanceCoordinator:
 
     async def _acquire_exclusive(
         self,
-        *,
         task_id: int,
         name: str,
         wait: bool,

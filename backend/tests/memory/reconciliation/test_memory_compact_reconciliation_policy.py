@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from app.memory.application.reconciliation.memory_compact_reconciliation_policy import (
+from app.memory.application.reconciliation.compacts.memory_compact_reconciliation_policy import (
     MemoryCompactReconciliationPolicy,
 )
 from app.memory.domain.entities.context_read_models import (

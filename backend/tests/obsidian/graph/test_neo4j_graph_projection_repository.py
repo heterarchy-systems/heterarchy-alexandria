@@ -11,10 +11,12 @@ from app.obsidian.domain.contracts.obsidian_graph_projection_contracts import (
     ObsidianGraphContextEvidence,
     ObsidianGraphProjection,
     ObsidianGraphProjectionEdge,
-    ObsidianGraphProjectionIssueCode,
     ObsidianGraphProjectionIssueCount,
     ObsidianGraphProjectionNode,
     ObsidianGraphRelatedNote,
+)
+from app.obsidian.domain.event_enum.obsidian_graph_enums import (
+    ObsidianGraphProjectionIssueCode,
 )
 from app.obsidian.domain.event_enum.obsidian_enums import (
     AlexandriaNoteType,
@@ -38,9 +40,11 @@ from app.obsidian.infrastructure.graph.neo4j_graph_projection_queries import (
     UPSERT_EDGES,
     UPSERT_NODES,
 )
+from app.obsidian.infrastructure.graph.neo4j_graph_projection_contracts import (
+    Neo4jProjectionDriver,
+)
 from app.obsidian.infrastructure.graph.neo4j_obsidian_graph_projection_repository import (
     Neo4jObsidianGraphProjectionRepository,
-    Neo4jProjectionDriver,
 )
 from app.platform.config.app_config import AppConfig
 

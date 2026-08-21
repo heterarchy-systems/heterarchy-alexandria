@@ -81,7 +81,7 @@ class LogRecordExtraReader:
         """
         self._record = record
 
-    def string(self, key: str, *, default: str | None = None) -> str | None:
+    def string(self, key: str, default: str | None = None) -> str | None:
         """Read an extra field as string with type validation.
 
         Args:
@@ -96,7 +96,7 @@ class LogRecordExtraReader:
             return value
         return default
 
-    def required_string(self, key: str, *, default: str) -> str:
+    def required_string(self, key: str, default: str) -> str:
         """Read an extra string field with a required fallback.
 
         Args:
@@ -114,7 +114,6 @@ class LogRecordExtraReader:
     def float_value(
         self,
         key: str,
-        *,
         default: float | None = None,
     ) -> float | None:
         """Read an extra numeric field as ``float``.
@@ -131,7 +130,7 @@ class LogRecordExtraReader:
             return float(value)
         return default
 
-    def int_value(self, key: str, *, default: int | None = None) -> int | None:
+    def int_value(self, key: str, default: int | None = None) -> int | None:
         """Read an extra integer field safely.
 
         Args:
@@ -149,7 +148,6 @@ class LogRecordExtraReader:
     def json_object(
         self,
         key: str,
-        *,
         default: JSONObject | None = None,
     ) -> JSONObject | None:
         """Read and validate one JSON-compatible structured extra object.

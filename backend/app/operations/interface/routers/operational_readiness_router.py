@@ -1,27 +1,29 @@
 """Routes for operational readiness diagnostics."""
 
-from __future__ import annotations
+from typing import Annotated
 
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, status
 
 from app.container import ApplicationContainer
-from app.memory.application.context_service import ContextService
-from app.memory.application.reconciliation.memory_reconciliation_readiness_service import (
+from app.memory.application.contexts.records.context_service import ContextService
+from app.memory.application.reconciliation.runtime.memory_reconciliation_readiness_service import (
     MemoryReconciliationReadinessService,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
-from app.operations.application.operational_capability_policy import capability_snapshot
-from app.operations.application.operational_readiness_cache import (
+from app.operations.application.readiness.operational_capability_policy import (
+    capability_snapshot,
+)
+from app.operations.application.readiness.operational_readiness_cache import (
     OperationalReadinessCache,
 )
-from app.operations.application.operational_readiness_service import (
+from app.operations.application.readiness.operational_readiness_service import (
     OperationalReadinessService,
 )
 from app.operations.interface.schemas.operations.operational_capability_schema import (
     OperationalCapabilitySnapshotResponse,
 )
-from app.operations.interface.schemas.operations.operational_readiness_schema import (
+from app.operations.interface.schemas.operations.operational_readiness_detail_schema import (
     OperationalReadinessSnapshotResponse,
 )
 from app.shared.infrastructure.database import Database
@@ -41,19 +43,24 @@ router = APIRouter(prefix="/operations", tags=["operations"])
 )
 @inject
 async def operational_readiness(
-    database: Database = Depends(Provide[ApplicationContainer.database]),
-    context_service: ContextService = Depends(
-        Provide[ApplicationContainer.memory.context_service]
-    ),
-    obsidian_service: ObsidianService = Depends(
-        Provide[ApplicationContainer.obsidian.obsidian_service]
-    ),
-    readiness_cache: OperationalReadinessCache = Depends(
-        Provide[ApplicationContainer.operational_readiness_cache]
-    ),
-    reconciliation_service: MemoryReconciliationReadinessService | None = Depends(
-        Provide[ApplicationContainer.memory.memory_reconciliation_readiness_service]
-    ),
+    database: Annotated[Database, Depends(Provide[ApplicationContainer.database])],
+    context_service: Annotated[
+        ContextService, Depends(Provide[ApplicationContainer.memory.context_service])
+    ],
+    obsidian_service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
+    readiness_cache: Annotated[
+        OperationalReadinessCache,
+        Depends(Provide[ApplicationContainer.operational_readiness_cache]),
+    ],
+    reconciliation_service: Annotated[
+        MemoryReconciliationReadinessService | None,
+        Depends(
+            Provide[ApplicationContainer.memory.memory_reconciliation_readiness_service]
+        ),
+    ],
 ) -> OperationalReadinessSnapshotResponse:
     """Return operational readiness snapshot.
 
@@ -89,19 +96,24 @@ async def operational_readiness(
 )
 @inject
 async def operational_capabilities(
-    database: Database = Depends(Provide[ApplicationContainer.database]),
-    context_service: ContextService = Depends(
-        Provide[ApplicationContainer.memory.context_service]
-    ),
-    obsidian_service: ObsidianService = Depends(
-        Provide[ApplicationContainer.obsidian.obsidian_service]
-    ),
-    readiness_cache: OperationalReadinessCache = Depends(
-        Provide[ApplicationContainer.operational_readiness_cache]
-    ),
-    reconciliation_service: MemoryReconciliationReadinessService | None = Depends(
-        Provide[ApplicationContainer.memory.memory_reconciliation_readiness_service]
-    ),
+    database: Annotated[Database, Depends(Provide[ApplicationContainer.database])],
+    context_service: Annotated[
+        ContextService, Depends(Provide[ApplicationContainer.memory.context_service])
+    ],
+    obsidian_service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
+    readiness_cache: Annotated[
+        OperationalReadinessCache,
+        Depends(Provide[ApplicationContainer.operational_readiness_cache]),
+    ],
+    reconciliation_service: Annotated[
+        MemoryReconciliationReadinessService | None,
+        Depends(
+            Provide[ApplicationContainer.memory.memory_reconciliation_readiness_service]
+        ),
+    ],
 ) -> OperationalCapabilitySnapshotResponse:
     """Return independently classified core, semantic, and Librarian states.
 

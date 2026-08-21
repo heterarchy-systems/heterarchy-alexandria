@@ -28,7 +28,6 @@ class LibrarianOAuthConnectionStatusService:
 
     def __init__(
         self,
-        *,
         secret_store: LibrarianOAuthSecretStore,
         evaluator: LibrarianOAuthStatusEvaluator,
         now_provider: Callable[[], datetime],

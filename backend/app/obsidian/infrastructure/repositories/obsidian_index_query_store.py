@@ -33,6 +33,7 @@ from app.shared.infrastructure.postgres_fts_relevance import (
 )
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.elements import ColumnElement
 
 
 class ObsidianIndexQueryStore:
@@ -84,7 +85,7 @@ class ObsidianIndexQueryStore:
         """
         frontmatter = ObsidianFileORM.frontmatter_json
 
-        def extract(field_name: str):  # type: ignore[no-untyped-def]
+        def extract(field_name: str) -> ColumnElement[str]:
             return func.json_extract_path_text(frontmatter, field_name)
 
         statement = select(ObsidianFileORM).where(

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.memory.application.retrieval.embedding_contract import (
+from app.memory.application.retrieval.embeddings.embedding_contract import (
     DEFAULT_EMBEDDING_DIMENSIONS,
     DEFAULT_EMBEDDING_MODEL,
     EmbeddingProvider,

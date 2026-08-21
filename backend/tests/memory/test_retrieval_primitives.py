@@ -5,20 +5,21 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from app.memory.application.retrieval.chunker import chunk_markdown
-from app.memory.application.retrieval.context_query_planning import (
-    context_query_variants,
-)
-from app.memory.application.retrieval.context_ranking import (
-    hybrid_candidate_limit,
-    merge_hybrid_matches,
-)
-from app.memory.application.retrieval.embedding_document import (
+from app.memory.application.retrieval.embeddings.embedding_document import (
     EMBEDDING_DOCUMENT_INPUT_FORMAT,
     build_embedding_document_text,
 )
-from app.memory.application.retrieval.fake_embedding_provider import (
+from app.memory.application.retrieval.embeddings.fake_embedding_provider import (
     FakeEmbeddingProvider,
 )
+from app.memory.application.retrieval.planning.context_query_planning import (
+    context_query_variants,
+)
+from app.memory.application.retrieval.ranking.context_ranking import (
+    hybrid_candidate_limit,
+    merge_hybrid_matches,
+)
+from app.memory.application.retrieval.ranking.vector_math import cosine_similarity
 from app.memory.domain.entities.context_read_models import (
     ContextChunkRecord,
     ContextRecord,
@@ -178,6 +179,14 @@ def test_embedding_document_text_includes_title_and_heading() -> None:
         fingerprint.identity_payload()["document_input_format"]
         == EMBEDDING_DOCUMENT_INPUT_FORMAT
     )
+
+
+def test_cosine_similarity_package_contract_handles_vector_edges() -> None:
+    """The ranking package should expose deterministic cosine similarity behavior."""
+    assert cosine_similarity([1.0, 0.0], [1.0, 0.0]) == 1.0
+    assert cosine_similarity([1.0, 0.0], [0.0, 1.0]) == 0.0
+    assert cosine_similarity([0.0, 0.0], [1.0, 1.0]) == 0.0
+    assert cosine_similarity([1.0], [1.0, 0.0]) == 0.0
 
 
 def test_hybrid_candidate_limit_overfetches_before_final_ranking() -> None:

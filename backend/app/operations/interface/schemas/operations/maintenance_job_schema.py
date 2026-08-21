@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, StringConstraints
 
 from app.operations.domain.entities.maintenance_job import (
     EmbeddingReindexJobResult,
@@ -15,9 +16,10 @@ from app.operations.domain.event_enum.maintenance_job_enums import (
     MaintenanceJobKind,
     MaintenanceJobStatus,
 )
+from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
 
 
-class EmbeddingReindexJobRequest(BaseModel):
+class EmbeddingReindexJobRequest(StrictSchemaModel):
     """Submit one bounded embedding reindex operation."""
 
     model_config = ConfigDict(
@@ -26,21 +28,43 @@ class EmbeddingReindexJobRequest(BaseModel):
         validate_default=True,
     )
 
-    requested_by: str = Field(default="manual", min_length=1, max_length=120)
-    source_id: str = Field(default="manual", min_length=1, max_length=200)
-    limit: int = Field(default=250, ge=1, le=1000)
-    force: bool = False
+    requested_by: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1, max_length=120),
+        described_field("Requested by for this embedding reindex job request."),
+    ] = "manual"
+    source_id: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1, max_length=200),
+        described_field("Source identifier for this embedding reindex job request."),
+    ] = "manual"
+    limit: Annotated[
+        int,
+        described_field("Limit for this embedding reindex job request.", ge=1, le=1000),
+    ] = 250
+    force: Annotated[
+        bool, described_field("Force for this embedding reindex job request.")
+    ] = False
 
 
-class EmbeddingReindexJobResultResponse(BaseModel):
+class EmbeddingReindexJobResultResponse(StrictSchemaModel):
     """Bounded embedding batch result."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    scanned: int
-    updated: int
-    skipped: int
-    warnings: tuple[str, ...] = ()
+    scanned: Annotated[
+        int, described_field("Scanned for this embedding reindex job result response.")
+    ]
+    updated: Annotated[
+        int, described_field("Updated for this embedding reindex job result response.")
+    ]
+    skipped: Annotated[
+        int, described_field("Skipped for this embedding reindex job result response.")
+    ]
+    warnings: Annotated[
+        tuple[str, ...],
+        described_field("Warnings for this embedding reindex job result response."),
+    ] = ()
 
     @classmethod
     def from_entity(
@@ -55,26 +79,57 @@ class EmbeddingReindexJobResultResponse(BaseModel):
         )
 
 
-class MaintenanceJobResponse(BaseModel):
+class MaintenanceJobResponse(StrictSchemaModel):
     """Operator-visible queued maintenance lifecycle state."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    job_id: str
-    kind: MaintenanceJobKind
-    status: MaintenanceJobStatus
-    requested_by: str
-    source_id: str
-    limit: int
-    force: bool
-    attempts: int
-    submitted_at: datetime
-    started_at: datetime | None = None
-    finished_at: datetime | None = None
-    stream_id: str | None = None
-    deduplicated: bool = False
-    error_summary: str | None = None
-    result: EmbeddingReindexJobResultResponse | None = None
+    job_id: Annotated[
+        str, described_field("Job identifier for this maintenance job response.")
+    ]
+    kind: Annotated[
+        MaintenanceJobKind, described_field("Kind for this maintenance job response.")
+    ]
+    status: Annotated[
+        MaintenanceJobStatus,
+        described_field("Status for this maintenance job response."),
+    ]
+    requested_by: Annotated[
+        str, described_field("Requested by for this maintenance job response.")
+    ]
+    source_id: Annotated[
+        str, described_field("Source identifier for this maintenance job response.")
+    ]
+    limit: Annotated[int, described_field("Limit for this maintenance job response.")]
+    force: Annotated[bool, described_field("Force for this maintenance job response.")]
+    attempts: Annotated[
+        int, described_field("Attempts for this maintenance job response.")
+    ]
+    submitted_at: Annotated[
+        datetime, described_field("Submitted at for this maintenance job response.")
+    ]
+    started_at: Annotated[
+        datetime | None,
+        described_field("Started at for this maintenance job response."),
+    ] = None
+    finished_at: Annotated[
+        datetime | None,
+        described_field("Finished at for this maintenance job response."),
+    ] = None
+    stream_id: Annotated[
+        str | None,
+        described_field("Stream identifier for this maintenance job response."),
+    ] = None
+    deduplicated: Annotated[
+        bool, described_field("Deduplicated for this maintenance job response.")
+    ] = False
+    error_summary: Annotated[
+        str | None, described_field("Error summary for this maintenance job response.")
+    ] = None
+    result: Annotated[
+        EmbeddingReindexJobResultResponse | None,
+        described_field("Result for this maintenance job response."),
+    ] = None
 
     @classmethod
     def from_entity(cls, snapshot: MaintenanceJobSnapshot) -> MaintenanceJobResponse:
@@ -110,15 +165,27 @@ class MaintenanceJobResponse(BaseModel):
         )
 
 
-class MaintenanceQueueStatusResponse(BaseModel):
+class MaintenanceQueueStatusResponse(StrictSchemaModel):
     """Bounded Redis Streams backlog and worker evidence."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    stream_length: int
-    pending: int
-    consumers: int
-    dead_letter_length: int
+    stream_length: Annotated[
+        int,
+        described_field("Stream length for this maintenance queue status response."),
+    ]
+    pending: Annotated[
+        int, described_field("Pending for this maintenance queue status response.")
+    ]
+    consumers: Annotated[
+        int, described_field("Consumers for this maintenance queue status response.")
+    ]
+    dead_letter_length: Annotated[
+        int,
+        described_field(
+            "Dead letter length for this maintenance queue status response."
+        ),
+    ]
 
     @classmethod
     def from_entity(

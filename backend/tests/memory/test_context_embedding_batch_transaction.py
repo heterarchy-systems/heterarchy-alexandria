@@ -7,13 +7,15 @@ from datetime import UTC, datetime
 from typing import cast
 
 import anyio
-from app.memory.application.context_embedding_health_service import (
+from app.memory.application.contexts.embedding.context_embedding_health_service import (
     ContextEmbeddingHealthService,
 )
-from app.memory.application.context_embedding_reindex_service import (
+from app.memory.application.contexts.embedding.context_embedding_reindex_service import (
     ContextEmbeddingReindexService,
 )
-from app.memory.application.retrieval.embedding_contract import EmbeddingProvider
+from app.memory.application.retrieval.embeddings.embedding_contract import (
+    EmbeddingProvider,
+)
 from app.memory.domain.contracts.context_contracts import (
     ContextChunkEmbeddingUpdate,
 )
@@ -27,7 +29,9 @@ from app.memory.domain.entities.context_read_models import (
     ContextSearchMatch,
 )
 from app.memory.domain.event_enum.context_enums import RagHealthState
-from app.memory.domain.repositories.context_search_source import IContextSearchSource
+from app.memory.domain.repositories.contexts.context_search_source import (
+    IContextSearchSource,
+)
 from app.memory.domain.types.context_payload_types import ContextMetadataPayload
 from app.memory.infrastructure.context_embedding_batch_transaction import (
     SqlAlchemyContextEmbeddingBatchTransaction,

@@ -7,11 +7,18 @@ no single model becomes overloaded.
 
 from __future__ import annotations
 
+from typing import Annotated
+
+from app.shared.schemas.common_schemas import (
+    StrictSchemaModel,
+    described_field,
+    schema_dict_default,
+)
 from app.shared.types.extra_types import JSONObject
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
+from pydantic import ConfigDict, StrictInt, StrictStr
 
 
-class JsonLoggingModel(BaseModel):
+class JsonLoggingModel(StrictSchemaModel):
     """Base class for structured logging models.
 
     Purpose:
@@ -74,7 +81,9 @@ class JsonLogPayload(JsonLoggingModel):
     msg: StrictStr
     func: StrictStr | None
     duration_ms: float | None
-    attributes: JSONObject = Field(default_factory=dict)
+    attributes: Annotated[
+        JSONObject, described_field("Attributes for this JSON log payload.")
+    ] = schema_dict_default()
     service: JsonLogServiceContext
     trace: JsonLogTraceContext
     http: JsonLogHttpContext

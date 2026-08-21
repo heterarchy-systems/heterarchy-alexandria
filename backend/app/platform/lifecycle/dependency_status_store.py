@@ -5,10 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from app.platform.lifecycle.dependency_health import (
-    DependencyHealthStatus,
-    PlatformDependency,
     dependency_status_when_lifecycle_drains,
     dependency_status_when_marked_healthy,
+)
+from app.platform.lifecycle.dependency_health_enums import (
+    DependencyHealthStatus,
+    PlatformDependency,
 )
 
 
@@ -37,7 +39,6 @@ class DependencyStatusStore:
     def mark_healthy(
         self,
         dependency: PlatformDependency,
-        *,
         lifecycle_accepts_traffic: bool,
     ) -> None:
         """Set one dependency status from a healthy report.

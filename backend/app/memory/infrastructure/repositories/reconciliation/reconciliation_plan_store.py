@@ -84,7 +84,6 @@ class ReconciliationPlanStore:
 
     async def list_review_plans(
         self,
-        *,
         limit: int = 100,
     ) -> list[MemoryReconciliationPlan]:
         """List review-required plans newest first.

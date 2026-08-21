@@ -14,14 +14,12 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from pydantic import ValidationError
 
-from app.mcp_server.type_validate.oauth_jwt_schemas import (
+from app.mcp_server.type_validate.oauth.oauth_jwt_schemas import (
     JsonWebKeySetPayload,
     JwtClaimsPayload,
     JwtHeaderPayload,
     RsaJsonWebKeyPayload,
 )
-from app.shared.serialization.orjson_codec import loads_json
-from app.shared.types.extra_types import JSONValue
 
 
 class OAuthBearerTokenError(Exception):
@@ -78,7 +76,7 @@ class OAuthBearerTokenVerifier:
             response = await client.get(self._config.jwks_url)
             response.raise_for_status()
         try:
-            payload = JsonWebKeySetPayload.model_validate(response.json())
+            payload = JsonWebKeySetPayload.model_validate_json(response.content)
         except ValidationError as exc:
             raise OAuthBearerTokenError("JWKS payload is invalid") from exc
         self._jwks = payload
@@ -118,16 +116,12 @@ def _decode_unsigned_token(
     header_segment, claim_segment, signature_segment = segments
     signing_input = f"{header_segment}.{claim_segment}".encode("ascii")
     try:
-        header = JwtHeaderPayload.model_validate(_loads_segment(header_segment))
-        claims = JwtClaimsPayload.model_validate(_loads_segment(claim_segment))
+        header = JwtHeaderPayload.model_validate_json(_decode_base64url(header_segment))
+        claims = JwtClaimsPayload.model_validate_json(_decode_base64url(claim_segment))
         signature = _decode_base64url(signature_segment)
     except (UnicodeEncodeError, ValidationError, ValueError) as exc:
         raise OAuthBearerTokenError("Bearer token payload is invalid") from exc
     return header, claims, signing_input, signature
-
-
-def _loads_segment(segment: str) -> JSONValue:
-    return loads_json(_decode_base64url(segment))
 
 
 def _decode_base64url(value: str) -> bytes:
