@@ -4,6 +4,11 @@ on:
   pull_request:
     paths:
       - "backend/**"
+      - "native/**"
+      - ".cargo/**"
+      - ".agents/python_dev_harness/**"
+      - ".agents/rust_dev_harness/**"
+      - "Makefile"
       - "docker-compose.yml"
       - ".pre-commit-config.yaml"
       - ".github/workflows/backend.yml"
@@ -12,6 +17,11 @@ on:
       - main
     paths:
       - "backend/**"
+      - "native/**"
+      - ".cargo/**"
+      - ".agents/python_dev_harness/**"
+      - ".agents/rust_dev_harness/**"
+      - "Makefile"
       - "docker-compose.yml"
       - ".pre-commit-config.yaml"
       - ".github/workflows/backend.yml"
@@ -21,7 +31,7 @@ permissions:
 
 jobs:
   backend:
-    name: Backend quality gate
+    name: Repository quality gate
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -34,6 +44,11 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@1.97.1
+        with:
+          components: rustfmt, clippy
+
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
         with:
@@ -44,6 +59,5 @@ jobs:
         working-directory: backend
         run: uv sync --group dev --reinstall-package heterarchy-alexandria
 
-      - name: Run backend parity gate
-        working-directory: backend
+      - name: Run repository parity gate
         run: make ci
