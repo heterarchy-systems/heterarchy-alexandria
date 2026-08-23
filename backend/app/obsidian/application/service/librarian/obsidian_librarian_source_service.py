@@ -48,6 +48,14 @@ class ObsidianLibrarianSourceService:
         self._search = search
 
     async def active_note(self, relative_path: str | None) -> ObsidianNote | None:
+        """Resolve the active librarian source note.
+
+        Args:
+            relative_path: Vault-relative path of the active note.
+
+        Returns:
+            Active Obsidian note, or None when no active note is available.
+        """
         if not relative_path:
             return None
         try:
@@ -60,6 +68,14 @@ class ObsidianLibrarianSourceService:
     async def source_hits(
         self, payload: ObsidianLibrarianAsk
     ) -> list[ObsidianSearchHit]:
+        """Resolve librarian source search hits.
+
+        Args:
+            payload: Validated request or librarian payload consumed by the operation.
+
+        Returns:
+            Obsidian search hits selected as librarian sources.
+        """
         query_text = librarian_query_text(payload)
         search_limit = librarian_search_limit(payload.max_source_refs)
         preferred_types = librarian_type_filters(payload.preferred_alexandria_types)

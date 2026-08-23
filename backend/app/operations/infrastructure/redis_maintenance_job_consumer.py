@@ -10,6 +10,7 @@ from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
 from app.operations.application.maintenance_job_queue import (
+    MaintenanceJobConsumer,
     MaintenanceJobDelivery,
     MaintenanceQueueUnavailableError,
 )
@@ -38,7 +39,7 @@ from app.platform.config.maintenance_queue_config import MaintenanceQueueConfig
 from app.shared.types.redis_types import RedisResponse
 
 
-class RedisMaintenanceJobConsumer:
+class RedisMaintenanceJobConsumer(MaintenanceJobConsumer):
     """Worker-facing Redis adapter for claim, retry, and acknowledgement."""
 
     def __init__(
@@ -47,6 +48,13 @@ class RedisMaintenanceJobConsumer:
         config: MaintenanceQueueConfig,
         submitter: RedisMaintenanceJobSubmitter,
     ) -> None:
+        """Initialize RedisMaintenanceJobConsumer state and dependencies.
+
+        Args:
+            client: Client used by this operation.
+            config: Typed configuration used by this operation.
+            submitter: Submitter used by this operation.
+        """
         self._client = client
         self._config = config
         self._submitter = submitter
@@ -233,6 +241,11 @@ class RedisMaintenanceJobConsumer:
         return terminal
 
     async def _ack(self, stream_id: str) -> None:
+        """Execute ack.
+
+        Args:
+            stream_id: Identifier for stream.
+        """
         operation = self._client.xack(
             self._config.stream_name,
             self._config.consumer_group,

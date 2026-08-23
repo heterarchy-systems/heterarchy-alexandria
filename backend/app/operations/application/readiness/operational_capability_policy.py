@@ -71,6 +71,14 @@ def capability_snapshot(
 
 
 def _core_blockers(readiness: OperationalReadinessSnapshot) -> list[str]:
+    """Execute core blockers.
+
+    Args:
+        readiness: Readiness used by this operation.
+
+    Returns:
+        list[str] result produced by core blockers.
+    """
     blockers: list[str] = []
     if not readiness.database.reachable:
         blockers.append("database_unreachable")
@@ -90,6 +98,14 @@ def _core_blockers(readiness: OperationalReadinessSnapshot) -> list[str]:
 
 
 def _core_warnings(readiness: OperationalReadinessSnapshot) -> list[str]:
+    """Execute core warnings.
+
+    Args:
+        readiness: Readiness used by this operation.
+
+    Returns:
+        list[str] result produced by core warnings.
+    """
     warnings: list[str] = []
     reconciliation = readiness.reconciliation
     if reconciliation.configured and not reconciliation.reachable:
@@ -102,6 +118,14 @@ def _core_warnings(readiness: OperationalReadinessSnapshot) -> list[str]:
 
 
 def _semantic_blockers(readiness: OperationalReadinessSnapshot) -> list[str]:
+    """Execute semantic blockers.
+
+    Args:
+        readiness: Readiness used by this operation.
+
+    Returns:
+        list[str] result produced by semantic blockers.
+    """
     blockers: list[str] = []
     if readiness.rag.vector is not RagHealthState.HEALTHY:
         blockers.append("rag_vector_not_healthy")

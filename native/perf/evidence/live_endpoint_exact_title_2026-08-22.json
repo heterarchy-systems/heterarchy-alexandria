@@ -1,0 +1,643 @@
+{
+  "cases": [
+    {
+      "effective_strategies": [
+        "FTS_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 5,
+      "latency_max_ms": 5520.418,
+      "latency_mean_ms": 5520.418,
+      "latency_min_ms": 5520.418,
+      "latency_p50_ms": 5520.418,
+      "latency_p95_ms": 5520.418,
+      "match_count_max": 5,
+      "match_count_min": 5,
+      "mean_reciprocal_rank": 0.5,
+      "project": "heterarchy-alexandria",
+      "query": "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20",
+      "ranking_stable": true,
+      "recall_at_1": 0.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "FTS_ONLY",
+      "response_bytes_p50": 81785,
+      "retrieved_context_id_variants": [
+        [
+          "ac529f47-0aae-4364-911f-56d84b98822b",
+          "67bcb6b4-981a-4b16-bd0e-d3461572d602",
+          "b6a3291c-9a4a-48a5-9121-4a6d3e15f23b",
+          "b27e75af-5813-4fb1-9347-4c2cd56e3352",
+          "91cb4875-0946-4416-84fe-da180493280e"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "heterarchy-alexandria Rust Compute Migration Plan Index 2026-08-22",
+          "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20",
+          "heterarchy-alexandria Project Index",
+          "heterarchy-alexandria Retrieval Benchmark Harness and Verification 2026-08-21",
+          "heterarchy-alexandria PostgreSQL FTS Ranking and Query Plan Optimization 2026-08-21"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "VECTOR_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 3,
+      "latency_max_ms": 1525.272,
+      "latency_mean_ms": 1525.272,
+      "latency_min_ms": 1525.272,
+      "latency_p50_ms": 1525.272,
+      "latency_p95_ms": 1525.272,
+      "match_count_max": 3,
+      "match_count_min": 3,
+      "mean_reciprocal_rank": 1.0,
+      "project": "heterarchy-alexandria",
+      "query": "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "VECTOR_ONLY",
+      "response_bytes_p50": 53452,
+      "retrieved_context_id_variants": [
+        [
+          "67bcb6b4-981a-4b16-bd0e-d3461572d602",
+          "7daafba1-4321-4fc4-a1a7-aeef7325cf75",
+          "c6249a0a-0341-406f-9f1c-67db7a6779bb"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20",
+          "heterarchy-alexandria Retrieval Performance Verification Summary 2026-08-21",
+          "heterarchy-alexandria Retrieval Quality Benchmark and Scope Correction 2026-08-21"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "HYBRID"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 5,
+      "latency_max_ms": 19005.099,
+      "latency_mean_ms": 19005.099,
+      "latency_min_ms": 19005.099,
+      "latency_p50_ms": 19005.099,
+      "latency_p95_ms": 19005.099,
+      "match_count_max": 5,
+      "match_count_min": 5,
+      "mean_reciprocal_rank": 1.0,
+      "project": "heterarchy-alexandria",
+      "query": "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "HYBRID",
+      "response_bytes_p50": 82852,
+      "retrieved_context_id_variants": [
+        [
+          "67bcb6b4-981a-4b16-bd0e-d3461572d602",
+          "b27e75af-5813-4fb1-9347-4c2cd56e3352",
+          "91cb4875-0946-4416-84fe-da180493280e",
+          "b6a3291c-9a4a-48a5-9121-4a6d3e15f23b",
+          "c6249a0a-0341-406f-9f1c-67db7a6779bb"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20",
+          "heterarchy-alexandria Retrieval Benchmark Harness and Verification 2026-08-21",
+          "heterarchy-alexandria PostgreSQL FTS Ranking and Query Plan Optimization 2026-08-21",
+          "heterarchy-alexandria Project Index",
+          "heterarchy-alexandria Retrieval Quality Benchmark and Scope Correction 2026-08-21"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "FTS_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Neo4j 기능 05 Graph-aware Context Retrieval"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 4,
+      "latency_max_ms": 21190.554,
+      "latency_mean_ms": 21190.554,
+      "latency_min_ms": 21190.554,
+      "latency_p50_ms": 21190.554,
+      "latency_p95_ms": 21190.554,
+      "match_count_max": 4,
+      "match_count_min": 4,
+      "mean_reciprocal_rank": 1.0,
+      "project": "alexandria-hermes",
+      "query": "Neo4j 기능 05 Graph-aware Context Retrieval",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "FTS_ONLY",
+      "response_bytes_p50": 56626,
+      "retrieved_context_id_variants": [
+        [
+          "ctx_alexandria_neo4j_feature_05_graph_aware_context_20260803",
+          "ctx_alexandria_neo4j_graph_read_model_20260803",
+          "ctx_alexandria_neo4j_feature_index_20260803",
+          "9b967c42-022b-44a4-a4c1-dfda7bb7b755"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Neo4j 기능 05 Graph-aware Context Retrieval",
+          "Neo4j Graph Read-Model 고도화 진행 기록",
+          "Neo4j 고도화 기능별 장기기억 인덱스",
+          "2026-08-03 Daily Memory Compact"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "VECTOR_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Neo4j 기능 05 Graph-aware Context Retrieval"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 0,
+      "latency_max_ms": 1479.15,
+      "latency_mean_ms": 1479.15,
+      "latency_min_ms": 1479.15,
+      "latency_p50_ms": 1479.15,
+      "latency_p95_ms": 1479.15,
+      "match_count_max": 1,
+      "match_count_min": 1,
+      "mean_reciprocal_rank": 1.0,
+      "project": "alexandria-hermes",
+      "query": "Neo4j 기능 05 Graph-aware Context Retrieval",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "VECTOR_ONLY",
+      "response_bytes_p50": 6156,
+      "retrieved_context_id_variants": [
+        [
+          "ctx_alexandria_neo4j_feature_05_graph_aware_context_20260803"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Neo4j 기능 05 Graph-aware Context Retrieval"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "HYBRID"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Neo4j 기능 05 Graph-aware Context Retrieval"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 5,
+      "latency_max_ms": 21962.326,
+      "latency_mean_ms": 21962.326,
+      "latency_min_ms": 21962.326,
+      "latency_p50_ms": 21962.326,
+      "latency_p95_ms": 21962.326,
+      "match_count_max": 5,
+      "match_count_min": 5,
+      "mean_reciprocal_rank": 1.0,
+      "project": "alexandria-hermes",
+      "query": "Neo4j 기능 05 Graph-aware Context Retrieval",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "HYBRID",
+      "response_bytes_p50": 68251,
+      "retrieved_context_id_variants": [
+        [
+          "ctx_alexandria_neo4j_feature_05_graph_aware_context_20260803",
+          "ctx_alexandria_neo4j_graph_read_model_20260803",
+          "9b967c42-022b-44a4-a4c1-dfda7bb7b755",
+          "ctx_alexandria_neo4j_feature_index_20260803",
+          "ctx_alexandria_neo4j_feature_06_qa_rules_commit_split_20260803"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Neo4j 기능 05 Graph-aware Context Retrieval",
+          "Neo4j Graph Read-Model 고도화 진행 기록",
+          "2026-08-03 Daily Memory Compact",
+          "Neo4j 고도화 기능별 장기기억 인덱스",
+          "Neo4j 기능 06 QA Rules Commit Split"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "FTS_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 4,
+      "latency_max_ms": 7378.828,
+      "latency_mean_ms": 7378.828,
+      "latency_min_ms": 7378.828,
+      "latency_p50_ms": 7378.828,
+      "latency_p95_ms": 7378.828,
+      "match_count_max": 4,
+      "match_count_min": 4,
+      "mean_reciprocal_rank": 0.5,
+      "project": "alexandria-hermes",
+      "query": "Alexandria Memory Steward Contract",
+      "ranking_stable": true,
+      "recall_at_1": 0.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "FTS_ONLY",
+      "response_bytes_p50": 50716,
+      "retrieved_context_id_variants": [
+        [
+          "e41382ac-a5f3-47d8-a6fa-b421a3e7c33c",
+          "d7111f69-acac-4540-8dde-3a312b222472",
+          "fff9ac3e-4804-4691-8d86-afce5ee822fc",
+          "61a7c1c3-096f-4617-8cb2-06e2b40eea7e"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "2026-08-06 Memory Steward Daily Health",
+          "Alexandria Memory Steward Contract",
+          "Alexandria Memory Steward Daily Tick",
+          "Memory Steward State"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "VECTOR_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 0,
+      "latency_max_ms": 2715.251,
+      "latency_mean_ms": 2715.251,
+      "latency_min_ms": 2715.251,
+      "latency_p50_ms": 2715.251,
+      "latency_p95_ms": 2715.251,
+      "match_count_max": 1,
+      "match_count_min": 1,
+      "mean_reciprocal_rank": 1.0,
+      "project": "alexandria-hermes",
+      "query": "Alexandria Memory Steward Contract",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "VECTOR_ONLY",
+      "response_bytes_p50": 12555,
+      "retrieved_context_id_variants": [
+        [
+          "d7111f69-acac-4540-8dde-3a312b222472"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Alexandria Memory Steward Contract"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "HYBRID"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 5,
+      "latency_max_ms": 9187.237,
+      "latency_mean_ms": 9187.237,
+      "latency_min_ms": 9187.237,
+      "latency_p50_ms": 9187.237,
+      "latency_p95_ms": 9187.237,
+      "match_count_max": 5,
+      "match_count_min": 5,
+      "mean_reciprocal_rank": 1.0,
+      "project": "alexandria-hermes",
+      "query": "Alexandria Memory Steward Contract",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "HYBRID",
+      "response_bytes_p50": 65514,
+      "retrieved_context_id_variants": [
+        [
+          "d7111f69-acac-4540-8dde-3a312b222472",
+          "61a7c1c3-096f-4617-8cb2-06e2b40eea7e",
+          "fff9ac3e-4804-4691-8d86-afce5ee822fc",
+          "fe8415f1-31a4-4949-9b17-7f9489aed7dc",
+          "ba4c03b3-ec1b-447e-8024-df4216b43ce9"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Alexandria Memory Steward Contract",
+          "Memory Steward State",
+          "Alexandria Memory Steward Daily Tick",
+          "Alexandria Memory Steward",
+          "2026-08-10 Memory Steward Daily Health"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "FTS_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "heterarchy-alexandria Project Index"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 3,
+      "latency_max_ms": 8618.739,
+      "latency_mean_ms": 8618.739,
+      "latency_min_ms": 8618.739,
+      "latency_p50_ms": 8618.739,
+      "latency_p95_ms": 8618.739,
+      "match_count_max": 5,
+      "match_count_min": 5,
+      "mean_reciprocal_rank": 1.0,
+      "project": "heterarchy-alexandria",
+      "query": "heterarchy-alexandria Project Index",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "FTS_ONLY",
+      "response_bytes_p50": 62646,
+      "retrieved_context_id_variants": [
+        [
+          "b6a3291c-9a4a-48a5-9121-4a6d3e15f23b",
+          "64d2990c-8bae-4a8f-9e72-96138e3f069b",
+          "ac529f47-0aae-4364-911f-56d84b98822b",
+          "5d37e9dd-147a-4dd2-9fc4-2d8fb6287aaa",
+          "926bbdc1-f05a-45ad-8416-8722b62fdd4d"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "heterarchy-alexandria Project Index",
+          "heterarchy-alexandria Graph Recovery Hub",
+          "heterarchy-alexandria Rust Compute Migration Plan Index 2026-08-22",
+          "Scheduler Runtime Policy",
+          "Knowledge Log"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "VECTOR_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "heterarchy-alexandria Project Index"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 2,
+      "latency_max_ms": 1536.766,
+      "latency_mean_ms": 1536.766,
+      "latency_min_ms": 1536.766,
+      "latency_p50_ms": 1536.766,
+      "latency_p95_ms": 1536.766,
+      "match_count_max": 2,
+      "match_count_min": 2,
+      "mean_reciprocal_rank": 1.0,
+      "project": "heterarchy-alexandria",
+      "query": "heterarchy-alexandria Project Index",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "VECTOR_ONLY",
+      "response_bytes_p50": 19555,
+      "retrieved_context_id_variants": [
+        [
+          "b6a3291c-9a4a-48a5-9121-4a6d3e15f23b",
+          "64d2990c-8bae-4a8f-9e72-96138e3f069b"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "heterarchy-alexandria Project Index",
+          "heterarchy-alexandria Graph Recovery Hub"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "HYBRID"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "heterarchy-alexandria Project Index"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 4,
+      "latency_max_ms": 11690.548,
+      "latency_mean_ms": 11690.548,
+      "latency_min_ms": 11690.548,
+      "latency_p50_ms": 11690.548,
+      "latency_p95_ms": 11690.548,
+      "match_count_max": 5,
+      "match_count_min": 5,
+      "mean_reciprocal_rank": 1.0,
+      "project": "heterarchy-alexandria",
+      "query": "heterarchy-alexandria Project Index",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "HYBRID",
+      "response_bytes_p50": 56131,
+      "retrieved_context_id_variants": [
+        [
+          "b6a3291c-9a4a-48a5-9121-4a6d3e15f23b",
+          "64d2990c-8bae-4a8f-9e72-96138e3f069b",
+          "7a3862f8-a698-4aca-8cee-f12a9c328642",
+          "7daafba1-4321-4fc4-a1a7-aeef7325cf75",
+          "b27e75af-5813-4fb1-9347-4c2cd56e3352"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "heterarchy-alexandria Project Index",
+          "heterarchy-alexandria Graph Recovery Hub",
+          "heterarchy-alexandria Rust Compute 06 Graph Projection and Algorithms Plan 2026-08-22",
+          "heterarchy-alexandria Retrieval Performance Verification Summary 2026-08-21",
+          "heterarchy-alexandria Retrieval Benchmark Harness and Verification 2026-08-21"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    }
+  ],
+  "environment": {
+    "base_url": "http://127.0.0.1:8000",
+    "golden_case_count": 4,
+    "golden_cases_path": "/Users/imhaneul/Documents/herterarchy/heterarchy-alexandria/backend/benchmarks/golden_cases.exact_title.v1.json",
+    "graph_phase_timing_available": false,
+    "limit": 5,
+    "measured_at": "2026-08-22T07:13:37.093887+00:00",
+    "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+    "project": null,
+    "python_version": "3.13.5",
+    "repetitions": 1,
+    "server_memory_timing_available": false,
+    "warmups": 0
+  },
+  "quality_by_strategy": [
+    {
+      "evaluated_cases": 4,
+      "mean_reciprocal_rank": 0.75,
+      "recall_at_1": 0.5,
+      "recall_at_3": 1.0,
+      "requested_strategy": "FTS_ONLY",
+      "unstable_case_count": 0
+    },
+    {
+      "evaluated_cases": 4,
+      "mean_reciprocal_rank": 1.0,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "VECTOR_ONLY",
+      "unstable_case_count": 0
+    },
+    {
+      "evaluated_cases": 4,
+      "mean_reciprocal_rank": 1.0,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "HYBRID",
+      "unstable_case_count": 0
+    }
+  ],
+  "rag_status": {
+    "default_strategy": "HYBRID",
+    "dimensions": 384,
+    "embedding": "HEALTHY",
+    "fingerprint": {
+      "dimensions": 384,
+      "document_input_format": "context-title-heading-content-v1+e5-passage-prefix-v1",
+      "model": "intfloat/multilingual-e5-small",
+      "normalize": true,
+      "pooling_mode": "mean",
+      "provider": "FASTEMBED_LOCAL",
+      "provider_version": "0.8.0"
+    },
+    "fts": "HEALTHY",
+    "model_name": "intfloat/multilingual-e5-small",
+    "source_statuses": [
+      {
+        "current_fingerprint": {
+          "dimensions": 384,
+          "document_input_format": "context-title-heading-content-v1+e5-passage-prefix-v1",
+          "model": "intfloat/multilingual-e5-small",
+          "normalize": true,
+          "pooling_mode": "mean",
+          "provider": "FASTEMBED_LOCAL",
+          "provider_version": "0.8.0"
+        },
+        "current_rows": 0,
+        "missing_rows": 0,
+        "source_name": "context_vault",
+        "stale_rows": 0,
+        "status": "HEALTHY",
+        "stored_fingerprints": [],
+        "total_rows": 0
+      },
+      {
+        "current_fingerprint": {
+          "dimensions": 384,
+          "document_input_format": "context-title-heading-content-v1+e5-passage-prefix-v1",
+          "model": "intfloat/multilingual-e5-small",
+          "normalize": true,
+          "pooling_mode": "mean",
+          "provider": "FASTEMBED_LOCAL",
+          "provider_version": "0.8.0"
+        },
+        "current_rows": 13540,
+        "missing_rows": 0,
+        "source_name": "obsidian_vault",
+        "stale_rows": 0,
+        "status": "HEALTHY",
+        "stored_fingerprints": [
+          {
+            "dimensions": 384,
+            "model": "intfloat/multilingual-e5-small",
+            "normalize": true,
+            "pooling_mode": "mean",
+            "provider": "FASTEMBED_LOCAL",
+            "provider_version": "0.8.0"
+          }
+        ],
+        "total_rows": 13540
+      }
+    ],
+    "vector": "HEALTHY",
+    "warnings": []
+  }
+}

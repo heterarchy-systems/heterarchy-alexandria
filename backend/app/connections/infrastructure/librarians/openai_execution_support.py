@@ -8,6 +8,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import cast
 
+from openai import OpenAI
+from openai.types.responses import ResponseTextDeltaEvent, WebSearchToolParam
+
 from app.connections.domain.event_enum.provider_enums import ProviderSecretKey
 from app.connections.domain.repositories.librarian_repository import (
     IProviderSecretRepository,
@@ -16,8 +19,6 @@ from app.connections.infrastructure.librarians.openai_adapter import OpenAIClien
 from app.shared.serialization.orjson_codec import loads_json
 from app.shared.types.extra_types import JSONValue
 from app.shared.types.types_convert_utils import now_utc, optional_iso_utc_datetime
-from openai import OpenAI
-from openai.types.responses import ResponseTextDeltaEvent, WebSearchToolParam
 
 CODEX_BASE_URL = "https://chatgpt.com/backend-api/codex"
 CODEX_USER_AGENT = "codex_cli_rs/0.0.0 (heterarchy-alexandria)"
@@ -51,6 +52,7 @@ class OpenAIResponseSummaryFetcher:
             prompt: User prompt text.
             instructions: System/developer instructions passed to the model.
 
+            enable_web_search: Enable web search used by this operation.
         Returns:
             Provider response text.
         """
@@ -182,6 +184,11 @@ class OpenAICodexHeaderBuilder:
         return headers
 
     def _chatgpt_account_id(self) -> str | None:
+        """Execute chatgpt account id.
+
+        Returns:
+            str | None result produced by chatgpt account id.
+        """
         parts = self.access_token.split(".")
         if len(parts) < 2:
             return None
@@ -200,6 +207,14 @@ class OpenAICodexHeaderBuilder:
         return stripped
 
     def _decode_jwt_payload(self, payload: str) -> dict[str, JSONValue] | None:
+        """Decode jwt payload.
+
+        Args:
+            payload: Validated payload for this operation.
+
+        Returns:
+            Decoded jwt payload.
+        """
         try:
             padded = payload + "=" * (-len(payload) % 4)
             raw_payload = base64.urlsafe_b64decode(padded.encode())

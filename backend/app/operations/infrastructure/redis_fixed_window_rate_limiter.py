@@ -33,6 +33,12 @@ class RedisFixedWindowRateLimiter:
     """Enforce bounded execution counts without participating in locking."""
 
     def __init__(self, client: Redis, key_prefix: str) -> None:
+        """Initialize RedisFixedWindowRateLimiter state and dependencies.
+
+        Args:
+            client: Client used by this operation.
+            key_prefix: Key prefix used by this operation.
+        """
         self._client = client
         self._key_prefix = key_prefix.rstrip(":")
 
@@ -75,6 +81,14 @@ class RedisFixedWindowRateLimiter:
 
 
 def _parse_rate_limit_response(value: RedisResponse) -> tuple[int, int]:
+    """Parse rate limit response.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        Parsed rate limit response.
+    """
     if not isinstance(value, list | tuple):
         raise RuntimeError("Redis rate-limit response must be a sequence")
     if len(value) != 2:
@@ -86,6 +100,15 @@ def _parse_rate_limit_response(value: RedisResponse) -> tuple[int, int]:
 
 
 def _integer_response(value: RedisResponse, field: str) -> int:
+    """Execute integer response.
+
+    Args:
+        value: Value being processed.
+        field: Field used by this operation.
+
+    Returns:
+        int result produced by integer response.
+    """
     if isinstance(value, bool):
         raise RuntimeError(f"Redis {field} response was boolean")
     if isinstance(value, int):

@@ -2,16 +2,18 @@
 
 from __future__ import annotations
 
+from app.memory.application.contexts.records.context_service_ports import (
+    ContextRecoveryPort,
+)
+from app.obsidian.application.service.obsidian_service_ports import ObsidianRecoveryPort
 from app.obsidian.domain.contracts.obsidian_contracts import ObsidianSearchQuery
 from app.obsidian.domain.entities.obsidian_note import ObsidianNote
 from app.operations.application.readiness.operational_readiness_service import (
     OperationalReadinessService,
 )
 from app.operations.application.recovery.execution.recovery_run_contracts import (
-    ContextRecoveryService,
-    ContextRecoveryServiceFactory,
-    ObsidianRecoveryService,
-    ObsidianRecoveryServiceFactory,
+    ContextRecoveryPortFactory,
+    ObsidianRecoveryPortFactory,
     resolve_recovery_service,
 )
 from app.operations.application.recovery.execution.recovery_run_source_preservation import (
@@ -35,10 +37,10 @@ class RecoveryRunVerificationService:
     def __init__(
         self,
         database: Database,
-        context_service: ContextRecoveryService,
-        obsidian_service: ObsidianRecoveryService,
-        context_service_factory: ContextRecoveryServiceFactory | None = None,
-        obsidian_service_factory: ObsidianRecoveryServiceFactory | None = None,
+        context_service: ContextRecoveryPort,
+        obsidian_service: ObsidianRecoveryPort,
+        context_service_factory: ContextRecoveryPortFactory | None = None,
+        obsidian_service_factory: ObsidianRecoveryPortFactory | None = None,
     ) -> None:
         """Initialize recovery verification dependencies.
 
@@ -46,6 +48,8 @@ class RecoveryRunVerificationService:
             database: Shared database coordinator.
             context_service: Context readiness boundary.
             obsidian_service: Obsidian readiness, search, and read boundary.
+            context_service_factory: Factory that creates context service.
+            obsidian_service_factory: Factory that creates obsidian service.
         """
         self._database = database
         self._context_service_factory = context_service_factory or (
@@ -56,6 +60,14 @@ class RecoveryRunVerificationService:
         )
 
     async def verify_readiness(self, plan: RecoveryPlan) -> JSONObject:
+        """Verify runtime readiness.
+
+        Args:
+            plan: Recovery or repair plan being verified or serialized.
+
+        Returns:
+            Verification result.
+        """
         async with self._database.request_session() as session:
             try:
                 context_service = await resolve_recovery_service(
@@ -101,8 +113,16 @@ class RecoveryRunVerificationService:
 
     async def verify_representative_search(
         self,
-        obsidian_service: ObsidianRecoveryService,
+        obsidian_service: ObsidianRecoveryPort,
     ) -> JSONObject:
+        """Verify representative retrieval behavior.
+
+        Args:
+            obsidian_service: Obsidian service used for the representative verification.
+
+        Returns:
+            Verification result.
+        """
         hits = await obsidian_service.search(
             ObsidianSearchQuery(query=_REPRESENTATIVE_QUERY, limit=5),
             refresh=True,
@@ -140,9 +160,18 @@ class RecoveryRunVerificationService:
 
     async def verify_representative_readback(
         self,
-        obsidian_service: ObsidianRecoveryService,
+        obsidian_service: ObsidianRecoveryPort,
         matched_path: str | None,
     ) -> JSONObject:
+        """Verify representative readback behavior.
+
+        Args:
+            obsidian_service: Obsidian service used for the representative verification.
+            matched_path: Representative vault path returned by the search verification.
+
+        Returns:
+            Verification result.
+        """
         if matched_path is None:
             return {
                 "matched": False,
@@ -177,6 +206,14 @@ class RecoveryRunVerificationService:
 
 
 def _representative_readback_note_payload(note: ObsidianNote) -> JSONObject:
+    """Execute representative readback note payload.
+
+    Args:
+        note: Note used by this operation.
+
+    Returns:
+        JSONObject result produced by representative readback note payload.
+    """
     return {
         "id": note.note_id,
         "path": note.relative_path,

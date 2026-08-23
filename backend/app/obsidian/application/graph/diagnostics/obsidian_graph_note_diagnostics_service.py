@@ -61,6 +61,8 @@ class ObsidianGraphNoteDiagnosticsService:
             repository: Indexed-note query repository.
             source: Read-only graph projection source rows.
             projection_service: Existing graph projection status provider.
+            vault_config_store: Vault config store used by this operation.
+            index_maintenance_coordinator: Index maintenance coordinator used by this operation.
         """
         self._repository = repository
         self._source = source
@@ -194,6 +196,14 @@ class ObsidianGraphNoteDiagnosticsService:
         self,
         selector: ObsidianGraphNoteSelector,
     ) -> ObsidianNote | None:
+        """Execute selected note.
+
+        Args:
+            selector: Selector used by this operation.
+
+        Returns:
+            ObsidianNote | None result produced by selected note.
+        """
         note_by_id = (
             await self._repository.get_by_id(selector.note_id)
             if selector.note_id is not None

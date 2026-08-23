@@ -9,13 +9,14 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import ConfigDict, StrictInt, StrictStr
+
 from app.shared.schemas.common_schemas import (
     StrictSchemaModel,
     described_field,
     schema_dict_default,
 )
 from app.shared.types.extra_types import JSONObject
-from pydantic import ConfigDict, StrictInt, StrictStr
 
 
 class JsonLoggingModel(StrictSchemaModel):

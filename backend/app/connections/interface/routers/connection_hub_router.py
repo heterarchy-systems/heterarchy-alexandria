@@ -4,6 +4,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Final
 
+from dependency_injector.wiring import Provide, inject
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import FileResponse
+
 from app.connections.interface.schemas.connection_hub_schema import (
     ConnectionHubStatusResponse,
     McpOAuthClientConnectionListResponse,
@@ -18,9 +22,6 @@ from app.mcp_server.local_oauth.local_oauth_enums import (
 from app.mcp_server.local_oauth.provider import LocalMcpOAuthProvider
 from app.mcp_server.type_validate.oauth.mcp_auth_enums import McpAuthMode
 from app.platform.config.app_config import AppConfig
-from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.responses import FileResponse
 
 router = APIRouter(tags=["connection-hub"])
 
@@ -318,6 +319,15 @@ def _local_oauth_provider(
     request: Request,
     configured_app: AppConfig,
 ) -> LocalMcpOAuthProvider:
+    """Execute local oauth provider.
+
+    Args:
+        request: Validated request for this operation.
+        configured_app: Configured app used by this operation.
+
+    Returns:
+        LocalMcpOAuthProvider result produced by local oauth provider.
+    """
     _require_local_management_request(request)
     config = _request_app_config(request, configured_app)
     if config.mcp_auth_mode is not McpAuthMode.LOCAL_OAUTH2:
@@ -335,6 +345,15 @@ def _local_oauth_provider(
 
 
 def _request_app_config(request: Request, fallback: AppConfig) -> AppConfig:
+    """Execute request app config.
+
+    Args:
+        request: Validated request for this operation.
+        fallback: Fallback used by this operation.
+
+    Returns:
+        AppConfig result produced by request app config.
+    """
     try:
         config = request.app.state.app_config
     except AttributeError:
@@ -343,6 +362,14 @@ def _request_app_config(request: Request, fallback: AppConfig) -> AppConfig:
 
 
 def _request_oauth_provider(request: Request) -> LocalMcpOAuthProvider | None:
+    """Execute request oauth provider.
+
+    Args:
+        request: Validated request for this operation.
+
+    Returns:
+        LocalMcpOAuthProvider | None result produced by request oauth provider.
+    """
     try:
         provider = request.app.state.local_mcp_oauth_provider
     except AttributeError:
@@ -351,6 +378,11 @@ def _request_oauth_provider(request: Request) -> LocalMcpOAuthProvider | None:
 
 
 def _require_local_management_request(request: Request) -> None:
+    """Execute require local management request.
+
+    Args:
+        request: Validated request for this operation.
+    """
     if request.url.hostname not in {"127.0.0.1", "localhost", "::1", "testserver"}:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -361,6 +393,14 @@ def _require_local_management_request(request: Request) -> None:
 def _connection_response(
     connection: LocalOAuthClientConnectionRecord,
 ) -> McpOAuthClientConnectionResponse:
+    """Execute connection response.
+
+    Args:
+        connection: Active connection used by this operation.
+
+    Returns:
+        McpOAuthClientConnectionResponse result produced by connection response.
+    """
     return McpOAuthClientConnectionResponse(
         client_id=connection.client_id,
         client_name=connection.client_name,
@@ -383,8 +423,24 @@ def _connection_response(
 
 
 def _datetime_from_epoch(epoch: int) -> datetime:
+    """Execute datetime from epoch.
+
+    Args:
+        epoch: Epoch used by this operation.
+
+    Returns:
+        datetime result produced by datetime from epoch.
+    """
     return datetime.fromtimestamp(epoch, tz=UTC)
 
 
 def _optional_datetime_from_epoch(epoch: int | None) -> datetime | None:
+    """Execute optional datetime from epoch.
+
+    Args:
+        epoch: Epoch used by this operation.
+
+    Returns:
+        datetime | None result produced by optional datetime from epoch.
+    """
     return None if epoch is None else _datetime_from_epoch(epoch)

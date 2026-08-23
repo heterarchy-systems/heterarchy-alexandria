@@ -232,6 +232,14 @@ class LibrarianOAuthService:
         await self._secret_store.delete_all(provider_id)
 
     async def _load_codex_oauth_provider(self, provider_id: str) -> LibrarianProvider:
+        """Load codex oauth provider.
+
+        Args:
+            provider_id: Identifier for provider.
+
+        Returns:
+            Loaded codex oauth provider.
+        """
         row = await self.provider_repo.get(provider_id)
         if row is None:
             providers = await self.provider_repo.list_all()
@@ -267,6 +275,15 @@ class LibrarianOAuthService:
         provider: LibrarianProvider,
         poll_result: OAuthPollResult,
     ) -> LibrarianOAuthStatusPayload:
+        """Handle poll result.
+
+        Args:
+            provider: Provider used by this operation.
+            poll_result: Poll result used by this operation.
+
+        Returns:
+            LibrarianOAuthStatusPayload result produced by handle poll result.
+        """
         if poll_result.status is OAuthPollStatus.CONNECTED:
             token_set = poll_result.token_set
             if token_set is None:

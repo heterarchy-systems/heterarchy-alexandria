@@ -6,6 +6,16 @@ from datetime import UTC, datetime
 
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.memory.application.contexts.records.context_service_ports import (
+    ContextReadinessPort,
+)
+from app.memory.application.reconciliation.runtime.memory_reconciliation_readiness_ports import (
+    MemoryReconciliationReadinessPort,
+)
+from app.obsidian.application.service.obsidian_service_ports import (
+    ObsidianDataIntegrityPort,
+    ObsidianReadinessPort,
+)
 from app.operations.application.backup.operational_recovery_history import (
     _active_recovery_run_id,
     _last_successful_recovery_run_id,
@@ -18,12 +28,6 @@ from app.operations.application.readiness.operational_database_probe import (
 )
 from app.operations.application.readiness.operational_readiness_cache import (
     OperationalReadinessCache,
-)
-from app.operations.application.readiness.operational_readiness_contracts import (
-    ContextReadinessService,
-    ObsidianDataIntegrityService,
-    ObsidianReadinessService,
-    ReconciliationReadinessService,
 )
 from app.operations.application.readiness.operational_readiness_policy import (
     _blockers,
@@ -47,10 +51,10 @@ from app.shared.exceptions.memory_context_exceptions import MemoryContextDomainE
 from app.shared.infrastructure.database import Database
 
 __all__ = (
-    "ContextReadinessService",
-    "ObsidianReadinessService",
+    "ContextReadinessPort",
+    "MemoryReconciliationReadinessPort",
+    "ObsidianReadinessPort",
     "OperationalReadinessService",
-    "ReconciliationReadinessService",
 )
 
 
@@ -60,9 +64,9 @@ class OperationalReadinessService:
     def __init__(
         self,
         database: Database,
-        context_service: ContextReadinessService,
-        obsidian_service: ObsidianReadinessService,
-        reconciliation_service: ReconciliationReadinessService | None = None,
+        context_service: ContextReadinessPort,
+        obsidian_service: ObsidianReadinessPort,
+        reconciliation_service: MemoryReconciliationReadinessPort | None = None,
         readiness_cache: OperationalReadinessCache | None = None,
         ignore_active_recovery_run_id: str | None = None,
     ) -> None:
@@ -115,11 +119,18 @@ class OperationalReadinessService:
         self,
         active_recovery_run_id: str | None,
     ) -> OperationalReadinessSnapshot:
-        """Probe authoritative dependencies and build one fresh snapshot."""
+        """Probe authoritative dependencies and build one fresh snapshot.
+
+        Args:
+            active_recovery_run_id: Identifier for active recovery run.
+
+        Returns:
+            Constructed snapshot.
+        """
         started = datetime.now(UTC)
         database = await self._database_probe.snapshot()
         vault_status = await self._obsidian_service.status()
-        if isinstance(self._obsidian_service, ObsidianDataIntegrityService):
+        if isinstance(self._obsidian_service, ObsidianDataIntegrityPort):
             data_integrity = await OperationalDataIntegrityService(
                 self._obsidian_service
             ).snapshot(vault_status)

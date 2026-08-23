@@ -23,6 +23,14 @@ from app.shared.types.extra_types import JSONObject
 
 
 def note_from_model(model: ObsidianFileORM) -> ObsidianNote:
+    """Map a persisted note model to an Obsidian note.
+
+    Args:
+        model: Persistence model to convert.
+
+    Returns:
+        Obsidian note mapped from the persistence model.
+    """
     return ObsidianNote(
         note_id=model.note_id,
         relative_path=model.relative_path,
@@ -44,6 +52,14 @@ def note_from_model(model: ObsidianFileORM) -> ObsidianNote:
 
 
 def edge_from_model(model: ObsidianEdgeORM) -> ObsidianEdge:
+    """Map a persisted edge model to an Obsidian graph edge.
+
+    Args:
+        model: Persistence model to convert.
+
+    Returns:
+        Obsidian graph edge mapped from the persistence model.
+    """
     return ObsidianEdge(
         edge_id=model.edge_id,
         source_note_id=model.source_note_id,
@@ -59,6 +75,15 @@ def edge_from_model(model: ObsidianEdgeORM) -> ObsidianEdge:
 
 
 def matches_tags(tags: Sequence[str], required: Sequence[str]) -> bool:
+    """Return whether note tags satisfy the requested filters.
+
+    Args:
+        tags: Tags to evaluate.
+        required: Tags required for the note to match.
+
+    Returns:
+        True when the requested filters match; otherwise False.
+    """
     if not required:
         return True
     tag_set = set(tags)
@@ -66,6 +91,15 @@ def matches_tags(tags: Sequence[str], required: Sequence[str]) -> bool:
 
 
 def obsidian_excerpt(text: str, limit: int = 240) -> str:
+    """Build a bounded Obsidian note excerpt.
+
+    Args:
+        text: Text value to normalize or render.
+        limit: Maximum count or rate allowed by the operation.
+
+    Returns:
+        Excerpt truncated to the requested character limit.
+    """
     normalized = " ".join(text.split())
     if len(normalized) <= limit:
         return normalized

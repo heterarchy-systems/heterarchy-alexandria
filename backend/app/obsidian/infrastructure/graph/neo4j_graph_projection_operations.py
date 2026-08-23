@@ -47,6 +47,11 @@ from app.shared.serialization.orjson_codec import dumps_canonical_json, loads_js
 
 
 async def _ensure_constraints(transaction: Neo4jProjectionTransaction) -> None:
+    """Ensure constraints.
+
+    Args:
+        transaction: Transaction boundary used by this operation.
+    """
     await (await transaction.run(CREATE_NOTE_KEY_CONSTRAINT)).consume()
     await (await transaction.run(CREATE_PROJECTION_NAME_CONSTRAINT)).consume()
 
@@ -57,6 +62,14 @@ async def _upsert_projection(
     run_id: str,
     projection_version: int,
 ) -> None:
+    """Execute upsert projection.
+
+    Args:
+        transaction: Transaction boundary used by this operation.
+        projection: Projection used by this operation.
+        run_id: Identifier for run.
+        projection_version: Projection version used by this operation.
+    """
     run_parameters = _run_parameters(run_id, projection_version)
     await (
         await transaction.run(
@@ -77,6 +90,12 @@ async def _upsert_projection(
 async def _delete_projection_run(
     transaction: Neo4jProjectionTransaction, run_id: str
 ) -> None:
+    """Delete projection run.
+
+    Args:
+        transaction: Transaction boundary used by this operation.
+        run_id: Identifier for run.
+    """
     await (
         await transaction.run(
             DELETE_PROJECTION_RUN_NODES,
@@ -92,6 +111,14 @@ async def _activate_projection(
     projection_version: int,
     issue_counts: tuple[ObsidianGraphProjectionIssueCount, ...],
 ) -> None:
+    """Execute activate projection.
+
+    Args:
+        transaction: Transaction boundary used by this operation.
+        run_id: Identifier for run.
+        projection_version: Projection version used by this operation.
+        issue_counts: Issue counts used by this operation.
+    """
     parameters = _activation_parameters(run_id, projection_version, issue_counts)
     await (await transaction.run(ACTIVATE_PROJECTION_METADATA, **parameters)).consume()
 
@@ -99,6 +126,14 @@ async def _activate_projection(
 async def _read_projection_state(
     transaction: Neo4jProjectionTransaction,
 ) -> ObsidianGraphProjectionState:
+    """Read projection state.
+
+    Args:
+        transaction: Transaction boundary used by this operation.
+
+    Returns:
+        Loaded projection state.
+    """
     metadata_result = await transaction.run(
         READ_PROJECTION_METADATA,
         projection_name=PROJECTION_NAME,
@@ -150,6 +185,16 @@ async def _read_related_notes(
     note_id: str,
     limit: int,
 ) -> tuple[ObsidianGraphRelatedNote, ...]:
+    """Read related notes.
+
+    Args:
+        transaction: Transaction boundary used by this operation.
+        note_id: Identifier for note.
+        limit: Maximum number of items to process or return.
+
+    Returns:
+        Loaded related notes.
+    """
     query_result = await transaction.run(
         READ_RELATED_NOTES,
         projection_name=PROJECTION_NAME,
@@ -165,6 +210,15 @@ async def _read_context_evidence(
     transaction: Neo4jProjectionTransaction,
     note_ids: tuple[str, ...],
 ) -> tuple[ObsidianGraphContextEvidence, ...]:
+    """Read context evidence.
+
+    Args:
+        transaction: Transaction boundary used by this operation.
+        note_ids: Identifiers for note.
+
+    Returns:
+        Loaded context evidence.
+    """
     query_result = await transaction.run(
         READ_CONTEXT_EVIDENCE,
         projection_name=PROJECTION_NAME,
@@ -178,6 +232,15 @@ async def _read_context_evidence(
 def _run_parameters(
     run_id: str, projection_version: int
 ) -> Neo4jProjectionRunParameters:
+    """Run parameters.
+
+    Args:
+        run_id: Identifier for run.
+        projection_version: Projection version used by this operation.
+
+    Returns:
+        Neo4jProjectionRunParameters result produced by run parameters.
+    """
     return {
         "projection_name": PROJECTION_NAME,
         "projection_version": projection_version,
@@ -190,6 +253,16 @@ def _activation_parameters(
     projection_version: int,
     issue_counts: tuple[ObsidianGraphProjectionIssueCount, ...],
 ) -> Neo4jProjectionActivationParameters:
+    """Execute activation parameters.
+
+    Args:
+        run_id: Identifier for run.
+        projection_version: Projection version used by this operation.
+        issue_counts: Issue counts used by this operation.
+
+    Returns:
+        Neo4jProjectionActivationParameters result produced by activation parameters.
+    """
     return {
         **_run_parameters(run_id, projection_version),
         "issue_total": sum(item.count for item in issue_counts),
@@ -202,6 +275,14 @@ def _activation_parameters(
 def _issue_counts_from_json(
     value: str | None,
 ) -> tuple[ObsidianGraphProjectionIssueCount, ...]:
+    """Execute issue counts from json.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        tuple[ObsidianGraphProjectionIssueCount, ...] result produced by issue counts from json.
+    """
     if value is None:
         return ()
     try:
@@ -227,6 +308,15 @@ def _node_parameters(
     node: ObsidianGraphProjectionNode,
     run_id: str,
 ) -> Neo4jProjectionNodeParameters:
+    """Execute node parameters.
+
+    Args:
+        node: Node used by this operation.
+        run_id: Identifier for run.
+
+    Returns:
+        Neo4jProjectionNodeParameters result produced by node parameters.
+    """
     return {
         "projection_key": f"{run_id}:note:{node.note_id}",
         "note_id": node.note_id,
@@ -242,6 +332,15 @@ def _edge_parameters(
     edge: ObsidianGraphProjectionEdge,
     run_id: str,
 ) -> Neo4jProjectionEdgeParameters:
+    """Execute edge parameters.
+
+    Args:
+        edge: Edge used by this operation.
+        run_id: Identifier for run.
+
+    Returns:
+        Neo4jProjectionEdgeParameters result produced by edge parameters.
+    """
     target_key = (
         f"{run_id}:note:{edge.target_note_id}"
         if edge.target_note_id is not None
@@ -262,6 +361,14 @@ def _edge_parameters(
 
 
 def _node_from_row(row: Neo4jProjectionRawRow) -> ObsidianGraphProjectionNode:
+    """Execute node from row.
+
+    Args:
+        row: Row used by this operation.
+
+    Returns:
+        ObsidianGraphProjectionNode result produced by node from row.
+    """
     return ObsidianGraphProjectionNode(
         note_id=_required_text(row, "note_id"),
         relative_path=_required_text(row, "relative_path"),
@@ -273,6 +380,14 @@ def _node_from_row(row: Neo4jProjectionRawRow) -> ObsidianGraphProjectionNode:
 
 
 def _edge_from_row(row: Neo4jProjectionRawRow) -> ObsidianGraphProjectionEdge:
+    """Execute edge from row.
+
+    Args:
+        row: Row used by this operation.
+
+    Returns:
+        ObsidianGraphProjectionEdge result produced by edge from row.
+    """
     confidence = row.get("confidence")
     if not isinstance(confidence, int | float):
         raise TypeError("Neo4j projection edge confidence must be numeric")
@@ -289,6 +404,14 @@ def _edge_from_row(row: Neo4jProjectionRawRow) -> ObsidianGraphProjectionEdge:
 
 
 def _related_note_from_row(row: Neo4jProjectionRawRow) -> ObsidianGraphRelatedNote:
+    """Execute related note from row.
+
+    Args:
+        row: Row used by this operation.
+
+    Returns:
+        ObsidianGraphRelatedNote result produced by related note from row.
+    """
     score = row.get("score")
     if not isinstance(score, int | float):
         raise TypeError("Neo4j related-note score must be numeric")
@@ -305,6 +428,14 @@ def _related_note_from_row(row: Neo4jProjectionRawRow) -> ObsidianGraphRelatedNo
 def _context_evidence_from_row(
     row: Neo4jProjectionRawRow,
 ) -> ObsidianGraphContextEvidence:
+    """Execute context evidence from row.
+
+    Args:
+        row: Row used by this operation.
+
+    Returns:
+        ObsidianGraphContextEvidence result produced by context evidence from row.
+    """
     return ObsidianGraphContextEvidence(
         signal=ObsidianGraphContextSignalType(_required_text(row, "signal")),
         edge_id=_required_text(row, "edge_id"),
@@ -316,6 +447,15 @@ def _context_evidence_from_row(
 
 
 def _required_text(row: Neo4jProjectionRawRow, key: str) -> str:
+    """Execute required text.
+
+    Args:
+        row: Row used by this operation.
+        key: Key used by this operation.
+
+    Returns:
+        str result produced by required text.
+    """
     value = row.get(key)
     if not isinstance(value, str) or not value:
         raise TypeError(f"Neo4j projection row requires text field {key}")
@@ -323,6 +463,15 @@ def _required_text(row: Neo4jProjectionRawRow, key: str) -> str:
 
 
 def _optional_text(row: Neo4jProjectionRawRow, key: str) -> str | None:
+    """Execute optional text.
+
+    Args:
+        row: Row used by this operation.
+        key: Key used by this operation.
+
+    Returns:
+        str | None result produced by optional text.
+    """
     value = row.get(key)
     if value is None or isinstance(value, str):
         return value

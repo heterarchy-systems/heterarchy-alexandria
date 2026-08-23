@@ -26,6 +26,10 @@ from app.obsidian.application.service.notes.obsidian_legacy_metadata_repair_serv
 from app.obsidian.application.service.notes.obsidian_note_service import (
     ObsidianNoteService,
 )
+from app.obsidian.application.service.obsidian_service_ports import (
+    ObsidianMutationPort,
+    ObsidianRecoveryPort,
+)
 from app.obsidian.application.service.vault.obsidian_vault_inventory_service import (
     ObsidianVaultInventoryService,
 )
@@ -64,7 +68,9 @@ from app.shared.exceptions.obsidian_exceptions import (
 from app.shared.types.extra_types import JSONObject
 
 
-class ObsidianService(ObsidianVaultOperations):
+class ObsidianService(
+    ObsidianVaultOperations, ObsidianRecoveryPort, ObsidianMutationPort
+):
     """Expose the stable Obsidian application facade.
 
     Focused inventory and vault-move responsibilities are delegated to
@@ -89,6 +95,8 @@ class ObsidianService(ObsidianVaultOperations):
             alexandria_root: Managed folder inside the vault.
             vault_config_store: Optional runtime vault override store.
             delegate_service: Optional provider-backed librarian delegate service.
+            context_reindex_hook: Callback invoked for context reindex.
+            index_maintenance_coordinator: Index maintenance coordinator used by this operation.
         """
         self._repository = repository
         if vault_config_store is None:
@@ -254,6 +262,12 @@ class ObsidianService(ObsidianVaultOperations):
         superseded_context_id: str,
         replacement_context_id: str,
     ) -> None:
+        """Execute delegate mark context superseded.
+
+        Args:
+            superseded_context_id: Identifier for superseded context.
+            replacement_context_id: Identifier for replacement context.
+        """
         await self._mark_context_superseded(
             superseded_context_id=superseded_context_id,
             replacement_context_id=replacement_context_id,
@@ -264,6 +278,12 @@ class ObsidianService(ObsidianVaultOperations):
         superseded_context_id: str,
         replacement_context_id: str,
     ) -> None:
+        """Execute mark context superseded.
+
+        Args:
+            superseded_context_id: Identifier for superseded context.
+            replacement_context_id: Identifier for replacement context.
+        """
         await self._context_lifecycle_service.mark_superseded(
             superseded_context_id=superseded_context_id,
             replacement_context_id=replacement_context_id,
@@ -289,6 +309,14 @@ class ObsidianService(ObsidianVaultOperations):
         )
 
     def _note_id_from_existing_file(self, path: Path) -> str | None:
+        """Execute note id from existing file.
+
+        Args:
+            path: Path used by this operation.
+
+        Returns:
+            str | None result produced by note id from existing file.
+        """
         return self._note_service.note_id_from_existing_file(path)
 
     async def ask_librarian(self, payload: ObsidianLibrarianAsk) -> JSONObject:

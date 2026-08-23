@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal, NotRequired
 
+from typing_extensions import TypedDict
+
 from app.memory.domain.event_enum.context_enums import (
     ContextAccessActorType,
     ContextAccessMethod,
@@ -21,7 +23,6 @@ from app.memory.domain.event_enum.context_enums import (
     RagStrategy,
 )
 from app.shared.types.extra_types import JSONObject, JSONValue
-from typing_extensions import TypedDict
 
 type ContextRetrievalSource = Literal["context_vault", "obsidian_vault"]
 

@@ -2,6 +2,9 @@
 
 from typing import Annotated
 
+from dependency_injector.wiring import Provide, inject
+from fastapi import APIRouter, Depends, Query, status
+
 from app.container import ApplicationContainer
 from app.obsidian.application.graph.obsidian_graph_service import ObsidianGraphService
 from app.obsidian.application.service.notes.obsidian_canonical_identity_service import (
@@ -36,8 +39,6 @@ from app.shared.exceptions.route_exceptions import (
     OBSIDIAN_SAVE_ROUTE_EXCEPTION_MAPPING,
 )
 from app.shared.type_validation.strict_json_body import model_validate_json_body
-from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, Query, status
 
 router = APIRouter()
 router.include_router(report_bundle_router)
@@ -304,6 +305,16 @@ async def _write_obsidian_note(
     service: ObsidianService,
     write_mode: ObsidianWriteMode,
 ) -> ObsidianNoteWriteResponse:
+    """Write obsidian note.
+
+    Args:
+        request: Validated request for this operation.
+        service: Application service used by this operation.
+        write_mode: Write mode used by this operation.
+
+    Returns:
+        ObsidianNoteWriteResponse result produced by write obsidian note.
+    """
     result = await service.write_note(request.to_write_command(write_mode))
     return ObsidianNoteWriteResponse.from_entity(result)
 

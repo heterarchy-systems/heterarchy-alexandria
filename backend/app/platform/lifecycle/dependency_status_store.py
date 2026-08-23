@@ -88,6 +88,15 @@ def _status_for(
     store: DependencyStatusStore,
     dependency: PlatformDependency,
 ) -> DependencyHealthStatus:
+    """Execute status for.
+
+    Args:
+        store: Store used by this operation.
+        dependency: Dependency used by this operation.
+
+    Returns:
+        DependencyHealthStatus result produced by status for.
+    """
     if dependency is PlatformDependency.REDIS:
         return store.redis_status
     return store.database_status
@@ -98,6 +107,13 @@ def _set_status(
     dependency: PlatformDependency,
     status: DependencyHealthStatus,
 ) -> None:
+    """Execute set status.
+
+    Args:
+        store: Store used by this operation.
+        dependency: Dependency used by this operation.
+        status: Status value used by this operation.
+    """
     if dependency is PlatformDependency.REDIS:
         store.redis_status = status
         return

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import cast
 
+from pydantic import TypeAdapter
+
 from app.memory.domain.entities.memory_reconciliation import (
     MemoryConflictSet,
     MemoryReconciliationPlan,
@@ -12,7 +14,6 @@ from app.memory.domain.entities.memory_reconciliation import (
     MemoryTemporalState,
 )
 from app.shared.types.extra_types import JSONObject
-from pydantic import TypeAdapter
 
 _PLAN_ADAPTER = TypeAdapter(MemoryReconciliationPlan)
 _RESULT_ADAPTER = TypeAdapter(MemoryReconciliationResult)
@@ -145,6 +146,15 @@ def _dump[PayloadT](
     adapter: TypeAdapter[PayloadT],
     value: PayloadT,
 ) -> JSONObject:
+    """Execute dump.
+
+    Args:
+        adapter: Adapter used by this operation.
+        value: Value being processed.
+
+    Returns:
+        JSONObject result produced by dump.
+    """
     payload = adapter.dump_python(value, mode="json")
     if not isinstance(payload, dict):
         raise TypeError("Reconciliation storage payload must be a JSON object")

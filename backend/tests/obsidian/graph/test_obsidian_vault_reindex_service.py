@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import os
-
 from pathlib import Path
 from typing import cast
 
 import anyio
 import pytest
+from tests.obsidian.graph.fakes.fake_obsidian_graph_projection_repository import (
+    FakeObsidianGraphProjectionRepository,
+)
+
 from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild_service import (
     ObsidianGraphProjectionRebuildReport,
     ObsidianGraphProjectionRebuildService,
@@ -21,6 +24,9 @@ from app.obsidian.application.service.vault.obsidian_vault_reindex_service impor
     ObsidianVaultReindexService,
 )
 from app.obsidian.domain.entities.obsidian_note import ObsidianReindexResult
+from app.obsidian.infrastructure.graph.native_obsidian_graph_projection_compute_provider import (
+    create_native_obsidian_graph_projection_compute_provider,
+)
 from app.obsidian.infrastructure.graph.sqlalchemy_obsidian_graph_projection_source import (
     SqlAlchemyObsidianGraphProjectionSource,
 )
@@ -35,15 +41,11 @@ from app.shared.application.index_maintenance_coordinator import (
     IndexMaintenanceCoordinator,
 )
 from app.shared.infrastructure.database import Database
-from tests.obsidian.graph.fakes.fake_obsidian_graph_projection_repository import (
-    FakeObsidianGraphProjectionRepository,
-)
 
 _OBSIDIAN_MODELS_LOADED = _obsidian_index_models
 
 
-def _database_url(path: Path) -> str:
-    del path
+def _database_url() -> str:
     return os.environ["DATABASE_URL"]
 
 
@@ -60,7 +62,7 @@ def _context_markdown(note_id: str, title: str, body: str) -> str:
     )
 
 
-class _LockedSqliteReindex:
+class _LockedVaultReindex:
     def __init__(
         self,
         *,
@@ -72,7 +74,7 @@ class _LockedSqliteReindex:
 
     async def reindex(self) -> ObsidianReindexResult:
         async with self._coordinator.operation("vault_reindex"):
-            self._events.append(("sqlite", self._coordinator.active_operation))
+            self._events.append(("vault_index", self._coordinator.active_operation))
         return ObsidianReindexResult(
             files_seen=2,
             files_indexed=2,
@@ -81,7 +83,7 @@ class _LockedSqliteReindex:
         )
 
 
-class _GraphAfterSqliteReindex:
+class _GraphAfterVaultReindex:
     def __init__(
         self,
         *,
@@ -105,24 +107,24 @@ class _GraphAfterSqliteReindex:
         )
 
 
-def test_composite_reindex_runs_graph_after_sqlite_lock_is_released() -> None:
-    """Public composite reindex should not nest graph rebuild in SQLite locking."""
+def test_composite_reindex_runs_graph_after_vault_index_lease_is_released() -> None:
+    """Public composite reindex should not nest graph rebuild in the vault-index lease."""
     coordinator = IndexMaintenanceCoordinator()
     events: list[tuple[str, str | None]] = []
     service = ObsidianVaultReindexService(
         obsidian_service=cast(
             ObsidianService,
-            _LockedSqliteReindex(coordinator=coordinator, events=events),
+            _LockedVaultReindex(coordinator=coordinator, events=events),
         ),
         graph_projection_rebuild_service=cast(
             ObsidianGraphProjectionRebuildService,
-            _GraphAfterSqliteReindex(coordinator=coordinator, events=events),
+            _GraphAfterVaultReindex(coordinator=coordinator, events=events),
         ),
     )
 
     report = anyio.run(service.rebuild)
 
-    assert events == [("sqlite", "vault_reindex"), ("graph", None)]
+    assert events == [("vault_index", "vault_reindex"), ("graph", None)]
     assert report.vault_index.files_indexed == 2
     assert report.graph_projection.status == "disabled"
     assert report.graph_projection.graph_read_model == "disabled"
@@ -131,12 +133,10 @@ def test_composite_reindex_runs_graph_after_sqlite_lock_is_released() -> None:
 def test_composite_reindex_refreshes_graph_from_new_canonical_markdown(
     tmp_path: Path,
 ) -> None:
-    """Composite rebuild fixes stale graph projections by reindexing SQLite first."""
+    """Composite rebuild fixes stale graph projections by refreshing the vault index first."""
 
     async def scenario() -> tuple[list[str], int, int, str]:
-        database = Database(
-            database_url=_database_url(tmp_path / "obsidian.db"), create_schema=True
-        )
+        database = Database(database_url=_database_url(), create_schema=True)
         await database.initialize()
         session = database.session()
         try:
@@ -156,7 +156,8 @@ def test_composite_reindex_refreshes_graph_from_new_canonical_markdown(
                     neo4j_password="local-test-password",
                 ),
                 source_builder=ObsidianGraphProjectionSourceBuilder(
-                    source=SqlAlchemyObsidianGraphProjectionSource(session=session)
+                    compute_provider=create_native_obsidian_graph_projection_compute_provider(),
+                    source=SqlAlchemyObsidianGraphProjectionSource(session=session),
                 ),
                 repository=graph_repository,
                 index_maintenance_coordinator=IndexMaintenanceCoordinator(),
@@ -223,9 +224,7 @@ def test_report_bundle_order_always_materializes_expected_incoming_edges(
     """Source/Index/Hub order must not change the final graph projection."""
 
     async def scenario() -> tuple[set[str], int, int, str]:
-        database = Database(
-            database_url=_database_url(tmp_path / "obsidian.db"), create_schema=True
-        )
+        database = Database(database_url=_database_url(), create_schema=True)
         await database.initialize()
         session = database.session()
         try:
@@ -245,7 +244,8 @@ def test_report_bundle_order_always_materializes_expected_incoming_edges(
                     neo4j_password="local-test-password",
                 ),
                 source_builder=ObsidianGraphProjectionSourceBuilder(
-                    source=SqlAlchemyObsidianGraphProjectionSource(session=session)
+                    compute_provider=create_native_obsidian_graph_projection_compute_provider(),
+                    source=SqlAlchemyObsidianGraphProjectionSource(session=session),
                 ),
                 repository=graph_repository,
                 index_maintenance_coordinator=IndexMaintenanceCoordinator(),

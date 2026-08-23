@@ -6,10 +6,14 @@ from datetime import UTC, datetime
 from shutil import disk_usage
 from uuid import NAMESPACE_URL, uuid5
 
-from app.operations.application.readiness.operational_readiness_contracts import (
-    ContextReadinessService,
-    ObsidianReadinessService,
-    ReconciliationReadinessService,
+from app.memory.application.contexts.records.context_service_ports import (
+    ContextReadinessPort,
+)
+from app.memory.application.reconciliation.runtime.memory_reconciliation_readiness_ports import (
+    MemoryReconciliationReadinessPort,
+)
+from app.obsidian.application.service.obsidian_service_ports import (
+    ObsidianReadinessPort,
 )
 from app.operations.application.readiness.operational_readiness_service import (
     OperationalReadinessService,
@@ -46,9 +50,9 @@ class RecoveryPlanService:
     def __init__(
         self,
         database: Database,
-        context_service: ContextReadinessService,
-        obsidian_service: ObsidianReadinessService,
-        reconciliation_service: ReconciliationReadinessService | None = None,
+        context_service: ContextReadinessPort,
+        obsidian_service: ObsidianReadinessPort,
+        reconciliation_service: MemoryReconciliationReadinessPort | None = None,
     ) -> None:
         """Create service.
 

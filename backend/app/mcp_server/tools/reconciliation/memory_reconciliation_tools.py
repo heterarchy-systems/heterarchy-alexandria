@@ -20,7 +20,14 @@ from app.shared.types.extra_types import JSONObject, JSONValue
 
 
 def _path_segment(value: str) -> str:
-    """Return one percent-encoded URL path segment."""
+    """Return one percent-encoded URL path segment.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str result produced by path segment.
+    """
     return quote(value, safe="")
 
 

@@ -7,6 +7,9 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import cast
 
+from sqlalchemy import Select, bindparam, false, func, literal_column, or_, select
+from sqlalchemy.sql.elements import ColumnElement
+
 from app.memory.domain.contracts.context_recall_contracts import ContextFtsRecall
 from app.memory.domain.event_enum.context_enums import ContextRecallLifecycleStatus
 from app.memory.infrastructure.models.context_models import ContextChunkORM, ContextORM
@@ -15,8 +18,6 @@ from app.memory.infrastructure.repositories.contexts.records.scope_recall_filter
     scope_recall_clause,
 )
 from app.shared.utils.text_metrics import extract_word_tokens
-from sqlalchemy import Select, bindparam, false, func, literal_column, or_, select
-from sqlalchemy.sql.elements import ColumnElement
 
 MAX_FTS_TOKEN_COUNT = 32
 MAX_FTS_TOKEN_LENGTH = 64
@@ -26,7 +27,7 @@ type ContextFtsStatement = Select[ContextFtsRow]
 type ContextFtsParameter = str | int | bool | list[str]
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class ContextFtsQuery:
     """SQLAlchemy statement and bind parameters for a context FTS query."""
 
@@ -35,11 +36,7 @@ class ContextFtsQuery:
 
     def __post_init__(self) -> None:
         """Freeze SQL bind parameters after query construction."""
-        object.__setattr__(
-            self,
-            "parameters",
-            MappingProxyType(dict(self.parameters)),
-        )
+        self.parameters = MappingProxyType(dict(self.parameters))
 
 
 def build_context_fts_query(recall: ContextFtsRecall) -> ContextFtsQuery | None:

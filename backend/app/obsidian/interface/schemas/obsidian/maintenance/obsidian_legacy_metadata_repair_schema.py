@@ -11,8 +11,10 @@ from app.obsidian.domain.entities.obsidian_legacy_metadata_repair import (
     ObsidianLegacyMetadataRepairReport,
     ObsidianLegacyMetadataRepairResult,
 )
+from app.obsidian.interface.schemas.obsidian.obsidian_string_types import (
+    ObsidianRepairPlanHash,
+)
 from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
-from pydantic import StringConstraints
 
 
 class ObsidianLegacyMetadataRepairFindingResponse(StrictSchemaModel):
@@ -54,6 +56,14 @@ class ObsidianLegacyMetadataRepairFindingResponse(StrictSchemaModel):
         cls,
         finding: ObsidianLegacyMetadataRepairFinding,
     ) -> ObsidianLegacyMetadataRepairFindingResponse:
+        """Build this schema from a domain entity.
+
+        Args:
+            finding: Legacy metadata finding to serialize into the response schema.
+
+        Returns:
+            Schema populated from the domain entity.
+        """
         proposed = finding.proposed_value
         return cls(
             field_name=finding.field_name,
@@ -91,6 +101,14 @@ class ObsidianLegacyMetadataRepairCandidateResponse(StrictSchemaModel):
         cls,
         candidate: ObsidianLegacyMetadataRepairCandidate,
     ) -> ObsidianLegacyMetadataRepairCandidateResponse:
+        """Build this schema from a domain entity.
+
+        Args:
+            candidate: Repair candidate to serialize into the response schema.
+
+        Returns:
+            Schema populated from the domain entity.
+        """
         return cls(
             note_path=candidate.note_path,
             original_sha256=candidate.original_sha256,
@@ -164,6 +182,14 @@ class ObsidianLegacyMetadataRepairPlanResponse(StrictSchemaModel):
         cls,
         plan: ObsidianLegacyMetadataRepairPlan,
     ) -> ObsidianLegacyMetadataRepairPlanResponse:
+        """Build this schema from a domain entity.
+
+        Args:
+            plan: Recovery or repair plan being verified or serialized.
+
+        Returns:
+            Schema populated from the domain entity.
+        """
         return cls(
             plan_hash=plan.plan_hash,
             dry_run=plan.dry_run,
@@ -184,8 +210,7 @@ class ObsidianLegacyMetadataRepairApplyRequest(StrictSchemaModel):
     """Explicit acceptance of the inspected plan hash."""
 
     expected_plan_hash: Annotated[
-        str,
-        StringConstraints(strict=True, min_length=64, max_length=64),
+        ObsidianRepairPlanHash,
         described_field(
             "Expected plan hash for this Obsidian legacy metadata repair apply request."
         ),
@@ -231,6 +256,14 @@ class ObsidianLegacyMetadataRepairResultResponse(StrictSchemaModel):
         cls,
         result: ObsidianLegacyMetadataRepairResult,
     ) -> ObsidianLegacyMetadataRepairResultResponse:
+        """Build this schema from a domain entity.
+
+        Args:
+            result: Operation result to serialize or persist.
+
+        Returns:
+            Schema populated from the domain entity.
+        """
         return cls(
             note_path=result.note_path,
             before_sha256=result.before_sha256,
@@ -291,6 +324,14 @@ class ObsidianLegacyMetadataRepairReportResponse(StrictSchemaModel):
         cls,
         report: ObsidianLegacyMetadataRepairReport,
     ) -> ObsidianLegacyMetadataRepairReportResponse:
+        """Build this schema from a domain entity.
+
+        Args:
+            report: Report entity to serialize into the response schema.
+
+        Returns:
+            Schema populated from the domain entity.
+        """
         return cls(
             status=report.status,
             plan_hash=report.plan_hash,

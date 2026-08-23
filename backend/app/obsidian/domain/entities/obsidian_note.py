@@ -34,7 +34,7 @@ class ObsidianChunk:
     token_count: int
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class ObsidianNote:
     """Indexed Alexandria-managed Markdown note."""
 
@@ -57,10 +57,10 @@ class ObsidianNote:
 
     def __post_init__(self) -> None:
         """Normalize note tags to an immutable sequence."""
-        object.__setattr__(self, "tags", tuple(self.tags))
+        self.tags = tuple(self.tags)
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class ObsidianNoteWriteResult:
     """Structured outcome and pipeline visibility for an explicit note write."""
 
@@ -78,7 +78,7 @@ class ObsidianNoteWriteResult:
 
     def __post_init__(self) -> None:
         """Normalize warnings to an immutable sequence."""
-        object.__setattr__(self, "warnings", tuple(self.warnings))
+        self.warnings = tuple(self.warnings)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -91,7 +91,7 @@ class ObsidianExactPathStatus:
     index_status: ObsidianIndexStatus | None = None
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class ObsidianCanonicalIdentityResult:
     """Generic frontmatter-backed canonical report identity resolution."""
 
@@ -105,11 +105,11 @@ class ObsidianCanonicalIdentityResult:
 
     def __post_init__(self) -> None:
         """Normalize resolver collections to immutable sequences."""
-        object.__setattr__(self, "aliases", tuple(self.aliases))
-        object.__setattr__(self, "candidate_paths", tuple(self.candidate_paths))
+        self.aliases = tuple(self.aliases)
+        self.candidate_paths = tuple(self.candidate_paths)
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class ObsidianReportBundleGraphResult:
     """Expected and observed graph state for one report bundle."""
 
@@ -119,10 +119,10 @@ class ObsidianReportBundleGraphResult:
 
     def __post_init__(self) -> None:
         """Normalize unresolved links to an immutable sequence."""
-        object.__setattr__(self, "unresolved_links", tuple(self.unresolved_links))
+        self.unresolved_links = tuple(self.unresolved_links)
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class ObsidianReportBundleResult:
     """Checkpointable outcome for an idempotent report bundle operation."""
 
@@ -139,9 +139,9 @@ class ObsidianReportBundleResult:
 
     def __post_init__(self) -> None:
         """Normalize bundle collections to immutable values."""
-        object.__setattr__(self, "owner_writes", tuple(self.owner_writes))
-        object.__setattr__(self, "duplicates", tuple(self.duplicates))
-        object.__setattr__(self, "errors", tuple(self.errors))
+        self.owner_writes = tuple(self.owner_writes)
+        self.duplicates = tuple(self.duplicates)
+        self.errors = tuple(self.errors)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -200,7 +200,7 @@ class ObsidianSearchHit:
     heading_path: str | None = None
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class ObsidianReindexResult:
     """Summary of one vault indexing pass."""
 
@@ -215,9 +215,9 @@ class ObsidianReindexResult:
 
     def __post_init__(self) -> None:
         """Normalize reindex diagnostics to immutable sequences."""
-        object.__setattr__(self, "errors", tuple(self.errors))
-        object.__setattr__(self, "error_details", tuple(self.error_details))
-        object.__setattr__(self, "skip_reasons", dict(self.skip_reasons))
+        self.errors = tuple(self.errors)
+        self.error_details = tuple(self.error_details)
+        self.skip_reasons = dict(self.skip_reasons)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -231,7 +231,7 @@ class ObsidianIndexError:
     detected_at: datetime
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class ObsidianVaultStatus:
     """Local Obsidian integration status."""
 
@@ -246,7 +246,7 @@ class ObsidianVaultStatus:
 
     def __post_init__(self) -> None:
         """Normalize index errors to an immutable sequence."""
-        object.__setattr__(self, "index_errors", tuple(self.index_errors))
+        self.index_errors = tuple(self.index_errors)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -272,7 +272,7 @@ class ObsidianVaultInventoryItem:
     modified_at: datetime
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class ObsidianLibrarianReviewQueueItem:
     """One note that should be reviewed by the librarian curation loop."""
 
@@ -293,7 +293,7 @@ class ObsidianLibrarianReviewQueueItem:
 
     def __post_init__(self) -> None:
         """Normalize curation tags to an immutable sequence."""
-        object.__setattr__(self, "tags", tuple(self.tags))
+        self.tags = tuple(self.tags)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -314,7 +314,7 @@ class ObsidianVaultMoveSkip:
     reason: str
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class ObsidianVaultMovePlan:
     """Dry-run move plan for a librarian vault operation."""
 
@@ -326,9 +326,9 @@ class ObsidianVaultMovePlan:
 
     def __post_init__(self) -> None:
         """Normalize planned move groups to immutable sequences."""
-        object.__setattr__(self, "moves", tuple(self.moves))
-        object.__setattr__(self, "skipped", tuple(self.skipped))
-        object.__setattr__(self, "ambiguous", tuple(self.ambiguous))
+        self.moves = tuple(self.moves)
+        self.skipped = tuple(self.skipped)
+        self.ambiguous = tuple(self.ambiguous)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -349,7 +349,7 @@ class ObsidianVaultMoveVerification:
     verification_hits: int
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class ObsidianVaultMoveReport:
     """Final report for a safe librarian vault move operation."""
 
@@ -364,9 +364,9 @@ class ObsidianVaultMoveReport:
 
     def __post_init__(self) -> None:
         """Normalize applied move groups to immutable sequences."""
-        object.__setattr__(self, "moved", tuple(self.moved))
-        object.__setattr__(self, "skipped", tuple(self.skipped))
-        object.__setattr__(self, "ambiguous", tuple(self.ambiguous))
+        self.moved = tuple(self.moved)
+        self.skipped = tuple(self.skipped)
+        self.ambiguous = tuple(self.ambiguous)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

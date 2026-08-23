@@ -35,6 +35,7 @@ from app.obsidian.domain.repositories.obsidian_index_repository import (
     IObsidianIndexRepository,
 )
 from app.obsidian.infrastructure.markdown.paths import (
+    canonical_relative_path,
     discover_managed_markdown_paths,
     resolve_note_path,
     validate_discovered_note_path,
@@ -61,6 +62,7 @@ class _ReindexDiagnostics:
     details: list[ObsidianIndexError] = field(default_factory=list)
 
 
+# protocol-contract: structural-seam
 class ObsidianLifecycleReadHook(Protocol):
     """Read one note by vault-relative path."""
 
@@ -75,6 +77,7 @@ class ObsidianLifecycleReadHook(Protocol):
         """
 
 
+# protocol-contract: structural-seam
 class ObsidianLifecycleSaveHook(Protocol):
     """Persist one note through the canonical save path."""
 
@@ -89,6 +92,7 @@ class ObsidianLifecycleSaveHook(Protocol):
         """
 
 
+# protocol-contract: structural-seam
 class ObsidianMarkSupersededHook(Protocol):
     """Reconcile a superseded Context during reindex."""
 
@@ -129,6 +133,7 @@ class ObsidianVaultLifecycleService:
             note_id_from_existing_file: Safe frontmatter identifier reader.
             mark_context_superseded: Context lifecycle reconciliation callback.
             context_reindex_hook: Optional Context RAG reindex callback.
+            index_maintenance_coordinator: Index maintenance coordinator used by this operation.
         """
         self._repository = repository
         self._vault_config_store = vault_config_store
@@ -222,7 +227,11 @@ class ObsidianVaultLifecycleService:
             return await self._reindex_serialized()
 
     async def _reindex_serialized(self) -> ObsidianReindexResult:
-        """Run one vault scan while the shared maintenance lease is held."""
+        """Run one vault scan while the shared maintenance lease is held.
+
+        Returns:
+            ObsidianReindexResult result produced by reindex serialized.
+        """
         config = self._vault_config_store.current()
         root = _root_path(config)
         if not root.exists():
@@ -239,9 +248,32 @@ class ObsidianVaultLifecycleService:
         diagnostics = _ReindexDiagnostics()
         seen_paths: set[str] = set()
         candidates: list[ContextReindexCandidate] = []
-        for path in discover_managed_markdown_paths(root):
+        discovered_paths = discover_managed_markdown_paths(root)
+        paths_by_logical_identity: dict[str, list[Path]] = {}
+        for path in discovered_paths:
+            physical_relative_path = str(path.relative_to(config.vault_path))
+            logical_relative_path = canonical_relative_path(physical_relative_path)
+            paths_by_logical_identity.setdefault(logical_relative_path, []).append(path)
+        colliding_paths = {
+            relative_path
+            for relative_path, physical_paths in paths_by_logical_identity.items()
+            if len(physical_paths) > 1
+        }
+        for path in discovered_paths:
             files_seen += 1
             relative_path = str(path.relative_to(config.vault_path))
+            logical_relative_path = canonical_relative_path(relative_path)
+            if logical_relative_path in colliding_paths:
+                await self._record_reindex_error(
+                    relative_path,
+                    self._note_id_from_existing_file(path),
+                    ObsidianValidationError(
+                        "CANONICAL_PATH_COLLISION: multiple physical Markdown "
+                        f"paths normalize to {relative_path}"
+                    ),
+                    diagnostics,
+                )
+                continue
             seen_paths.add(relative_path)
             try:
                 validated_path = validate_discovered_note_path(
@@ -336,7 +368,14 @@ class ObsidianVaultLifecycleService:
         error: OSError | ValueError | ObsidianIndexWriteError | ObsidianValidationError,
         diagnostics: _ReindexDiagnostics,
     ) -> None:
-        """Persist and append one structured per-note reindex failure."""
+        """Persist and append one structured per-note reindex failure.
+
+        Args:
+            relative_path: Relative path used by this operation.
+            context_id: Identifier for context.
+            error: Error value being processed.
+            diagnostics: Diagnostics used by this operation.
+        """
         error_code = index_error_code(error)
         safe_message = _safe_index_error_message(error_code)
         detail = ObsidianIndexError(
@@ -354,10 +393,23 @@ class ObsidianVaultLifecycleService:
 
 
 def _root_path(config: ObsidianVaultConfig) -> Path:
+    """Execute root path.
+
+    Args:
+        config: Typed configuration used by this operation.
+
+    Returns:
+        Path result produced by root path.
+    """
     return resolve_note_path(config.vault_path, config.alexandria_root)
 
 
 def _ensure_vault_layout(config: ObsidianVaultConfig) -> None:
+    """Ensure vault layout.
+
+    Args:
+        config: Typed configuration used by this operation.
+    """
     for folder in default_folders(config.alexandria_root):
         resolve_note_path(config.vault_path, folder).mkdir(parents=True, exist_ok=True)
 
@@ -387,6 +439,14 @@ def index_error_code(
 
 
 def _safe_index_error_message(error_code: ObsidianIndexErrorCode) -> str:
+    """Execute safe index error message.
+
+    Args:
+        error_code: Error code used by this operation.
+
+    Returns:
+        str result produced by safe index error message.
+    """
     if error_code is ObsidianIndexErrorCode.INDEX_WRITE_FAILED:
         return "Rebuildable index write failed"
     if error_code is ObsidianIndexErrorCode.FRONTMATTER_SECRET_DETECTED:

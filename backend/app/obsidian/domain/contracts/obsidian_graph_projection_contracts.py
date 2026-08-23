@@ -42,7 +42,7 @@ class ObsidianGraphProjectionEdge:
     source_kind: ObsidianEdgeSourceKind
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class ObsidianGraphProjection:
     """Immutable node and edge snapshot for a graph projection."""
 
@@ -51,8 +51,8 @@ class ObsidianGraphProjection:
 
     def __post_init__(self) -> None:
         """Normalize projection collections to immutable tuples."""
-        object.__setattr__(self, "nodes", tuple(self.nodes))
-        object.__setattr__(self, "edges", tuple(self.edges))
+        self.nodes = tuple(self.nodes)
+        self.edges = tuple(self.edges)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -97,7 +97,7 @@ class ObsidianGraphProjectionSourceMetrics:
     errors: int
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class ObsidianGraphProjectionSourceSnapshot:
     """Typed projection snapshot plus bounded batches and source diagnostics."""
 
@@ -115,11 +115,11 @@ class ObsidianGraphProjectionSourceSnapshot:
 
     def __post_init__(self) -> None:
         """Normalize source snapshot collections to immutable tuples."""
-        object.__setattr__(self, "batches", tuple(self.batches))
-        object.__setattr__(self, "issues", tuple(self.issues))
+        self.batches = tuple(self.batches)
+        self.issues = tuple(self.issues)
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class ObsidianGraphProjectionState:
     """Active projection plus safe application-owned run metadata."""
 
@@ -134,7 +134,7 @@ class ObsidianGraphProjectionState:
 
     def __post_init__(self) -> None:
         """Normalize persisted diagnostic summaries to immutable tuples."""
-        object.__setattr__(self, "issue_counts", tuple(self.issue_counts))
+        self.issue_counts = tuple(self.issue_counts)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

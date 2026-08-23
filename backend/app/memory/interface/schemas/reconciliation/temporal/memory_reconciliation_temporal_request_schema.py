@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import StringConstraints, field_validator
+
 from app.memory.domain.contracts.memory_reconciliation_contracts import (
     MemoryTemporalRecallRequest,
 )
@@ -16,6 +18,9 @@ from app.memory.domain.event_enum.context_enums import (
 from app.memory.domain.event_enum.reconciliation_enums import (
     MemoryTemporalRecallMode,
 )
+from app.memory.interface.schemas.reconciliation.reconciliation_string_types import (
+    ReconciliationScopeFilterText,
+)
 from app.shared.schemas.common_schemas import (
     StrictSchemaModel,
     described_field,
@@ -23,7 +28,6 @@ from app.shared.schemas.common_schemas import (
 )
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 from app.shared.types.types_convert_utils import enum_value
-from pydantic import StringConstraints, field_validator
 
 
 class MemoryTemporalRecallHttpRequest(StrictSchemaModel):
@@ -53,8 +57,7 @@ class MemoryTemporalRecallHttpRequest(StrictSchemaModel):
         ),
     ] = 5
     project: Annotated[
-        str | None,
-        StringConstraints(strict=True, max_length=1000),
+        ReconciliationScopeFilterText,
         described_field("Project for this memory temporal recall HTTP request."),
     ] = None
     kind: Annotated[
@@ -66,29 +69,25 @@ class MemoryTemporalRecallHttpRequest(StrictSchemaModel):
         described_field("Include scopes for this memory temporal recall HTTP request."),
     ] = schema_list_default()
     workspace_id: Annotated[
-        str | None,
-        StringConstraints(strict=True, max_length=1000),
+        ReconciliationScopeFilterText,
         described_field(
             "Workspace identifier for this memory temporal recall HTTP request."
         ),
     ] = None
     agent_id: Annotated[
-        str | None,
-        StringConstraints(strict=True, max_length=1000),
+        ReconciliationScopeFilterText,
         described_field(
             "Agent identifier for this memory temporal recall HTTP request."
         ),
     ] = None
     user_id: Annotated[
-        str | None,
-        StringConstraints(strict=True, max_length=1000),
+        ReconciliationScopeFilterText,
         described_field(
             "User identifier for this memory temporal recall HTTP request."
         ),
     ] = None
     session_id: Annotated[
-        str | None,
-        StringConstraints(strict=True, max_length=1000),
+        ReconciliationScopeFilterText,
         described_field(
             "Session identifier for this memory temporal recall HTTP request."
         ),

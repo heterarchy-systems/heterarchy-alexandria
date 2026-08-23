@@ -29,6 +29,11 @@ class ObsidianCanonicalContextGateway(ICanonicalContextRepository):
     """Expose source-qualified Obsidian Context lifecycle operations."""
 
     def __init__(self, service: ObsidianService) -> None:
+        """Initialize ObsidianCanonicalContextGateway state and dependencies.
+
+        Args:
+            service: Application service used by this operation.
+        """
         self._service = service
 
     def owns(self, context_id: str) -> bool:
@@ -125,6 +130,14 @@ class ObsidianCanonicalContextGateway(ICanonicalContextRepository):
 
 
 def _obsidian_note_id(context_id: str) -> str | None:
+    """Execute obsidian note id.
+
+    Args:
+        context_id: Identifier for context.
+
+    Returns:
+        str | None result produced by obsidian note id.
+    """
     if not context_id.startswith(OBSIDIAN_CONTEXT_ID_PREFIX):
         return None
     note_id = context_id.removeprefix(OBSIDIAN_CONTEXT_ID_PREFIX).strip()

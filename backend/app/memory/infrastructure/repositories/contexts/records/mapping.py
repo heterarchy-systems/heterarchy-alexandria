@@ -28,6 +28,14 @@ from app.shared.types.types_convert_utils import aware_utc_datetime
 
 
 def _json_object(value: dict[str, JSONValue]) -> ContextMetadataPayload:
+    """Execute json object.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        ContextMetadataPayload result produced by json object.
+    """
     metadata = ContextMetadataPayload()
     metadata.update(value.items())
     return metadata

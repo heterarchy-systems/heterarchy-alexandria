@@ -99,7 +99,12 @@ async def _recover_embeddings_after_startup(
     container: ApplicationContainer,
     database: Database,
 ) -> None:
-    """Run bounded embedding recovery in an isolated database request scope."""
+    """Run bounded embedding recovery in an isolated database request scope.
+
+    Args:
+        container: Container used by this operation.
+        database: Database used by this operation.
+    """
     try:
         async with database.request_session():
             context_service = await cast(
@@ -182,6 +187,9 @@ def create_app(app_config: AppConfig) -> FastAPI:
 
         Args:
             _app: Active FastAPI app instance.
+
+        Yields:
+            Values yielded by lifespan.
 
         Returns:
             Async lifecycle context.

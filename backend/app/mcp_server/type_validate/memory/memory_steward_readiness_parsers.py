@@ -90,6 +90,14 @@ def source_ref_dicts(draft: CompactRefreshDraftPayload) -> list[dict[str, str]]:
 
 
 def _object_or_empty(payload: JSONValue) -> JSONObject:
+    """Execute object or empty.
+
+    Args:
+        payload: Validated payload for this operation.
+
+    Returns:
+        JSONObject result produced by object or empty.
+    """
     if isinstance(payload, dict):
         return payload
     return {}

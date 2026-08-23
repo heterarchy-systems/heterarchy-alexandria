@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.memory.application.retrieval.ranking.vector_scoring import (
     cosine_distance_to_score,
 )
@@ -15,8 +18,6 @@ from app.memory.infrastructure.repositories.contexts.records.mapping import (
     map_chunk_row,
     map_context_row,
 )
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def search_context_vectors(

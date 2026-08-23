@@ -11,11 +11,18 @@ import pytest
 from app.obsidian.application.graph.projection.obsidian_graph_projection_source_builder import (
     ObsidianGraphProjectionSourceBuilder,
 )
+from app.obsidian.domain.entities.obsidian_note import ObsidianEdge, ObsidianNote
+from app.obsidian.domain.event_enum.obsidian_enums import (
+    ObsidianIndexStatus,
+)
 from app.obsidian.domain.event_enum.obsidian_graph_enums import (
     ObsidianGraphProjectionIssueCode,
 )
-from app.obsidian.domain.event_enum.obsidian_enums import (
-    ObsidianIndexStatus,
+from app.obsidian.domain.repositories.obsidian_graph_projection_source_repository import (
+    IObsidianGraphProjectionSourceRepository,
+)
+from app.obsidian.infrastructure.graph.native_obsidian_graph_projection_compute_provider import (
+    create_native_obsidian_graph_projection_compute_provider,
 )
 from app.obsidian.infrastructure.graph.sqlalchemy_obsidian_graph_projection_source import (
     SqlAlchemyObsidianGraphProjectionSource,
@@ -36,6 +43,14 @@ from sqlalchemy import func, select
 
 _OBSIDIAN_MODELS_LOADED = _obsidian_index_models
 _NOW = datetime(2026, 8, 3, tzinfo=UTC)
+
+
+class _EmptyProjectionSource(IObsidianGraphProjectionSourceRepository):
+    async def list_projection_notes(self) -> tuple[ObsidianNote, ...]:
+        return ()
+
+    async def list_projection_edges(self) -> tuple[ObsidianEdge, ...]:
+        return ()
 
 
 def _note(
@@ -133,6 +148,7 @@ def test_builder_returns_deterministic_typed_batches_from_postgresql_index(
                 await session.scalar(select(func.count()).select_from(ObsidianEdgeORM)),
             )
             builder = ObsidianGraphProjectionSourceBuilder(
+                compute_provider=create_native_obsidian_graph_projection_compute_provider(),
                 source=SqlAlchemyObsidianGraphProjectionSource(session=session),
                 batch_size=1,
             )
@@ -181,8 +197,8 @@ def test_builder_resolves_unique_obsidian_filename_targets() -> None:
     """A unique filename match should resolve bare/source-relative wikilink paths."""
 
     async def scenario():
-        class _Source:
-            async def list_projection_notes(self) -> tuple[object, ...]:
+        class _Source(IObsidianGraphProjectionSourceRepository):
+            async def list_projection_notes(self) -> tuple[ObsidianNote, ...]:
                 target = _note("target")
                 target.relative_path = "Alexandria/Skills/Active/Target.md"
                 target.title = "Target"
@@ -191,7 +207,7 @@ def test_builder_resolves_unique_obsidian_filename_targets() -> None:
                     note_from_model(target),
                 )
 
-            async def list_projection_edges(self) -> tuple[object, ...]:
+            async def list_projection_edges(self) -> tuple[ObsidianEdge, ...]:
                 return (
                     edge_from_model(
                         _edge(
@@ -203,7 +219,10 @@ def test_builder_resolves_unique_obsidian_filename_targets() -> None:
                     ),
                 )
 
-        return await ObsidianGraphProjectionSourceBuilder(source=_Source()).build()
+        return await ObsidianGraphProjectionSourceBuilder(
+            compute_provider=create_native_obsidian_graph_projection_compute_provider(),
+            source=_Source(),
+        ).build()
 
     snapshot = anyio.run(scenario)
 
@@ -217,4 +236,8 @@ def test_builder_resolves_unique_obsidian_filename_targets() -> None:
 def test_builder_rejects_non_positive_batch_size() -> None:
     """A batch size must be positive before the source is queried."""
     with pytest.raises(ValueError, match="batch_size must be greater than zero"):
-        ObsidianGraphProjectionSourceBuilder(source=None, batch_size=0)
+        ObsidianGraphProjectionSourceBuilder(
+            compute_provider=create_native_obsidian_graph_projection_compute_provider(),
+            source=_EmptyProjectionSource(),
+            batch_size=0,
+        )

@@ -333,6 +333,7 @@ def test_context_api_lists_searches_accesses_and_archives_seeded_context(
     assert archive_response.json()["is_archived"] is True
     assert rag_response.status_code == 200
     assert rag_response.json()["fts"] == "HEALTHY"
+    assert rag_response.headers["X-Alexandria-Retrieval-Kernel-Authority"] == "test"
     assert reindex_response.status_code == 409
     assert reindex_response.json()["detail"]["error_code"] == (
         "EMBEDDING_REINDEX_REQUIRES_QUEUE"

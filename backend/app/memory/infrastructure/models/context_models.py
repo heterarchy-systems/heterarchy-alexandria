@@ -4,6 +4,17 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    CheckConstraint,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+)
+from sqlalchemy.orm import Mapped, mapped_column
+
 from app.memory.domain.event_enum.context_enums import (
     ContextAccessActorType,
     ContextAccessMethod,
@@ -20,19 +31,17 @@ from app.shared.infrastructure.embedding_vector_type import EmbeddingVectorType
 from app.shared.infrastructure.identifiers import ID_LENGTH, new_uuid
 from app.shared.types.embedding_types import EmbeddingVector
 from app.shared.types.extra_types import JSONValue
-from sqlalchemy import (
-    JSON,
-    Boolean,
-    CheckConstraint,
-    ForeignKey,
-    Integer,
-    String,
-    Text,
-)
-from sqlalchemy.orm import Mapped, mapped_column
 
 
 def _enum_values_sql(values: tuple[str, ...]) -> str:
+    """Execute enum values sql.
+
+    Args:
+        values: Values being processed.
+
+    Returns:
+        str result produced by enum values sql.
+    """
     return ",".join(f"'{value}'" for value in values)
 
 

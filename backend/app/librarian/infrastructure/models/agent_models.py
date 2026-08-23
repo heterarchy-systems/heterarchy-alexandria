@@ -52,4 +52,9 @@ class AgentProfileORM(Base):
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
 
     def __repr__(self) -> str:
+        """Execute repr.
+
+        Returns:
+            str result produced by repr.
+        """
         return f"AgentProfileORM(id={self.id!r}, name={self.name!r})"

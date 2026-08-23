@@ -175,6 +175,17 @@ def _workflow_from_state(
     status: ObsidianLibrarianWorkflowStatus,
     created_at: datetime,
 ) -> ObsidianLibrarianWorkflow:
+    """Execute workflow from state.
+
+    Args:
+        ask: Ask used by this operation.
+        state: State used by this operation.
+        status: Status value used by this operation.
+        created_at: Created at used by this operation.
+
+    Returns:
+        ObsidianLibrarianWorkflow result produced by workflow from state.
+    """
     return ObsidianLibrarianWorkflow(
         thread_id=_state_string(state, "thread_id"),
         status=status,
@@ -191,6 +202,14 @@ def _workflow_from_state(
 
 
 def _ask_from_workflow(workflow: ObsidianLibrarianWorkflow) -> ObsidianLibrarianAsk:
+    """Execute ask from workflow.
+
+    Args:
+        workflow: Workflow used by this operation.
+
+    Returns:
+        ObsidianLibrarianAsk result produced by ask from workflow.
+    """
     return ObsidianLibrarianAsk(
         query=workflow.query,
         active_note_path=workflow.active_note_path,
@@ -202,11 +221,28 @@ def _ask_from_workflow(workflow: ObsidianLibrarianWorkflow) -> ObsidianLibrarian
 
 
 def _state_string(state: JSONObject, key: str) -> str:
+    """Execute state string.
+
+    Args:
+        state: State used by this operation.
+        key: Key used by this operation.
+
+    Returns:
+        str result produced by state string.
+    """
     value = state.get(key)
     return value if isinstance(value, str) else ""
 
 
 def _pending_action_ids(state: JSONObject) -> set[str]:
+    """Execute pending action ids.
+
+    Args:
+        state: State used by this operation.
+
+    Returns:
+        set[str] result produced by pending action ids.
+    """
     value = state.get("pending_actions")
     if not isinstance(value, list):
         return set()

@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "benchmark": "bulk_embedding_direct_core",
+  "profile": "release",
+  "dimensions": 384,
+  "batch_size": 16,
+  "scenarios": [
+    {
+      "item_count": 1,
+      "iterations": 5000,
+      "preparation_total_milliseconds": 18.990875,
+      "preparation_microseconds_per_item": 3.798175,
+      "preparation_items_per_second": 263284.3405056376,
+      "finalization_total_milliseconds": 5.900167000000001,
+      "finalization_microseconds_per_item": 1.1800334000000001,
+      "finalization_items_per_second": 847433.640437635
+    },
+    {
+      "item_count": 16,
+      "iterations": 1000,
+      "preparation_total_milliseconds": 18.48375,
+      "preparation_microseconds_per_item": 1.155234375,
+      "preparation_items_per_second": 865625.2113342801,
+      "finalization_total_milliseconds": 6.984167,
+      "finalization_microseconds_per_item": 0.4365104375,
+      "finalization_items_per_second": 2290895.965116527
+    },
+    {
+      "item_count": 100,
+      "iterations": 300,
+      "preparation_total_milliseconds": 22.367625,
+      "preparation_microseconds_per_item": 0.7455875,
+      "preparation_items_per_second": 1341224.2023907322,
+      "finalization_total_milliseconds": 10.693916,
+      "finalization_microseconds_per_item": 0.35646386666666663,
+      "finalization_items_per_second": 2805333.4250989067
+    },
+    {
+      "item_count": 1000,
+      "iterations": 30,
+      "preparation_total_milliseconds": 18.526417,
+      "preparation_microseconds_per_item": 0.6175472333333334,
+      "preparation_items_per_second": 1619309.3354208749,
+      "finalization_total_milliseconds": 10.251708,
+      "finalization_microseconds_per_item": 0.3417236,
+      "finalization_items_per_second": 2926341.6398516227
+    },
+    {
+      "item_count": 10000,
+      "iterations": 3,
+      "preparation_total_milliseconds": 19.801625,
+      "preparation_microseconds_per_item": 0.6600541666666667,
+      "preparation_items_per_second": 1515027.1757999659,
+      "finalization_total_milliseconds": 16.31325,
+      "finalization_microseconds_per_item": 0.543775,
+      "finalization_items_per_second": 1838995.908234104
+    }
+  ]
+}

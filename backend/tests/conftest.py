@@ -98,6 +98,22 @@ def _isolate_postgres_test_state() -> None:
     asyncio.run(_truncate_test_database())
 
 
+@pytest.fixture(autouse=True)
+def _override_retrieval_kernel_for_host_tests() -> None:
+    """Use the deterministic tests-only retrieval provider outside native E2E gates."""
+    from app.main import app
+    from dependency_injector import providers
+    from tests.memory.context_retrieval_kernel_test_provider import (
+        create_test_context_retrieval_kernel_provider,
+    )
+
+    provider = app.state.container.memory.retrieval_kernel_provider
+    with provider.override(
+        providers.Object(create_test_context_retrieval_kernel_provider())
+    ):
+        yield
+
+
 def pytest_sessionstart(session: pytest.Session) -> None:
     """Create a migration-faithful isolated PostgreSQL database before collection."""
     del session

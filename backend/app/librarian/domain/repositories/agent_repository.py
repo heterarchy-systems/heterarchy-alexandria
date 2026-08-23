@@ -18,6 +18,7 @@ class IAgentRepository(ABC):
         Args:
             payload [AgentCreate]: Value supplied to create.
 
+            payload: Validated payload for this operation.
         Returns:
             AgentProfile: Value produced by create.
         """
@@ -29,6 +30,7 @@ class IAgentRepository(ABC):
         Args:
             agent_id [str]: Value supplied to get.
 
+            agent_id: Identifier for agent.
         Returns:
             AgentProfile | None: Value produced by get.
         """
@@ -49,6 +51,8 @@ class IAgentRepository(ABC):
             agent_id [str]: Value supplied to update.
             payload [AgentUpdate]: Value supplied to update.
 
+            agent_id: Identifier for agent.
+            payload: Validated payload for this operation.
         Returns:
             AgentProfile: Value produced by update.
         """
@@ -59,4 +63,5 @@ class IAgentRepository(ABC):
 
         Args:
             agent_id [str]: Value supplied to delete.
+            agent_id: Identifier for agent.
         """

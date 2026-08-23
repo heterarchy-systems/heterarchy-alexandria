@@ -23,7 +23,7 @@ from app.memory.domain.types.context_payload_types import ContextMetadataPayload
 from app.shared.types.extra_types import JSONObject
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class ContextRecord:
     """Read model for one stored context."""
 
@@ -59,8 +59,8 @@ class ContextRecord:
 
     def __post_init__(self) -> None:
         """Normalize mutable collection inputs to immutable read-model values."""
-        object.__setattr__(self, "tags", tuple(self.tags))
-        object.__setattr__(self, "warnings", tuple(self.warnings))
+        self.tags = tuple(self.tags)
+        self.warnings = tuple(self.warnings)
 
 
 @dataclass(frozen=True, slots=True)
@@ -105,7 +105,7 @@ class ContextGraphEvidence:
     evidence_ref: str
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class ContextSearchMatch:
     """One retrieved chunk with its parent context."""
 
@@ -119,10 +119,10 @@ class ContextSearchMatch:
 
     def __post_init__(self) -> None:
         """Normalize graph evidence to an immutable tuple."""
-        object.__setattr__(self, "graph_evidence", tuple(self.graph_evidence))
+        self.graph_evidence = tuple(self.graph_evidence)
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class RagDependencyHealth:
     """Health state for context RAG dependencies."""
 
@@ -140,11 +140,11 @@ class RagDependencyHealth:
 
     def __post_init__(self) -> None:
         """Normalize health collections to immutable values."""
-        object.__setattr__(self, "warnings", tuple(self.warnings))
-        object.__setattr__(self, "source_statuses", tuple(self.source_statuses))
+        self.warnings = tuple(self.warnings)
+        self.source_statuses = tuple(self.source_statuses)
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class ContextEmbeddingSourceStatus:
     """Embedding fingerprint status for one configured retrieval source."""
 
@@ -159,10 +159,10 @@ class ContextEmbeddingSourceStatus:
 
     def __post_init__(self) -> None:
         """Normalize stored fingerprint rows to an immutable sequence."""
-        object.__setattr__(self, "stored_fingerprints", tuple(self.stored_fingerprints))
+        self.stored_fingerprints = tuple(self.stored_fingerprints)
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class ContextReindexResult:
     """Result for a context embedding reindex operation."""
 
@@ -173,10 +173,10 @@ class ContextReindexResult:
 
     def __post_init__(self) -> None:
         """Normalize reindex warnings to an immutable sequence."""
-        object.__setattr__(self, "warnings", tuple(self.warnings))
+        self.warnings = tuple(self.warnings)
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class ContextSoftRebuildResult:
     """Operator-facing result for a soft embedding/vector rebuild."""
 
@@ -196,20 +196,14 @@ class ContextSoftRebuildResult:
 
     def __post_init__(self) -> None:
         """Normalize soft-rebuild report collections to immutable values."""
-        object.__setattr__(
-            self, "source_status_before", tuple(self.source_status_before)
-        )
-        object.__setattr__(self, "source_status_after", tuple(self.source_status_after))
-        object.__setattr__(
-            self, "verification_context_ids", tuple(self.verification_context_ids)
-        )
-        object.__setattr__(
-            self, "verification_warnings", tuple(self.verification_warnings)
-        )
-        object.__setattr__(self, "warnings", tuple(self.warnings))
+        self.source_status_before = tuple(self.source_status_before)
+        self.source_status_after = tuple(self.source_status_after)
+        self.verification_context_ids = tuple(self.verification_context_ids)
+        self.verification_warnings = tuple(self.verification_warnings)
+        self.warnings = tuple(self.warnings)
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class ContextPack:
     """Agent-facing RAG context pack."""
 
@@ -223,6 +217,6 @@ class ContextPack:
 
     def __post_init__(self) -> None:
         """Normalize context-pack collections to immutable values."""
-        object.__setattr__(self, "warnings", tuple(self.warnings))
-        object.__setattr__(self, "recall_scopes", tuple(self.recall_scopes))
-        object.__setattr__(self, "matches", tuple(self.matches))
+        self.warnings = tuple(self.warnings)
+        self.recall_scopes = tuple(self.recall_scopes)
+        self.matches = tuple(self.matches)

@@ -10,7 +10,7 @@ from app.connections.domain.event_enum.provider_enums import AuthType, ProviderT
 from app.shared.types.extra_types import JSONObject
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class LibrarianProvider:
     """Read model for external provider/connection configuration."""
 
@@ -26,6 +26,6 @@ class LibrarianProvider:
     def __post_init__(self) -> None:
         """Normalize supported persisted enum values at the read-model boundary."""
         with suppress(ValueError):
-            object.__setattr__(self, "provider_type", ProviderType(self.provider_type))
+            self.provider_type = ProviderType(self.provider_type)
         with suppress(ValueError):
-            object.__setattr__(self, "auth_type", AuthType(self.auth_type))
+            self.auth_type = AuthType(self.auth_type)

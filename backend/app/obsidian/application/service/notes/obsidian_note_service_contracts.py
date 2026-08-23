@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Protocol
 
 
+# protocol-contract: structural-seam
 class ObsidianNoteSupersedeHook(Protocol):
     """Reconcile Context supersede metadata after a canonical save."""
 

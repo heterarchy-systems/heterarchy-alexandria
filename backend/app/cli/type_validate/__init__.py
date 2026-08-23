@@ -1,1 +1,0 @@
-"""CLI type validation contracts."""

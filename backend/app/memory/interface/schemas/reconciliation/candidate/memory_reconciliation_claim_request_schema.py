@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import StringConstraints, field_validator
+
 from app.memory.domain.entities.memory_reconciliation import (
     CanonicalClaim,
     CanonicalClaimQualifier,
@@ -11,6 +13,9 @@ from app.memory.domain.entities.memory_reconciliation import (
 )
 from app.memory.domain.event_enum.context_enums import ContextScope
 from app.memory.domain.event_enum.reconciliation_enums import MemoryClaimPolarity
+from app.memory.interface.schemas.reconciliation.reconciliation_string_types import (
+    ReconciliationTitleText,
+)
 from app.shared.schemas.common_schemas import (
     StrictSchemaModel,
     described_field,
@@ -18,7 +23,6 @@ from app.shared.schemas.common_schemas import (
 )
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 from app.shared.types.types_convert_utils import enum_value
-from pydantic import StringConstraints, field_validator
 
 
 class CanonicalClaimQualifierRequest(StrictSchemaModel):
@@ -156,8 +160,7 @@ class MemorySourceReferenceRequest(StrictSchemaModel):
         described_field("Source identifier for this memory source reference request."),
     ]
     title: Annotated[
-        str,
-        StringConstraints(strict=True, min_length=1, max_length=2000),
+        ReconciliationTitleText,
         described_field("Title for this memory source reference request."),
     ]
     detail_path: Annotated[

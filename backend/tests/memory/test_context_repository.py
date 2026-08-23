@@ -2,15 +2,27 @@
 
 from __future__ import annotations
 
+import importlib.util
 import os
+import shutil
+import sysconfig
 from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from threading import Event
+from types import ModuleType
+from typing import cast
 
 import anyio
 import pytest
+from sqlalchemy import func, select
+from sqlalchemy.exc import OperationalError
+from tests.memory.context_retrieval_kernel_test_provider import (
+    TestContextRetrievalKernelProvider,
+)
+from tests.memory.context_seed import seed_context
+
 from app.memory.application.contexts.records.context_service import ContextService
 from app.memory.application.retrieval.embeddings.embedding_contract import (
     EmbeddingProvider,
@@ -30,15 +42,16 @@ from app.memory.domain.event_enum.context_enums import (
     RagStrategy,
 )
 from app.memory.infrastructure.models.context_models import ContextChunkORM, ContextORM
+from app.memory.infrastructure.providers.native_context_retrieval_kernel_provider import (
+    NativeContextRetrievalKernelProvider,
+    NativeRetrievalKernelModule,
+)
 from app.memory.infrastructure.repositories.context_repository import (
     SqlAlchemyContextRepository,
 )
 from app.shared.exceptions.memory_context_exceptions import MemoryContextNotFoundError
 from app.shared.infrastructure.database import Database
 from app.shared.types.extra_types import JSONObject
-from sqlalchemy import func, select
-from sqlalchemy.exc import OperationalError
-from tests.memory.context_seed import seed_context
 
 
 def _handoff_content(extra: str = "") -> str:
@@ -129,6 +142,68 @@ class MeanPoolingUpgradeEmbeddingProvider(EmbeddingProvider):
         return _test_vector(1)
 
 
+class NativeQualityEmbeddingProvider(EmbeddingProvider):
+    """Deterministic embeddings for real PostgreSQL native-fusion quality checks."""
+
+    @property
+    def provider_name(self) -> str:
+        return "NATIVE_QUALITY_TEST"
+
+    @property
+    def model_name(self) -> str:
+        return "native-quality-test-model"
+
+    @property
+    def dimensions(self) -> int:
+        return TEST_EMBEDDING_DIMENSIONS
+
+    def embed_documents(self, texts: Sequence[str]) -> list[list[float]]:
+        return [self._document_vector(text) for text in texts]
+
+    def embed_query(self, text: str) -> list[float]:
+        if text in {"needle", "semantic-alias"}:
+            return _test_vector(0)
+        if text == "lexicalkey":
+            return _test_vector(1)
+        return _test_vector(2)
+
+    @staticmethod
+    def _document_vector(text: str) -> list[float]:
+        if "dual-target" in text:
+            return _test_vector(0)
+        if "lexical-only" in text:
+            return _test_vector(1)
+        return _test_vector(2)
+
+
+def _real_native_retrieval_kernel_provider(
+    temporary_directory: Path,
+) -> NativeContextRetrievalKernelProvider:
+    configured = os.environ.get("HETERARCHY_ALEXANDRIA_NATIVE_LIBRARY")
+    if configured is None or not configured.strip():
+        pytest.skip("real native extension path is not configured")
+    library = Path(configured).resolve()
+    if not library.is_file():
+        raise AssertionError(f"native extension artifact is missing: {library}")
+    suffix = sysconfig.get_config_var("EXT_SUFFIX")
+    if not isinstance(suffix, str) or not suffix:
+        raise AssertionError("Python EXT_SUFFIX is unavailable")
+    destination = temporary_directory / f"heterarchy_alexandria_native{suffix}"
+    shutil.copy2(library, destination)
+    specification = importlib.util.spec_from_file_location(
+        "heterarchy_alexandria_native", destination
+    )
+    if specification is None or specification.loader is None:
+        raise AssertionError(f"unable to load native extension from {destination}")
+    module = importlib.util.module_from_spec(specification)
+    specification.loader.exec_module(module)
+    if not isinstance(module, ModuleType):
+        raise AssertionError("native extension loader returned an invalid module")
+    native_module = cast(NativeRetrievalKernelModule, module)
+    assert native_module.compute_contract_version() == 1
+    return NativeContextRetrievalKernelProvider(native_module)
+
+
 class BlockingEmbeddingProvider(EmbeddingProvider):
     """Embedding provider fake that blocks until an async task releases it."""
 
@@ -195,7 +270,10 @@ def test_context_repository_searches_accesses_and_archives_seeded_contexts(
             database.session() as session,
         ):
             repository = SqlAlchemyContextRepository(session=session)
-            service = ContextService(repository=repository)
+            service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
+                repository=repository,
+            )
 
             saved = await seed_context(
                 session,
@@ -273,7 +351,8 @@ def test_context_repository_raises_not_found_when_archive_target_is_missing(
             database.session() as session,
         ):
             service = ContextService(
-                repository=SqlAlchemyContextRepository(session=session)
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
+                repository=SqlAlchemyContextRepository(session=session),
             )
             missing_id = "00000000-0000-4000-8000-000000000000"
 
@@ -296,7 +375,8 @@ def test_context_rag_defaults_to_fts_only_when_vector_provider_is_degraded(
             database.session() as session,
         ):
             service = ContextService(
-                repository=SqlAlchemyContextRepository(session=session)
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
+                repository=SqlAlchemyContextRepository(session=session),
             )
             await seed_context(
                 session,
@@ -349,6 +429,7 @@ def test_context_vector_search_returns_semantic_match_when_enabled(
             database.session() as session,
         ):
             service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=SqlAlchemyContextRepository(session=session),
                 embedding_provider=KeywordEmbeddingProvider(),
                 vector_retrieval_enabled=True,
@@ -413,8 +494,108 @@ distractor should rank behind the semantic target.
     anyio.run(scenario)
 
 
+def test_native_hybrid_fusion_matches_python_authority_on_real_postgresql_retrieval(
+    tmp_path: Path,
+) -> None:
+    """Real PyO3 fusion must preserve PostgreSQL FTS/pgvector retrieval quality."""
+
+    async def scenario() -> tuple[
+        list[tuple[str, list[str]]], list[tuple[str, list[str]]]
+    ]:
+        async with (
+            _temporary_database(tmp_path / "native-hybrid-quality.db") as database,
+            database.session() as session,
+        ):
+            repository = SqlAlchemyContextRepository(session=session)
+            embedding_provider = NativeQualityEmbeddingProvider()
+            dual = await seed_context(
+                session,
+                kind=ContextKind.RESEARCH,
+                title="Dual target",
+                summary="needle is both lexical and semantic evidence.",
+                content="# Dual target\n\nneedle dual-target carries semantic evidence.\n",
+                embedding_provider=embedding_provider,
+            )
+            lexical = await seed_context(
+                session,
+                kind=ContextKind.RESEARCH,
+                title="Lexical target",
+                summary="lexicalkey is the lexical-only retrieval target.",
+                content="# Lexical target\n\nlexicalkey lexical-only remains distinct.\n",
+                embedding_provider=embedding_provider,
+            )
+            await seed_context(
+                session,
+                kind=ContextKind.RESEARCH,
+                title="Distractor",
+                summary="Unrelated material for ranking stability.",
+                content="# Distractor\n\nunrelated distractor material.\n",
+                embedding_provider=embedding_provider,
+            )
+            await session.commit()
+
+            python_service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
+                repository=repository,
+                embedding_provider=embedding_provider,
+                vector_retrieval_enabled=True,
+            )
+            native_service = ContextService(
+                repository=repository,
+                embedding_provider=embedding_provider,
+                vector_retrieval_enabled=True,
+                retrieval_kernel_provider=_real_native_retrieval_kernel_provider(
+                    tmp_path
+                ),
+            )
+            cases = (
+                ("needle", dual.id),
+                ("semantic-alias", dual.id),
+                ("lexicalkey", lexical.id),
+            )
+            python_results: list[tuple[str, list[str]]] = []
+            native_results: list[tuple[str, list[str]]] = []
+            for query, expected_id in cases:
+                python_pack = await python_service.search(
+                    query=query, strategy=RagStrategy.HYBRID, limit=3
+                )
+                native_pack = await native_service.search(
+                    query=query, strategy=RagStrategy.HYBRID, limit=3
+                )
+                python_ids = [match.context.id for match in python_pack.matches]
+                native_ids = [match.context.id for match in native_pack.matches]
+                assert python_ids[0] == expected_id
+                assert native_ids[0] == expected_id
+                assert [
+                    (
+                        match.context.id,
+                        match.score,
+                        match.fts_score,
+                        match.vector_score,
+                        match.why_retrieved,
+                    )
+                    for match in native_pack.matches
+                ] == [
+                    (
+                        match.context.id,
+                        match.score,
+                        match.fts_score,
+                        match.vector_score,
+                        match.why_retrieved,
+                    )
+                    for match in python_pack.matches
+                ]
+                python_results.append((query, python_ids))
+                native_results.append((query, native_ids))
+            return python_results, native_results
+
+    python_results, native_results = anyio.run(scenario)
+
+    assert native_results == python_results
+
+
 def test_context_fts_ranks_stronger_korean_match_first(tmp_path: Path) -> None:
-    """FTS recall should preserve SQLite BM25 order for Korean memory queries."""
+    """PostgreSQL FTS should rank stronger Korean memory matches first."""
 
     async def scenario() -> tuple[list[str], str]:
         async with (
@@ -422,7 +603,8 @@ def test_context_fts_ranks_stronger_korean_match_first(tmp_path: Path) -> None:
             database.session() as session,
         ):
             service = ContextService(
-                repository=SqlAlchemyContextRepository(session=session)
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
+                repository=SqlAlchemyContextRepository(session=session),
             )
             stronger = await seed_context(
                 session,
@@ -467,6 +649,7 @@ def test_context_recall_filters_each_requested_scope_by_its_own_identity(
             database.session() as session,
         ):
             service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=SqlAlchemyContextRepository(session=session),
                 embedding_provider=KeywordEmbeddingProvider(),
                 vector_retrieval_enabled=True,
@@ -603,6 +786,7 @@ def test_concurrent_agents_preserve_scope_isolation_across_all_strategies(
             async def recall(agent_id: str, strategy: RagStrategy) -> None:
                 async with database.session() as query_session:
                     service = ContextService(
+                        retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                         repository=SqlAlchemyContextRepository(session=query_session),
                         embedding_provider=KeywordEmbeddingProvider(),
                         vector_retrieval_enabled=True,
@@ -668,6 +852,7 @@ semantic-target carries vector meaning.
 
             provider = BlockingEmbeddingProvider()
             search_service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=repository,
                 embedding_provider=provider,
                 vector_retrieval_enabled=True,
@@ -711,6 +896,7 @@ def test_context_vector_search_binds_filter_values_when_project_looks_like_sql(
             database.session() as session,
         ):
             service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=SqlAlchemyContextRepository(session=session),
                 embedding_provider=KeywordEmbeddingProvider(),
                 vector_retrieval_enabled=True,
@@ -768,7 +954,8 @@ def test_context_fts_search_binds_filter_values_when_project_looks_like_sql(
             database.session() as session,
         ):
             service = ContextService(
-                repository=SqlAlchemyContextRepository(session=session)
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
+                repository=SqlAlchemyContextRepository(session=session),
             )
             sql_like_project = "alexandria' OR 1=1 --"
             target = await seed_context(
@@ -821,7 +1008,8 @@ def test_context_fts_search_treats_operator_words_as_literal_terms(
             database.session() as session,
         ):
             service = ContextService(
-                repository=SqlAlchemyContextRepository(session=session)
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
+                repository=SqlAlchemyContextRepository(session=session),
             )
             target = await seed_context(
                 session,
@@ -888,6 +1076,7 @@ semantic-target was stored without an embedding.
             await session.commit()
 
             vector_service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=repository,
                 embedding_provider=KeywordEmbeddingProvider(),
                 vector_retrieval_enabled=True,
@@ -945,6 +1134,7 @@ def test_rag_health_degrades_when_embedding_status_probe_hits_storage_error(
                 failing_embedding_source_status,
             )
             service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=repository,
                 embedding_provider=KeywordEmbeddingProvider(),
                 vector_retrieval_enabled=True,
@@ -996,6 +1186,7 @@ semantic-target was embedded before the pooling change.
             assert before_chunk.embedding == tuple(_test_vector(2))
 
             upgraded_service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=repository,
                 embedding_provider=MeanPoolingUpgradeEmbeddingProvider(),
                 vector_retrieval_enabled=True,
@@ -1078,6 +1269,7 @@ semantic-target survives the soft rebuild.
 
             before_count = await session.scalar(select(func.count(ContextORM.id)))
             service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=repository,
                 embedding_provider=MeanPoolingUpgradeEmbeddingProvider(),
                 vector_retrieval_enabled=True,
@@ -1160,6 +1352,7 @@ semantic-target batch {index} survives the soft rebuild.
             await session.commit()
 
             service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=repository,
                 embedding_provider=MeanPoolingUpgradeEmbeddingProvider(),
                 vector_retrieval_enabled=True,
@@ -1195,7 +1388,8 @@ def test_context_list_filters_tags_by_exact_membership(tmp_path: Path) -> None:
             database.session() as session,
         ):
             service = ContextService(
-                repository=SqlAlchemyContextRepository(session=session)
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
+                repository=SqlAlchemyContextRepository(session=session),
             )
             exact = await seed_context(
                 session,
@@ -1233,7 +1427,8 @@ def test_context_list_treats_sql_like_tag_filter_as_data(tmp_path: Path) -> None
             database.session() as session,
         ):
             service = ContextService(
-                repository=SqlAlchemyContextRepository(session=session)
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
+                repository=SqlAlchemyContextRepository(session=session),
             )
             sql_like_tag = "rag' OR 1=1 --"
             exact = await seed_context(
@@ -1271,7 +1466,8 @@ def test_context_list_filters_created_and_updated_date_ranges(tmp_path: Path) ->
             database.session() as session,
         ):
             service = ContextService(
-                repository=SqlAlchemyContextRepository(session=session)
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
+                repository=SqlAlchemyContextRepository(session=session),
             )
             older = await seed_context(
                 session,
@@ -1345,6 +1541,7 @@ def test_context_recall_isolates_legacy_and_named_workspaces(tmp_path: Path) -> 
         ):
             provider = KeywordEmbeddingProvider()
             service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=SqlAlchemyContextRepository(session=session),
                 embedding_provider=provider,
                 vector_retrieval_enabled=True,

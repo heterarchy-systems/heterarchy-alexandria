@@ -24,6 +24,7 @@ from app.operations.infrastructure.redis_maintenance_job_consumer import (
 )
 from app.operations.infrastructure.redis_maintenance_job_queue import (
     RedisMaintenanceJobSubmitter,
+    create_maintenance_worker_client,
 )
 from app.platform.config.maintenance_queue_config import MaintenanceQueueConfig
 from redis.asyncio import Redis
@@ -164,6 +165,20 @@ def test_terminal_failure_is_dead_lettered_and_acknowledged() -> None:
     assert approximate is True
     assert fake.xack_calls[-1][-1] == "1-0"
     assert fake.hset_calls[-1]["status"] == MaintenanceJobStatus.FAILED.value
+
+
+def test_worker_client_read_timeout_has_headroom_above_stream_block() -> None:
+    """Blocking Stream reads should not race a nearly identical socket timeout."""
+    client = create_maintenance_worker_client(
+        MaintenanceQueueConfig.model_validate(
+            {
+                "SERVICE_REDIS_URL": "redis://redis:6379/0",
+                "block_milliseconds": 1000,
+            }
+        )
+    )
+
+    assert client.connection_pool.connection_kwargs["socket_timeout"] == 10.0
 
 
 def _submitter(fake: _FakeRedis) -> RedisMaintenanceJobSubmitter:

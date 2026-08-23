@@ -46,6 +46,14 @@ def register_local_oauth_approval_route(
         include_in_schema=False,
     )
     async def local_mcp_oauth_approval(request: Request) -> Response:
+        """Execute local mcp oauth approval.
+
+        Args:
+            request: Validated request for this operation.
+
+        Returns:
+            Response result produced by local mcp oauth approval.
+        """
         if request.method == "GET":
             request_id = request.query_params.get("request_id", "")
             try:
@@ -91,6 +99,16 @@ def _approval_html(
     client_name: str,
     scopes: tuple[str, ...],
 ) -> str:
+    """Execute approval html.
+
+    Args:
+        request_id: Identifier for request.
+        client_name: Client name used by this operation.
+        scopes: Scopes used by this operation.
+
+    Returns:
+        str result produced by approval html.
+    """
     safe_request_id = escape(request_id, quote=True)
     safe_client_name = escape(client_name)
     safe_scopes = ", ".join(escape(scope) for scope in scopes)
@@ -119,6 +137,14 @@ def _approval_html(
 
 
 def _error_response(exc: LocalOAuthApprovalError) -> HTMLResponse:
+    """Execute error response.
+
+    Args:
+        exc: Exception raised by the underlying operation.
+
+    Returns:
+        HTMLResponse result produced by error response.
+    """
     return HTMLResponse(
         "<!doctype html><html><body><h1>OAuth approval failed</h1>"
         f"<p>{escape(exc.detail)}</p></body></html>",
@@ -128,4 +154,12 @@ def _error_response(exc: LocalOAuthApprovalError) -> HTMLResponse:
 
 
 def _form_text(value: str | UploadFile | None) -> str:
+    """Execute form text.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str result produced by form text.
+    """
     return value if isinstance(value, str) else ""

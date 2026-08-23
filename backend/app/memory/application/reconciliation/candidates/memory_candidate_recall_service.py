@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import hashlib
 
+from pydantic import TypeAdapter, ValidationError
+
 from app.memory.domain.entities.context_read_models import (
     ContextSearchMatch,
 )
@@ -22,7 +24,6 @@ from app.memory.domain.repositories.reconciliation.memory_reconciliation_tempora
 )
 from app.memory.domain.types.context_payload_types import ContextMetadataPayload
 from app.shared.types.extra_types import JSONValue
-from pydantic import TypeAdapter, ValidationError
 
 _CLAIMS_ADAPTER = TypeAdapter(tuple[CanonicalClaim, ...])
 
@@ -35,6 +36,12 @@ class MemoryCandidateRecallService:
         recall_source: IMemoryCandidateRecallSource,
         repository: IMemoryReconciliationTemporalRepository,
     ) -> None:
+        """Initialize MemoryCandidateRecallService state and dependencies.
+
+        Args:
+            recall_source: Recall source used by this operation.
+            repository: Repository used by this operation.
+        """
         self._recall_source = recall_source
         self._repository = repository
 
@@ -135,6 +142,14 @@ def recall_candidate_from_match(
 
 
 def _candidate_query(candidate: MemoryCandidate) -> str:
+    """Execute candidate query.
+
+    Args:
+        candidate: Candidate used by this operation.
+
+    Returns:
+        str result produced by candidate query.
+    """
     if candidate.canonical_claims:
         return " ".join(
             f"{claim.subject} {claim.predicate} {claim.object}"
@@ -144,6 +159,14 @@ def _candidate_query(candidate: MemoryCandidate) -> str:
 
 
 def _canonical_claims(metadata: ContextMetadataPayload) -> tuple[CanonicalClaim, ...]:
+    """Execute canonical claims.
+
+    Args:
+        metadata: Metadata used by this operation.
+
+    Returns:
+        tuple[CanonicalClaim, ...] result produced by canonical claims.
+    """
     value = metadata.get("canonical_claims")
     if not isinstance(value, list):
         return ()
@@ -157,6 +180,15 @@ def _metadata_text(
     metadata: ContextMetadataPayload,
     key: str,
 ) -> str | None:
+    """Execute metadata text.
+
+    Args:
+        metadata: Metadata used by this operation.
+        key: Key used by this operation.
+
+    Returns:
+        str | None result produced by metadata text.
+    """
     value: JSONValue | None = metadata.get(key)
     if not isinstance(value, str):
         return None

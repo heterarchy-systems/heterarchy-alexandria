@@ -7,7 +7,6 @@ from app.librarian.application.skill_library.skill_library_candidate_policy impo
 )
 from app.librarian.application.skill_library.skill_library_search_contracts import (
     SkillCapabilityBrief,
-    SkillSearchBackend,
     SkillSearchCandidate,
     SkillSearchResult,
 )
@@ -20,13 +19,13 @@ from app.librarian.application.skill_library.skill_library_search_handoff_policy
     _unique_gap_list,
 )
 from app.librarian.domain.event_enum.skill_search_enums import SkillSearchDecision
+from app.obsidian.application.service.obsidian_service_ports import ObsidianSearchPort
 from app.obsidian.domain.contracts.obsidian_contracts import ObsidianSearchQuery
 from app.obsidian.domain.event_enum.obsidian_enums import AlexandriaNoteType
 
 __all__ = (
     "SkillCapabilityBrief",
     "SkillLibrarySearchService",
-    "SkillSearchBackend",
     "SkillSearchCandidate",
     "SkillSearchDecision",
     "SkillSearchResult",
@@ -36,7 +35,7 @@ __all__ = (
 class SkillLibrarySearchService:
     """Evaluate existing skill-library notes before librarian escalation."""
 
-    def __init__(self, search_backend: SkillSearchBackend) -> None:
+    def __init__(self, search_backend: ObsidianSearchPort) -> None:
         """Create evaluator.
 
         Args:

@@ -32,6 +32,11 @@ from app.shared.types.extra_types import JSONObject, JSONValue
 
 
 def _empty_plan() -> ObsidianLegacyMetadataRepairPlan:
+    """Execute empty plan.
+
+    Returns:
+        ObsidianLegacyMetadataRepairPlan result produced by empty plan.
+    """
     candidates: tuple[ObsidianLegacyMetadataRepairCandidate, ...] = ()
     return ObsidianLegacyMetadataRepairPlan(
         plan_hash=_plan_hash(
@@ -53,6 +58,14 @@ def _empty_plan() -> ObsidianLegacyMetadataRepairPlan:
 def _scan_frontmatter(
     text: str,
 ) -> tuple[ObsidianLegacyMetadataRepairFinding, ...]:
+    """Execute scan frontmatter.
+
+    Args:
+        text: Text used by this operation.
+
+    Returns:
+        tuple[ObsidianLegacyMetadataRepairFinding, ...] result produced by scan frontmatter.
+    """
     lines, end_index = _frontmatter_lines(text)
     if end_index is None:
         return ()
@@ -128,6 +141,16 @@ def _collection_finding(
     current_value: str,
     scalar_value: str,
 ) -> ObsidianLegacyMetadataRepairFinding | None:
+    """Execute collection finding.
+
+    Args:
+        field_name: Field name used by this operation.
+        current_value: Current value used by this operation.
+        scalar_value: Scalar value used by this operation.
+
+    Returns:
+        ObsidianLegacyMetadataRepairFinding | None result produced by collection finding.
+    """
     stripped = scalar_value.strip()
     if not (
         (stripped.startswith("(") and stripped.endswith(")"))
@@ -154,6 +177,14 @@ def _collection_finding(
 
 
 def _normalize_legacy_string_collection(value: str) -> tuple[str, ...]:
+    """Normalize legacy string collection.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        Normalized legacy string collection.
+    """
     try:
         parsed = ast.literal_eval(value)
     except (SyntaxError, ValueError) as exc:
@@ -173,6 +204,14 @@ def _normalize_legacy_string_collection(value: str) -> tuple[str, ...]:
 
 
 def _quoted_scalar(value: str) -> str | None:
+    """Execute quoted scalar.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str | None result produced by quoted scalar.
+    """
     if len(value) < 2 or value[0] != value[-1] or value[0] not in {"'", '"'}:
         return None
     if value[0] == "'":
@@ -181,6 +220,14 @@ def _quoted_scalar(value: str) -> str | None:
 
 
 def _plain_legacy_collection_scalar(value: str) -> str | None:
+    """Execute plain legacy collection scalar.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str | None result produced by plain legacy collection scalar.
+    """
     stripped = value.strip()
     if stripped.startswith("(") and stripped.endswith(")"):
         return stripped
@@ -192,6 +239,16 @@ def _has_block_list_items(
     start_index: int,
     end_index: int,
 ) -> bool:
+    """Return whether block list items.
+
+    Args:
+        lines: Lines used by this operation.
+        start_index: Start index used by this operation.
+        end_index: End index used by this operation.
+
+    Returns:
+        Whether block list items.
+    """
     for line in lines[start_index:end_index]:
         if line == line.lstrip() and line.strip():
             return False
@@ -204,6 +261,15 @@ def _apply_findings(
     text: str,
     findings: tuple[ObsidianLegacyMetadataRepairFinding, ...],
 ) -> str:
+    """Apply findings.
+
+    Args:
+        text: Text used by this operation.
+        findings: Findings used by this operation.
+
+    Returns:
+        str result produced by apply findings.
+    """
     lines, end_index = _frontmatter_lines(text)
     if end_index is None:
         raise ValueError("FRONTMATTER_PARSE_ERROR: frontmatter is required")
@@ -241,6 +307,16 @@ def _render_replacement(
     value: LegacyMetadataValue,
     line_ending: str,
 ) -> list[str]:
+    """Render replacement.
+
+    Args:
+        field_name: Field name used by this operation.
+        value: Value being processed.
+        line_ending: Line ending used by this operation.
+
+    Returns:
+        Rendered replacement.
+    """
     if isinstance(value, tuple):
         if not value:
             return [f"{field_name}: []{line_ending}"]
@@ -254,11 +330,27 @@ def _render_replacement(
 
 
 def _yaml_string(value: str) -> str:
+    """Execute yaml string.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str result produced by yaml string.
+    """
     escaped = value.replace("'", "''")
     return f"'{escaped}'"
 
 
 def _frontmatter_lines(text: str) -> tuple[list[str], int | None]:
+    """Execute frontmatter lines.
+
+    Args:
+        text: Text used by this operation.
+
+    Returns:
+        tuple[list[str], int | None] result produced by frontmatter lines.
+    """
     lines = text.splitlines(keepends=True)
     if not lines or lines[0].rstrip("\r\n").strip() != "---":
         return lines, None
@@ -278,6 +370,16 @@ def _plan_hash(
     scanned_documents: int,
     unrecoverable_redacted_urls: int,
 ) -> str:
+    """Execute plan hash.
+
+    Args:
+        candidates: Candidates used by this operation.
+        scanned_documents: Scanned documents used by this operation.
+        unrecoverable_redacted_urls: Unrecoverable redacted urls used by this operation.
+
+    Returns:
+        str result produced by plan hash.
+    """
     payload: JSONObject = {
         "scanned_documents": scanned_documents,
         "unrecoverable_redacted_urls": unrecoverable_redacted_urls,
@@ -304,7 +406,14 @@ def _plan_hash(
 
 
 def _json_metadata_value(value: LegacyMetadataValue) -> JSONValue:
-    """Normalize one legacy metadata value for deterministic JSON hashing."""
+    """Normalize one legacy metadata value for deterministic JSON hashing.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        JSONValue result produced by json metadata value.
+    """
 
     if isinstance(value, tuple):
         return list(value)
@@ -317,6 +426,17 @@ def _preflight_and_backup(
     operation_root: str,
     candidates: Sequence[ObsidianLegacyMetadataRepairCandidate],
 ) -> dict[str, tuple[Path, bytes]]:
+    """Execute preflight and backup.
+
+    Args:
+        vault_path: Vault path used by this operation.
+        alexandria_root: Alexandria root used by this operation.
+        operation_root: Operation root used by this operation.
+        candidates: Candidates used by this operation.
+
+    Returns:
+        dict[str, tuple[Path, bytes]] result produced by preflight and backup.
+    """
     originals: dict[str, tuple[Path, bytes]] = {}
     for candidate in candidates:
         path = validate_discovered_note_path(
@@ -349,7 +469,12 @@ def _rollback_successful_repairs(
     originals: dict[str, tuple[Path, bytes]],
     results: Sequence[ObsidianLegacyMetadataRepairResult],
 ) -> None:
-    """Restore originals if the required post-apply reindex fails."""
+    """Restore originals if the required post-apply reindex fails.
+
+    Args:
+        originals: Originals used by this operation.
+        results: Results used by this operation.
+    """
     for result in results:
         if not result.success:
             continue
@@ -358,4 +483,12 @@ def _rollback_successful_repairs(
 
 
 def _sha256(value: bytes) -> str:
+    """Execute sha256.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str result produced by sha256.
+    """
     return hashlib.sha256(value).hexdigest()

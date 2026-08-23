@@ -24,12 +24,26 @@ _LOCAL_DEV_KEY_SEED = "heterarchy-alexandria-local-development-secret-v1"
 
 
 def _urlsafe_b64encode(value: bytes) -> str:
-    """Encode bytes for compact storage."""
+    """Encode bytes for compact storage.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str result produced by urlsafe b64encode.
+    """
     return base64.urlsafe_b64encode(value).decode("ascii").rstrip("=")
 
 
 def _urlsafe_b64decode(value: str) -> bytes:
-    """Decode unpadded URL-safe base64 text."""
+    """Decode unpadded URL-safe base64 text.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        bytes result produced by urlsafe b64decode.
+    """
     padding = "=" * (-len(value) % 4)
     try:
         return base64.b64decode(
@@ -42,7 +56,14 @@ def _urlsafe_b64decode(value: str) -> bytes:
 
 
 def _derive_key(raw_key: str) -> bytes:
-    """Derive a 256-bit AES key from an environment-provided key string."""
+    """Derive a 256-bit AES key from an environment-provided key string.
+
+    Args:
+        raw_key: Raw key used by this operation.
+
+    Returns:
+        bytes result produced by derive key.
+    """
     try:
         decoded = _urlsafe_b64decode(raw_key)
     except ValueError:
@@ -99,7 +120,7 @@ class SecretCipher:
         """Encrypt one secret string for database storage.
 
         Args:
-            value [str]: Value supplied to encrypt.
+            value: Value supplied to encrypt.
 
         Returns:
             str: Value produced by encrypt.
@@ -113,7 +134,7 @@ class SecretCipher:
         """Decrypt one stored secret string.
 
         Args:
-            stored_value [str]: Value supplied to decrypt.
+            stored_value: Value supplied to decrypt.
 
         Returns:
             str: Value produced by decrypt.

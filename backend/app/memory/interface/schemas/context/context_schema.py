@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import StringConstraints, field_validator
+
 from app.memory.domain.event_enum.context_enums import (
     ContextAccessActorType,
     ContextAccessMethod,
@@ -22,7 +24,6 @@ from app.shared.schemas.common_schemas import (
 )
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 from app.shared.types.extra_types import JSONObject
-from pydantic import StringConstraints, field_validator
 
 
 class ContextProvenanceResponse(StrictSchemaModel):

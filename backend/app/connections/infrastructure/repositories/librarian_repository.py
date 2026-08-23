@@ -5,6 +5,9 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime
 
+from sqlalchemy import delete, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.connections.domain.contracts.librarian_provider_contracts import (
     LibrarianProviderCreate,
     LibrarianProviderUpdate,
@@ -24,14 +27,19 @@ from app.shared.exceptions.connections_exceptions import (
 )
 from app.shared.security.secret_cipher import SecretCipher, SecretCipherSettings
 from app.shared.types.types_convert_utils import aware_utc_datetime
-from sqlalchemy import delete, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
 
 def _to_read_model(row: LibrarianProviderORM) -> LibrarianProvider:
-    """Map a librarian provider ORM row into the domain read model."""
+    """Map a librarian provider ORM row into the domain read model.
+
+    Args:
+        row: Row used by this operation.
+
+    Returns:
+        LibrarianProvider result produced by to read model.
+    """
     return LibrarianProvider(
         id=row.id,
         name=row.name,
@@ -69,6 +77,7 @@ class SqlAlchemyLibrarianProviderRepository(ILibrarianProviderRepository):
         Args:
             payload [LibrarianProviderCreate]: Value supplied to create.
 
+            payload: Validated payload for this operation.
         Returns:
             LibrarianProvider: Value produced by create.
         """
@@ -83,6 +92,7 @@ class SqlAlchemyLibrarianProviderRepository(ILibrarianProviderRepository):
         Args:
             provider_id [str]: Value supplied to get.
 
+            provider_id: Identifier for provider.
         Returns:
             LibrarianProvider | None: Value produced by get.
         """
@@ -109,6 +119,8 @@ class SqlAlchemyLibrarianProviderRepository(ILibrarianProviderRepository):
             provider_id [str]: Value supplied to update.
             payload [LibrarianProviderUpdate]: Value supplied to update.
 
+            provider_id: Identifier for provider.
+            payload: Validated payload for this operation.
         Returns:
             LibrarianProvider: Value produced by update.
         """
@@ -137,6 +149,7 @@ class SqlAlchemyLibrarianProviderRepository(ILibrarianProviderRepository):
 
         Args:
             provider_id [str]: Value supplied to delete.
+            provider_id: Identifier for provider.
         """
         model = await self._session.get(LibrarianProviderORM, provider_id)
         if model is None:
@@ -174,6 +187,8 @@ class ProviderSecretRepository(IProviderSecretRepositoryPort):
             provider_id [str]: Value supplied to resolve.
             key_name [str]: Value supplied to resolve.
 
+            provider_id: Identifier for provider.
+            key_name: Key name used by this operation.
         Returns:
             str | None: Value produced by resolve.
         """
@@ -200,6 +215,9 @@ class ProviderSecretRepository(IProviderSecretRepositoryPort):
             provider_id [str]: Value supplied to set_secret.
             key_name [str]: Value supplied to set_secret.
             value [str]: Value supplied to set_secret.
+            provider_id: Identifier for provider.
+            key_name: Key name used by this operation.
+            value: Value being processed.
         """
         existing = await self._session.scalar(
             select(ProviderSecretORM).where(
@@ -226,6 +244,8 @@ class ProviderSecretRepository(IProviderSecretRepositoryPort):
         Args:
             provider_id [str]: Value supplied to delete_for_provider.
             key_name [str]: Value supplied to delete_for_provider.
+            provider_id: Identifier for provider.
+            key_name: Key name used by this operation.
         """
         await self._session.execute(
             delete(ProviderSecretORM).where(

@@ -56,6 +56,16 @@ async def _has_oauth_execution_secret(
     secret_repo: IProviderSecretRepository,
     now_provider: Callable[[], datetime],
 ) -> bool:
+    """Return whether oauth execution secret.
+
+    Args:
+        provider: Provider used by this operation.
+        secret_repo: Secret repo used by this operation.
+        now_provider: Now provider provider dependency.
+
+    Returns:
+        Whether oauth execution secret.
+    """
     refresh_token = await _resolve_secret(
         secret_repo,
         provider.id,
@@ -88,6 +98,16 @@ async def _has_secret(
     provider_id: str,
     key: ProviderSecretKey,
 ) -> bool:
+    """Return whether secret.
+
+    Args:
+        secret_repo: Secret repo used by this operation.
+        provider_id: Identifier for provider.
+        key: Key used by this operation.
+
+    Returns:
+        Whether secret.
+    """
     value = await _resolve_secret(secret_repo, provider_id, key)
     return value is not None
 
@@ -97,6 +117,16 @@ async def _resolve_secret(
     provider_id: str,
     key: ProviderSecretKey,
 ) -> str | None:
+    """Resolve secret.
+
+    Args:
+        secret_repo: Secret repo used by this operation.
+        provider_id: Identifier for provider.
+        key: Key used by this operation.
+
+    Returns:
+        Resolved secret.
+    """
     value = await secret_repo.resolve(provider_id, key.value)
     if value is None or value == "":
         return None
@@ -106,6 +136,14 @@ async def _resolve_secret(
 def _provider_shape(
     provider: LibrarianProvider,
 ) -> tuple[ProviderType, AuthType] | None:
+    """Execute provider shape.
+
+    Args:
+        provider: Provider used by this operation.
+
+    Returns:
+        tuple[ProviderType, AuthType] | None result produced by provider shape.
+    """
     try:
         provider_type = enum_value(
             provider.provider_type, ProviderType, "provider_type"
@@ -117,5 +155,13 @@ def _provider_shape(
 
 
 def _aware_now(now_provider: Callable[[], datetime]) -> datetime:
+    """Execute aware now.
+
+    Args:
+        now_provider: Now provider provider dependency.
+
+    Returns:
+        datetime result produced by aware now.
+    """
     current = now_provider()
     return aware_utc_datetime(current)

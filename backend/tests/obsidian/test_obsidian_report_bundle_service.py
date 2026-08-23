@@ -3,19 +3,22 @@
 from __future__ import annotations
 
 import os
-
 from dataclasses import replace
 from pathlib import Path
 
 import anyio
 import pytest
+from tests.obsidian.graph.fakes.fake_obsidian_graph_projection_repository import (
+    FakeObsidianGraphProjectionRepository,
+)
+
+from app.obsidian.application.graph.obsidian_graph_service import ObsidianGraphService
 from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild_service import (
     ObsidianGraphProjectionRebuildService,
 )
 from app.obsidian.application.graph.projection.obsidian_graph_projection_source_builder import (
     ObsidianGraphProjectionSourceBuilder,
 )
-from app.obsidian.application.graph.obsidian_graph_service import ObsidianGraphService
 from app.obsidian.application.service.notes.obsidian_report_bundle_service import (
     ObsidianReportBundleService,
 )
@@ -36,6 +39,9 @@ from app.obsidian.domain.event_enum.obsidian_enums import (
     ObsidianRelationType,
     ObsidianReportBundleCompletionStatus,
     ObsidianWriteOperation,
+)
+from app.obsidian.infrastructure.graph.native_obsidian_graph_projection_compute_provider import (
+    create_native_obsidian_graph_projection_compute_provider,
 )
 from app.obsidian.infrastructure.graph.sqlalchemy_obsidian_graph_projection_source import (
     SqlAlchemyObsidianGraphProjectionSource,
@@ -58,9 +64,6 @@ from app.shared.exceptions.obsidian_exceptions import (
     ObsidianNotFoundError,
 )
 from app.shared.infrastructure.database import Database
-from tests.obsidian.graph.fakes.fake_obsidian_graph_projection_repository import (
-    FakeObsidianGraphProjectionRepository,
-)
 
 _OBSIDIAN_MODELS_LOADED = _obsidian_index_models
 
@@ -87,8 +90,7 @@ class _FailingActivationGraphRepository(FakeObsidianGraphProjectionRepository):
         )
 
 
-def _database_url(path: Path) -> str:
-    del path
+def _database_url() -> str:
     return os.environ["DATABASE_URL"]
 
 
@@ -98,9 +100,7 @@ def test_report_bundle_is_idempotent_and_verifies_expected_owner_edges(
     """A repeated bundle must reuse Source identity and return the same graph state."""
 
     async def scenario() -> None:
-        database = Database(
-            database_url=_database_url(tmp_path / "obsidian.db"), create_schema=True
-        )
+        database = Database(database_url=_database_url(), create_schema=True)
         await database.initialize()
         session = database.session()
         try:
@@ -126,7 +126,8 @@ def test_report_bundle_is_idempotent_and_verifies_expected_owner_edges(
                     neo4j_password="local-test-password",
                 ),
                 source_builder=ObsidianGraphProjectionSourceBuilder(
-                    source=SqlAlchemyObsidianGraphProjectionSource(session=session)
+                    compute_provider=create_native_obsidian_graph_projection_compute_provider(),
+                    source=SqlAlchemyObsidianGraphProjectionSource(session=session),
                 ),
                 repository=graph_repository,
                 index_maintenance_coordinator=coordinator,
@@ -286,9 +287,7 @@ def test_report_bundle_missing_owner_fails_before_source_mutation(
     """Owner preflight should prevent a partial Source when an owner is absent."""
 
     async def scenario() -> None:
-        database = Database(
-            database_url=_database_url(tmp_path / "obsidian.db"), create_schema=True
-        )
+        database = Database(database_url=_database_url(), create_schema=True)
         await database.initialize()
         session = database.session()
         try:
@@ -308,7 +307,8 @@ def test_report_bundle_missing_owner_fails_before_source_mutation(
             graph_rebuild = ObsidianGraphProjectionRebuildService(
                 config=AppConfig(_env_file=None, graph_read_model="disabled"),
                 source_builder=ObsidianGraphProjectionSourceBuilder(
-                    source=SqlAlchemyObsidianGraphProjectionSource(session=session)
+                    compute_provider=create_native_obsidian_graph_projection_compute_provider(),
+                    source=SqlAlchemyObsidianGraphProjectionSource(session=session),
                 ),
                 repository=graph_repository,
                 index_maintenance_coordinator=coordinator,

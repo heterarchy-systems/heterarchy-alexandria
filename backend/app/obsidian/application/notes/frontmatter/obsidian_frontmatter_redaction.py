@@ -57,6 +57,14 @@ def frontmatter_contains_secret_field(markdown: str) -> bool:
 
 
 def _redacted_json(value: JSONValue) -> tuple[JSONValue, list[str]]:
+    """Execute redacted json.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        tuple[JSONValue, list[str]] result produced by redacted json.
+    """
     if isinstance(value, str):
         redaction = redact_secret_text(value)
         if redaction.blocked:
@@ -77,6 +85,14 @@ def _redacted_sequence(
     list[JSONValue],
     list[str],
 ]:
+    """Execute redacted sequence.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        tuple[list[JSONValue], list[str]] result produced by redacted sequence.
+    """
     items: list[JSONValue] = []
     warnings: list[str] = []
     for item in value:
@@ -87,6 +103,14 @@ def _redacted_sequence(
 
 
 def _redacted_mapping(value: dict[str, JSONValue]) -> tuple[JSONObject, list[str]]:
+    """Execute redacted mapping.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        tuple[JSONObject, list[str]] result produced by redacted mapping.
+    """
     payload: JSONObject = {}
     warnings: list[str] = []
     for key, item in value.items():
@@ -107,6 +131,15 @@ def _is_safe_false_secret_audit_field(
     field_name: str,
     value: JSONValue,
 ) -> bool:
+    """Return whether safe false secret audit field.
+
+    Args:
+        field_name: Field name used by this operation.
+        value: Value being processed.
+
+    Returns:
+        Whether safe false secret audit field.
+    """
     if field_name.casefold() not in _FALSE_SECRET_AUDIT_FIELDS:
         return False
     if value is False:
@@ -115,6 +148,14 @@ def _is_safe_false_secret_audit_field(
 
 
 def _dedupe_warnings(warnings: list[str]) -> list[str]:
+    """Execute dedupe warnings.
+
+    Args:
+        warnings: Warnings used by this operation.
+
+    Returns:
+        list[str] result produced by dedupe warnings.
+    """
     deduped: list[str] = []
     for warning in warnings:
         if warning not in deduped:

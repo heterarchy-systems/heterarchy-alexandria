@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from app.obsidian.application.graph.relations.obsidian_graph_edge_builder import (
-    relation_edges_from_note,
-)
 from app.obsidian.application.graph.diagnostics.obsidian_graph_link_renderer import (
     add_or_update_alexandria_links_section,
+)
+from app.obsidian.application.graph.relations.native_obsidian_graph_edge_builder import (
+    create_native_obsidian_graph_edge_builder,
 )
 from app.obsidian.domain.event_enum.obsidian_enums import (
     ObsidianEdgeSourceKind,
@@ -16,7 +16,7 @@ from app.obsidian.domain.event_enum.obsidian_enums import (
 
 def test_graph_relations_parse_frontmatter_and_wikilinks() -> None:
     """Frontmatter relations and body wikilinks should become rebuildable edges."""
-    edges = relation_edges_from_note(
+    edges = create_native_obsidian_graph_edge_builder().build(
         note_id="ctx_current",
         relative_path="Alexandria/Contexts/Current.md",
         alexandria_root="Alexandria",
@@ -83,7 +83,7 @@ def test_graph_relations_parse_legacy_inline_json_source_refs() -> None:
         "---\n\n# Compact\n"
     )
 
-    edges = relation_edges_from_note(
+    edges = create_native_obsidian_graph_edge_builder().build(
         note_id="compact-current",
         relative_path="Alexandria/Memory Compacts/Current.md",
         alexandria_root="Alexandria",
@@ -106,7 +106,7 @@ def test_graph_relations_treat_explicit_empty_source_ref_links_as_no_graph_cites
     None
 ):
     """Structured source metadata should not become graph edges after link migration."""
-    edges = relation_edges_from_note(
+    edges = create_native_obsidian_graph_edge_builder().build(
         note_id="compact-current",
         relative_path="Memory Compacts/Current.md",
         alexandria_root=".",
@@ -127,7 +127,7 @@ def test_graph_relations_treat_explicit_empty_source_ref_links_as_no_graph_cites
 
 def test_graph_relations_ignore_wikilinks_in_comments_and_code() -> None:
     """Only rendered Markdown links should become graph relations."""
-    edges = relation_edges_from_note(
+    edges = create_native_obsidian_graph_edge_builder().build(
         note_id="ctx-current",
         relative_path="Alexandria/Contexts/Projects/Current.md",
         alexandria_root="Alexandria",
@@ -146,7 +146,7 @@ def test_graph_relations_ignore_wikilinks_in_comments_and_code() -> None:
 
 def test_graph_relations_ignore_external_evidence_and_artifact_identifiers() -> None:
     """Provenance identifiers are not Obsidian note paths or graph nodes."""
-    edges = relation_edges_from_note(
+    edges = create_native_obsidian_graph_edge_builder().build(
         note_id="trade-journal",
         relative_path="Contexts/Projects/Trader/Journal.md",
         alexandria_root=".",
@@ -165,7 +165,7 @@ def test_graph_relations_ignore_external_evidence_and_artifact_identifiers() -> 
 
 def test_graph_relations_keep_vault_root_targets_when_root_is_dot() -> None:
     """Root-vault installs should not treat the first folder as Alexandria root."""
-    edges = relation_edges_from_note(
+    edges = create_native_obsidian_graph_edge_builder().build(
         note_id="ctx_current",
         relative_path="Contexts/Current.md",
         alexandria_root=".",

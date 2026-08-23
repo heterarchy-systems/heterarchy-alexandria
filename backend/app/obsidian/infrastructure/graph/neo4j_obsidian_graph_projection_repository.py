@@ -95,6 +95,7 @@ class Neo4jObsidianGraphProjectionRepository(IObsidianGraphProjectionRepository)
         Args:
             run_id: Stable application-owned run id.
             projection_version: Projection contract version being activated.
+            issue_counts: Issue counts used by this operation.
         """
         async with self._driver.session(database=self._database) as session:
             await session.execute_write(

@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from types import MappingProxyType
+from typing import cast
 
 from app.shared.types.extra_types import JSONObject, JSONPrimitive, JSONValue
 
@@ -21,7 +22,7 @@ _FLOAT_SCALAR = re.compile(
 )
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class MarkdownDocument:
     """A Markdown file split into frontmatter and body."""
 
@@ -30,30 +31,24 @@ class MarkdownDocument:
 
     def __post_init__(self) -> None:
         """Freeze parsed frontmatter and nested sequence values."""
-        object.__setattr__(self, "frontmatter", _freeze_frontmatter(self.frontmatter))
+        self.frontmatter = _freeze_frontmatter(self.frontmatter)
 
 
 def parse_markdown_document(text: str) -> MarkdownDocument:
-    """Parse a Markdown document with optional YAML frontmatter.
+    """Parse Markdown through the Rust document-analysis authority.
 
     Args:
         text: Markdown file content.
 
     Returns:
-        Parsed frontmatter and body. Unsupported nested YAML is ignored rather
-        than guessed because Alexandria only owns a small frontmatter subset.
+        Immutable parsed document mapped to the existing Python DTO.
     """
-    lines = text.splitlines()
-    if not lines or lines[0].strip() != FRONTMATTER_DELIMITER:
-        return MarkdownDocument(frontmatter=MappingProxyType({}), body=text)
-    end_index = _frontmatter_end_index(lines)
-    if end_index is None:
-        raise ValueError("FRONTMATTER_PARSE_ERROR: unterminated frontmatter")
-    frontmatter = _freeze_frontmatter(_parse_frontmatter_lines(lines[1:end_index]))
-    body = "\n".join(lines[end_index + 1 :])
-    if text.endswith("\n") and body:
-        body = f"{body}\n"
-    return MarkdownDocument(frontmatter=frontmatter, body=body)
+    # local import justified: avoids a public-API/native-adapter import cycle.
+    from app.obsidian.infrastructure.markdown.native_frontmatter import (
+        create_native_markdown_document_parser,
+    )
+
+    return cast(MarkdownDocument, create_native_markdown_document_parser().parse(text))
 
 
 def render_markdown_document(frontmatter: JSONObject, body: str) -> str:
@@ -200,109 +195,16 @@ def _freeze_frontmatter(
     return MappingProxyType(frozen)
 
 
-def _frontmatter_end_index(lines: list[str]) -> int | None:
-    for index, line in enumerate(lines[1:], start=1):
-        if line.strip() == FRONTMATTER_DELIMITER:
-            return index
-    return None
-
-
-def _parse_frontmatter_lines(
-    lines: list[str],
-) -> dict[str, MutableFrontmatterValue]:
-    frontmatter: dict[str, MutableFrontmatterValue] = {}
-    active_list_key: str | None = None
-    for line in lines:
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#"):
-            continue
-        if active_list_key is not None and stripped.startswith("-"):
-            raw_item = stripped.removeprefix("-").strip()
-            current = frontmatter.get(active_list_key)
-            if isinstance(current, list):
-                current.append(_parse_scalar(raw_item))
-            continue
-        if line != line.lstrip():
-            continue
-        active_list_key = None
-        if ":" not in line:
-            continue
-        key, raw_value = line.split(":", 1)
-        key = key.strip()
-        value = raw_value.strip()
-        if not key:
-            continue
-        if key in frontmatter:
-            raise ValueError(f"FRONTMATTER_PARSE_ERROR: duplicate top-level key: {key}")
-        if value == "":
-            frontmatter[key] = []
-            active_list_key = key
-        elif value.startswith("[") and value.endswith("]"):
-            frontmatter[key] = _parse_inline_list(value)
-        else:
-            frontmatter[key] = _parse_scalar(value)
-    return frontmatter
-
-
-def _parse_inline_list(value: str) -> list[FrontmatterScalar]:
-    inner = value[1:-1].strip()
-    if not inner:
-        return []
-    return [_parse_scalar(raw.strip()) for raw in _split_inline_list_items(inner)]
-
-
-def _split_inline_list_items(value: str) -> list[str]:
-    """Split a YAML flow sequence without breaking JSON-like metadata objects."""
-    items: list[str] = []
-    start = 0
-    depth = 0
-    quote: str | None = None
-    escaped = False
-    for index, character in enumerate(value):
-        if quote is not None:
-            if escaped:
-                escaped = False
-            elif character == "\\" and quote == '"':
-                escaped = True
-            elif character == quote:
-                quote = None
-            continue
-        if character in {"'", '"'}:
-            quote = character
-            continue
-        if character in "[{(":
-            depth += 1
-            continue
-        if character in "]})":
-            depth = max(0, depth - 1)
-            continue
-        if character == "," and depth == 0:
-            items.append(value[start:index])
-            start = index + 1
-    items.append(value[start:])
-    return items
-
-
-def _parse_scalar(value: str) -> FrontmatterScalar:
-    if len(value) >= 2 and value[0] == "'" and value[-1] == "'":
-        return value[1:-1].replace("''", "'")
-    if len(value) >= 2 and value[0] == '"' and value[-1] == '"':
-        return value[1:-1]
-    lowered = value.lower()
-    if value == "~" or lowered == "null" or not value:
-        return None
-    if lowered == "true":
-        return True
-    if lowered == "false":
-        return False
-    if _INTEGER_SCALAR.fullmatch(value):
-        return int(value)
-    if _FLOAT_SCALAR.fullmatch(value):
-        return float(value)
-    return value
-
-
 def _render_frontmatter_value(key: str, value: JSONValue) -> list[str]:
+    """Render frontmatter value.
+
+    Args:
+        key: Key used by this operation.
+        value: Value being processed.
+
+    Returns:
+        Rendered frontmatter value.
+    """
     if isinstance(value, list | tuple):
         if not value:
             return [f"{key}: []"]
@@ -311,12 +213,28 @@ def _render_frontmatter_value(key: str, value: JSONValue) -> list[str]:
 
 
 def _yaml_value(value: JSONValue) -> str:
+    """Execute yaml value.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str result produced by yaml value.
+    """
     if value is None or isinstance(value, str | int | float | bool | datetime):
         return _yaml_scalar(value)
     return _yaml_scalar(str(value))
 
 
 def _yaml_scalar(value: JSONPrimitive) -> str:
+    """Execute yaml scalar.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str result produced by yaml scalar.
+    """
     if value is None:
         return "null"
     if isinstance(value, bool):
@@ -332,6 +250,14 @@ def _yaml_scalar(value: JSONPrimitive) -> str:
 
 
 def _can_render_plain(value: str) -> bool:
+    """Return whether render plain.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        Whether render plain.
+    """
     if not value:
         return False
     if value == "~" or value.lower() in {"true", "false", "null"}:
@@ -345,6 +271,14 @@ def _can_render_plain(value: str) -> bool:
 
 
 def _json_value(value: FrontmatterValue) -> JSONValue:
+    """Execute json value.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        JSONValue result produced by json value.
+    """
     if value is None:
         return None
     if isinstance(value, tuple):

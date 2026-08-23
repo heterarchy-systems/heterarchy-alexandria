@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated
 
-from app.shared.types.extra_types import JSONValue
 from pydantic import (
     AwareDatetime,
     TypeAdapter,
@@ -13,6 +12,8 @@ from pydantic import (
     ValidatorFunctionWrapHandler,
     WrapValidator,
 )
+
+from app.shared.types.extra_types import JSONValue
 
 _AWARE_DATETIME_ADAPTER = TypeAdapter(AwareDatetime)
 

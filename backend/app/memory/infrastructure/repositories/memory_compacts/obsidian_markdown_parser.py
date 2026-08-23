@@ -47,6 +47,14 @@ def read_compact_file(path: Path) -> MemoryCompact | None:
 
 
 def _read_frontmatter(text: str) -> tuple[dict[str, CompactFrontmatterValue], str]:
+    """Read frontmatter.
+
+    Args:
+        text: Text used by this operation.
+
+    Returns:
+        Loaded frontmatter.
+    """
     lines = text.splitlines()
     if not lines or lines[0].strip() != FRONTMATTER_DELIMITER:
         return {}, text
@@ -95,6 +103,15 @@ def _read_frontmatter(text: str) -> tuple[dict[str, CompactFrontmatterValue], st
 def _compact_from_frontmatter(
     frontmatter: dict[str, CompactFrontmatterValue], body: str
 ) -> MemoryCompact | None:
+    """Execute compact from frontmatter.
+
+    Args:
+        frontmatter: Frontmatter used by this operation.
+        body: Body used by this operation.
+
+    Returns:
+        MemoryCompact | None result produced by compact from frontmatter.
+    """
     try:
         compact_id = _required_text(frontmatter, "id")
         status = _status_from_frontmatter(frontmatter)
@@ -147,6 +164,15 @@ def _compact_from_frontmatter(
 def _source_refs_from_frontmatter(
     value: CompactFrontmatterValue, compact_id: str
 ) -> tuple[MemoryCompactSourceRef, ...]:
+    """Execute source refs from frontmatter.
+
+    Args:
+        value: Value being processed.
+        compact_id: Identifier for compact.
+
+    Returns:
+        tuple[MemoryCompactSourceRef, ...] result produced by source refs from frontmatter.
+    """
     if isinstance(value, str):
         return _source_refs_from_json(value, compact_id=compact_id)
     if not isinstance(value, tuple):
@@ -164,6 +190,15 @@ def _source_refs_from_frontmatter(
 def _source_refs_from_json(
     value: str | None, compact_id: str
 ) -> tuple[MemoryCompactSourceRef, ...]:
+    """Execute source refs from json.
+
+    Args:
+        value: Value being processed.
+        compact_id: Identifier for compact.
+
+    Returns:
+        tuple[MemoryCompactSourceRef, ...] result produced by source refs from json.
+    """
     if not value:
         return ()
     try:
@@ -192,6 +227,15 @@ def _source_refs_from_json(
 
 
 def _required_text(frontmatter: dict[str, CompactFrontmatterValue], key: str) -> str:
+    """Execute required text.
+
+    Args:
+        frontmatter: Frontmatter used by this operation.
+        key: Key used by this operation.
+
+    Returns:
+        str result produced by required text.
+    """
     value = frontmatter[key]
     if not isinstance(value, str) or not value:
         raise ValueError(f"Missing Memory Compact frontmatter: {key}")
@@ -201,11 +245,28 @@ def _required_text(frontmatter: dict[str, CompactFrontmatterValue], key: str) ->
 def _frontmatter_text(
     frontmatter: dict[str, CompactFrontmatterValue], key: str
 ) -> str | None:
+    """Execute frontmatter text.
+
+    Args:
+        frontmatter: Frontmatter used by this operation.
+        key: Key used by this operation.
+
+    Returns:
+        str | None result produced by frontmatter text.
+    """
     value = frontmatter.get(key)
     return value if isinstance(value, str) else None
 
 
 def _optional_string(value: JSONValue | None) -> str | None:
+    """Execute optional string.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str | None result produced by optional string.
+    """
     if isinstance(value, str) and value.strip():
         return value.strip()
     return None
@@ -214,6 +275,14 @@ def _optional_string(value: JSONValue | None) -> str | None:
 def _status_from_frontmatter(
     frontmatter: dict[str, CompactFrontmatterValue],
 ) -> MemoryCompactStatus:
+    """Execute status from frontmatter.
+
+    Args:
+        frontmatter: Frontmatter used by this operation.
+
+    Returns:
+        MemoryCompactStatus result produced by status from frontmatter.
+    """
     value = _required_text(frontmatter, "status")
     return MemoryCompactStatus(value.strip().upper())
 
@@ -223,6 +292,16 @@ def _datetime_from_frontmatter(
     keys: tuple[str, ...],
     fallback: datetime | None = None,
 ) -> datetime:
+    """Execute datetime from frontmatter.
+
+    Args:
+        frontmatter: Frontmatter used by this operation.
+        keys: Keys used by this operation.
+        fallback: Fallback used by this operation.
+
+    Returns:
+        datetime result produced by datetime from frontmatter.
+    """
     for key in keys:
         value = frontmatter.get(key)
         if isinstance(value, str) and value:
@@ -234,28 +313,68 @@ def _datetime_from_frontmatter(
 
 
 def _optional_datetime(value: str | None) -> datetime | None:
+    """Execute optional datetime.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        datetime | None result produced by optional datetime.
+    """
     if not value:
         return None
     return _parse_datetime(value)
 
 
 def _optional_review_verdict(value: str | None) -> MemoryCompactReviewVerdict | None:
+    """Execute optional review verdict.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        MemoryCompactReviewVerdict | None result produced by optional review verdict.
+    """
     if not value:
         return None
     return MemoryCompactReviewVerdict(value)
 
 
 def _optional_int(value: str | None) -> int | None:
+    """Execute optional int.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        int | None result produced by optional int.
+    """
     if not value:
         return None
     return int(value)
 
 
 def _parse_datetime(value: str) -> datetime:
+    """Parse datetime.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        Parsed datetime.
+    """
     return aware_utc_datetime(datetime.fromisoformat(value.replace("Z", "+00:00")))
 
 
 def _parse_yaml_value(value: str) -> MutableCompactFrontmatterValue:
+    """Parse yaml value.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        Parsed yaml value.
+    """
     if value.startswith("[") and value.endswith("]"):
         inner = value[1:-1].strip()
         if not inner:
@@ -271,6 +390,14 @@ def _parse_yaml_value(value: str) -> MutableCompactFrontmatterValue:
 
 
 def _parse_yaml_scalar(value: str) -> str | bool | None:
+    """Parse yaml scalar.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        Parsed yaml scalar.
+    """
     if value in {"", "null", "Null", "NULL", "~"}:
         return None
     if value in {"true", "True", "TRUE"}:

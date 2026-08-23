@@ -4,8 +4,8 @@ install-local:
 	uv sync --no-editable --reinstall-package heterarchy-alexandria
 
 format_check:
-	uv run --no-editable ruff format --check .
-	uv run --no-editable ruff check .
+	uv run --no-editable ruff format --check . ../.agents/python_dev_harness
+	uv run --no-editable ruff check . ../.agents/python_dev_harness
 
 type_checking:
 	uv run --no-editable pyrefly check
@@ -25,6 +25,6 @@ test:
 	./scripts/run-postgres-tests.sh -q
 
 mechanical_check:
-	uv run python .agents/verify_mechanical_contracts.py
+	uv run python ../.agents/python_dev_harness/verify_mechanical_contracts.py
 
 ci: format_check type_checking cli_smoke guardrails test benchmark_check mechanical_check

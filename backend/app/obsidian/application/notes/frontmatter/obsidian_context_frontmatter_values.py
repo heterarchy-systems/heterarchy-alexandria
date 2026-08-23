@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pydantic import ValidationError
+
 from app.memory.domain.event_enum.context_enums import ContextKind
 from app.obsidian.domain.event_enum.obsidian_enums import (
     ObsidianContextLifecycleStatus,
@@ -10,7 +12,6 @@ from app.shared.type_validation.frontmatter_metadata_normalization import (
     normalize_string_collection,
 )
 from app.shared.types.extra_types import JSONObject, JSONValue
-from pydantic import ValidationError
 
 
 def string_or_none(value: JSONValue) -> str | None:

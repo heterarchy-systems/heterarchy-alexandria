@@ -99,6 +99,14 @@ def compact_signature(compact: MemoryCompact) -> MemoryCompactSignature:
 def _source_ref_sort_key(
     source_ref: SourceRefSignature,
 ) -> tuple[str, str, str, str]:
+    """Execute source ref sort key.
+
+    Args:
+        source_ref: Source ref used by this operation.
+
+    Returns:
+        tuple[str, str, str, str] result produced by source ref sort key.
+    """
     return (
         source_ref.source_type,
         source_ref.source_id,
@@ -108,4 +116,12 @@ def _source_ref_sort_key(
 
 
 def _body_hash(markdown_body: str) -> str:
+    """Execute body hash.
+
+    Args:
+        markdown_body: Markdown body used by this operation.
+
+    Returns:
+        str result produced by body hash.
+    """
     return sha256(markdown_body.strip().encode("utf-8")).hexdigest()

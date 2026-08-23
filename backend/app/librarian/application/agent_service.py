@@ -81,6 +81,7 @@ class _AgentUpdateValueBuilder:
         return self._values
 
     def _apply_identity_fields(self) -> None:
+        """Apply identity fields."""
         if "name" in self._payload:
             self._values["name"] = self._payload["name"]
         if "provider" in self._payload:
@@ -91,6 +92,7 @@ class _AgentUpdateValueBuilder:
             self._values["capabilities"] = self._payload["capabilities"]
 
     def _apply_librarian_preference_fields(self) -> None:
+        """Apply librarian preference fields."""
         if "preferred_librarian_provider" in self._payload:
             self._values["preferred_librarian_provider"] = self._payload[
                 "preferred_librarian_provider"
@@ -107,6 +109,7 @@ class _AgentUpdateValueBuilder:
             ]
 
     def _apply_librarian_profile_fields(self) -> None:
+        """Apply librarian profile fields."""
         if "librarian_role" in self._payload:
             self._values["librarian_role"] = _profile_role_value(
                 self._payload["librarian_role"]

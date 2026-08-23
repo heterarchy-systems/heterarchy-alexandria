@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Protocol
 
+from pydantic import TypeAdapter, ValidationError
+
+from app.memory.application.contexts.records.context_service_ports import (
+    ContextTemporalSearchPort,
+)
 from app.memory.application.reconciliation.conflicts.memory_temporal_recall_policy import (
     include_temporal_match,
     state_is_current,
@@ -13,17 +17,11 @@ from app.memory.application.retrieval.context_pack import build_context_pack
 from app.memory.domain.contracts.memory_reconciliation_contracts import (
     MemoryTemporalRecallRequest,
 )
-from app.memory.domain.entities.context_read_models import ContextPack, ContextRecord
+from app.memory.domain.entities.context_read_models import ContextRecord
 from app.memory.domain.entities.memory_reconciliation import (
     MemoryTemporalRecallMatch,
     MemoryTemporalRecallPack,
     MemoryTemporalState,
-)
-from app.memory.domain.event_enum.context_enums import (
-    ContextKind,
-    ContextRecallLifecycleStatus,
-    ContextScope,
-    RagStrategy,
 )
 from app.memory.domain.event_enum.reconciliation_enums import MemoryTemporalRecallMode
 from app.memory.domain.repositories.reconciliation.memory_reconciliation_temporal_repository import (
@@ -34,46 +32,8 @@ from app.shared.exceptions.memory_context_exceptions import MemoryContextValidat
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 from app.shared.types.extra_types import JSONValue
 from app.shared.types.types_convert_utils import now_utc
-from pydantic import TypeAdapter, ValidationError
 
 _AWARE_TIMESTAMP_ADAPTER = TypeAdapter(AwareTimestamp)
-
-
-class ContextTemporalSearchService(Protocol):
-    """Minimal existing Context search surface required by temporal recall."""
-
-    async def search(
-        self,
-        query: str,
-        strategy: RagStrategy,
-        limit: int,
-        project: str | None = None,
-        kind: ContextKind | None = None,
-        include_scopes: list[ContextScope] | None = None,
-        workspace_id: str | None = None,
-        agent_id: str | None = None,
-        user_id: str | None = None,
-        session_id: str | None = None,
-        include_lifecycle_statuses: list[ContextRecallLifecycleStatus] | None = None,
-    ) -> ContextPack:
-        """Return ranked Context matches through the established search use case.
-
-        Args:
-            query: Query.
-            strategy: Strategy.
-            limit: Limit.
-            project: Project.
-            kind: Kind.
-            include_scopes: Include scopes.
-            workspace_id: Workspace id.
-            agent_id: Agent id.
-            user_id: User id.
-            session_id: Session id.
-            include_lifecycle_statuses: Include lifecycle statuses.
-
-        Returns:
-            ContextPack: Operation result.
-        """
 
 
 class MemoryTemporalRecallService:
@@ -81,9 +41,15 @@ class MemoryTemporalRecallService:
 
     def __init__(
         self,
-        context_service: ContextTemporalSearchService,
+        context_service: ContextTemporalSearchPort,
         repository: IMemoryReconciliationTemporalRepository,
     ) -> None:
+        """Initialize MemoryTemporalRecallService state and dependencies.
+
+        Args:
+            context_service: Context service dependency.
+            repository: Repository used by this operation.
+        """
         self._context_service = context_service
         self._repository = repository
 
@@ -190,6 +156,14 @@ class MemoryTemporalRecallService:
         self,
         context: ContextRecord,
     ) -> MemoryTemporalState | None:
+        """Execute temporal state.
+
+        Args:
+            context: Context used by this operation.
+
+        Returns:
+            MemoryTemporalState | None result produced by temporal state.
+        """
         persisted = await self._repository.get_temporal_state(context.id)
         if persisted is not None:
             return persisted
@@ -248,6 +222,15 @@ def _resolved_as_of(
     request: MemoryTemporalRecallRequest,
     now: datetime,
 ) -> datetime:
+    """Execute resolved as of.
+
+    Args:
+        request: Validated request for this operation.
+        now: Now used by this operation.
+
+    Returns:
+        datetime result produced by resolved as of.
+    """
     if request.mode is MemoryTemporalRecallMode.HISTORICAL and request.as_of is None:
         raise MemoryContextValidationError(
             "historical temporal recall requires an explicit as_of timestamp"
@@ -264,6 +247,15 @@ def _metadata_timestamp(
     metadata: ContextMetadataPayload,
     key: str,
 ) -> datetime | None:
+    """Execute metadata timestamp.
+
+    Args:
+        metadata: Metadata used by this operation.
+        key: Key used by this operation.
+
+    Returns:
+        datetime | None result produced by metadata timestamp.
+    """
     value: JSONValue | None = metadata.get(key)
     if value is None:
         return None
@@ -277,6 +269,15 @@ def _metadata_strings(
     metadata: ContextMetadataPayload,
     key: str,
 ) -> tuple[str, ...]:
+    """Execute metadata strings.
+
+    Args:
+        metadata: Metadata used by this operation.
+        key: Key used by this operation.
+
+    Returns:
+        tuple[str, ...] result produced by metadata strings.
+    """
     value: JSONValue | None = metadata.get(key)
     if not isinstance(value, list):
         return ()
@@ -291,6 +292,15 @@ def _single_metadata_id(
     metadata: ContextMetadataPayload,
     key: str,
 ) -> tuple[str, ...]:
+    """Execute single metadata id.
+
+    Args:
+        metadata: Metadata used by this operation.
+        key: Key used by this operation.
+
+    Returns:
+        tuple[str, ...] result produced by single metadata id.
+    """
     value: JSONValue | None = metadata.get(key)
     if not isinstance(value, str) or not value.strip():
         return ()
@@ -303,6 +313,14 @@ def _single_metadata_id(
 def _metadata_relation_summary(
     metadata: ContextMetadataPayload,
 ) -> tuple[str, ...]:
+    """Execute metadata relation summary.
+
+    Args:
+        metadata: Metadata used by this operation.
+
+    Returns:
+        tuple[str, ...] result produced by metadata relation summary.
+    """
     summaries: list[str] = []
     for field in (
         "duplicates",

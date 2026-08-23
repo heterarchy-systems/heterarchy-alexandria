@@ -8,6 +8,12 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import anyio
+from sqlalchemy import delete, event, func, select
+from tests.memory.context_retrieval_kernel_test_provider import (
+    TestContextRetrievalKernelProvider,
+)
+from tests.memory.context_seed import seed_context
+
 from app.memory.application.contexts.records.context_service import ContextService
 from app.memory.application.integration.obsidian_canonical_context_gateway import (
     ObsidianCanonicalContextGateway,
@@ -53,8 +59,6 @@ from app.obsidian.infrastructure.repositories.obsidian_index_repository import (
 )
 from app.shared.exceptions.obsidian_exceptions import ObsidianValidationError
 from app.shared.infrastructure.database import Database
-from sqlalchemy import delete, event, func, select
-from tests.memory.context_seed import seed_context
 
 _OBSIDIAN_MODELS_LOADED = _obsidian_index_models
 
@@ -155,6 +159,7 @@ def test_context_rag_search_includes_obsidian_vault_fts_source(
                 )
             )
             service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=SqlAlchemyContextRepository(session=session),
                 extra_search_sources=[
                     SqlAlchemyObsidianContextSearchSource(session=session)
@@ -199,7 +204,7 @@ def test_obsidian_fts_exact_title_outranks_body_frequency(tmp_path: Path) -> Non
                     body="# Contract\n\nCanonical lifecycle policy.",
                     alexandria_type=AlexandriaNoteType.CONTEXT,
                     note_id="memory_steward_contract",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     frontmatter={"scope": "PROJECT"},
                 )
             )
@@ -212,11 +217,12 @@ def test_obsidian_fts_exact_title_outranks_body_frequency(tmp_path: Path) -> Non
                     ),
                     alexandria_type=AlexandriaNoteType.CONTEXT,
                     note_id="memory_steward_daily_health",
-                    project="alexandria-hermes",
+                    project="heterarchy-alexandria",
                     frontmatter={"scope": "PROJECT"},
                 )
             )
             service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=SqlAlchemyContextRepository(session=session),
                 extra_search_sources=[
                     SqlAlchemyObsidianContextSearchSource(session=session)
@@ -226,7 +232,7 @@ def test_obsidian_fts_exact_title_outranks_body_frequency(tmp_path: Path) -> Non
                 query="Alexandria Memory Steward Contract",
                 strategy=RagStrategy.FTS_ONLY,
                 limit=2,
-                project="alexandria-hermes",
+                project="heterarchy-alexandria",
             )
             return [(match.context.title, match.fts_score) for match in pack.matches]
 
@@ -344,6 +350,7 @@ def test_obsidian_vector_bulk_hydrates_ranked_candidates(tmp_path: Path) -> None
                         )
                     )
                 service = ContextService(
+                    retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                     repository=SqlAlchemyContextRepository(session=write_session),
                     embedding_provider=provider,
                     vector_retrieval_enabled=True,
@@ -435,6 +442,7 @@ def test_obsidian_embedding_input_includes_title_heading_and_content(
             )
             provider = CapturingEmbeddingProvider()
             context_service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=SqlAlchemyContextRepository(session=session),
                 embedding_provider=provider,
                 vector_retrieval_enabled=True,
@@ -517,6 +525,7 @@ def test_context_rag_excludes_librarian_ops_and_superseded_notes_by_default(
                 )
             )
             service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=SqlAlchemyContextRepository(session=session),
                 extra_search_sources=[
                     SqlAlchemyObsidianContextSearchSource(session=session)
@@ -657,6 +666,7 @@ def test_obsidian_context_scope_identity_round_trip_filters_recall(
                 row.note_id: row.frontmatter_json for row in indexed_rows.all()
             }
             service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=SqlAlchemyContextRepository(session=session),
                 embedding_provider=KeywordEmbeddingProvider(),
                 vector_retrieval_enabled=True,
@@ -816,6 +826,7 @@ def test_obsidian_scope_filter_runs_before_candidate_limit(
                 )
             )
             service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=SqlAlchemyContextRepository(session=session),
                 embedding_provider=KeywordEmbeddingProvider(),
                 vector_retrieval_enabled=True,
@@ -1297,6 +1308,7 @@ def test_obsidian_context_duplicate_and_supersede_lifecycle(
             )
             original_after = await service.read_note_by_path(old.relative_path)
             context_service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=SqlAlchemyContextRepository(session=session),
                 extra_search_sources=[
                     SqlAlchemyObsidianContextSearchSource(session=session)
@@ -1379,6 +1391,7 @@ def test_explicit_supersede_excludes_old_context_from_default_recall(
                 "ctx_explicit_recall_new",
             )
             context_service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=SqlAlchemyContextRepository(session=session),
                 extra_search_sources=[
                     SqlAlchemyObsidianContextSearchSource(session=session)
@@ -1617,6 +1630,7 @@ def test_context_rag_returns_one_best_chunk_per_obsidian_note(
                 )
             )
             service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=SqlAlchemyContextRepository(session=session),
                 extra_search_sources=[
                     SqlAlchemyObsidianContextSearchSource(session=session)
@@ -1673,6 +1687,7 @@ def test_context_embedding_reindex_backfills_obsidian_chunks_for_vector_search(
                 )
             )
             service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=SqlAlchemyContextRepository(session=session),
                 embedding_provider=KeywordEmbeddingProvider(),
                 vector_retrieval_enabled=True,
@@ -1735,6 +1750,7 @@ def test_context_rag_status_detects_obsidian_embedding_fingerprint_mismatch(
                 )
             )
             old_service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=SqlAlchemyContextRepository(session=session),
                 embedding_provider=KeywordEmbeddingProvider(),
                 vector_retrieval_enabled=True,
@@ -1745,6 +1761,7 @@ def test_context_rag_status_detects_obsidian_embedding_fingerprint_mismatch(
             await old_service.reindex_embeddings(limit=10)
 
             upgraded_service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=SqlAlchemyContextRepository(session=session),
                 embedding_provider=UpgradedPoolingEmbeddingProvider(),
                 vector_retrieval_enabled=True,
@@ -1822,6 +1839,7 @@ def test_context_soft_rebuild_reports_and_prioritizes_stale_obsidian_source(
                 )
             )
             old_service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=repository,
                 embedding_provider=KeywordEmbeddingProvider(),
                 vector_retrieval_enabled=True,
@@ -1841,6 +1859,7 @@ def test_context_soft_rebuild_reports_and_prioritizes_stale_obsidian_source(
             await session.commit()
 
             service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=repository,
                 embedding_provider=UpgradedPoolingEmbeddingProvider(),
                 vector_retrieval_enabled=True,
@@ -1925,6 +1944,7 @@ def test_context_service_get_and_archive_source_qualified_obsidian_context(
             )
             canonical_repository = ObsidianCanonicalContextGateway(obsidian_service)
             context_service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=SqlAlchemyContextRepository(session=session),
                 extra_search_sources=[
                     SqlAlchemyObsidianContextSearchSource(session=session)

@@ -18,6 +18,13 @@ class _RelationTarget:
         note_id: str | None,
         relation: ObsidianRelationType | None,
     ) -> None:
+        """Initialize _RelationTarget state and dependencies.
+
+        Args:
+            path: Path used by this operation.
+            note_id: Identifier for note.
+            relation: Relation used by this operation.
+        """
         self.path = path
         self.note_id = note_id
         self.relation = relation
@@ -27,6 +34,15 @@ def _relation_targets(
     value: JSONValue | None,
     field_name: str | None = None,
 ) -> Iterable[_RelationTarget]:
+    """Execute relation targets.
+
+    Args:
+        value: Value being processed.
+        field_name: Field name used by this operation.
+
+    Returns:
+        Iterable[_RelationTarget] result produced by relation targets.
+    """
     if value is None:
         return ()
     if isinstance(value, str):
@@ -63,6 +79,14 @@ def _relation_targets(
 
 
 def _target_mapping_from_string(value: str) -> Mapping[str, JSONValue] | None:
+    """Execute target mapping from string.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        Mapping[str, JSONValue] | None result produced by target mapping from string.
+    """
     if not value.lstrip().startswith("{"):
         return None
     parsed = _structured_value(value)
@@ -72,6 +96,14 @@ def _target_mapping_from_string(value: str) -> Mapping[str, JSONValue] | None:
 
 
 def _target_sequence_from_string(value: str) -> Sequence[JSONValue] | None:
+    """Execute target sequence from string.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        Sequence[JSONValue] | None result produced by target sequence from string.
+    """
     if not value.lstrip().startswith("["):
         return None
     parsed = _structured_value(value)
@@ -81,6 +113,14 @@ def _target_sequence_from_string(value: str) -> Sequence[JSONValue] | None:
 
 
 def _structured_value(value: str) -> JSONValue | None:
+    """Execute structured value.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        JSONValue | None result produced by structured value.
+    """
     try:
         return loads_json(value)
     except ValueError:
@@ -94,6 +134,15 @@ def _target_from_mapping(
     value: Mapping[str, JSONValue],
     field_name: str | None,
 ) -> _RelationTarget:
+    """Execute target from mapping.
+
+    Args:
+        value: Value being processed.
+        field_name: Field name used by this operation.
+
+    Returns:
+        _RelationTarget result produced by target from mapping.
+    """
     path = (
         _string_field(value, "path")
         or _string_field(value, "target_path")
@@ -115,11 +164,28 @@ def _target_from_mapping(
 
 
 def _string_field(value: Mapping[str, JSONValue], key: str) -> str | None:
+    """Execute string field.
+
+    Args:
+        value: Value being processed.
+        key: Key used by this operation.
+
+    Returns:
+        str | None result produced by string field.
+    """
     raw = value.get(key)
     return raw.strip() if isinstance(raw, str) and raw.strip() else None
 
 
 def _relation_or_none(value: str | None) -> ObsidianRelationType | None:
+    """Execute relation or none.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        ObsidianRelationType | None result produced by relation or none.
+    """
     if value is None:
         return None
     try:

@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import os
-
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 import anyio
+from tests.memory.context_retrieval_kernel_test_provider import (
+    TestContextRetrievalKernelProvider,
+)
+
 from app.memory.application.contexts.records.context_service import ContextService
 from app.memory.domain.event_enum.context_enums import ContextKind, RagStrategy
 from app.memory.infrastructure.repositories.context_repository import (
@@ -75,6 +78,7 @@ def test_implementation_history_legacy_kind_does_not_break_context_search(
                 )
             )
             service = ContextService(
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
                 repository=SqlAlchemyContextRepository(session=session),
                 extra_search_sources=[
                     SqlAlchemyObsidianContextSearchSource(session=session)

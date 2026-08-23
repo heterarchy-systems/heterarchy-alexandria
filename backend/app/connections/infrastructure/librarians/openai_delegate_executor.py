@@ -5,6 +5,9 @@ from __future__ import annotations
 import logging
 from dataclasses import replace
 
+from asyncer import asyncify
+from openai import OpenAIError
+
 from app.connections.domain.event_enum.provider_enums import (
     AuthType,
     ProviderSecretKey,
@@ -41,8 +44,6 @@ from app.operations.application.readiness.external_api_rate_limit import (
     ExternalApiRateLimitError,
     NoopExternalApiRateLimiter,
 )
-from asyncer import asyncify
-from openai import OpenAIError
 
 _DEFAULT_MODEL = "gpt-5.5"
 _LIBRARIAN_SYSTEM_RULE = """
@@ -97,6 +98,7 @@ class OpenAIProviderDelegateExecutor(LibrarianDelegateExecutor):
         Args:
             secret_repo: Provider secret resolver boundary.
             openai_client_builder: SDK client constructor boundary.
+            rate_limiter: Rate limiter used by this operation.
         """
         self.secret_repo = secret_repo
         self._codex_config_builder = OpenAICodexClientConfigBuilder(secret_repo)
@@ -181,6 +183,16 @@ class OpenAIProviderDelegateExecutor(LibrarianDelegateExecutor):
         provider_type: ProviderType | None,
         auth_type: AuthType,
     ) -> OpenAIClientConfig | None:
+        """Execute client config.
+
+        Args:
+            provider_id: Identifier for provider.
+            provider_type: Provider type used by this operation.
+            auth_type: Auth type used by this operation.
+
+        Returns:
+            OpenAIClientConfig | None result produced by client config.
+        """
         if provider_type is ProviderType.OPENAI and auth_type is AuthType.API_KEY:
             api_key = await self.secret_repo.resolve(
                 provider_id,
@@ -194,11 +206,27 @@ class OpenAIProviderDelegateExecutor(LibrarianDelegateExecutor):
         return None
 
     async def _codex_client_config(self, provider_id: str) -> OpenAIClientConfig | None:
+        """Execute codex client config.
+
+        Args:
+            provider_id: Identifier for provider.
+
+        Returns:
+            OpenAIClientConfig | None result produced by codex client config.
+        """
         client_config = await self._codex_config_builder.build(provider_id=provider_id)
         return client_config
 
 
 def _delegate_prompt(command: HermesLibrarianAskCommand) -> str:
+    """Execute delegate prompt.
+
+    Args:
+        command: Command used by this operation.
+
+    Returns:
+        str result produced by delegate prompt.
+    """
     packet = command.librarian_brief
     prompt = command.prompt if packet is None or not packet.strip() else packet.strip()
     if command.task_summary is None or not command.task_summary.strip():
@@ -214,6 +242,14 @@ def _delegate_prompt(command: HermesLibrarianAskCommand) -> str:
 
 
 def _provider_scope(provider_type: ProviderType | None) -> str:
+    """Execute provider scope.
+
+    Args:
+        provider_type: Provider type used by this operation.
+
+    Returns:
+        str result produced by provider scope.
+    """
     if provider_type is None:
         return "openai-compatible"
     return provider_type.value
@@ -224,6 +260,13 @@ def _log_provider_execution_failure(
     provider_type: ProviderType | None,
     error: Exception,
 ) -> None:
+    """Execute log provider execution failure.
+
+    Args:
+        provider_id: Identifier for provider.
+        provider_type: Provider type used by this operation.
+        error: Error value being processed.
+    """
     logger.warning(
         "Librarian delegate provider execution failed",
         extra={
@@ -235,6 +278,14 @@ def _log_provider_execution_failure(
 
 
 def _instructions_for_plan(plan: LibrarianExecutionPlan) -> str:
+    """Execute instructions for plan.
+
+    Args:
+        plan: Plan used by this operation.
+
+    Returns:
+        str result produced by instructions for plan.
+    """
     role_prompt = string_config_value(plan.resolution.librarian_role_prompt)
     if role_prompt is None:
         role_prompt = _DEFAULT_INSTRUCTIONS
@@ -242,6 +293,14 @@ def _instructions_for_plan(plan: LibrarianExecutionPlan) -> str:
 
 
 def _model_for_plan(plan: LibrarianExecutionPlan) -> str:
+    """Execute model for plan.
+
+    Args:
+        plan: Plan used by this operation.
+
+    Returns:
+        str result produced by model for plan.
+    """
     if plan.resolution.librarian_model is not None:
         return plan.resolution.librarian_model
     if plan.provider is None:
@@ -256,6 +315,15 @@ def _skipped_result(
     fallback: LibrarianDelegateResult,
     summary: str,
 ) -> LibrarianDelegateResult:
+    """Execute skipped result.
+
+    Args:
+        fallback: Fallback used by this operation.
+        summary: Summary used by this operation.
+
+    Returns:
+        LibrarianDelegateResult result produced by skipped result.
+    """
     return replace(
         fallback,
         status=LibrarianDelegateStatus.SKIPPED,

@@ -65,6 +65,16 @@ def _route_scored_profiles(
     command: HermesLibrarianAskCommand,
     max_agents: int,
 ) -> LibrarianRoutingDecision:
+    """Execute route scored profiles.
+
+    Args:
+        profiles: Profiles used by this operation.
+        command: Command used by this operation.
+        max_agents: Max agents used by this operation.
+
+    Returns:
+        LibrarianRoutingDecision result produced by route scored profiles.
+    """
     scored = _scored_profiles(profiles, command)
     selected: list[AgentProfile] = []
     matched_specialties: list[str] = []
@@ -109,6 +119,15 @@ def _scored_profiles(
     profiles: list[AgentProfile],
     command: HermesLibrarianAskCommand,
 ) -> list[ProfileScore]:
+    """Execute scored profiles.
+
+    Args:
+        profiles: Profiles used by this operation.
+        command: Command used by this operation.
+
+    Returns:
+        list[ProfileScore] result produced by scored profiles.
+    """
     scores = [_score_profile(profile, command) for profile in profiles]
     return sorted(
         scores,
@@ -123,6 +142,15 @@ def _scored_profiles(
 def _score_profile(
     profile: AgentProfile, command: HermesLibrarianAskCommand
 ) -> ProfileScore:
+    """Execute score profile.
+
+    Args:
+        profile: Profile used by this operation.
+        command: Command used by this operation.
+
+    Returns:
+        ProfileScore result produced by score profile.
+    """
     matches = matched_specialties_for_profile(profile, command)
     role = profile_role(profile)
     role_bonus = 0
@@ -141,6 +169,14 @@ def _score_profile(
 
 
 def _query_tokens(command: HermesLibrarianAskCommand) -> set[str]:
+    """Execute query tokens.
+
+    Args:
+        command: Command used by this operation.
+
+    Returns:
+        set[str] result produced by query tokens.
+    """
     raw = " ".join(
         part
         for part in (command.prompt, command.task_summary, command.project)
@@ -154,20 +190,52 @@ def _query_tokens(command: HermesLibrarianAskCommand) -> set[str]:
 
 
 def _normalize_token(value: str) -> str:
+    """Normalize token.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        Normalized token.
+    """
     return value.strip().lower().replace(" ", "-")
 
 
 def _profile_specialties(profile: AgentProfile) -> list[str]:
+    """Execute profile specialties.
+
+    Args:
+        profile: Profile used by this operation.
+
+    Returns:
+        list[str] result produced by profile specialties.
+    """
     if profile.librarian_specialties:
         return [_normalize_token(item) for item in profile.librarian_specialties]
     return [_normalize_token(item) for item in profile.capabilities]
 
 
 def _quality_review_requested(command: HermesLibrarianAskCommand) -> bool:
+    """Execute quality review requested.
+
+    Args:
+        command: Command used by this operation.
+
+    Returns:
+        Whether quality review requested.
+    """
     return _has_routing_token(_query_tokens(command), QualityReviewRoutingToken)
 
 
 def _archive_requested(command: HermesLibrarianAskCommand) -> bool:
+    """Execute archive requested.
+
+    Args:
+        command: Command used by this operation.
+
+    Returns:
+        Whether archive requested.
+    """
     return _has_routing_token(_query_tokens(command), ArchiveRoutingToken)
 
 
@@ -185,6 +253,14 @@ def _has_routing_token(tokens: set[str], routing_tokens: type[StrEnum]) -> bool:
 
 
 def _first_default_profile(profiles: list[AgentProfile]) -> AgentProfile | None:
+    """Execute first default profile.
+
+    Args:
+        profiles: Profiles used by this operation.
+
+    Returns:
+        AgentProfile | None result produced by first default profile.
+    """
     defaults = [
         profile
         for profile in profiles
@@ -206,6 +282,16 @@ def _routing_reason(
     matched_specialties: tuple[str, ...],
     quality_review_added: bool,
 ) -> str:
+    """Execute routing reason.
+
+    Args:
+        selected: Selected used by this operation.
+        matched_specialties: Matched specialties used by this operation.
+        quality_review_added: Quality review added used by this operation.
+
+    Returns:
+        str result produced by routing reason.
+    """
     if not selected:
         return "No librarian profiles configured"
     if matched_specialties and quality_review_added:

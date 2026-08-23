@@ -7,6 +7,11 @@ from typing import cast
 
 import anyio
 import pytest
+from fastapi import HTTPException
+from tests.obsidian.graph.fakes.fake_obsidian_graph_projection_repository import (
+    FakeObsidianGraphProjectionRepository,
+)
+
 from app.obsidian.application.graph.obsidian_graph_service import ObsidianGraphService
 from app.obsidian.domain.contracts.obsidian_graph_projection_contracts import (
     ObsidianGraphProjection,
@@ -23,9 +28,6 @@ from app.obsidian.domain.event_enum.obsidian_enums import (
 from app.obsidian.domain.repositories.obsidian_index_query_repository import (
     IObsidianIndexQueryRepository,
 )
-from tests.obsidian.graph.fakes.fake_obsidian_graph_projection_repository import (
-    FakeObsidianGraphProjectionRepository,
-)
 from app.obsidian.infrastructure.repositories.obsidian_index_query_store import (
     ObsidianIndexQueryStore,
 )
@@ -34,7 +36,6 @@ from app.obsidian.infrastructure.repositories.obsidian_index_repository_delegate
 )
 from app.obsidian.interface.routers.obsidian_note_router import related_obsidian_notes
 from app.shared.exceptions.obsidian_exceptions import ObsidianGraphUnavailableError
-from fastapi import HTTPException
 
 
 class _IndexNotes:
@@ -153,7 +154,7 @@ def test_related_route_maps_disabled_graph_to_503() -> None:
     assert "disabled" in str(raised.value.detail)
 
 
-def test_sqlite_index_query_api_has_no_related_traversal_surface() -> None:
+def test_postgres_index_query_api_has_no_related_traversal_surface() -> None:
     assert not hasattr(IObsidianIndexQueryRepository, "related_notes")
     assert not hasattr(ObsidianIndexQueryStore, "related_notes")
     assert not hasattr(ObsidianIndexQueryRepositoryDelegate, "related_notes")

@@ -33,6 +33,7 @@ from app.obsidian.infrastructure.obsidian_vault_config_store import (
 )
 
 
+# protocol-contract: structural-seam
 class ObsidianVaultSearchHook(Protocol):
     """Search capability used to verify an applied move batch."""
 
@@ -41,7 +42,15 @@ class ObsidianVaultSearchHook(Protocol):
         query: ObsidianSearchQuery,
         refresh: bool = True,
     ) -> list[ObsidianSearchHit]:
-        """Search indexed notes."""
+        """Search indexed notes.
+
+        Args:
+            query: Query used by this operation.
+            refresh: Whether to refresh source state before the operation.
+
+        Returns:
+            list[ObsidianSearchHit] result produced by call.
+        """
 
 
 class ObsidianVaultMoveService:
@@ -229,6 +238,15 @@ def _move_safety_issue(
     vault_path: Path,
     move: ObsidianVaultMoveRequest,
 ) -> ObsidianVaultMoveSkip | None:
+    """Execute move safety issue.
+
+    Args:
+        vault_path: Vault path used by this operation.
+        move: Move used by this operation.
+
+    Returns:
+        ObsidianVaultMoveSkip | None result produced by move safety issue.
+    """
     source = resolve_note_path(vault_path, move.source_path)
     destination = resolve_note_path(vault_path, move.destination_path)
     reason = move.reason.strip()
@@ -252,6 +270,16 @@ def _applicable_vault_moves(
     moves: Sequence[ObsidianVaultMoveCandidate],
     skipped: list[ObsidianVaultMoveSkip],
 ) -> list[ObsidianVaultMoveCandidate]:
+    """Execute applicable vault moves.
+
+    Args:
+        vault_path: Vault path used by this operation.
+        moves: Moves used by this operation.
+        skipped: Skipped used by this operation.
+
+    Returns:
+        list[ObsidianVaultMoveCandidate] result produced by applicable vault moves.
+    """
     applicable: list[ObsidianVaultMoveCandidate] = []
     seen_sources: set[str] = set()
     seen_destinations: set[str] = set()
@@ -281,6 +309,15 @@ def _move_skip(
     move: ObsidianVaultMoveRequest,
     reason: str,
 ) -> ObsidianVaultMoveSkip:
+    """Execute move skip.
+
+    Args:
+        move: Move used by this operation.
+        reason: Reason used by this operation.
+
+    Returns:
+        ObsidianVaultMoveSkip result produced by move skip.
+    """
     return ObsidianVaultMoveSkip(
         source_path=move.source_path,
         destination_path=move.destination_path,
@@ -289,6 +326,14 @@ def _move_skip(
 
 
 def _loose_note_count(paths: set[Path]) -> int:
+    """Execute loose note count.
+
+    Args:
+        paths: Paths used by this operation.
+
+    Returns:
+        int result produced by loose note count.
+    """
     return sum(
         1
         for path in paths

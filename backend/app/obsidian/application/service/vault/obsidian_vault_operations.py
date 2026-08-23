@@ -17,6 +17,10 @@ from app.obsidian.application.service.notes.obsidian_index_error_repair_service 
 from app.obsidian.application.service.notes.obsidian_legacy_metadata_repair_service import (
     ObsidianLegacyMetadataRepairService,
 )
+from app.obsidian.application.service.obsidian_service_ports import (
+    ObsidianDataIntegrityPort,
+    ObsidianReadinessPort,
+)
 from app.obsidian.application.service.vault.obsidian_vault_inventory_service import (
     ObsidianVaultInventoryService,
 )
@@ -57,7 +61,7 @@ from app.obsidian.infrastructure.obsidian_vault_config_store import (
 )
 
 
-class ObsidianVaultOperations:
+class ObsidianVaultOperations(ObsidianReadinessPort, ObsidianDataIntegrityPort):
     """Expose the stable vault/repair/curation facade over focused services."""
 
     _index_error_repair_service: ObsidianIndexErrorRepairService
@@ -70,10 +74,20 @@ class ObsidianVaultOperations:
 
     @property
     def _vault_path(self) -> Path:
+        """Execute vault path.
+
+        Returns:
+            Path result produced by vault path.
+        """
         return self._vault_config_store.current().vault_path
 
     @property
     def _alexandria_root(self) -> str:
+        """Execute alexandria root.
+
+        Returns:
+            str result produced by alexandria root.
+        """
         return self._vault_config_store.current().alexandria_root
 
     def vault_location(self) -> ObsidianVaultLocation:

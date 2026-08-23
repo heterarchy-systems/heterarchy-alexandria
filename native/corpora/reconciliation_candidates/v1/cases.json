@@ -1,0 +1,577 @@
+{
+  "schema_version": 1,
+  "candidate_version": 1,
+  "cases": [
+    {
+      "name": "exact_duplicate_group_uses_stable_linear_representative",
+      "policy": {
+        "vector_similarity_threshold": 0.8,
+        "graph_similarity_threshold": 0.5,
+        "max_block_size": 32,
+        "max_candidates_per_item": 8
+      },
+      "items": [
+        {
+          "item_id": "c",
+          "content_hash": "same",
+          "embedding": null,
+          "valid_from_micros": 10,
+          "valid_to_micros": 20,
+          "blocking_keys": [],
+          "graph_neighbors": [],
+          "lineage_ancestors": []
+        },
+        {
+          "item_id": "b",
+          "content_hash": "same",
+          "embedding": null,
+          "valid_from_micros": 10,
+          "valid_to_micros": 20,
+          "blocking_keys": [],
+          "graph_neighbors": [],
+          "lineage_ancestors": []
+        },
+        {
+          "item_id": "a",
+          "content_hash": "same",
+          "embedding": null,
+          "valid_from_micros": 10,
+          "valid_to_micros": 20,
+          "blocking_keys": [],
+          "graph_neighbors": [],
+          "lineage_ancestors": []
+        }
+      ],
+      "expected": {
+        "contract_version": 1,
+        "candidate_version": 1,
+        "exact_duplicate_groups": [
+          {
+            "content_hash": "same",
+            "item_ids": [
+              "a",
+              "b",
+              "c"
+            ]
+          }
+        ],
+        "candidate_pairs": [
+          {
+            "left_id": "a",
+            "right_id": "b",
+            "exact_content_hash": true,
+            "vector_similarity": null,
+            "temporal_overlap": true,
+            "graph_similarity": 0.0,
+            "lineage": "none",
+            "candidate_score": 1.0,
+            "reasons": [
+              "exact_content_hash",
+              "temporal_overlap"
+            ]
+          },
+          {
+            "left_id": "a",
+            "right_id": "c",
+            "exact_content_hash": true,
+            "vector_similarity": null,
+            "temporal_overlap": true,
+            "graph_similarity": 0.0,
+            "lineage": "none",
+            "candidate_score": 1.0,
+            "reasons": [
+              "exact_content_hash",
+              "temporal_overlap"
+            ]
+          }
+        ],
+        "clusters": [
+          {
+            "cluster_index": 0,
+            "item_ids": [
+              "a",
+              "b",
+              "c"
+            ]
+          }
+        ],
+        "metrics": {
+          "input_items": 3,
+          "comparison_pairs": 2,
+          "qualifying_pairs": 2,
+          "retained_pairs": 2,
+          "exact_duplicate_groups": 1
+        }
+      }
+    },
+    {
+      "name": "same_block_hard_negative_is_filtered",
+      "policy": {
+        "vector_similarity_threshold": 0.8,
+        "graph_similarity_threshold": 0.5,
+        "max_block_size": 32,
+        "max_candidates_per_item": 8
+      },
+      "items": [
+        {
+          "item_id": "a",
+          "content_hash": null,
+          "embedding": [
+            1.0,
+            0.0
+          ],
+          "valid_from_micros": 10,
+          "valid_to_micros": 20,
+          "blocking_keys": [
+            "topic"
+          ],
+          "graph_neighbors": [],
+          "lineage_ancestors": []
+        },
+        {
+          "item_id": "b",
+          "content_hash": null,
+          "embedding": [
+            0.0,
+            1.0
+          ],
+          "valid_from_micros": 10,
+          "valid_to_micros": 20,
+          "blocking_keys": [
+            "topic"
+          ],
+          "graph_neighbors": [],
+          "lineage_ancestors": []
+        }
+      ],
+      "expected": {
+        "contract_version": 1,
+        "candidate_version": 1,
+        "exact_duplicate_groups": [],
+        "candidate_pairs": [],
+        "clusters": [],
+        "metrics": {
+          "input_items": 2,
+          "comparison_pairs": 1,
+          "qualifying_pairs": 0,
+          "retained_pairs": 0,
+          "exact_duplicate_groups": 0
+        }
+      }
+    },
+    {
+      "name": "vector_graph_temporal_and_lineage_evidence",
+      "policy": {
+        "vector_similarity_threshold": 0.75,
+        "graph_similarity_threshold": 0.3,
+        "max_block_size": 32,
+        "max_candidates_per_item": 8
+      },
+      "items": [
+        {
+          "item_id": "old",
+          "content_hash": null,
+          "embedding": [
+            1.0,
+            0.0
+          ],
+          "valid_from_micros": 10,
+          "valid_to_micros": 20,
+          "blocking_keys": [
+            "topic"
+          ],
+          "graph_neighbors": [
+            "shared",
+            "x"
+          ],
+          "lineage_ancestors": []
+        },
+        {
+          "item_id": "new",
+          "content_hash": null,
+          "embedding": [
+            0.8,
+            0.6
+          ],
+          "valid_from_micros": 15,
+          "valid_to_micros": 30,
+          "blocking_keys": [
+            "topic"
+          ],
+          "graph_neighbors": [
+            "shared",
+            "y"
+          ],
+          "lineage_ancestors": [
+            "old"
+          ]
+        }
+      ],
+      "expected": {
+        "contract_version": 1,
+        "candidate_version": 1,
+        "exact_duplicate_groups": [],
+        "candidate_pairs": [
+          {
+            "left_id": "new",
+            "right_id": "old",
+            "exact_content_hash": false,
+            "vector_similarity": 0.8,
+            "temporal_overlap": true,
+            "graph_similarity": 0.3333333333333333,
+            "lineage": "left_descends_from_right",
+            "candidate_score": 1.0,
+            "reasons": [
+              "vector_similarity",
+              "temporal_overlap",
+              "graph_neighborhood",
+              "lineage_structure"
+            ]
+          }
+        ],
+        "clusters": [
+          {
+            "cluster_index": 0,
+            "item_ids": [
+              "new",
+              "old"
+            ]
+          }
+        ],
+        "metrics": {
+          "input_items": 2,
+          "comparison_pairs": 1,
+          "qualifying_pairs": 1,
+          "retained_pairs": 1,
+          "exact_duplicate_groups": 0
+        }
+      }
+    },
+    {
+      "name": "near_vector_candidate_can_be_temporally_non_overlapping",
+      "policy": {
+        "vector_similarity_threshold": 0.8,
+        "graph_similarity_threshold": 0.5,
+        "max_block_size": 32,
+        "max_candidates_per_item": 8
+      },
+      "items": [
+        {
+          "item_id": "left",
+          "content_hash": null,
+          "embedding": [
+            1.0,
+            0.0
+          ],
+          "valid_from_micros": 0,
+          "valid_to_micros": 10,
+          "blocking_keys": [
+            "topic"
+          ],
+          "graph_neighbors": [],
+          "lineage_ancestors": []
+        },
+        {
+          "item_id": "right",
+          "content_hash": null,
+          "embedding": [
+            1.0,
+            0.0
+          ],
+          "valid_from_micros": 11,
+          "valid_to_micros": 20,
+          "blocking_keys": [
+            "topic"
+          ],
+          "graph_neighbors": [],
+          "lineage_ancestors": []
+        }
+      ],
+      "expected": {
+        "contract_version": 1,
+        "candidate_version": 1,
+        "exact_duplicate_groups": [],
+        "candidate_pairs": [
+          {
+            "left_id": "left",
+            "right_id": "right",
+            "exact_content_hash": false,
+            "vector_similarity": 1.0,
+            "temporal_overlap": false,
+            "graph_similarity": 0.0,
+            "lineage": "none",
+            "candidate_score": 1.0,
+            "reasons": [
+              "vector_similarity"
+            ]
+          }
+        ],
+        "clusters": [
+          {
+            "cluster_index": 0,
+            "item_ids": [
+              "left",
+              "right"
+            ]
+          }
+        ],
+        "metrics": {
+          "input_items": 2,
+          "comparison_pairs": 1,
+          "qualifying_pairs": 1,
+          "retained_pairs": 1,
+          "exact_duplicate_groups": 0
+        }
+      }
+    },
+    {
+      "name": "deterministic_per_item_cap",
+      "policy": {
+        "vector_similarity_threshold": 0.8,
+        "graph_similarity_threshold": 0.5,
+        "max_block_size": 32,
+        "max_candidates_per_item": 1
+      },
+      "items": [
+        {
+          "item_id": "c",
+          "content_hash": null,
+          "embedding": [
+            1.0,
+            0.0
+          ],
+          "valid_from_micros": 10,
+          "valid_to_micros": 20,
+          "blocking_keys": [
+            "all"
+          ],
+          "graph_neighbors": [],
+          "lineage_ancestors": []
+        },
+        {
+          "item_id": "a",
+          "content_hash": null,
+          "embedding": [
+            1.0,
+            0.0
+          ],
+          "valid_from_micros": 10,
+          "valid_to_micros": 20,
+          "blocking_keys": [
+            "all"
+          ],
+          "graph_neighbors": [],
+          "lineage_ancestors": []
+        },
+        {
+          "item_id": "b",
+          "content_hash": null,
+          "embedding": [
+            1.0,
+            0.0
+          ],
+          "valid_from_micros": 10,
+          "valid_to_micros": 20,
+          "blocking_keys": [
+            "all"
+          ],
+          "graph_neighbors": [],
+          "lineage_ancestors": []
+        }
+      ],
+      "expected": {
+        "contract_version": 1,
+        "candidate_version": 1,
+        "exact_duplicate_groups": [],
+        "candidate_pairs": [
+          {
+            "left_id": "a",
+            "right_id": "b",
+            "exact_content_hash": false,
+            "vector_similarity": 1.0,
+            "temporal_overlap": true,
+            "graph_similarity": 0.0,
+            "lineage": "none",
+            "candidate_score": 1.0,
+            "reasons": [
+              "vector_similarity",
+              "temporal_overlap"
+            ]
+          }
+        ],
+        "clusters": [
+          {
+            "cluster_index": 0,
+            "item_ids": [
+              "a",
+              "b"
+            ]
+          }
+        ],
+        "metrics": {
+          "input_items": 3,
+          "comparison_pairs": 3,
+          "qualifying_pairs": 3,
+          "retained_pairs": 1,
+          "exact_duplicate_groups": 0
+        }
+      }
+    },
+    {
+      "name": "graph_only_candidate_with_shared_neighborhood",
+      "policy": {
+        "vector_similarity_threshold": 0.8,
+        "graph_similarity_threshold": 0.4,
+        "max_block_size": 32,
+        "max_candidates_per_item": 8
+      },
+      "items": [
+        {
+          "item_id": "graph-a",
+          "content_hash": null,
+          "embedding": null,
+          "valid_from_micros": 10,
+          "valid_to_micros": 20,
+          "blocking_keys": [
+            "graph-cluster"
+          ],
+          "graph_neighbors": [
+            "n1",
+            "n2",
+            "n3"
+          ],
+          "lineage_ancestors": []
+        },
+        {
+          "item_id": "graph-b",
+          "content_hash": null,
+          "embedding": null,
+          "valid_from_micros": 10,
+          "valid_to_micros": 20,
+          "blocking_keys": [
+            "graph-cluster"
+          ],
+          "graph_neighbors": [
+            "n1",
+            "n2",
+            "n4"
+          ],
+          "lineage_ancestors": []
+        }
+      ],
+      "expected": {
+        "contract_version": 1,
+        "candidate_version": 1,
+        "exact_duplicate_groups": [],
+        "candidate_pairs": [
+          {
+            "left_id": "graph-a",
+            "right_id": "graph-b",
+            "exact_content_hash": false,
+            "vector_similarity": null,
+            "temporal_overlap": true,
+            "graph_similarity": 0.5,
+            "lineage": "none",
+            "candidate_score": 0.5,
+            "reasons": [
+              "temporal_overlap",
+              "graph_neighborhood"
+            ]
+          }
+        ],
+        "clusters": [
+          {
+            "cluster_index": 0,
+            "item_ids": [
+              "graph-a",
+              "graph-b"
+            ]
+          }
+        ],
+        "metrics": {
+          "input_items": 2,
+          "comparison_pairs": 1,
+          "qualifying_pairs": 1,
+          "retained_pairs": 1,
+          "exact_duplicate_groups": 0
+        }
+      }
+    },
+    {
+      "name": "shared_lineage_candidate_without_semantic_classification",
+      "policy": {
+        "vector_similarity_threshold": 0.8,
+        "graph_similarity_threshold": 0.5,
+        "max_block_size": 32,
+        "max_candidates_per_item": 8
+      },
+      "items": [
+        {
+          "item_id": "revision-a",
+          "content_hash": null,
+          "embedding": null,
+          "valid_from_micros": 10,
+          "valid_to_micros": 20,
+          "blocking_keys": [
+            "lineage-cluster"
+          ],
+          "graph_neighbors": [],
+          "lineage_ancestors": [
+            "root"
+          ]
+        },
+        {
+          "item_id": "revision-b",
+          "content_hash": null,
+          "embedding": null,
+          "valid_from_micros": 10,
+          "valid_to_micros": 20,
+          "blocking_keys": [
+            "lineage-cluster"
+          ],
+          "graph_neighbors": [],
+          "lineage_ancestors": [
+            "root"
+          ]
+        }
+      ],
+      "expected": {
+        "contract_version": 1,
+        "candidate_version": 1,
+        "exact_duplicate_groups": [],
+        "candidate_pairs": [
+          {
+            "left_id": "revision-a",
+            "right_id": "revision-b",
+            "exact_content_hash": false,
+            "vector_similarity": null,
+            "temporal_overlap": true,
+            "graph_similarity": 0.0,
+            "lineage": "shared_ancestor",
+            "candidate_score": 1.0,
+            "reasons": [
+              "temporal_overlap",
+              "lineage_structure"
+            ]
+          }
+        ],
+        "clusters": [
+          {
+            "cluster_index": 0,
+            "item_ids": [
+              "revision-a",
+              "revision-b"
+            ]
+          }
+        ],
+        "metrics": {
+          "input_items": 2,
+          "comparison_pairs": 1,
+          "qualifying_pairs": 1,
+          "retained_pairs": 1,
+          "exact_duplicate_groups": 0
+        }
+      }
+    }
+  ]
+}

@@ -20,6 +20,15 @@ def _default_idempotency_key(
     trigger: str,
     actor: str,
 ) -> str:
+    """Execute default idempotency key.
+
+    Args:
+        trigger: Trigger used by this operation.
+        actor: Actor used by this operation.
+
+    Returns:
+        str result produced by default idempotency key.
+    """
     seed = f"postgresql:{trigger}:{actor}"
     return sha256(seed.encode("utf-8")).hexdigest()[:24]
 
@@ -28,6 +37,15 @@ def _blocked_reasons(
     readiness: OperationalReadinessSnapshot,
     source_snapshot: RecoverySourceSnapshot,
 ) -> list[str]:
+    """Execute blocked reasons.
+
+    Args:
+        readiness: Readiness used by this operation.
+        source_snapshot: Source snapshot used by this operation.
+
+    Returns:
+        list[str] result produced by blocked reasons.
+    """
     reasons: list[str] = []
     if not readiness.database.reachable:
         reasons.append("postgresql_server_recovery_required")
@@ -46,6 +64,15 @@ def _plan_status(
     readiness: OperationalReadinessSnapshot,
     blocked_reasons: list[str],
 ) -> OperationalReadinessStatus:
+    """Execute plan status.
+
+    Args:
+        readiness: Readiness used by this operation.
+        blocked_reasons: Blocked reasons used by this operation.
+
+    Returns:
+        OperationalReadinessStatus result produced by plan status.
+    """
     if blocked_reasons:
         return OperationalReadinessStatus.BLOCKED
     if readiness.status is OperationalReadinessStatus.RECOVERY_REQUIRED:
@@ -56,6 +83,14 @@ def _plan_status(
 def _diagnosis(
     readiness: OperationalReadinessSnapshot,
 ) -> list[str]:
+    """Execute diagnosis.
+
+    Args:
+        readiness: Readiness used by this operation.
+
+    Returns:
+        list[str] result produced by diagnosis.
+    """
     if not readiness.database.reachable:
         return ["POSTGRESQL_DATABASE_UNREACHABLE"]
     return list(readiness.warnings)
@@ -64,6 +99,14 @@ def _diagnosis(
 def _steps(
     readiness: OperationalReadinessSnapshot,
 ) -> list[RecoveryPlanStep]:
+    """Execute steps.
+
+    Args:
+        readiness: Readiness used by this operation.
+
+    Returns:
+        list[RecoveryPlanStep] result produced by steps.
+    """
     if _reconciliation_only_issue(list(readiness.warnings)):
         return [
             RecoveryPlanStep(
@@ -116,6 +159,16 @@ def _next_actions(
     blocked_reasons: list[str],
     warnings: list[str],
 ) -> list[str]:
+    """Execute next actions.
+
+    Args:
+        status: Status value used by this operation.
+        blocked_reasons: Blocked reasons used by this operation.
+        warnings: Warnings used by this operation.
+
+    Returns:
+        list[str] result produced by next actions.
+    """
     if blocked_reasons:
         if "postgresql_server_recovery_required" in blocked_reasons:
             return ["restore_postgresql_from_backup"]
@@ -163,7 +216,14 @@ def _next_actions(
 
 
 def _reconciliation_only_issue(warnings: list[str]) -> bool:
-    """Return whether readiness contains only reconciliation-domain warnings."""
+    """Return whether readiness contains only reconciliation-domain warnings.
+
+    Args:
+        warnings: Warnings used by this operation.
+
+    Returns:
+        Whether reconciliation only issue.
+    """
     return bool(warnings) and all(
         warning.startswith("memory_reconciliation_") for warning in warnings
     )

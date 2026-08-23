@@ -14,6 +14,7 @@ from app.librarian.application.skill_artifacts.skill_artifact_handoff_policy imp
 from app.librarian.application.skill_artifacts.skill_artifact_publication_contracts import (
     PublishedSkillArtifact,
     SkillArtifactPublicationError,
+    SkillArtifactPublisher,
 )
 from app.librarian.application.skill_artifacts.skill_artifact_validation_policy import (
     _validate_artifact,
@@ -51,7 +52,7 @@ _REQUIRED_SKILL_SECTIONS: tuple[str, ...] = (
 )
 
 
-class ObsidianSkillArtifactPublisher:
+class ObsidianSkillArtifactPublisher(SkillArtifactPublisher):
     """Publish acquired skills as draft Obsidian skill notes."""
 
     def __init__(self, obsidian_service: ObsidianService) -> None:

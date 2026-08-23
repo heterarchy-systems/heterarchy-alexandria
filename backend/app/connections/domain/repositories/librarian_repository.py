@@ -21,6 +21,7 @@ class ILibrarianProviderRepository(ABC):
         Args:
             payload [LibrarianProviderCreate]: Value supplied to create.
 
+            payload: Validated payload for this operation.
         Returns:
             LibrarianProvider: Value produced by create.
         """
@@ -32,6 +33,7 @@ class ILibrarianProviderRepository(ABC):
         Args:
             provider_id [str]: Value supplied to get.
 
+            provider_id: Identifier for provider.
         Returns:
             LibrarianProvider | None: Value produced by get.
         """
@@ -54,6 +56,8 @@ class ILibrarianProviderRepository(ABC):
             provider_id [str]: Value supplied to update.
             payload [LibrarianProviderUpdate]: Value supplied to update.
 
+            provider_id: Identifier for provider.
+            payload: Validated payload for this operation.
         Returns:
             LibrarianProvider: Value produced by update.
         """
@@ -64,6 +68,7 @@ class ILibrarianProviderRepository(ABC):
 
         Args:
             provider_id [str]: Value supplied to delete.
+            provider_id: Identifier for provider.
         """
 
 
@@ -78,6 +83,8 @@ class IProviderSecretRepository(ABC):
             provider_id [str]: Value supplied to resolve.
             key_name [str]: Value supplied to resolve.
 
+            provider_id: Identifier for provider.
+            key_name: Key name used by this operation.
         Returns:
             str | None: Value produced by resolve.
         """
@@ -90,6 +97,9 @@ class IProviderSecretRepository(ABC):
             provider_id [str]: Value supplied to set_secret.
             key_name [str]: Value supplied to set_secret.
             value [str]: Value supplied to set_secret.
+            provider_id: Identifier for provider.
+            key_name: Key name used by this operation.
+            value: Value being processed.
         """
 
     @abstractmethod
@@ -99,4 +109,6 @@ class IProviderSecretRepository(ABC):
         Args:
             provider_id [str]: Value supplied to delete_for_provider.
             key_name [str]: Value supplied to delete_for_provider.
+            provider_id: Identifier for provider.
+            key_name: Key name used by this operation.
         """

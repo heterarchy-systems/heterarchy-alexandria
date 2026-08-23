@@ -90,6 +90,14 @@ def exclude_none_field() -> FieldInfo:
 
     # Broad type justified: Pydantic passes arbitrary validated field values.
     def is_none(value: object) -> bool:
+        """Return whether none.
+
+        Args:
+            value: Value being processed.
+
+        Returns:
+            Whether none.
+        """
         return value is None
 
     return Field(exclude_if=is_none)

@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from app.memory.application.contexts.records.context_service_ports import (
+    ContextRecoveryPort,
+)
+from app.obsidian.application.service.obsidian_service_ports import ObsidianRecoveryPort
 from app.operations.application.recovery.execution.recovery_run_contracts import (
-    ContextRecoveryService,
-    ContextRecoveryServiceFactory,
-    ObsidianRecoveryService,
-    ObsidianRecoveryServiceFactory,
+    ContextRecoveryPortFactory,
+    ObsidianRecoveryPortFactory,
 )
 from app.operations.application.recovery.execution.recovery_run_errors import (
     RecoveryInProgressError,
@@ -64,8 +66,8 @@ from app.shared.infrastructure.database import Database
 from app.shared.types.extra_types import JSONObject
 
 __all__ = (
-    "ContextRecoveryService",
-    "ObsidianRecoveryService",
+    "ContextRecoveryPort",
+    "ObsidianRecoveryPort",
     "RecoveryInProgressError",
     "RecoveryRunService",
     "RecoveryStepFailedError",
@@ -83,10 +85,10 @@ class RecoveryRunService:
     def __init__(
         self,
         database: Database,
-        context_service: ContextRecoveryService,
-        obsidian_service: ObsidianRecoveryService,
-        context_service_factory: ContextRecoveryServiceFactory | None = None,
-        obsidian_service_factory: ObsidianRecoveryServiceFactory | None = None,
+        context_service: ContextRecoveryPort,
+        obsidian_service: ObsidianRecoveryPort,
+        context_service_factory: ContextRecoveryPortFactory | None = None,
+        obsidian_service_factory: ObsidianRecoveryPortFactory | None = None,
     ) -> None:
         """Create service.
 
@@ -94,6 +96,8 @@ class RecoveryRunService:
             database: Shared database coordinator.
             context_service: Context/RAG service.
             obsidian_service: Obsidian vault service.
+            context_service_factory: Factory that creates context service.
+            obsidian_service_factory: Factory that creates obsidian service.
         """
         self._database = database
         self._context_service = context_service

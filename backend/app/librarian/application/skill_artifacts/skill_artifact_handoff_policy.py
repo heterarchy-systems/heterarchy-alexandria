@@ -26,6 +26,17 @@ def _handoff_payload(
     note_id: str,
     note_path: str,
 ) -> JSONObject:
+    """Execute handoff payload.
+
+    Args:
+        job: Job used by this operation.
+        artifact: Artifact used by this operation.
+        note_id: Identifier for note.
+        note_path: Note path used by this operation.
+
+    Returns:
+        JSONObject result produced by handoff payload.
+    """
     evidence = _evidence_item_payloads(artifact)
     job_payload: JSONObject = {
         "id": job.id,
@@ -75,6 +86,14 @@ def _handoff_payload(
 
 
 def _skill_limitations(artifact: SkillAcquisitionArtifact) -> list[JSONValue]:
+    """Execute skill limitations.
+
+    Args:
+        artifact: Artifact used by this operation.
+
+    Returns:
+        list[JSONValue] result produced by skill limitations.
+    """
     limitations: list[JSONValue] = [
         "draft skill; human review is required before active promotion"
     ]
@@ -86,6 +105,14 @@ def _skill_limitations(artifact: SkillAcquisitionArtifact) -> list[JSONValue]:
 
 
 def _handoff_warnings(artifact: SkillAcquisitionArtifact) -> list[JSONValue]:
+    """Execute handoff warnings.
+
+    Args:
+        artifact: Artifact used by this operation.
+
+    Returns:
+        list[JSONValue] result produced by handoff warnings.
+    """
     warnings: list[JSONValue] = []
     if artifact.status is ItemStatus.NEEDS_REVIEW:
         warnings.append(

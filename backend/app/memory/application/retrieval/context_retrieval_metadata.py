@@ -202,6 +202,14 @@ def source_actor_id(context: ContextRecord) -> str:
 
 
 def _optional_text(value: JSONValue) -> str | None:
+    """Execute optional text.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str | None result produced by optional text.
+    """
     if not isinstance(value, str):
         return None
     normalized = value.strip()
@@ -209,6 +217,14 @@ def _optional_text(value: JSONValue) -> str | None:
 
 
 def _text_tuple(value: JSONValue) -> tuple[str, ...]:
+    """Execute text tuple.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        tuple[str, ...] result produced by text tuple.
+    """
     if not isinstance(value, (list, tuple)):
         return ()
     return tuple(
@@ -217,6 +233,14 @@ def _text_tuple(value: JSONValue) -> tuple[str, ...]:
 
 
 def _positive_int(value: JSONValue) -> int | None:
+    """Execute positive int.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        int | None result produced by positive int.
+    """
     if isinstance(value, bool) or not isinstance(value, int) or value < 1:
         return None
     return value
@@ -225,6 +249,15 @@ def _positive_int(value: JSONValue) -> int | None:
 def _optional_enum[EnumType: ContextSourceType | ContextImportance](
     value: JSONValue, enum_type: type[EnumType]
 ) -> EnumType | None:
+    """Execute optional enum.
+
+    Args:
+        value: Value being processed.
+        enum_type: Enum type used by this operation.
+
+    Returns:
+        EnumType | None result produced by optional enum.
+    """
     text = _optional_text(value)
     if text is None:
         return None

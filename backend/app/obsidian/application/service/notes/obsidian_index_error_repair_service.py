@@ -7,6 +7,9 @@ from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Final
 
+from app.obsidian.application.notes.frontmatter.obsidian_context_frontmatter_mapper import (
+    context_content_hash,
+)
 from app.obsidian.application.notes.obsidian_note_templates import conversation_id
 from app.obsidian.domain.entities.obsidian_index_error_repair import (
     ObsidianIndexErrorRepairCandidate,
@@ -71,6 +74,14 @@ class ObsidianIndexErrorRepairService:
         reindex: Callable[[], Awaitable[ObsidianReindexResult]],
         status: Callable[[], Awaitable[ObsidianVaultStatus]],
     ) -> None:
+        """Initialize ObsidianIndexErrorRepairService state and dependencies.
+
+        Args:
+            repository: Repository used by this operation.
+            vault_config_store: Vault config store used by this operation.
+            reindex: Reindex used by this operation.
+            status: Status value used by this operation.
+        """
         self._repository = repository
         self._vault_config_store = vault_config_store
         self._reindex = reindex
@@ -94,13 +105,13 @@ class ObsidianIndexErrorRepairService:
                 )
                 raw = path.read_bytes()
                 text = raw.decode("utf-8")
-                frontmatter = frontmatter_json(
-                    parse_markdown_document(text).frontmatter
-                )
+                document = parse_markdown_document(text)
+                frontmatter = frontmatter_json(document.frontmatter)
                 replacements, reason = _legacy_replacements(
                     note_path=error.note_path,
                     error_code=error.error_code,
                     frontmatter=frontmatter,
+                    body=document.body,
                 )
             except (OSError, UnicodeError, ValueError, ObsidianValidationError) as exc:
                 skipped.append(
@@ -228,7 +239,19 @@ def _legacy_replacements(
     note_path: str,
     error_code: ObsidianIndexErrorCode,
     frontmatter: JSONObject,
+    body: str,
 ) -> tuple[dict[str, str], str]:
+    """Execute legacy replacements.
+
+    Args:
+        note_path: Note path used by this operation.
+        error_code: Error code used by this operation.
+        frontmatter: Frontmatter used by this operation.
+        body: Parsed Markdown body used to recompute canonical Context hashes.
+
+    Returns:
+        tuple[dict[str, str], str] result produced by legacy replacements.
+    """
     if error_code is ObsidianIndexErrorCode.INVALID_STATUS:
         raw_status = frontmatter.get("status")
         normalized = (
@@ -249,6 +272,17 @@ def _legacy_replacements(
         if _is_index_note(note_path):
             replacements["status"] = "archived"
         return replacements, "legacy_scope_to_canonical_identity"
+    if error_code is ObsidianIndexErrorCode.INVALID_CONTENT_HASH:
+        note_type = frontmatter.get("alexandria_type")
+        note_id = frontmatter.get("id")
+        if note_type != AlexandriaNoteType.CONTEXT.value:
+            return {}, "manual_review:content_hash_non_context"
+        if not isinstance(note_id, str) or not note_id.strip():
+            return {}, "manual_review:content_hash_missing_context_id"
+        canonical_hash = context_content_hash(body)
+        if frontmatter.get("content_hash") == canonical_hash:
+            return {}, "manual_review:content_hash_error_state_is_stale"
+        return {"content_hash": canonical_hash}, "recompute_context_content_hash"
     if error_code is ObsidianIndexErrorCode.FRONTMATTER_PARSE_ERROR:
         note_type = frontmatter.get("alexandria_type")
         note_id = frontmatter.get("id")
@@ -262,6 +296,14 @@ def _legacy_replacements(
 
 
 def _is_index_note(note_path: str) -> bool:
+    """Return whether index note.
+
+    Args:
+        note_path: Note path used by this operation.
+
+    Returns:
+        Whether index note.
+    """
     path = Path(note_path)
     return (
         path.name.casefold() == "index.md"
@@ -274,6 +316,15 @@ def _plan_hash(
     candidates: tuple[ObsidianIndexErrorRepairCandidate, ...],
     skipped: tuple[ObsidianIndexErrorRepairSkip, ...],
 ) -> str:
+    """Execute plan hash.
+
+    Args:
+        candidates: Candidates used by this operation.
+        skipped: Skipped used by this operation.
+
+    Returns:
+        str result produced by plan hash.
+    """
     payload: JSONObject = {
         "candidates": [
             {
@@ -308,6 +359,19 @@ def _preflight_paths(
     json_report: str,
     candidates: tuple[ObsidianIndexErrorRepairCandidate, ...],
 ) -> dict[str, tuple[Path, bytes]]:
+    """Execute preflight paths.
+
+    Args:
+        vault_path: Vault path used by this operation.
+        alexandria_root: Alexandria root used by this operation.
+        operation_root: Operation root used by this operation.
+        markdown_report: Markdown report used by this operation.
+        json_report: Json report used by this operation.
+        candidates: Candidates used by this operation.
+
+    Returns:
+        dict[str, tuple[Path, bytes]] result produced by preflight paths.
+    """
     destinations = (
         resolve_note_path(vault_path, markdown_report),
         resolve_note_path(vault_path, json_report),
@@ -341,6 +405,13 @@ def _write_backups(
     operation_root: str,
     originals: dict[str, tuple[Path, bytes]],
 ) -> None:
+    """Write backups.
+
+    Args:
+        vault_path: Vault path used by this operation.
+        operation_root: Operation root used by this operation.
+        originals: Originals used by this operation.
+    """
     for relative_path, (_, raw) in originals.items():
         backup = resolve_note_path(
             vault_path,
@@ -364,6 +435,18 @@ def _write_report(
     residual_error_notes: int,
     residual_paths: tuple[str, ...],
 ) -> None:
+    """Write report.
+
+    Args:
+        vault_path: Vault path used by this operation.
+        markdown_report: Markdown report used by this operation.
+        json_report: Json report used by this operation.
+        status: Status value used by this operation.
+        plan: Plan used by this operation.
+        backup_root: Backup root used by this operation.
+        residual_error_notes: Residual error notes used by this operation.
+        residual_paths: Residual paths used by this operation.
+    """
     markdown_path = resolve_note_path(vault_path, markdown_report)
     json_path = resolve_note_path(vault_path, json_report)
     markdown_path.parent.mkdir(parents=True, exist_ok=True)
@@ -397,4 +480,12 @@ def _write_report(
 
 
 def _sha256(value: bytes) -> str:
+    """Execute sha256.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str result produced by sha256.
+    """
     return hashlib.sha256(value).hexdigest()

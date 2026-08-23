@@ -66,7 +66,15 @@ class RedisExceptionAware(ABC):
         payload: RedisExceptionPayload | None,
         retry_count: int,
     ) -> None:
-        """Handle one mapped exception according to the stream policy."""
+        """Handle one mapped exception according to the stream policy.
+
+        Args:
+            error: Error value being processed.
+            policy: Policy used by this operation.
+            message_id: Identifier for message.
+            payload: Validated payload for this operation.
+            retry_count: Retry count used by this operation.
+        """
 
 
 type RedisExceptionHandler = Callable[..., Awaitable[RedisExceptionResult]]

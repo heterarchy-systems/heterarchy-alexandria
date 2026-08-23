@@ -10,6 +10,8 @@ from hashlib import sha256
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
+from app.shared.application.index_maintenance_coordinator import IndexWriteProcessLock
+
 
 def postgres_advisory_lock_key(namespace: str) -> int:
     """Derive one stable signed 64-bit PostgreSQL advisory lock key.
@@ -24,7 +26,7 @@ def postgres_advisory_lock_key(namespace: str) -> int:
     return int.from_bytes(digest[:8], byteorder="big", signed=True)
 
 
-class PostgresAdvisoryLock:
+class PostgresAdvisoryLock(IndexWriteProcessLock):
     """Hold shared or exclusive session-level advisory locks on one connection."""
 
     def __init__(
@@ -107,6 +109,10 @@ class PostgresAdvisoryLock:
         Short ``pg_try_advisory_lock`` calls preserve those protections while the
         application controls the bounded polling interval on an AUTOCOMMIT session.
 
+        Args:
+            connection: Connection used by this operation.
+            shared: Shared used by this operation.
+
         Returns:
             ``True`` after the current session acquires the requested lock.
         """
@@ -130,6 +136,11 @@ class PostgresAdvisoryLock:
         Session-level advisory locks survive transaction rollback. If cleanup is
         interrupted or PostgreSQL reports an unmatched release, the underlying
         connection must not return to the pool with a live lock.
+
+        Args:
+            raw_connection: Raw connection used by this operation.
+            connection: Connection used by this operation.
+            shared: Shared used by this operation.
         """
         unlock_function = (
             func.pg_advisory_unlock_shared if shared else func.pg_advisory_unlock

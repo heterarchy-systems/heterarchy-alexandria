@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from fastapi import APIRouter
+
 from app.obsidian.interface.routers.obsidian_graph_projection_router import (
     router as graph_projection_router,
 )
@@ -12,7 +14,6 @@ from app.obsidian.interface.routers.obsidian_note_router import router as note_r
 from app.obsidian.interface.routers.obsidian_vault_index_router import (
     router as vault_index_router,
 )
-from fastapi import APIRouter
 
 router = APIRouter(prefix="/obsidian", tags=["obsidian"])
 router.include_router(vault_index_router)

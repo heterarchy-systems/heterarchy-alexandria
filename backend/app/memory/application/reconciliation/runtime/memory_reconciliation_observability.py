@@ -129,6 +129,16 @@ def _preview_extra(
     duration_ms: float,
     reused: bool,
 ) -> MemoryReconciliationLogExtra:
+    """Execute preview extra.
+
+    Args:
+        plan: Plan used by this operation.
+        duration_ms: Duration ms used by this operation.
+        reused: Reused used by this operation.
+
+    Returns:
+        MemoryReconciliationLogExtra result produced by preview extra.
+    """
     selected = _selected_decision(plan)
     attributes = _plan_attributes(plan, selected=selected, reused=reused)
     attributes["status"] = plan.status.value
@@ -144,6 +154,16 @@ def _plan_attributes(
     selected: MemoryRelationDecision | None,
     reused: bool,
 ) -> JSONObject:
+    """Execute plan attributes.
+
+    Args:
+        plan: Plan used by this operation.
+        selected: Selected used by this operation.
+        reused: Reused used by this operation.
+
+    Returns:
+        JSONObject result produced by plan attributes.
+    """
     return {
         "plan_id": plan.plan_id,
         "candidate_id": plan.candidate.candidate_id,
@@ -163,6 +183,14 @@ def _plan_attributes(
 def _selected_decision(
     plan: MemoryReconciliationPlan,
 ) -> MemoryRelationDecision | None:
+    """Execute selected decision.
+
+    Args:
+        plan: Plan used by this operation.
+
+    Returns:
+        MemoryRelationDecision | None result produced by selected decision.
+    """
     for decision in plan.decisions:
         if decision.relation is plan.primary_decision:
             return decision

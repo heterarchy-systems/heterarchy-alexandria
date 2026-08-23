@@ -29,7 +29,7 @@ class RecoveryRunStepResult:
     result: JSONObject = field(default_factory=dict)
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class RecoveryRun:
     """Executed recovery run state."""
 
@@ -56,7 +56,7 @@ class RecoveryRun:
 
     def __post_init__(self) -> None:
         """Normalize recovery run collections to immutable values."""
-        object.__setattr__(self, "diagnosis", tuple(self.diagnosis))
-        object.__setattr__(self, "planned_steps", tuple(self.planned_steps))
-        object.__setattr__(self, "step_results", tuple(self.step_results))
-        object.__setattr__(self, "next_actions", tuple(self.next_actions))
+        self.diagnosis = tuple(self.diagnosis)
+        self.planned_steps = tuple(self.planned_steps)
+        self.step_results = tuple(self.step_results)
+        self.next_actions = tuple(self.next_actions)

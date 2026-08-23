@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+from sqlalchemy import delete, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.obsidian.infrastructure.models.obsidian_index_models import (
     ObsidianChunkORM,
     ObsidianEdgeORM,
     ObsidianFileORM,
 )
-from sqlalchemy import delete, or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def get_obsidian_file_by_path(

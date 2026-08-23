@@ -29,6 +29,18 @@ async def _execute_or_skip_step(
     parent_success_steps: dict[tuple[str, str], RecoveryRunStepResult],
     input_payload: JSONObject | None = None,
 ) -> RecoveryRunStepResult:
+    """Execute or skip step.
+
+    Args:
+        code: Code used by this operation.
+        callback: Callback invoked by this operation.
+        parent_run: Parent run used by this operation.
+        parent_success_steps: Parent success steps used by this operation.
+        input_payload: Input payload used by this operation.
+
+    Returns:
+        RecoveryRunStepResult result produced by execute or skip step.
+    """
     input_hash = _step_input_hash(code=code, input_payload=input_payload)
     parent_step = parent_success_steps.get((code, input_hash))
     if parent_run is not None and parent_step is not None:
@@ -55,6 +67,16 @@ async def _execute_step(
     callback: StepCallable,
     input_payload: JSONObject | None = None,
 ) -> RecoveryRunStepResult:
+    """Execute step.
+
+    Args:
+        code: Code used by this operation.
+        callback: Callback invoked by this operation.
+        input_payload: Input payload used by this operation.
+
+    Returns:
+        RecoveryRunStepResult result produced by execute step.
+    """
     started_at = datetime.now(UTC)
     input_hash = _step_input_hash(code=code, input_payload=input_payload)
     try:
@@ -89,6 +111,15 @@ def _step_input_hash(
     code: str,
     input_payload: JSONObject | None,
 ) -> str:
+    """Execute step input hash.
+
+    Args:
+        code: Code used by this operation.
+        input_payload: Input payload used by this operation.
+
+    Returns:
+        str result produced by step input hash.
+    """
     payload: JSONObject = {"code": code, "input": input_payload or {}}
     return sha256(dumps_pretty_json(payload)).hexdigest()
 
@@ -97,6 +128,12 @@ def _require_step_success(
     step: RecoveryRunStepResult,
     error_code: str,
 ) -> None:
+    """Execute require step success.
+
+    Args:
+        step: Step used by this operation.
+        error_code: Error code used by this operation.
+    """
     if step.status in {RecoveryStepStatus.SUCCEEDED, RecoveryStepStatus.SKIPPED}:
         return
     raise RecoveryStepFailedError(
@@ -110,6 +147,13 @@ def _require_empty_result_list(
     key: str,
     error_code: str,
 ) -> None:
+    """Execute require empty result list.
+
+    Args:
+        step: Step used by this operation.
+        key: Key used by this operation.
+        error_code: Error code used by this operation.
+    """
     value = step.result.get(key)
     if not isinstance(value, list) or not value:
         return

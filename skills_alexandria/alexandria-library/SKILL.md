@@ -15,20 +15,20 @@ Use Alexandria as an optional local-first knowledge library for Hermes.
 - Expand from a relevant seed note through the optional Neo4j related-note graph when direct search is not enough.
 - Acquire a missing skill through Hermes-alone fallback first; ask a librarian only on explicit user request.
 
-## Policy contract
-- Check `~/.hermes/heterarchy-alexandria/policy.yaml` or run `heterarchy-heterarchy-alexandria policy status` before assuming Alexandria is enabled.
-- If the policy says `enabled: false`, do not use Alexandria unless the user asks to turn it back on.
-- Users can opt out with `heterarchy-heterarchy-alexandria policy disable` and re-enable with `heterarchy-heterarchy-alexandria policy enable`.
-- Librarian delegation is optional and should require explicit user request.
+## Availability and opt-out contract
+- Honor an explicit user instruction to avoid Alexandria for the current task/session.
+- Do not claim a `policy` or `doctor` CLI command exists; the current CLI surface exposes `mcp`, `memory-steward`, and `vault` command groups.
+- Prefer `alexandria_operational_readiness`, `alexandria_rag_status`, and other current `alexandria_*` MCP tools for runtime status.
+- If MCP is unavailable, use the live HTTP readiness/RAG endpoints or the supported CLI command groups instead of inventing a legacy policy command.
+- Librarian delegation is optional and should require explicit user request unless a stricter current task contract says otherwise.
 
 ## Status/diagnostics
-- Use `heterarchy-heterarchy-alexandria doctor` for local status/diagnostics.
-- Prefer MCP tools named `mcp_alexandria_*` when available.
-- If MCP is unavailable, fall back to CLI commands such as
-  `heterarchy-alexandria memory-compacts current`,
-  `heterarchy-alexandria context recall`, or backend API calls.
+- Primary readiness: `alexandria_operational_readiness()` or `GET /operations/readiness`.
+- RAG health: `alexandria_rag_status()` or `GET /memory/contexts/rag/status`.
+- Graph status: `alexandria_get_graph_projection_status()` when graph expansion matters.
+- CLI fallback is limited to commands actually shown by `heterarchy-alexandria --help`.
 
-## Operating style
+## Procedure
 - Treat Alexandria as a helper, not an obligation.
 - Long-term memory lookup order: current conversation and Hermes local memory
   first, then current Memory Compact, then Context Vault recall/RAG, then
@@ -93,14 +93,19 @@ When a write changes note links or graph-relevant metadata, finish with:
 
 1. vault reindex;
 2. queued embedding reindex when RAG reports missing or stale rows;
-3. Neo4j graph projection rebuild when graph projection is enabled;
+3. verify the graph projection returned by vault reindex; explicitly rebuild only when projection is stale, failed, skipped, or a diagnostic rebuild is required;
 4. exact search/readback plus one related-note lookup from a known seed.
 
 These maintenance steps are sequential. Retry HTTP `409` after the current
 maintenance operation completes. Normal search reads the current index and does
 not perform an implicit vault reindex.
 
+## Evidence
+- https://github.com/heterarchy-systems/heterarchy-alexandria/blob/main/README.md
+- https://github.com/heterarchy-systems/heterarchy-alexandria/blob/main/backend/app/mcp_server/backend_tool_gateway.py
+
 ## Related Alexandria skills
 
 - [[Skills/Active/Librarian Operator]] — search-first curation, note-aware synthesis, and graph expansion.
 - [[Skills/Active/Alexandria Operational Sync]] — vault, embedding, and graph projection recovery.
+- `skills_alexandria/safe-markdown-storage/SKILL.md` — canonical Markdown write, integrity, path, and concurrency rules.

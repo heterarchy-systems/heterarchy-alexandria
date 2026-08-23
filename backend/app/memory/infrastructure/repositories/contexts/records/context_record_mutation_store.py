@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.memory.domain.contracts.context_contracts import ContextAccessCreate
 from app.memory.domain.entities.context_read_models import ContextRecord
 from app.memory.infrastructure.repositories.contexts.records.access_events import (
@@ -18,7 +20,6 @@ from app.memory.infrastructure.repositories.contexts.records.deletion import (
 from app.memory.infrastructure.repositories.contexts.records.mapping import (
     map_context_row,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ContextRecordMutationStore:

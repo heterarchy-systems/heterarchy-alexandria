@@ -3,35 +3,24 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Protocol
 
+from app.memory.application.contexts.records.context_service_ports import (
+    ContextEmbeddingReindexPort,
+)
 from app.memory.domain.entities.context_read_models import ContextReindexResult
 from app.shared.exceptions.memory_context_exceptions import MemoryContextValidationError
-
-
-class ContextEmbeddingRecoveryTarget(Protocol):
-    """Minimal Context boundary required by incremental recovery."""
-
-    async def reindex_embeddings(
-        self,
-        limit: int = 100,
-        force: bool = False,
-    ) -> ContextReindexResult:
-        """Backfill one embedding batch.
-
-        Args:
-            limit: Maximum rows scanned.
-            force: Whether current vectors should also be rebuilt.
-
-        Returns:
-            One batch reindex result.
-        """
 
 
 class ContextEmbeddingRecoveryService:
     """Drain missing or stale embeddings in bounded, non-forced batches."""
 
     def __init__(self, batch_size: int, max_batches: int) -> None:
+        """Initialize ContextEmbeddingRecoveryService state and dependencies.
+
+        Args:
+            batch_size: Batch size used by this operation.
+            max_batches: Max batches used by this operation.
+        """
         if batch_size < 1:
             raise MemoryContextValidationError("batch_size must be at least 1")
         if max_batches < 1:
@@ -42,7 +31,7 @@ class ContextEmbeddingRecoveryService:
 
     async def recover(
         self,
-        context_service: ContextEmbeddingRecoveryTarget,
+        context_service: ContextEmbeddingReindexPort,
     ) -> ContextReindexResult:
         """Recover missing/stale embeddings without rebuilding current vectors.
 

@@ -2,6 +2,9 @@
 
 from typing import Annotated
 
+from dependency_injector.wiring import Provide, inject
+from fastapi import APIRouter, Depends, Query, status
+
 from app.container import ApplicationContainer
 from app.memory.application.reconciliation.compacts.memory_compact_reconciliation_service import (
     MemoryCompactReconciliationService,
@@ -53,8 +56,6 @@ from app.shared.type_validation.strict_json_body import (
     model_validate_json_body,
 )
 from app.shared.types.types_convert_utils import enum_value
-from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, Query, status
 
 router = APIRouter(
     prefix="/memory/reconciliation",

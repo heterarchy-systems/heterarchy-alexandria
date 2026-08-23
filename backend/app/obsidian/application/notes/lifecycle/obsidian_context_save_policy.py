@@ -96,6 +96,13 @@ async def _validate_supersede_relations(
     note_id: str,
     repository: IObsidianIndexQueryRepository,
 ) -> None:
+    """Validate supersede relations.
+
+    Args:
+        identity: Identity used by this operation.
+        note_id: Identifier for note.
+        repository: Repository used by this operation.
+    """
     supersedes_context_id = identity.supersedes_context_id
     if supersedes_context_id is not None:
         superseded_context = await repository.get_by_id(supersedes_context_id)

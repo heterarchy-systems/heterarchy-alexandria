@@ -5,14 +5,12 @@ from __future__ import annotations
 from dataclasses import replace
 from datetime import UTC, datetime
 
-from app.obsidian.application.notes.obsidian_note_templates import (
-    frontmatter_for_save,
-    sha256_text,
-)
+from app.obsidian.application.notes.obsidian_note_templates import frontmatter_for_save
 from app.obsidian.domain.contracts.obsidian_contracts import ObsidianSaveNote
 from app.obsidian.domain.entities.obsidian_note import ObsidianNote
 from app.obsidian.domain.event_enum.obsidian_enums import ObsidianFrontmatterMode
 from app.obsidian.infrastructure.markdown.frontmatter import timestamp_text
+from app.shared.compute.native_text_hashing import hash_text
 from app.shared.types.extra_types import JSONObject
 
 _IMMUTABLE_SYSTEM_FIELDS = frozenset(
@@ -81,7 +79,7 @@ def frontmatter_for_explicit_write(
         )
         merged["initial_content_hash"] = existing.frontmatter.get(
             "initial_content_hash",
-            existing.frontmatter.get("content_hash", sha256_text(existing.body)),
+            existing.frontmatter.get("content_hash", hash_text(existing.body)),
         )
 
     return frontmatter_for_save(
@@ -130,7 +128,7 @@ def apply_write_history(
     """
     updated = dict(frontmatter)
     now = timestamp_text(datetime.now(UTC))
-    body_hash = sha256_text(body)
+    body_hash = hash_text(body)
     if existing is None:
         updated["created_at"] = now
         updated["original_source"] = updated.get("source")
@@ -147,11 +145,11 @@ def apply_write_history(
         )
         updated["initial_content_hash"] = existing.frontmatter.get(
             "initial_content_hash",
-            existing.frontmatter.get("content_hash", sha256_text(existing.body)),
+            existing.frontmatter.get("content_hash", hash_text(existing.body)),
         )
         updated["previous_content_hash"] = existing.frontmatter.get(
             "content_hash",
-            sha256_text(existing.body),
+            hash_text(existing.body),
         )
         updated["version"] = _version(existing.frontmatter.get("version")) + 1
     updated["updated_at"] = now
@@ -161,6 +159,14 @@ def apply_write_history(
 
 
 def _without_history(frontmatter: JSONObject) -> JSONObject:
+    """Execute without history.
+
+    Args:
+        frontmatter: Frontmatter used by this operation.
+
+    Returns:
+        JSONObject result produced by without history.
+    """
     return {
         key: value for key, value in frontmatter.items() if key not in _HISTORY_FIELDS
     }
@@ -168,6 +174,14 @@ def _without_history(frontmatter: JSONObject) -> JSONObject:
 
 # Broad type justified: parsed frontmatter scalars may have heterogeneous runtime types.
 def _version(value: object) -> int:
+    """Execute version.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        int result produced by version.
+    """
     if isinstance(value, bool):
         return 1
     if isinstance(value, int):

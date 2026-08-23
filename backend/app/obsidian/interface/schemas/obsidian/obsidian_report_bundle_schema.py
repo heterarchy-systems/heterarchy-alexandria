@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import replace
 from typing import Annotated
 
+from pydantic import StringConstraints
+
 from app.obsidian.domain.contracts.obsidian_contracts import (
     ObsidianReportBundleOwner,
     ObsidianReportBundleRequest,
@@ -24,13 +26,15 @@ from app.obsidian.domain.event_enum.obsidian_enums import (
 from app.obsidian.interface.schemas.obsidian.obsidian_note_write_schema import (
     ObsidianSaveNoteRequest,
 )
+from app.obsidian.interface.schemas.obsidian.obsidian_string_types import (
+    ObsidianPathText,
+)
 from app.shared.schemas.common_schemas import (
     StrictSchemaModel,
     described_field,
     schema_list_default,
 )
 from app.shared.types.extra_types import JSONObject
-from pydantic import StringConstraints
 
 
 class ObsidianReportBundleSourceRequest(ObsidianSaveNoteRequest):
@@ -57,8 +61,7 @@ class ObsidianReportBundleOwnerRequest(StrictSchemaModel):
     """Existing graph owner to link to the report source."""
 
     path: Annotated[
-        str,
-        StringConstraints(strict=True, min_length=1),
+        ObsidianPathText,
         described_field("Path for this Obsidian report bundle owner request."),
     ]
     relation: Annotated[

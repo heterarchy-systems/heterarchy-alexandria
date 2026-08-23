@@ -94,14 +94,22 @@ def context_record_from_obsidian_note(note: ObsidianNote) -> ContextRecord:
 def _identity_frontmatter(note: ObsidianNote) -> JSONObject:
     """Return frontmatter safe for the shared Memory identity boundary.
 
-    Canonical Context notes own ``ContextKind`` and remain strictly validated.
-    Other managed note types may carry their own legacy kind vocabulary, which is
-    mapped separately by :func:`_kind_from_note` and must not invalidate recall.
+    Canonical Context notes own ``ContextKind`` and content-hash integrity and remain
+    strictly validated. Other managed note types may define note-type-specific kind
+    or hash semantics, so their generalized Context projection derives those fields
+    at this adapter boundary.
+
+    Args:
+        note: Note used by this operation.
+
+    Returns:
+        Frontmatter normalized for generalized Context identity parsing.
     """
     if note.alexandria_type is AlexandriaNoteType.CONTEXT:
         return note.frontmatter
     frontmatter = dict(note.frontmatter)
     frontmatter.pop("context_kind", None)
+    frontmatter.pop("content_hash", None)
     return frontmatter
 
 
@@ -109,6 +117,15 @@ def _context_metadata(
     note: ObsidianNote,
     identity: ObsidianContextIdentity,
 ) -> ContextMetadataPayload:
+    """Execute context metadata.
+
+    Args:
+        note: Note used by this operation.
+        identity: Identity used by this operation.
+
+    Returns:
+        ContextMetadataPayload result produced by context metadata.
+    """
     metadata = ContextMetadataPayload(
         source_surface="obsidian_vault",
         obsidian_note_id=note.note_id,
@@ -130,6 +147,14 @@ def _context_metadata(
 
 
 def _provenance_payload(identity: ObsidianContextIdentity) -> dict[str, JSONValue]:
+    """Execute provenance payload.
+
+    Args:
+        identity: Identity used by this operation.
+
+    Returns:
+        dict[str, JSONValue] result produced by provenance payload.
+    """
     provenance = identity.provenance
     return {
         "source_actor_id": provenance.source_actor_id,
@@ -149,6 +174,14 @@ def _provenance_payload(identity: ObsidianContextIdentity) -> dict[str, JSONValu
 
 
 def _kind_from_note(note: ObsidianNote) -> ContextKind:
+    """Execute kind from note.
+
+    Args:
+        note: Note used by this operation.
+
+    Returns:
+        ContextKind result produced by kind from note.
+    """
     frontmatter_kind = _context_kind_from_frontmatter(note.frontmatter)
     if frontmatter_kind is not None:
         return frontmatter_kind
@@ -167,6 +200,14 @@ def _kind_from_note(note: ObsidianNote) -> ContextKind:
 def _context_kind_from_frontmatter(
     frontmatter: dict[str, JSONValue],
 ) -> ContextKind | None:
+    """Execute context kind from frontmatter.
+
+    Args:
+        frontmatter: Frontmatter used by this operation.
+
+    Returns:
+        ContextKind | None result produced by context kind from frontmatter.
+    """
     value = frontmatter.get("context_kind") or frontmatter.get("kind")
     if not isinstance(value, str):
         return None
@@ -178,6 +219,14 @@ def _context_kind_from_frontmatter(
 
 
 def _summary_from_note(note: ObsidianNote) -> str:
+    """Execute summary from note.
+
+    Args:
+        note: Note used by this operation.
+
+    Returns:
+        str result produced by summary from note.
+    """
     value = note.frontmatter.get("summary")
     if isinstance(value, str) and value.strip():
         return value.strip()
@@ -185,6 +234,15 @@ def _summary_from_note(note: ObsidianNote) -> str:
 
 
 def _excerpt(text: str, limit: int = 240) -> str:
+    """Execute excerpt.
+
+    Args:
+        text: Text used by this operation.
+        limit: Maximum number of items to process or return.
+
+    Returns:
+        str result produced by excerpt.
+    """
     normalized = " ".join(text.split())
     if len(normalized) <= limit:
         return normalized

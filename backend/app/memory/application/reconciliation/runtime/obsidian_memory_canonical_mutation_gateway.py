@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Protocol
+
+from pydantic import TypeAdapter, ValidationError
 
 from app.memory.application.integration.obsidian_context_read_mapper import (
     OBSIDIAN_CONTEXT_ID_PREFIX,
@@ -20,6 +21,7 @@ from app.memory.domain.event_enum.reconciliation_enums import (
 from app.memory.domain.repositories.contexts.memory_canonical_mutation_gateway import (
     IMemoryCanonicalMutationGateway,
 )
+from app.obsidian.application.service.obsidian_service_ports import ObsidianMutationPort
 from app.obsidian.domain.contracts.obsidian_contracts import ObsidianSaveNote
 from app.obsidian.domain.entities.obsidian_note import ObsidianNote
 from app.obsidian.domain.event_enum.obsidian_enums import (
@@ -37,55 +39,20 @@ from app.shared.exceptions.obsidian_exceptions import (
 )
 from app.shared.types.extra_types import JSONObject, JSONValue
 from app.shared.types.types_convert_utils import now_utc
-from pydantic import TypeAdapter, ValidationError
 
 _CLAIMS_ADAPTER = TypeAdapter(tuple[CanonicalClaim, ...])
 _SOURCE_REFS_ADAPTER = TypeAdapter(tuple[MemorySourceReference, ...])
 
 
-class ObsidianContextMutationService(Protocol):
-    """Minimal canonical Obsidian surface required by reconciliation."""
-
-    async def save_note(self, payload: ObsidianSaveNote) -> ObsidianNote:
-        """Create or replace one canonical note.
-
-        Args:
-            payload: Payload.
-
-        Returns:
-            ObsidianNote: Operation result.
-        """
-
-    async def read_note(self, note_id: str) -> ObsidianNote:
-        """Read one canonical note by stable identifier.
-
-        Args:
-            note_id: Note id.
-
-        Returns:
-            ObsidianNote: Operation result.
-        """
-
-    async def supersede_context(
-        self,
-        note_id: str,
-        replacement_note_id: str,
-    ) -> tuple[ObsidianNote, ObsidianNote]:
-        """Link one canonical Context to its replacement.
-
-        Args:
-            note_id: Note id.
-            replacement_note_id: Replacement note id.
-
-        Returns:
-            tuple[ObsidianNote, ObsidianNote]: Operation result.
-        """
-
-
 class ObsidianMemoryCanonicalMutationGateway(IMemoryCanonicalMutationGateway):
     """Mutate reconciliation Contexts through the canonical Obsidian service."""
 
-    def __init__(self, service: ObsidianContextMutationService) -> None:
+    def __init__(self, service: ObsidianMutationPort) -> None:
+        """Initialize ObsidianMemoryCanonicalMutationGateway state and dependencies.
+
+        Args:
+            service: Application service used by this operation.
+        """
         self._service = service
 
     async def create_context(
@@ -235,6 +202,14 @@ class ObsidianMemoryCanonicalMutationGateway(IMemoryCanonicalMutationGateway):
         return note.index_status is ObsidianIndexStatus.INDEXED
 
     async def _read_context(self, context_id: str) -> ObsidianNote:
+        """Read context.
+
+        Args:
+            context_id: Identifier for context.
+
+        Returns:
+            Loaded context.
+        """
         note_id = _note_id(context_id)
         if note_id is None:
             raise MemoryContextNotFoundError(f"Context not found: {context_id}")
@@ -258,6 +233,18 @@ def _candidate_frontmatter(
     relation: MemoryRelationType | None,
     related_note: ObsidianNote | None,
 ) -> JSONObject:
+    """Execute candidate frontmatter.
+
+    Args:
+        candidate: Candidate used by this operation.
+        supersedes_context_id: Identifier for supersedes context.
+        conflict_set_ids: Identifiers for conflict set.
+        relation: Relation used by this operation.
+        related_note: Related note used by this operation.
+
+    Returns:
+        JSONObject result produced by candidate frontmatter.
+    """
     frontmatter: JSONObject = {
         "scope": candidate.scope.value,
         "visibility": candidate.scope.value,
@@ -301,6 +288,14 @@ def _candidate_frontmatter(
 def _relation_frontmatter_field(
     relation: MemoryRelationType | None,
 ) -> str | None:
+    """Execute relation frontmatter field.
+
+    Args:
+        relation: Relation used by this operation.
+
+    Returns:
+        str | None result produced by relation frontmatter field.
+    """
     if relation is None or relation is MemoryRelationType.UNRELATED:
         return None
     return {
@@ -314,6 +309,14 @@ def _relation_frontmatter_field(
 
 
 def _source_refs(value: JSONValue | None) -> tuple[MemorySourceReference, ...]:
+    """Execute source refs.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        tuple[MemorySourceReference, ...] result produced by source refs.
+    """
     if not isinstance(value, list):
         return ()
     try:
@@ -326,6 +329,15 @@ def _merge_source_refs(
     existing: tuple[MemorySourceReference, ...],
     incoming: tuple[MemorySourceReference, ...],
 ) -> tuple[MemorySourceReference, ...]:
+    """Execute merge source refs.
+
+    Args:
+        existing: Existing used by this operation.
+        incoming: Incoming used by this operation.
+
+    Returns:
+        tuple[MemorySourceReference, ...] result produced by merge source refs.
+    """
     merged: list[MemorySourceReference] = []
     seen: set[tuple[str, str, str]] = set()
     for item in (*existing, *incoming):
@@ -338,12 +350,28 @@ def _merge_source_refs(
 
 
 def _string_list(value: JSONValue | None) -> tuple[str, ...]:
+    """Execute string list.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        tuple[str, ...] result produced by string list.
+    """
     if not isinstance(value, list):
         return ()
     return tuple(item for item in value if isinstance(item, str) and item.strip())
 
 
 def _lifecycle_status(value: str) -> str:
+    """Execute lifecycle status.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str result produced by lifecycle status.
+    """
     try:
         return ObsidianContextLifecycleStatus.from_frontmatter_text(value).value
     except ValueError as exc:
@@ -353,10 +381,26 @@ def _lifecycle_status(value: str) -> str:
 
 
 def _qualified_context_id(note_id: str) -> str:
+    """Execute qualified context id.
+
+    Args:
+        note_id: Identifier for note.
+
+    Returns:
+        str result produced by qualified context id.
+    """
     return f"{OBSIDIAN_CONTEXT_ID_PREFIX}{note_id}"
 
 
 def _note_id(context_id: str | None) -> str | None:
+    """Execute note id.
+
+    Args:
+        context_id: Identifier for context.
+
+    Returns:
+        str | None result produced by note id.
+    """
     if context_id is None or not context_id.startswith(OBSIDIAN_CONTEXT_ID_PREFIX):
         return None
     note_id = context_id.removeprefix(OBSIDIAN_CONTEXT_ID_PREFIX).strip()
@@ -364,4 +408,12 @@ def _note_id(context_id: str | None) -> str | None:
 
 
 def _datetime_text(value: datetime | None) -> str | None:
+    """Execute datetime text.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str | None result produced by datetime text.
+    """
     return None if value is None else value.isoformat()

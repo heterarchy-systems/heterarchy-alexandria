@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.obsidian.domain.contracts.obsidian_contracts import (
     ObsidianContextDuplicateQuery,
     ObsidianNoteIndex,
@@ -22,8 +25,6 @@ from app.obsidian.infrastructure.repositories.obsidian_index_write_store import 
     ObsidianIndexWriteStore,
 )
 from app.shared.exceptions.obsidian_exceptions import ObsidianIndexWriteError
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ObsidianIndexWriteRepositoryDelegate:
@@ -50,6 +51,14 @@ class ObsidianIndexWriteRepositoryDelegate:
             ) from exc
 
     async def _upsert_note(self, payload: ObsidianNoteIndex) -> ObsidianNote:
+        """Execute upsert note.
+
+        Args:
+            payload: Validated payload for this operation.
+
+        Returns:
+            ObsidianNote result produced by upsert note.
+        """
         return await self._write_store._upsert_note(payload)
 
     async def mark_missing_stale(self, relative_paths: set[str]) -> int:

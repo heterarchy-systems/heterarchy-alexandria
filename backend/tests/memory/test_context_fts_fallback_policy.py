@@ -22,6 +22,9 @@ from app.memory.domain.event_enum.context_enums import ContextScope, RagStrategy
 from app.memory.domain.repositories.contexts.context_search_source import (
     IContextSearchSource,
 )
+from tests.memory.context_retrieval_kernel_test_provider import (
+    TestContextRetrievalKernelProvider,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,6 +83,7 @@ def _service(source: _RecordingFtsSource) -> ContextSearchService:
     return ContextSearchService(
         search_sources=[cast(IContextSearchSource, source)],
         embedding_service=cast(ContextEmbeddingService, object()),
+        retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
     )
 
 
@@ -89,6 +93,7 @@ def test_fts_only_search_skips_vector_health_probe() -> None:
     service = ContextSearchService(
         search_sources=[cast(IContextSearchSource, source)],
         embedding_service=cast(ContextEmbeddingService, _FailingEmbeddingService()),
+        retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
     )
 
     pack = anyio.run(

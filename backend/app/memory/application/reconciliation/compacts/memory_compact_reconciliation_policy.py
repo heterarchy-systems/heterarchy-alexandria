@@ -100,6 +100,14 @@ def render_fact_buckets(buckets: MemoryCompactFactBuckets) -> str:
 
 
 def _fact_buckets(pack: MemoryTemporalRecallPack) -> MemoryCompactFactBuckets:
+    """Execute fact buckets.
+
+    Args:
+        pack: Pack used by this operation.
+
+    Returns:
+        MemoryCompactFactBuckets result produced by fact buckets.
+    """
     categorized: dict[MemoryCompactFactCategory, list[MemoryCompactFact]] = {
         category: [] for category in MemoryCompactFactCategory
     }
@@ -116,6 +124,14 @@ def _fact_buckets(pack: MemoryTemporalRecallPack) -> MemoryCompactFactBuckets:
 
 
 def _fact_category(item: MemoryTemporalRecallMatch) -> MemoryCompactFactCategory:
+    """Execute fact category.
+
+    Args:
+        item: Item being processed.
+
+    Returns:
+        MemoryCompactFactCategory result produced by fact category.
+    """
     if item.conflict_set_ids:
         return MemoryCompactFactCategory.OPEN_CONFLICT
     state = item.temporal_state
@@ -134,6 +150,15 @@ def _fact(
     item: MemoryTemporalRecallMatch,
     category: MemoryCompactFactCategory,
 ) -> MemoryCompactFact:
+    """Execute fact.
+
+    Args:
+        item: Item being processed.
+        category: Category used by this operation.
+
+    Returns:
+        MemoryCompactFact result produced by fact.
+    """
     context = item.match.context
     state = item.temporal_state
     return MemoryCompactFact(
@@ -152,6 +177,14 @@ def _fact(
 def _safety_issues(
     buckets: MemoryCompactFactBuckets,
 ) -> tuple[MemoryCompactSafetyIssue, ...]:
+    """Execute safety issues.
+
+    Args:
+        buckets: Buckets used by this operation.
+
+    Returns:
+        tuple[MemoryCompactSafetyIssue, ...] result produced by safety issues.
+    """
     issues: list[MemoryCompactSafetyIssue] = []
     all_facts = _all_facts(buckets)
     context_categories: dict[str, set[MemoryCompactFactCategory]] = {}
@@ -176,6 +209,14 @@ def _safety_issues(
 def _safety_warnings(
     buckets: MemoryCompactFactBuckets,
 ) -> tuple[str, ...]:
+    """Execute safety warnings.
+
+    Args:
+        buckets: Buckets used by this operation.
+
+    Returns:
+        tuple[str, ...] result produced by safety warnings.
+    """
     warnings: list[str] = []
     if buckets.open_conflicts:
         warnings.append(
@@ -193,6 +234,14 @@ def _safety_warnings(
 
 
 def _all_facts(buckets: MemoryCompactFactBuckets) -> tuple[MemoryCompactFact, ...]:
+    """Execute all facts.
+
+    Args:
+        buckets: Buckets used by this operation.
+
+    Returns:
+        tuple[MemoryCompactFact, ...] result produced by all facts.
+    """
     return (
         *buckets.current_facts,
         *buckets.historical_facts,
@@ -205,6 +254,14 @@ def _all_facts(buckets: MemoryCompactFactBuckets) -> tuple[MemoryCompactFact, ..
 def _current_temporal_facts(
     buckets: MemoryCompactFactBuckets,
 ) -> tuple[MemoryCompactFact, ...]:
+    """Execute current temporal facts.
+
+    Args:
+        buckets: Buckets used by this operation.
+
+    Returns:
+        tuple[MemoryCompactFact, ...] result produced by current temporal facts.
+    """
     return tuple(
         fact
         for fact in buckets.current_facts
@@ -213,6 +270,14 @@ def _current_temporal_facts(
 
 
 def _evidence_refs(metadata: ContextMetadataPayload) -> tuple[str, ...]:
+    """Execute evidence refs.
+
+    Args:
+        metadata: Metadata used by this operation.
+
+    Returns:
+        tuple[str, ...] result produced by evidence refs.
+    """
     value: JSONValue | None = metadata.get("evidence_refs")
     if not isinstance(value, list):
         return ()
@@ -224,6 +289,14 @@ def _evidence_refs(metadata: ContextMetadataPayload) -> tuple[str, ...]:
 
 
 def _datetime_text(value: datetime | None) -> str:
+    """Execute datetime text.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str result produced by datetime text.
+    """
     if value is None:
         return "open"
     return value.isoformat()

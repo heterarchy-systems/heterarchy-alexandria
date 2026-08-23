@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import StringConstraints, field_validator
+
 from app.memory.domain.event_enum.reconciliation_enums import (
     MemoryConflictStatus,
 )
 from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
 from app.shared.types.types_convert_utils import enum_value
-from pydantic import StringConstraints, field_validator
 
 
 class MemoryConflictResolutionRequest(StrictSchemaModel):

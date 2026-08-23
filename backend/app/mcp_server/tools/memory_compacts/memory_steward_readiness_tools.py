@@ -127,6 +127,15 @@ async def _current_compact_review(
     client: AlexandriaApiClient,
     compact: CurrentCompactPayload,
 ) -> CurrentCompactReviewPayload | None:
+    """Execute current compact review.
+
+    Args:
+        client: Client used by this operation.
+        compact: Compact used by this operation.
+
+    Returns:
+        CurrentCompactReviewPayload | None result produced by current compact review.
+    """
     if not isinstance(compact.id, str) or not compact.id:
         return None
     source_observations = _source_observations_from_compact(compact)
@@ -144,6 +153,16 @@ async def _current_compact_review(
 def _rag_status_unavailable_readiness(
     project: str | None, max_compact_age_days: int, error_message: str
 ) -> JSONValue:
+    """Execute rag status unavailable readiness.
+
+    Args:
+        project: Project used by this operation.
+        max_compact_age_days: Max compact age days used by this operation.
+        error_message: Error message used by this operation.
+
+    Returns:
+        JSONValue result produced by rag status unavailable readiness.
+    """
     warnings = ["rag_status_unavailable"]
     next_actions = readiness_next_actions(
         warnings=warnings,
@@ -180,6 +199,14 @@ def _rag_status_unavailable_readiness(
 def _source_observations_from_compact(
     compact: CurrentCompactPayload,
 ) -> list[JSONObject]:
+    """Execute source observations from compact.
+
+    Args:
+        compact: Compact used by this operation.
+
+    Returns:
+        list[JSONObject] result produced by source observations from compact.
+    """
     observations: list[JSONObject] = []
     for source_ref in compact.source_refs:
         if not isinstance(source_ref.source_id, str) or not source_ref.source_id:
@@ -196,6 +223,14 @@ def _source_observations_from_compact(
 def _compact_review_warnings(
     compact_review: CurrentCompactReviewPayload | None,
 ) -> list[str]:
+    """Execute compact review warnings.
+
+    Args:
+        compact_review: Compact review used by this operation.
+
+    Returns:
+        list[str] result produced by compact review warnings.
+    """
     if compact_review is None:
         return []
     if compact_review.verdict == "blocked":

@@ -154,6 +154,14 @@ class ObsidianLibrarianReviewService:
         self,
         request: ObsidianLibrarianReviewQueueRequest,
     ) -> list[ObsidianVaultMoveRequest]:
+        """Execute librarian review move requests.
+
+        Args:
+            request: Validated request for this operation.
+
+        Returns:
+            list[ObsidianVaultMoveRequest] result produced by librarian review move requests.
+        """
         candidates = await self.review_queue(request)
         return [
             ObsidianVaultMoveRequest(

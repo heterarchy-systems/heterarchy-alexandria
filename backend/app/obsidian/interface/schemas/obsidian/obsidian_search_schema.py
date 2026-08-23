@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import field_validator
+
 from app.obsidian.domain.contracts.obsidian_contracts import (
     ObsidianSearchQuery,
 )
@@ -20,6 +22,9 @@ from app.obsidian.interface.schemas.obsidian.obsidian_note_write_schema import (
     _optional_note_type,
 )
 from app.obsidian.interface.schemas.obsidian.obsidian_schema import ObsidianNoteResponse
+from app.obsidian.interface.schemas.obsidian.obsidian_string_types import (
+    ObsidianQueryText,
+)
 from app.shared.schemas.common_schemas import (
     StrictSchemaModel,
     described_field,
@@ -29,16 +34,13 @@ from app.shared.type_validation.frontmatter_metadata_normalization import (
     normalize_string_collection,
 )
 from app.shared.types.extra_types import JSONValue
-from pydantic import StringConstraints, field_validator
 
 
 class ObsidianSearchRequest(StrictSchemaModel):
     """Search request for Obsidian-backed Alexandria notes."""
 
     query: Annotated[
-        str,
-        StringConstraints(strict=True, min_length=1),
-        described_field("Query for this Obsidian search request."),
+        ObsidianQueryText, described_field("Query for this Obsidian search request.")
     ]
     limit: Annotated[
         int, described_field("Limit for this Obsidian search request.", ge=1, le=50)

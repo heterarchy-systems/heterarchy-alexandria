@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.elements import ColumnElement
+
 from app.obsidian.domain.contracts.obsidian_contracts import (
     ObsidianContextDuplicateQuery,
     ObsidianSearchQuery,
@@ -31,9 +35,6 @@ from app.obsidian.infrastructure.repositories.obsidian_index_row_cleanup import 
 from app.shared.infrastructure.postgres_fts_relevance import (
     postgres_fts_rank_to_score,
 )
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.elements import ColumnElement
 
 
 class ObsidianIndexQueryStore:
@@ -86,6 +87,14 @@ class ObsidianIndexQueryStore:
         frontmatter = ObsidianFileORM.frontmatter_json
 
         def extract(field_name: str) -> ColumnElement[str]:
+            """Execute extract.
+
+            Args:
+                field_name: Field name used by this operation.
+
+            Returns:
+                ColumnElement[str] result produced by extract.
+            """
             return func.json_extract_path_text(frontmatter, field_name)
 
         statement = select(ObsidianFileORM).where(
@@ -229,6 +238,15 @@ async def _recent_notes(
     session: AsyncSession,
     query: ObsidianSearchQuery,
 ) -> list[ObsidianSearchHit]:
+    """Execute recent notes.
+
+    Args:
+        session: Active session used by this operation.
+        query: Query used by this operation.
+
+    Returns:
+        list[ObsidianSearchHit] result produced by recent notes.
+    """
     statement = select(ObsidianFileORM).where(
         ObsidianFileORM.index_status == ObsidianIndexStatus.INDEXED.value
     )

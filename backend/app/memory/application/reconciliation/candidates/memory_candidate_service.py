@@ -97,6 +97,15 @@ def _normalized_claim(
     claim: CanonicalClaim,
     payload: MemoryCandidateCreate,
 ) -> CanonicalClaim:
+    """Execute normalized claim.
+
+    Args:
+        claim: Claim used by this operation.
+        payload: Validated payload for this operation.
+
+    Returns:
+        CanonicalClaim result produced by normalized claim.
+    """
     subject = claim.subject.strip()
     predicate = claim.predicate.strip()
     object_value = claim.object.strip()
@@ -133,6 +142,14 @@ def _normalized_claim(
 def _normalized_source_refs(
     values: tuple[MemorySourceReference, ...],
 ) -> tuple[MemorySourceReference, ...]:
+    """Execute normalized source refs.
+
+    Args:
+        values: Values being processed.
+
+    Returns:
+        tuple[MemorySourceReference, ...] result produced by normalized source refs.
+    """
     normalized: list[MemorySourceReference] = []
     seen: set[tuple[str, str, str]] = set()
     for value in values:
@@ -161,10 +178,26 @@ def _normalized_source_refs(
 
 
 def _normalized_tags(values: tuple[str, ...]) -> tuple[str, ...]:
+    """Execute normalized tags.
+
+    Args:
+        values: Values being processed.
+
+    Returns:
+        tuple[str, ...] result produced by normalized tags.
+    """
     return tuple(dict.fromkeys(tag.strip() for tag in values if tag.strip()))
 
 
 def _optional_text(value: str | None) -> str | None:
+    """Execute optional text.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str | None result produced by optional text.
+    """
     if value is None:
         return None
     normalized = value.strip()

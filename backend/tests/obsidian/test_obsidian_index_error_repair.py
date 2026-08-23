@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import os
-
 from pathlib import Path
 
 import anyio
+
+from app.obsidian.application.notes.frontmatter.obsidian_context_frontmatter_mapper import (
+    context_content_hash,
+)
 from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.obsidian.infrastructure.models import (
     obsidian_index_models as _obsidian_index_models,
@@ -20,8 +23,7 @@ from app.shared.infrastructure.database import Database
 _OBSIDIAN_MODELS_LOADED = _obsidian_index_models
 
 
-def _database_url(path: Path) -> str:
-    del path
+def _database_url() -> str:
     return os.environ["DATABASE_URL"]
 
 
@@ -70,6 +72,18 @@ def test_legacy_index_error_repair_is_hash_locked_and_backup_first(
                 "status: active\n"
                 "---\n\n# Legacy Index\n",
             ),
+            "Alexandria/Contexts/Projects/Invalid Content Hash.md": _write(
+                root / "Contexts/Projects/Invalid Content Hash.md",
+                "---\n"
+                "id: invalid_content_hash\n"
+                "alexandria_type: context\n"
+                "title: Invalid Content Hash\n"
+                "scope: PROJECT\n"
+                "project: heterarchy-alexandria\n"
+                "status: active\n"
+                "content_hash: " + ("0" * 64) + "\n"
+                "---\n\n# Invalid Content Hash\n\nCanonical body.\n",
+            ),
             (
                 "Alexandria/Contexts/Projects/heterarchy-alexandria/"
                 "Implementation History/Legacy History.md"
@@ -85,7 +99,7 @@ def test_legacy_index_error_repair_is_hash_locked_and_backup_first(
             ),
         }
         database = Database(
-            database_url=_database_url(tmp_path / "obsidian.db"),
+            database_url=_database_url(),
             create_schema=True,
         )
         await database.initialize()
@@ -132,6 +146,9 @@ def test_legacy_index_error_repair_is_hash_locked_and_backup_first(
                 "index": (
                     vault / "Alexandria/Contexts/Projects/00 Legacy Index.md"
                 ).read_text(encoding="utf-8"),
+                "content_hash": (
+                    vault / "Alexandria/Contexts/Projects/Invalid Content Hash.md"
+                ).read_text(encoding="utf-8"),
                 "history": (
                     vault / "Alexandria/Contexts/Projects/heterarchy-alexandria/"
                     "Implementation History/Legacy History.md"
@@ -166,6 +183,7 @@ def test_legacy_index_error_repair_is_hash_locked_and_backup_first(
     assert files_indexed == 0
     assert error_codes == (
         "INVALID_SCOPE",
+        "INVALID_CONTENT_HASH",
         "INVALID_STATUS",
         "FRONTMATTER_PARSE_ERROR",
     )
@@ -175,4 +193,8 @@ def test_legacy_index_error_repair_is_hash_locked_and_backup_first(
     assert "status: archived" in repaired["saved"]
     assert "scope: PROJECT" in repaired["index"]
     assert "status: archived" in repaired["index"]
+    expected_content_hash = context_content_hash(
+        "# Invalid Content Hash\n\nCanonical body.\n"
+    )
+    assert f"content_hash: {expected_content_hash}" in repaired["content_hash"]
     assert "id: legacy-implementation-" in repaired["history"]

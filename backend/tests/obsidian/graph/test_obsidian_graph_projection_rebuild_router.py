@@ -3,17 +3,20 @@
 from __future__ import annotations
 
 import os
-
 from pathlib import Path
 
 import anyio
 import pytest
+from dependency_injector import providers
+from fastapi.testclient import TestClient
+from tests.memory.context_retrieval_kernel_test_provider import (
+    create_test_context_retrieval_kernel_provider,
+)
+
 from app.main import app as default_app, create_app
 from app.obsidian.infrastructure.graph import neo4j_graph_projection_factory
 from app.platform.config.app_config import AppConfig
 from app.shared.infrastructure.database import Database
-from dependency_injector import providers
-from fastapi.testclient import TestClient
 
 _ROUTER_PACKAGES = [
     "app.connections.interface.routers",
@@ -24,8 +27,7 @@ _ROUTER_PACKAGES = [
 ]
 
 
-def _database_url(path: Path) -> str:
-    del path
+def _database_url() -> str:
     return os.environ["DATABASE_URL"]
 
 
@@ -34,7 +36,7 @@ def test_disabled_projection_rebuild_and_status_api_do_not_create_neo4j_driver_o
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Default disabled API responses should be explicit and non-mutating."""
-    database_url = _database_url(tmp_path / "api.db")
+    database_url = _database_url()
     database = Database(database_url=database_url, create_schema=True)
     anyio.run(database.initialize)
     anyio.run(database.shutdown)
@@ -69,6 +71,9 @@ def test_disabled_projection_rebuild_and_status_api_do_not_create_neo4j_driver_o
         with (
             root_container.librarian.hermes_collaboration_service.override(
                 providers.Object(None)
+            ),
+            root_container.memory.retrieval_kernel_provider.override(
+                providers.Object(create_test_context_retrieval_kernel_provider())
             ),
             TestClient(app, raise_server_exceptions=False) as client,
         ):

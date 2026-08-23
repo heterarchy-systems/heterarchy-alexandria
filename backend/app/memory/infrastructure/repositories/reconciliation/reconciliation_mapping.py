@@ -87,4 +87,12 @@ def temporal_from_row(row: ContextTemporalStateORM) -> MemoryTemporalState:
 
 
 def _json_object(value: dict[str, JSONValue]) -> JSONObject:
+    """Execute json object.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        JSONObject result produced by json object.
+    """
     return dict(value)

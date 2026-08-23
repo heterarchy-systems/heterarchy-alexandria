@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from fastapi import status
+
 from app.shared.exceptions.common_exceptions import (
     BoundaryValidationError,
     IndexMaintenanceConflictError,
@@ -33,7 +35,6 @@ from app.shared.exceptions.obsidian_exceptions import (
     ObsidianWriteConflictError,
     ObsidianWriteTargetNotFoundError,
 )
-from fastapi import status
 
 CONNECTIONS_PROVIDER_TEST_EXCEPTION_MAPPING: RouteExceptionStatusMapping = {
     ConnectionsResourceNotFoundError: (

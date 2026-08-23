@@ -244,7 +244,16 @@ class ObsidianNoteService:
         existing_note: ObsidianNote | None = None,
         frontmatter_mode: ObsidianFrontmatterMode | None = None,
     ) -> tuple[ObsidianNote, bool]:
-        """Save one note while serializing canonical read-check-replace writes."""
+        """Save one note while serializing canonical read-check-replace writes.
+
+        Args:
+            payload: Validated payload for this operation.
+            existing_note: Existing note used by this operation.
+            frontmatter_mode: Frontmatter mode used by this operation.
+
+        Returns:
+            tuple[ObsidianNote, bool] result produced by save note serialized.
+        """
         config = self._vault_config_store.current()
         title = payload.title.strip()
         if not title:
@@ -409,6 +418,9 @@ class ObsidianNoteService:
         Error persistence uses the same rebuildable PostgreSQL index. If that
         secondary recovery write also fails, the original domain error remains
         authoritative and the canonical Markdown stays available for reindex.
+
+        Args:
+            index_error: Index error used by this operation.
         """
         try:
             await self._repository.record_index_error(index_error)

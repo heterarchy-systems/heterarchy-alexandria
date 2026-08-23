@@ -4,12 +4,6 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from app.shared.infrastructure.database import Base
-from app.shared.infrastructure.datetime_types import UTCDateTime
-from app.shared.infrastructure.embedding_vector_type import EmbeddingVectorType
-from app.shared.infrastructure.identifiers import new_uuid
-from app.shared.types.embedding_types import EmbeddingVector
-from app.shared.types.extra_types import JSONValue
 from sqlalchemy import (
     JSON,
     Boolean,
@@ -22,6 +16,13 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column
+
+from app.shared.infrastructure.database import Base
+from app.shared.infrastructure.datetime_types import UTCDateTime
+from app.shared.infrastructure.embedding_vector_type import EmbeddingVectorType
+from app.shared.infrastructure.identifiers import new_uuid
+from app.shared.types.embedding_types import EmbeddingVector
+from app.shared.types.extra_types import JSONValue
 
 
 class ObsidianFileORM(Base):

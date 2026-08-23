@@ -20,7 +20,7 @@
       "expected_titles": [
         "Alexandria Memory Steward Contract"
       ],
-      "project": "alexandria-hermes"
+      "project": "heterarchy-alexandria"
     },
     {
       "query": "새 CURRENT Memory Compact를 승격한 뒤 이전 CURRENT를 어떻게 처리하는가?",
@@ -28,7 +28,7 @@
         "Alexandria Memory Steward Contract",
         "Memory Compact 품질 및 생명주기 Specification"
       ],
-      "project": "alexandria-hermes"
+      "project": "heterarchy-alexandria"
     },
     {
       "query": "temporal compact의 week_N은 ISO week가 아니라 어떤 기준으로 계산하지?",
@@ -36,42 +36,44 @@
         "Alexandria Memory Steward Contract",
         "Memory Compact 품질 및 생명주기 Specification"
       ],
-      "project": "alexandria-hermes"
+      "project": "heterarchy-alexandria"
     },
     {
       "query": "Neo4j graph evidence가 primary FTS vector ranking을 바꾸면 retrieval은 어떻게 동작해야 하나?",
       "expected_titles": [
         "Neo4j 기능 05 Graph-aware Context Retrieval"
       ],
-      "project": "alexandria-hermes"
+      "project": "heterarchy-alexandria"
     },
     {
       "query": "graph mode disabled일 때 warning이나 graph evidence를 붙이지 않는 no-op contract",
       "expected_titles": [
         "Neo4j 기능 05 Graph-aware Context Retrieval"
       ],
-      "project": "alexandria-hermes"
+      "project": "heterarchy-alexandria"
     },
     {
       "query": "Graph evidence lane은 primary recall ordering과 score를 preserve해야 한다는 규칙",
       "expected_titles": [
         "Neo4j 기능 05 Graph-aware Context Retrieval"
       ],
-      "project": "alexandria-hermes"
+      "project": "heterarchy-alexandria"
     },
     {
       "query": "Alexandria에서 archived PRD와 현재 제품 계약을 구분해서 탐색하려면 어느 source mount를 봐야 하나?",
       "expected_titles": [
-        "Alexandria-Hermes Source Index"
+        "heterarchy-alexandria Project Index",
+        "Alexandria Knowledge Operating System"
       ],
-      "project": "alexandria-hermes"
+      "project": "heterarchy-alexandria"
     },
     {
       "query": "운영 evidence와 active specification, archived design source를 한곳에서 찾아가는 인덱스",
       "expected_titles": [
-        "Alexandria-Hermes Source Index"
+        "heterarchy-alexandria Project Index",
+        "Alexandria Knowledge Operating System"
       ],
-      "project": "alexandria-hermes"
+      "project": "heterarchy-alexandria"
     }
   ]
 }

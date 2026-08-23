@@ -105,6 +105,7 @@ class BenchmarkEnvironment:
     repetitions: int
     golden_case_count: int
     golden_cases_path: str | None
+    retrieval_kernel_authority: str | None
     graph_phase_timing_available: bool
     server_memory_timing_available: bool
 

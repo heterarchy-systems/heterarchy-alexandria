@@ -24,6 +24,12 @@ class ObsidianGraphService:
         repository: IObsidianIndexQueryRepository,
         graph_repository: IObsidianGraphProjectionRepository | None,
     ) -> None:
+        """Initialize ObsidianGraphService state and dependencies.
+
+        Args:
+            repository: Repository used by this operation.
+            graph_repository: Graph repository persistence dependency.
+        """
         self._repository = repository
         self._graph_repository = graph_repository
 
@@ -75,6 +81,11 @@ class ObsidianGraphService:
         )
 
     def _require_graph_repository(self) -> IObsidianGraphProjectionRepository:
+        """Execute require graph repository.
+
+        Returns:
+            IObsidianGraphProjectionRepository result produced by require graph repository.
+        """
         if self._graph_repository is None:
             raise ObsidianGraphUnavailableError(
                 "Obsidian graph read model is disabled; enable Neo4j and rebuild "
@@ -88,6 +99,16 @@ class ObsidianGraphService:
         note_id: str,
         limit: int,
     ) -> list[ObsidianRelatedNote]:
+        """Execute hydrate related.
+
+        Args:
+            graph_repository: Graph repository persistence dependency.
+            note_id: Identifier for note.
+            limit: Maximum number of items to process or return.
+
+        Returns:
+            list[ObsidianRelatedNote] result produced by hydrate related.
+        """
         graph_results = await graph_repository.related_notes(
             note_id=note_id,
             limit=limit,

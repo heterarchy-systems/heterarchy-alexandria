@@ -1,1 +1,0 @@
-"""Skill artifacts package."""

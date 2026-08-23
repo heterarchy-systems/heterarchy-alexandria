@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.memory.domain.entities.context_read_models import (
     ContextAccessEventRecord,
     ContextChunkRecord,
@@ -22,8 +25,6 @@ from app.memory.infrastructure.repositories.contexts.records.mapping import (
     map_context_row,
 )
 from app.shared.exceptions.memory_context_exceptions import MemoryContextNotFoundError
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ContextRecordQueryStore:

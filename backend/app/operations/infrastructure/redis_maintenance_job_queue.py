@@ -13,6 +13,7 @@ from redis.asyncio import Redis
 from redis.exceptions import RedisError, ResponseError
 
 from app.operations.application.maintenance_job_queue import (
+    MaintenanceJobSubmitter,
     MaintenanceQueueUnavailableError,
     MaintenanceSubmissionRateLimitError,
 )
@@ -56,6 +57,7 @@ class MaintenanceDeadLetterFields(TypedDict):
     source_stream_id: str
 
 
+# protocol-contract: structural-seam
 class RedisStreamWriter(Protocol):
     """Narrow async XADD boundary used to isolate redis-py generic stubs."""
 
@@ -79,10 +81,16 @@ class RedisStreamWriter(Protocol):
         """
 
 
-class RedisMaintenanceJobSubmitter:
+class RedisMaintenanceJobSubmitter(MaintenanceJobSubmitter):
     """API-facing Redis adapter for submission and bounded status reads."""
 
     def __init__(self, client: Redis, config: MaintenanceQueueConfig) -> None:
+        """Initialize RedisMaintenanceJobSubmitter state and dependencies.
+
+        Args:
+            client: Client used by this operation.
+            config: Typed configuration used by this operation.
+        """
         self._client = client
         self._config = config
 
@@ -236,17 +244,27 @@ def create_maintenance_worker_client(config: MaintenanceQueueConfig) -> Redis:
             "SERVICE_REDIS_URL is required by the maintenance worker"
         )
     block_seconds = config.block_milliseconds / 1000
+    socket_timeout_seconds = max(10.0, block_seconds + 5.0)
     return Redis.from_url(
         config.redis_url,
         decode_responses=False,
         socket_connect_timeout=0.5,
-        socket_timeout=block_seconds + 1.0,
+        socket_timeout=socket_timeout_seconds,
         health_check_interval=30,
         max_connections=config.worker_max_connections,
     )
 
 
 def _status_key(config: MaintenanceQueueConfig, job_id: str) -> str:
+    """Execute status key.
+
+    Args:
+        config: Typed configuration used by this operation.
+        job_id: Identifier for job.
+
+    Returns:
+        str result produced by status key.
+    """
     return f"{config.status_key_prefix}:{job_id}"
 
 
@@ -254,6 +272,15 @@ def _dedup_key(
     config: MaintenanceQueueConfig,
     request: MaintenanceJobRequest,
 ) -> str:
+    """Execute dedup key.
+
+    Args:
+        config: Typed configuration used by this operation.
+        request: Validated request for this operation.
+
+    Returns:
+        str result produced by dedup key.
+    """
     material = "\x1f".join(
         (
             request.kind.value,
@@ -271,12 +298,29 @@ def _rate_key(
     config: MaintenanceQueueConfig,
     request: MaintenanceJobRequest,
 ) -> str:
+    """Execute rate key.
+
+    Args:
+        config: Typed configuration used by this operation.
+        request: Validated request for this operation.
+
+    Returns:
+        str result produced by rate key.
+    """
     material = f"{request.kind.value}\x1f{request.requested_by}"
     digest = hashlib.sha256(material.encode("utf-8")).hexdigest()
     return f"{config.rate_key_prefix}:maintenance:{digest}"
 
 
 def _status_mapping(fields: MaintenanceStatusMutation) -> dict[str, str | bytes]:
+    """Execute status mapping.
+
+    Args:
+        fields: Fields used by this operation.
+
+    Returns:
+        dict[str, str | bytes] result produced by status mapping.
+    """
     mapping: dict[str, str | bytes] = {}
     if "status" in fields:
         mapping["status"] = fields["status"]
@@ -292,6 +336,14 @@ def _status_mapping(fields: MaintenanceStatusMutation) -> dict[str, str | bytes]
 
 
 def _dead_letter_mapping(fields: MaintenanceDeadLetterFields) -> dict[str, str]:
+    """Execute dead letter mapping.
+
+    Args:
+        fields: Fields used by this operation.
+
+    Returns:
+        dict[str, str] result produced by dead letter mapping.
+    """
     return {
         "job_id": fields["job_id"],
         "kind": fields["kind"],

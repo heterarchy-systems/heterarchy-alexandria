@@ -2,6 +2,9 @@
 
 from typing import Annotated
 
+from dependency_injector.wiring import Provide, inject
+from fastapi import APIRouter, Depends, status
+
 from app.container import ApplicationContainer
 from app.obsidian.application.librarian.workflow.obsidian_librarian_workflow_service import (
     ObsidianLibrarianWorkflowService,
@@ -21,8 +24,6 @@ from app.shared.exceptions.route_exceptions import (
     OBSIDIAN_ROUTE_EXCEPTION_MAPPING,
 )
 from app.shared.type_validation.strict_json_body import model_validate_json_body
-from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, status
 
 router = APIRouter()
 

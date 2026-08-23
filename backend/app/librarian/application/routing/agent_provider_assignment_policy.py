@@ -61,6 +61,14 @@ class AgentProviderAssignmentPolicy:
             )
 
     async def _resolve(self, provider_id: str) -> LibrarianProvider | None:
+        """Execute resolve.
+
+        Args:
+            provider_id: Identifier for provider.
+
+        Returns:
+            LibrarianProvider | None result produced by resolve.
+        """
         provider = await self._provider_repository.get(provider_id)
         if provider is not None:
             return provider

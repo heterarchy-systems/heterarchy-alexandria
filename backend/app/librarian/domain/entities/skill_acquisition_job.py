@@ -12,7 +12,7 @@ from app.librarian.domain.event_enum.collaboration_enums import (
 from app.shared.types.extra_types import JSONObject
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class SkillAcquisitionJob:
     """Read model for one librarian-owned skill-acquisition job."""
 
@@ -46,7 +46,7 @@ class SkillAcquisitionJob:
 
     def __post_init__(self) -> None:
         """Normalize evidence URLs to an immutable sequence."""
-        object.__setattr__(self, "evidence_urls", tuple(self.evidence_urls))
+        self.evidence_urls = tuple(self.evidence_urls)
 
     @property
     def result_available(self) -> bool:

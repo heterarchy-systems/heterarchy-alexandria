@@ -6,6 +6,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated
 
+from pydantic import ConfigDict, ValidationError
+
 from app.operations.application.recovery.planning.operational_recovery_paths import (
     recovery_directory as _recovery_dir,
 )
@@ -33,7 +35,6 @@ from app.shared.schemas.common_schemas import (
 from app.shared.serialization.model_codec import schema_payload
 from app.shared.serialization.orjson_codec import dumps_pretty_json
 from app.shared.types.extra_types import JSONObject
-from pydantic import ConfigDict, ValidationError
 
 
 class RecoveryPersistencePayload(StrictSchemaModel):
@@ -136,18 +137,44 @@ class RecoveryRunManifestPayload(RecoveryPersistencePayload):
 
 
 def _manifest_path(plan: RecoveryPlan) -> Path:
+    """Execute manifest path.
+
+    Args:
+        plan: Plan used by this operation.
+
+    Returns:
+        Path result produced by manifest path.
+    """
     return _manifest_path_by_id(run_id=plan.id)
 
 
 def _manifest_path_by_id(run_id: str) -> Path:
+    """Execute manifest path by id.
+
+    Args:
+        run_id: Identifier for run.
+
+    Returns:
+        Path result produced by manifest path by id.
+    """
     return _recovery_dir() / run_id / "recovery-run.json"
 
 
 def _active_lock_path() -> Path:
+    """Execute active lock path.
+
+    Returns:
+        Path result produced by active lock path.
+    """
     return _recovery_dir() / "active-run.json"
 
 
 def _read_active_lock() -> RecoveryActiveLockPayload | None:
+    """Read active lock.
+
+    Returns:
+        Loaded active lock.
+    """
     path = _active_lock_path()
     if not path.exists():
         return None
@@ -158,6 +185,11 @@ def _read_active_lock() -> RecoveryActiveLockPayload | None:
 
 
 def _unreadable_active_lock() -> RecoveryActiveLockPayload:
+    """Execute unreadable active lock.
+
+    Returns:
+        RecoveryActiveLockPayload result produced by unreadable active lock.
+    """
     return RecoveryActiveLockPayload(
         run_id=UNREADABLE_ACTIVE_RECOVERY_RUN_ID,
         read_error="active_recovery_lock_unreadable",
@@ -165,6 +197,11 @@ def _unreadable_active_lock() -> RecoveryActiveLockPayload:
 
 
 def _write_active_lock(plan: RecoveryPlan) -> None:
+    """Write active lock.
+
+    Args:
+        plan: Plan used by this operation.
+    """
     path = _active_lock_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = RecoveryActiveLockPayload(
@@ -178,6 +215,15 @@ def _write_active_lock(plan: RecoveryPlan) -> None:
 
 
 def _checkpoint_active_step(plan: RecoveryPlan, current_step: str) -> str:
+    """Execute checkpoint active step.
+
+    Args:
+        plan: Plan used by this operation.
+        current_step: Current step used by this operation.
+
+    Returns:
+        str result produced by checkpoint active step.
+    """
     path = _active_lock_path()
     payload = _read_active_lock()
     if payload is None or payload.run_id != plan.id:
@@ -197,6 +243,11 @@ def _checkpoint_active_step(plan: RecoveryPlan, current_step: str) -> str:
 
 
 def _clear_active_lock(plan: RecoveryPlan) -> None:
+    """Execute clear active lock.
+
+    Args:
+        plan: Plan used by this operation.
+    """
     path = _active_lock_path()
     if not path.exists():
         return
@@ -207,6 +258,11 @@ def _clear_active_lock(plan: RecoveryPlan) -> None:
 
 
 def _clear_active_lock_for_run_id(run_id: str) -> None:
+    """Execute clear active lock for run id.
+
+    Args:
+        run_id: Identifier for run.
+    """
     path = _active_lock_path()
     if not path.exists():
         return
@@ -217,17 +273,38 @@ def _clear_active_lock_for_run_id(run_id: str) -> None:
 
 
 def _write_manifest(run: RecoveryRun) -> None:
+    """Write manifest.
+
+    Args:
+        run: Run used by this operation.
+    """
     path = Path(run.manifest_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(dumps_pretty_json(schema_payload(_run_payload(run))))
 
 
 def _run_from_manifest(path: Path) -> RecoveryRun:
+    """Run from manifest.
+
+    Args:
+        path: Path used by this operation.
+
+    Returns:
+        RecoveryRun result produced by run from manifest.
+    """
     payload = RecoveryRunManifestPayload.model_validate_json(path.read_bytes())
     return _run_from_payload(payload, str(path))
 
 
 def _run_payload(run: RecoveryRun) -> RecoveryRunManifestPayload:
+    """Run payload.
+
+    Args:
+        run: Run used by this operation.
+
+    Returns:
+        RecoveryRunManifestPayload result produced by run payload.
+    """
     return RecoveryRunManifestPayload(
         id=run.id,
         parent_run_id=run.parent_run_id,
@@ -254,6 +331,14 @@ def _run_payload(run: RecoveryRun) -> RecoveryRunManifestPayload:
 def _source_snapshot_payload(
     snapshot: RecoverySourceSnapshot,
 ) -> RecoverySourceSnapshotPayload:
+    """Execute source snapshot payload.
+
+    Args:
+        snapshot: Snapshot used by this operation.
+
+    Returns:
+        RecoverySourceSnapshotPayload result produced by source snapshot payload.
+    """
     return RecoverySourceSnapshotPayload(
         vault_path=snapshot.vault_path,
         alexandria_root=snapshot.alexandria_root,
@@ -267,6 +352,14 @@ def _source_snapshot_payload(
 
 
 def _planned_step_payload(step: RecoveryPlanStep) -> RecoveryPlanStepPayload:
+    """Execute planned step payload.
+
+    Args:
+        step: Step used by this operation.
+
+    Returns:
+        RecoveryPlanStepPayload result produced by planned step payload.
+    """
     return RecoveryPlanStepPayload(
         code=step.code,
         title=step.title,
@@ -275,6 +368,14 @@ def _planned_step_payload(step: RecoveryPlanStep) -> RecoveryPlanStepPayload:
 
 
 def _step_result_payload(step: RecoveryRunStepResult) -> RecoveryStepResultPayload:
+    """Execute step result payload.
+
+    Args:
+        step: Step used by this operation.
+
+    Returns:
+        RecoveryStepResultPayload result produced by step result payload.
+    """
     return RecoveryStepResultPayload(
         code=step.code,
         status=step.status,
@@ -290,6 +391,15 @@ def _run_from_payload(
     payload: RecoveryRunManifestPayload,
     manifest_path: str,
 ) -> RecoveryRun:
+    """Run from payload.
+
+    Args:
+        payload: Validated payload for this operation.
+        manifest_path: Manifest path used by this operation.
+
+    Returns:
+        RecoveryRun result produced by run from payload.
+    """
     return RecoveryRun(
         id=payload.id,
         parent_run_id=payload.parent_run_id,
@@ -321,6 +431,14 @@ def _run_from_payload(
 def _source_snapshot_from_payload(
     payload: RecoverySourceSnapshotPayload,
 ) -> RecoverySourceSnapshot:
+    """Execute source snapshot from payload.
+
+    Args:
+        payload: Validated payload for this operation.
+
+    Returns:
+        RecoverySourceSnapshot result produced by source snapshot from payload.
+    """
     return RecoverySourceSnapshot(
         vault_path=payload.vault_path,
         alexandria_root=payload.alexandria_root,
@@ -334,6 +452,14 @@ def _source_snapshot_from_payload(
 
 
 def _planned_step_from_payload(payload: RecoveryPlanStepPayload) -> RecoveryPlanStep:
+    """Execute planned step from payload.
+
+    Args:
+        payload: Validated payload for this operation.
+
+    Returns:
+        RecoveryPlanStep result produced by planned step from payload.
+    """
     return RecoveryPlanStep(
         code=payload.code,
         title=payload.title,
@@ -344,6 +470,14 @@ def _planned_step_from_payload(payload: RecoveryPlanStepPayload) -> RecoveryPlan
 def _step_result_from_payload(
     payload: RecoveryStepResultPayload,
 ) -> RecoveryRunStepResult:
+    """Execute step result from payload.
+
+    Args:
+        payload: Validated payload for this operation.
+
+    Returns:
+        RecoveryRunStepResult result produced by step result from payload.
+    """
     return RecoveryRunStepResult(
         code=payload.code,
         status=payload.status,

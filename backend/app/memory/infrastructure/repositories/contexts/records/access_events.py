@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.memory.domain.contracts.context_contracts import ContextAccessCreate
 from app.memory.domain.entities.context_read_models import (
     ContextAccessEventRecord,
@@ -15,8 +18,6 @@ from app.memory.infrastructure.repositories.contexts.records.mapping import (
     map_access_event_row,
     map_context_row,
 )
-from sqlalchemy import select, update
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def record_context_access(

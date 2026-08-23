@@ -14,14 +14,38 @@ DEFAULT_CANDIDATE_AUTHOR = "Hermes"
 
 
 def _bounded_packet_budget(limit: int) -> int:
+    """Execute bounded packet budget.
+
+    Args:
+        limit: Maximum number of items to process or return.
+
+    Returns:
+        int result produced by bounded packet budget.
+    """
     return min(max(int(limit), 1_000), 120_000)
 
 
 def _bounded_source_ref_limit(limit: int) -> int:
+    """Execute bounded source ref limit.
+
+    Args:
+        limit: Maximum number of items to process or return.
+
+    Returns:
+        int result produced by bounded source ref limit.
+    """
     return min(max(int(limit), 1), 100)
 
 
 def _bounded_search_limit(limit: int) -> int:
+    """Execute bounded search limit.
+
+    Args:
+        limit: Maximum number of items to process or return.
+
+    Returns:
+        int result produced by bounded search limit.
+    """
     bounded_limit = min(max(int(limit), 1), 50)
     return bounded_limit
 
@@ -39,6 +63,14 @@ def _path_segment(value: str) -> str:
 
 
 def _required_recovery_run_idempotency_key(value: str | None) -> str:
+    """Execute required recovery run idempotency key.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str result produced by required recovery run idempotency key.
+    """
     if value is None or not value.strip():
         raise ValueError("idempotency_key is required when recovery dry_run is false")
     return value.strip()
@@ -75,6 +107,14 @@ def _evidence_items_or_empty(
 
 
 def _move_payloads(moves: list[dict[str, str]]) -> list[JSONObject]:
+    """Execute move payloads.
+
+    Args:
+        moves: Moves used by this operation.
+
+    Returns:
+        list[JSONObject] result produced by move payloads.
+    """
     return [
         {
             "source_path": move["source_path"],

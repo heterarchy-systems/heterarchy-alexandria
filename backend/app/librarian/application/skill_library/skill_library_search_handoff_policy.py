@@ -12,6 +12,14 @@ from app.shared.types.extra_types import JSONObject, JSONValue
 
 
 def _query_text(brief: SkillCapabilityBrief) -> str:
+    """Execute query text.
+
+    Args:
+        brief: Brief used by this operation.
+
+    Returns:
+        str result produced by query text.
+    """
     parts = [brief.capability, brief.task_goal, brief.environment]
     parts.extend(brief.required_tools)
     parts.extend(brief.success_criteria)
@@ -22,6 +30,15 @@ def _existing_skill_handoff(
     candidate: SkillSearchCandidate,
     brief: SkillCapabilityBrief,
 ) -> JSONObject:
+    """Execute existing skill handoff.
+
+    Args:
+        candidate: Candidate used by this operation.
+        brief: Brief used by this operation.
+
+    Returns:
+        JSONObject result produced by existing skill handoff.
+    """
     evidence: list[JSONValue] = [
         {
             "url_or_path": url,
@@ -63,6 +80,14 @@ def _existing_skill_handoff(
 
 
 def _repair_handoff(error_message: str) -> JSONObject:
+    """Execute repair handoff.
+
+    Args:
+        error_message: Error message used by this operation.
+
+    Returns:
+        JSONObject result produced by repair handoff.
+    """
     return {
         "decision": "skill_search_repair_required",
         "repair": {
@@ -83,6 +108,15 @@ def _empty_decision_explanation(
     gaps: Sequence[str],
     limitations: Sequence[str],
 ) -> JSONObject:
+    """Execute empty decision explanation.
+
+    Args:
+        gaps: Gaps used by this operation.
+        limitations: Limitations used by this operation.
+
+    Returns:
+        JSONObject result produced by empty decision explanation.
+    """
     return {
         "candidate_count": 0,
         "candidate_ids": [],
@@ -98,6 +132,15 @@ def _decision_explanation(
     candidates: Sequence[SkillSearchCandidate],
     gaps: Sequence[str],
 ) -> JSONObject:
+    """Execute decision explanation.
+
+    Args:
+        candidates: Candidates used by this operation.
+        gaps: Gaps used by this operation.
+
+    Returns:
+        JSONObject result produced by decision explanation.
+    """
     return {
         "candidate_count": len(candidates),
         "candidate_ids": [candidate.id for candidate in candidates],
@@ -120,6 +163,14 @@ def _decision_explanation(
 
 
 def _unique_gap_list(candidates: Sequence[SkillSearchCandidate]) -> list[str]:
+    """Execute unique gap list.
+
+    Args:
+        candidates: Candidates used by this operation.
+
+    Returns:
+        list[str] result produced by unique gap list.
+    """
     gaps: list[str] = []
     for candidate in candidates:
         for gap in candidate.gaps:

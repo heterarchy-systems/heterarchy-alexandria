@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import StringConstraints
+
 from app.memory.application.memory_compacts.review.memory_compact_review_contracts import (
     MemoryCompactReviewResult,
     MemoryCompactRubricScore,
@@ -17,7 +19,6 @@ from app.shared.schemas.common_schemas import (
     described_field,
     schema_list_default,
 )
-from pydantic import StringConstraints
 
 
 class MemoryCompactSourceObservationRequest(StrictSchemaModel):

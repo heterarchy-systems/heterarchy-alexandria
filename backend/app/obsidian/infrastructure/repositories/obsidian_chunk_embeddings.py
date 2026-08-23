@@ -5,11 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.obsidian.infrastructure.models.obsidian_index_models import ObsidianChunkORM
 from app.shared.types.embedding_types import EmbeddingVector
 from app.shared.types.extra_types import JSONObject
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass(frozen=True, slots=True)

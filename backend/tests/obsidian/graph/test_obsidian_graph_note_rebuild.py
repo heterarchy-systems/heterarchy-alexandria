@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-
 from pathlib import Path
 
 import anyio
@@ -19,6 +18,9 @@ from app.obsidian.application.graph.projection.obsidian_graph_projection_source_
 from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.obsidian.domain.contracts.obsidian_contracts import ObsidianSaveNote
 from app.obsidian.domain.event_enum.obsidian_enums import AlexandriaNoteType
+from app.obsidian.infrastructure.graph.native_obsidian_graph_projection_compute_provider import (
+    create_native_obsidian_graph_projection_compute_provider,
+)
 from app.obsidian.infrastructure.graph.sqlalchemy_obsidian_graph_projection_source import (
     SqlAlchemyObsidianGraphProjectionSource,
 )
@@ -95,7 +97,10 @@ def test_rebuild_note_graph_replaces_cached_edges_and_activates_projection(
                     neo4j_username="neo4j",
                     neo4j_password="local-test-password",
                 ),
-                source_builder=ObsidianGraphProjectionSourceBuilder(source=source),
+                source_builder=ObsidianGraphProjectionSourceBuilder(
+                    compute_provider=create_native_obsidian_graph_projection_compute_provider(),
+                    source=source,
+                ),
                 repository=graph_repository,
                 index_maintenance_coordinator=coordinator,
                 run_id_factory=lambda: "note-rebuild-run",

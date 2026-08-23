@@ -5,8 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Final
 
-from app.platform.config.app_config import AppConfig
 from typing_extensions import TypedDict
+
+from app.platform.config.app_config import AppConfig
 
 _CODEX_DEVICE_AUTHORIZATION_PATH: Final[str] = "/api/accounts/deviceauth/usercode"
 _CODEX_DEVICE_TOKEN_PATH: Final[str] = "/api/accounts/deviceauth/token"

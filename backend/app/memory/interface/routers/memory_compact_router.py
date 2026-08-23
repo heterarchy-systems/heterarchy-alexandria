@@ -3,6 +3,10 @@
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
+from dependency_injector.wiring import Provide, inject
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from typing_extensions import TypedDict
+
 from app.container import ApplicationContainer
 from app.memory.application.contexts.records.context_service import ContextService
 from app.memory.application.memory_compacts.lifecycle.memory_compact_service import (
@@ -33,9 +37,6 @@ from app.shared.type_validation.strict_json_body import (
     model_validate_json_body,
     model_validate_optional_json_body,
 )
-from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from typing_extensions import TypedDict
 
 router = APIRouter(prefix="/memory/compacts", tags=["memory-compacts"])
 
@@ -333,6 +334,15 @@ async def archive_memory_compact(
 def _current_compact_warnings(
     compact: MemoryCompact, max_compact_age_days: int
 ) -> list[str]:
+    """Execute current compact warnings.
+
+    Args:
+        compact: Compact used by this operation.
+        max_compact_age_days: Max compact age days used by this operation.
+
+    Returns:
+        list[str] result produced by current compact warnings.
+    """
     freshness_reference = compact.reviewed_at or compact.updated_at
     if datetime.now(UTC) - freshness_reference > timedelta(days=max_compact_age_days):
         return ["current_memory_compact_stale"]
@@ -342,6 +352,14 @@ def _current_compact_warnings(
 async def _ensure_rag_healthy_for_current(
     context_service: ContextService,
 ) -> MemoryCompactRagGateResponse:
+    """Ensure rag healthy for current.
+
+    Args:
+        context_service: Context service dependency.
+
+    Returns:
+        MemoryCompactRagGateResponse result produced by ensure rag healthy for current.
+    """
     try:
         health = await context_service.rag_health_with_index_status()
     except Exception as exc:
@@ -370,6 +388,14 @@ async def _ensure_rag_healthy_for_current(
 
 
 def _rag_health_blockers(health: RagDependencyHealth) -> list[str]:
+    """Execute rag health blockers.
+
+    Args:
+        health: Health used by this operation.
+
+    Returns:
+        list[str] result produced by rag health blockers.
+    """
     blockers: list[str] = []
     if health.fts is not RagHealthState.HEALTHY:
         blockers.append("rag_fts_not_healthy")
@@ -388,6 +414,15 @@ def _rag_health_block_detail(
     blockers: list[str],
     warnings: list[str],
 ) -> RagHealthGateBlockDetail:
+    """Execute rag health block detail.
+
+    Args:
+        blockers: Blockers used by this operation.
+        warnings: Warnings used by this operation.
+
+    Returns:
+        RagHealthGateBlockDetail result produced by rag health block detail.
+    """
     return RagHealthGateBlockDetail(
         error="blocked_by_rag_health",
         gate_status="blocked",
@@ -399,6 +434,14 @@ def _rag_health_block_detail(
 
 
 def _rag_health_recovery_tools(blockers: list[str]) -> list[str]:
+    """Execute rag health recovery tools.
+
+    Args:
+        blockers: Blockers used by this operation.
+
+    Returns:
+        list[str] result produced by rag health recovery tools.
+    """
     tools: list[str] = []
     if "rag_embedding_reindex_required" in blockers:
         tools.append("alexandria_reindex_context_embeddings")

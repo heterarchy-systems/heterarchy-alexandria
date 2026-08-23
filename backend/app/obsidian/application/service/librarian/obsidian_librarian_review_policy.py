@@ -32,6 +32,16 @@ def _review_queue_item(
     root: str,
     duplicate_skill_note_ids: set[str],
 ) -> ObsidianLibrarianReviewQueueItem | None:
+    """Execute review queue item.
+
+    Args:
+        item: Item being processed.
+        root: Root used by this operation.
+        duplicate_skill_note_ids: Identifiers for duplicate skill note.
+
+    Returns:
+        ObsidianLibrarianReviewQueueItem | None result produced by review queue item.
+    """
     if item.status.casefold() in REVIEW_QUEUE_EXCLUDED_STATUSES:
         return None
     inside_root = _inside_alexandria_root(item.relative_path, root)
@@ -105,6 +115,14 @@ def _review_queue_item(
 def _duplicate_skill_note_ids(
     items: list[ObsidianVaultInventoryItem],
 ) -> set[str]:
+    """Execute duplicate skill note ids.
+
+    Args:
+        items: Items being processed.
+
+    Returns:
+        set[str] result produced by duplicate skill note ids.
+    """
     grouped: dict[tuple[str, str | None], list[ObsidianVaultInventoryItem]] = {}
     for item in items:
         if item.alexandria_type is not AlexandriaNoteType.SKILL:
@@ -125,6 +143,14 @@ def _duplicate_skill_note_ids(
 
 
 def _normalized_skill_title(title: str) -> str:
+    """Execute normalized skill title.
+
+    Args:
+        title: Title used by this operation.
+
+    Returns:
+        str result produced by normalized skill title.
+    """
     return " ".join(title.casefold().split())
 
 
@@ -133,6 +159,16 @@ def _skill_curation_queue_item(
     root: str,
     duplicate_skill_note_ids: set[str],
 ) -> ObsidianLibrarianReviewQueueItem | None:
+    """Execute skill curation queue item.
+
+    Args:
+        item: Item being processed.
+        root: Root used by this operation.
+        duplicate_skill_note_ids: Identifiers for duplicate skill note.
+
+    Returns:
+        ObsidianLibrarianReviewQueueItem | None result produced by skill curation queue item.
+    """
     if item.alexandria_type is not AlexandriaNoteType.SKILL:
         return None
     status = item.status.casefold()
@@ -183,6 +219,15 @@ def _skill_deprecated_path(
     item: ObsidianVaultInventoryItem,
     root: str,
 ) -> str | None:
+    """Execute skill deprecated path.
+
+    Args:
+        item: Item being processed.
+        root: Root used by this operation.
+
+    Returns:
+        str | None result produced by skill deprecated path.
+    """
     destination = _rooted_path(
         root, f"Skills/Deprecated/{Path(item.relative_path).name}"
     )
@@ -200,6 +245,20 @@ def _queue_item(
     confidence: float,
     requires_human_review: bool,
 ) -> ObsidianLibrarianReviewQueueItem:
+    """Execute queue item.
+
+    Args:
+        item: Item being processed.
+        reason: Reason used by this operation.
+        recommended_action: Recommended action used by this operation.
+        suggested_destination_path: Suggested destination path used by this operation.
+        priority: Priority used by this operation.
+        confidence: Confidence used by this operation.
+        requires_human_review: Requires human review used by this operation.
+
+    Returns:
+        ObsidianLibrarianReviewQueueItem result produced by queue item.
+    """
     return ObsidianLibrarianReviewQueueItem(
         note_id=item.note_id,
         relative_path=item.relative_path,
@@ -219,6 +278,15 @@ def _queue_item(
 
 
 def _inside_alexandria_root(relative_path: str, root: str) -> str:
+    """Execute inside alexandria root.
+
+    Args:
+        relative_path: Relative path used by this operation.
+        root: Root used by this operation.
+
+    Returns:
+        str result produced by inside alexandria root.
+    """
     normalized_root = root.strip("/")
     if normalized_root in {"", "."}:
         return relative_path
@@ -227,6 +295,15 @@ def _inside_alexandria_root(relative_path: str, root: str) -> str:
 
 
 def _rooted_path(root: str, relative_inside_root: str) -> str:
+    """Execute rooted path.
+
+    Args:
+        root: Root used by this operation.
+        relative_inside_root: Relative inside root used by this operation.
+
+    Returns:
+        str result produced by rooted path.
+    """
     normalized_root = root.strip("/")
     if normalized_root in {"", "."}:
         return relative_inside_root
@@ -237,6 +314,15 @@ def _suggested_canonical_path(
     item: ObsidianVaultInventoryItem,
     root: str,
 ) -> str | None:
+    """Execute suggested canonical path.
+
+    Args:
+        item: Item being processed.
+        root: Root used by this operation.
+
+    Returns:
+        str | None result produced by suggested canonical path.
+    """
     filename = Path(item.relative_path).name
     folder = {
         AlexandriaNoteType.CONTEXT: "Contexts/Projects",

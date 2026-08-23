@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.memory.domain.entities.memory_reconciliation import MemoryTemporalState
 from app.memory.infrastructure.models.reconciliation_models import (
     ContextTemporalStateORM,
@@ -13,13 +15,17 @@ from app.memory.infrastructure.repositories.reconciliation.reconciliation_payloa
     temporal_payload,
 )
 from app.shared.types.types_convert_utils import now_utc
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ReconciliationTemporalStore:
     """Persist and read temporal overlays by Context identifier."""
 
     def __init__(self, session: AsyncSession) -> None:
+        """Initialize ReconciliationTemporalStore state and dependencies.
+
+        Args:
+            session: Active session used by this operation.
+        """
         self._session = session
 
     async def upsert(self, state: MemoryTemporalState) -> MemoryTemporalState:

@@ -4,8 +4,12 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
-from typing import Protocol
 
+from pydantic import TypeAdapter, ValidationError
+
+from app.memory.application.contexts.records.context_service_ports import (
+    ContextListPort,
+)
 from app.memory.application.reconciliation.candidates.memory_candidate_recall_service import (
     MemoryCandidateRecallService,
 )
@@ -37,7 +41,6 @@ from app.memory.domain.entities.memory_reconciliation import (
     MemorySourceReference,
     MemoryTemporalState,
 )
-from app.memory.domain.event_enum.context_enums import ContextScope
 from app.memory.domain.event_enum.reconciliation_enums import MemoryRelationType
 from app.memory.domain.repositories.reconciliation.memory_reconciliation_use_case_repositories import (
     IMemoryExistingReconciliationRepository,
@@ -45,34 +48,8 @@ from app.memory.domain.repositories.reconciliation.memory_reconciliation_use_cas
 from app.memory.domain.types.context_payload_types import ContextMetadataPayload
 from app.shared.exceptions.memory_context_exceptions import MemoryContextValidationError
 from app.shared.types.extra_types import JSONValue
-from pydantic import TypeAdapter, ValidationError
 
 _CLAIMS_ADAPTER = TypeAdapter(tuple[CanonicalClaim, ...])
-
-
-class ExistingMemoryContextService(Protocol):
-    """Minimal Context listing surface required by the existing-memory scan."""
-
-    async def list_contexts(
-        self,
-        limit: int,
-        offset: int,
-        project: str | None,
-        scope: ContextScope | None,
-        include_archived: bool,
-    ) -> tuple[list[ContextRecord], int]:
-        """Return a bounded page of canonical Context read models.
-
-        Args:
-            limit: Limit.
-            offset: Offset.
-            project: Project.
-            scope: Scope.
-            include_archived: Include archived.
-
-        Returns:
-            tuple[list[ContextRecord], int]: Operation result.
-        """
 
 
 class MemoryExistingReconciliationService:
@@ -80,13 +57,23 @@ class MemoryExistingReconciliationService:
 
     def __init__(
         self,
-        context_service: ExistingMemoryContextService,
+        context_service: ContextListPort,
         candidate_service: MemoryCandidateService,
         recall_service: MemoryCandidateRecallService,
         classifier: MemoryRelationClassifier,
         plan_service: MemoryReconciliationPlanService,
         repository: IMemoryExistingReconciliationRepository,
     ) -> None:
+        """Initialize MemoryExistingReconciliationService state and dependencies.
+
+        Args:
+            context_service: Context service dependency.
+            candidate_service: Candidate service dependency.
+            recall_service: Recall service dependency.
+            classifier: Classifier used by this operation.
+            plan_service: Plan service dependency.
+            repository: Repository used by this operation.
+        """
         self._context_service = context_service
         self._candidate_service = candidate_service
         self._recall_service = recall_service
@@ -127,6 +114,15 @@ class MemoryExistingReconciliationService:
         request: ExistingMemoryReconciliationRequest,
         dry_run: bool,
     ) -> ExistingMemoryReconciliationReport:
+        """Execute run.
+
+        Args:
+            request: Validated request for this operation.
+            dry_run: Dry run used by this operation.
+
+        Returns:
+            ExistingMemoryReconciliationReport result produced by run.
+        """
         _validate_request(request)
         assessments: list[ExistingMemoryAssessment] = []
         warnings: list[str] = []
@@ -198,6 +194,16 @@ class MemoryExistingReconciliationService:
         request: ExistingMemoryReconciliationRequest,
         dry_run: bool,
     ) -> tuple[ExistingMemoryAssessment, _AssessmentCounters]:
+        """Execute assess context.
+
+        Args:
+            context: Context used by this operation.
+            request: Validated request for this operation.
+            dry_run: Dry run used by this operation.
+
+        Returns:
+            tuple[ExistingMemoryAssessment, _AssessmentCounters] result produced by assess context.
+        """
         persisted_temporal = await self._repository.get_temporal_state(context.id)
         canonical_temporal = temporal_state_from_context_metadata(context)
         temporal = (
@@ -299,6 +305,11 @@ class _AssessmentCounters:
 
 
 def _validate_request(request: ExistingMemoryReconciliationRequest) -> None:
+    """Validate request.
+
+    Args:
+        request: Validated request for this operation.
+    """
     if request.max_contexts < 1 or request.max_contexts > 10_000:
         raise MemoryContextValidationError(
             "existing-memory max_contexts must be between 1 and 10000"
@@ -314,6 +325,14 @@ def _validate_request(request: ExistingMemoryReconciliationRequest) -> None:
 
 
 def _default_temporal(context: ContextRecord) -> MemoryTemporalState:
+    """Execute default temporal.
+
+    Args:
+        context: Context used by this operation.
+
+    Returns:
+        MemoryTemporalState result produced by default temporal.
+    """
     return MemoryTemporalState(
         context_id=context.id,
         recorded_at=context.created_at,
@@ -333,6 +352,16 @@ def _candidate_payload(
     temporal: MemoryTemporalState,
     claims: tuple[CanonicalClaim, ...],
 ) -> MemoryCandidateCreate:
+    """Execute candidate payload.
+
+    Args:
+        context: Context used by this operation.
+        temporal: Temporal used by this operation.
+        claims: Claims used by this operation.
+
+    Returns:
+        MemoryCandidateCreate result produced by candidate payload.
+    """
     metadata = context.context_metadata
     content_hash = (
         _metadata_text(metadata, "content_hash")
@@ -370,6 +399,14 @@ def _candidate_payload(
 
 
 def _canonical_claims(metadata: ContextMetadataPayload) -> tuple[CanonicalClaim, ...]:
+    """Execute canonical claims.
+
+    Args:
+        metadata: Metadata used by this operation.
+
+    Returns:
+        tuple[CanonicalClaim, ...] result produced by canonical claims.
+    """
     value: JSONValue | None = metadata.get("canonical_claims")
     if not isinstance(value, list):
         return ()
@@ -380,6 +417,15 @@ def _canonical_claims(metadata: ContextMetadataPayload) -> tuple[CanonicalClaim,
 
 
 def _metadata_text(metadata: ContextMetadataPayload, key: str) -> str | None:
+    """Execute metadata text.
+
+    Args:
+        metadata: Metadata used by this operation.
+        key: Key used by this operation.
+
+    Returns:
+        str | None result produced by metadata text.
+    """
     value: JSONValue | None = metadata.get(key)
     if not isinstance(value, str):
         return None
@@ -388,4 +434,13 @@ def _metadata_text(metadata: ContextMetadataPayload, key: str) -> str | None:
 
 
 def _existing_plan_key(context_id: str, content_hash: str) -> str:
+    """Execute existing plan key.
+
+    Args:
+        context_id: Identifier for context.
+        content_hash: Content hash used by this operation.
+
+    Returns:
+        str result produced by existing plan key.
+    """
     return f"existing-memory:{context_id}:{content_hash}"

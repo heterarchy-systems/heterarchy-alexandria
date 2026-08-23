@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.memory.application.retrieval.embeddings.embedding_contract import (
     EmbeddingProvider,
 )
@@ -16,7 +18,6 @@ from app.memory.domain.event_enum.context_enums import RagHealthState, RagStrate
 from app.memory.domain.repositories.contexts.context_search_source import (
     IContextSearchSource,
 )
-from sqlalchemy.exc import SQLAlchemyError
 
 
 class ContextEmbeddingHealthService:
@@ -136,6 +137,15 @@ def _requires_embedding_index_probe(
     health: RagDependencyHealth,
     vector_retrieval_enabled: bool,
 ) -> bool:
+    """Execute requires embedding index probe.
+
+    Args:
+        health: Health used by this operation.
+        vector_retrieval_enabled: Whether vector retrieval is enabled.
+
+    Returns:
+        Whether requires embedding index probe.
+    """
     return (
         vector_retrieval_enabled
         and health.vector is RagHealthState.HEALTHY
@@ -148,6 +158,16 @@ def _health_with_embedding_index_status(
     index_status: RagHealthState,
     source_statuses: tuple[ContextEmbeddingSourceStatus, ...],
 ) -> RagDependencyHealth:
+    """Execute health with embedding index status.
+
+    Args:
+        health: Health used by this operation.
+        index_status: Index status used by this operation.
+        source_statuses: Source statuses used by this operation.
+
+    Returns:
+        RagDependencyHealth result produced by health with embedding index status.
+    """
     if index_status is not RagHealthState.REINDEX_REQUIRED:
         return replace(health, source_statuses=source_statuses)
     warning = (
@@ -168,6 +188,15 @@ def _embedding_index_status_probe_failed_health(
     health: RagDependencyHealth,
     error: SQLAlchemyError,
 ) -> RagDependencyHealth:
+    """Execute embedding index status probe failed health.
+
+    Args:
+        health: Health used by this operation.
+        error: Error value being processed.
+
+    Returns:
+        RagDependencyHealth result produced by embedding index status probe failed health.
+    """
     warning = (
         "Embedding index status check failed; vector recall is disabled until "
         f"the storage probe succeeds: {error.__class__.__name__}"
@@ -184,6 +213,15 @@ async def _embedding_source_statuses(
     provider: EmbeddingProvider,
     sources: list[IContextSearchSource],
 ) -> list[ContextEmbeddingSourceStatus]:
+    """Execute embedding source statuses.
+
+    Args:
+        provider: Provider used by this operation.
+        sources: Sources used by this operation.
+
+    Returns:
+        list[ContextEmbeddingSourceStatus] result produced by embedding source statuses.
+    """
     fingerprint = provider.fingerprint()
     return [
         await source.embedding_source_status(
@@ -200,6 +238,15 @@ async def _embedding_index_status(
     provider: EmbeddingProvider,
     sources: list[IContextSearchSource],
 ) -> RagHealthState:
+    """Execute embedding index status.
+
+    Args:
+        provider: Provider used by this operation.
+        sources: Sources used by this operation.
+
+    Returns:
+        RagHealthState result produced by embedding index status.
+    """
     fingerprint = provider.fingerprint()
     for source in sources:
         source_status = await source.embedding_index_status(

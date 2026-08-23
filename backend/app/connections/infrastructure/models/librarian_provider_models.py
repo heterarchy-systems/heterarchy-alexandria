@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from sqlalchemy import JSON, Boolean, ForeignKey, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.shared.infrastructure.database import Base
 from app.shared.infrastructure.datetime_types import UTCDateTime
 from app.shared.infrastructure.identifiers import ID_LENGTH, new_uuid
 from app.shared.types.extra_types import JSONObject
-from sqlalchemy import JSON, Boolean, ForeignKey, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
 class LibrarianProviderORM(Base):
@@ -35,6 +36,11 @@ class LibrarianProviderORM(Base):
     )
 
     def __repr__(self) -> str:
+        """Execute repr.
+
+        Returns:
+            str result produced by repr.
+        """
         return f"LibrarianProviderORM(id={self.id!r}, name={self.name!r})"
 
 
@@ -59,6 +65,11 @@ class ProviderSecretORM(Base):
     )
 
     def __repr__(self) -> str:
+        """Execute repr.
+
+        Returns:
+            str result produced by repr.
+        """
         return (
             f"ProviderSecretORM(id={self.id!r}, provider_id={self.provider_id!r}, "
             f"key_name={self.key_name!r})"

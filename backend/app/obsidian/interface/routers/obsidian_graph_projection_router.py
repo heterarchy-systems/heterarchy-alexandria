@@ -2,6 +2,9 @@
 
 from typing import Annotated
 
+from dependency_injector.wiring import Provide, inject
+from fastapi import APIRouter, Depends, Query, status
+
 from app.container import ApplicationContainer
 from app.obsidian.application.graph.diagnostics.obsidian_graph_note_diagnostics_service import (
     ObsidianGraphNoteDiagnosticsService,
@@ -20,8 +23,6 @@ from app.obsidian.interface.schemas.obsidian.graph.obsidian_graph_query_schema i
 )
 from app.shared.exceptions.exception_decorators import router_exception_status
 from app.shared.exceptions.route_exceptions import OBSIDIAN_ROUTE_EXCEPTION_MAPPING
-from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, Query, status
 
 router = APIRouter()
 
@@ -192,6 +193,8 @@ async def rebuild_graph_projection(
     Args:
         service: Graph projection rebuild/status service.
 
+        include_issue_details: Whether to include issue details.
+        issue_limit: Issue limit used by this operation.
     Returns:
         Rebuild operation response.
     """

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import TypeAdapter
+
 from app.memory.domain.entities.memory_reconciliation import MemoryTemporalRecallPack
 from app.memory.domain.event_enum.reconciliation_enums import (
     MemoryTemporalRecallMode,
@@ -15,7 +17,6 @@ from app.memory.interface.schemas.context.context_retrieval_schema import (
 )
 from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
 from app.shared.schemas.datetime_schemas import AwareTimestamp
-from pydantic import TypeAdapter
 
 _MATCH_PAYLOAD_ADAPTER = TypeAdapter(ContextSearchMatchPayload)
 

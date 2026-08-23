@@ -9,8 +9,15 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import anyio
+from app.memory.application.contexts.records.context_service_ports import (
+    ContextReadinessPort,
+)
 from app.memory.domain.entities.context_read_models import RagDependencyHealth
 from app.memory.domain.event_enum.context_enums import RagHealthState, RagStrategy
+from app.obsidian.application.service.obsidian_service_ports import (
+    ObsidianDataIntegrityPort,
+    ObsidianReadinessPort,
+)
 from app.obsidian.domain.entities.obsidian_note import (
     ObsidianIndexError,
     ObsidianVaultStatus,
@@ -41,7 +48,7 @@ from app.operations.interface.schemas.operations.operational_readiness_detail_sc
 from app.shared.infrastructure.database import Database
 
 
-class _HealthyContextService:
+class _HealthyContextService(ContextReadinessPort):
     async def rag_health_with_index_status(self) -> RagDependencyHealth:
         return RagDependencyHealth(
             fts=RagHealthState.HEALTHY,
@@ -55,7 +62,7 @@ class _HealthyContextService:
         )
 
 
-class _InventoryObsidianService:
+class _InventoryObsidianService(ObsidianReadinessPort, ObsidianDataIntegrityPort):
     def __init__(
         self,
         status: ObsidianVaultStatus,

@@ -40,6 +40,14 @@ def add_or_update_alexandria_links_section(body: str, frontmatter: JSONObject) -
 
 
 def _render_links_section(frontmatter: JSONObject) -> str:
+    """Render links section.
+
+    Args:
+        frontmatter: Frontmatter used by this operation.
+
+    Returns:
+        Rendered links section.
+    """
     sections: list[str] = ["## Alexandria Links"]
     relation_lines = 0
     for field_name, relation in _FRONTMATTER_RELATIONS:

@@ -2,6 +2,9 @@
 
 from typing import Annotated
 
+from dependency_injector.wiring import Provide, inject
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+
 from app.container import ApplicationContainer
 from app.memory.application.contexts.records.context_service import ContextService
 from app.memory.interface.schemas.context.context_mapping import (
@@ -19,8 +22,6 @@ from app.platform.config.app_config import AppConfig
 from app.shared.exceptions.exception_decorators import router_exception_status
 from app.shared.exceptions.route_exceptions import CONTEXT_ROUTE_EXCEPTION_MAPPING
 from app.shared.type_validation.strict_json_body import model_validate_json_body
-from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 router = APIRouter(prefix="/memory/contexts", tags=["library-contexts"])
 
@@ -78,6 +79,7 @@ async def search_contexts(
 @router_exception_status(CONTEXT_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def rag_status(
+    http_response: Response,
     service: Annotated[
         ContextService, Depends(Provide[ApplicationContainer.memory.context_service])
     ],
@@ -85,12 +87,16 @@ async def rag_status(
     """Return RAG dependency status.
 
     Args:
+        http_response: Mutable HTTP response used for runtime provenance metadata.
         service: Context application service.
 
     Returns:
         RAG health response.
     """
     health = await service.rag_health_with_index_status()
+    http_response.headers["X-Alexandria-Retrieval-Kernel-Authority"] = (
+        service.retrieval_kernel_authority
+    )
     response = RagStatusResponse.model_validate(health_payload(health))
     return response
 

@@ -48,6 +48,17 @@ class ObsidianLibrarianTranscriptService:
         hits: list[ObsidianSearchHit],
         response: JSONObject,
     ) -> ObsidianNote:
+        """Persist the librarian transcript.
+
+        Args:
+            payload: Validated request or librarian payload consumed by the operation.
+            answer: Generated librarian answer included in the transcript.
+            hits: Retrieval or search hits included in the generated output.
+            response: Librarian response metadata persisted with the transcript.
+
+        Returns:
+            Saved librarian transcript note.
+        """
         conversation_id = str(response["conversation_id"])
         body = librarian_transcript_body(payload, answer, hits)
         return await self._save_note(

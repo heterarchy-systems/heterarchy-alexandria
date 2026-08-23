@@ -34,6 +34,12 @@ class ObsidianCanonicalIdentityService:
         obsidian_service: ObsidianService,
         vault_config_store: ObsidianVaultConfigStore,
     ) -> None:
+        """Initialize ObsidianCanonicalIdentityService state and dependencies.
+
+        Args:
+            obsidian_service: Obsidian service dependency.
+            vault_config_store: Vault config store used by this operation.
+        """
         self._obsidian_service = obsidian_service
         self._vault_config_store = vault_config_store
 
@@ -165,6 +171,14 @@ class ObsidianCanonicalIdentityService:
         )
 
     def _canonical_path(self, path: str) -> str:
+        """Execute canonical path.
+
+        Args:
+            path: Path used by this operation.
+
+        Returns:
+            str result produced by canonical path.
+        """
         return canonical_managed_note_path(
             path,
             alexandria_root=self._vault_config_store.current().alexandria_root,
@@ -179,6 +193,19 @@ class ObsidianCanonicalIdentityService:
         edition: str | None,
         family_candidates: list[ObsidianNote],
     ) -> str:
+        """Execute generated path.
+
+        Args:
+            project: Project used by this operation.
+            report: Report used by this operation.
+            parsed_date: Parsed date used by this operation.
+            entity: Entity used by this operation.
+            edition: Edition used by this operation.
+            family_candidates: Family candidates used by this operation.
+
+        Returns:
+            str result produced by generated path.
+        """
         inherited_path = _latest_inherited_path(
             family_candidates,
             target_date=parsed_date,
@@ -213,6 +240,19 @@ def _family_matches(
     entity: str,
     aliases: tuple[str, ...],
 ) -> bool:
+    """Execute family matches.
+
+    Args:
+        note: Note used by this operation.
+        project: Project used by this operation.
+        family: Family used by this operation.
+        requested_report: Requested report used by this operation.
+        entity: Entity used by this operation.
+        aliases: Aliases used by this operation.
+
+    Returns:
+        Whether family matches.
+    """
     note_project = note.project or _text(note.frontmatter.get("project"))
     note_entity = _text(note.frontmatter.get("entity"))
     report_names = {_normalized(family), *(_normalized(alias) for alias in aliases)}
@@ -227,6 +267,15 @@ def _latest_inherited_path(
     candidates: list[ObsidianNote],
     target_date: calendar_date,
 ) -> str | None:
+    """Execute latest inherited path.
+
+    Args:
+        candidates: Candidates used by this operation.
+        target_date: Target date used by this operation.
+
+    Returns:
+        str | None result produced by latest inherited path.
+    """
     dated_candidates: list[tuple[calendar_date, str]] = []
     for note in candidates:
         source_date_text = _text(note.frontmatter.get("date"))
@@ -262,6 +311,16 @@ def _render_inherited_path(
     source_date: calendar_date,
     target_date: calendar_date,
 ) -> str | None:
+    """Render inherited path.
+
+    Args:
+        relative_path: Relative path used by this operation.
+        source_date: Source date used by this operation.
+        target_date: Target date used by this operation.
+
+    Returns:
+        Rendered inherited path.
+    """
     parts = relative_path.split("/")
     if not parts:
         return None
@@ -302,6 +361,21 @@ def _identity_matches(
     edition: str | None,
     aliases: tuple[str, ...],
 ) -> bool:
+    """Execute identity matches.
+
+    Args:
+        note: Note used by this operation.
+        project: Project used by this operation.
+        family: Family used by this operation.
+        requested_report: Requested report used by this operation.
+        date: Date used by this operation.
+        entity: Entity used by this operation.
+        edition: Edition used by this operation.
+        aliases: Aliases used by this operation.
+
+    Returns:
+        Whether identity matches.
+    """
     note_date = _text(note.frontmatter.get("date"))
     note_edition = _text(note.frontmatter.get("edition"))
     return (
@@ -319,6 +393,14 @@ def _identity_matches(
 
 
 def _aliases(note: ObsidianNote) -> tuple[str, ...]:
+    """Execute aliases.
+
+    Args:
+        note: Note used by this operation.
+
+    Returns:
+        tuple[str, ...] result produced by aliases.
+    """
     values: list[str] = []
     for field in ("aliases", "report_aliases"):
         value = note.frontmatter.get(field)
@@ -331,8 +413,24 @@ def _aliases(note: ObsidianNote) -> tuple[str, ...]:
 
 # Broad type justified: frontmatter lookup values may have heterogeneous runtime types.
 def _text(value: object) -> str | None:
+    """Execute text.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str | None result produced by text.
+    """
     return value.strip() if isinstance(value, str) and value.strip() else None
 
 
 def _normalized(value: str | None) -> str:
+    """Execute normalized.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str result produced by normalized.
+    """
     return "" if value is None else " ".join(value.casefold().split())

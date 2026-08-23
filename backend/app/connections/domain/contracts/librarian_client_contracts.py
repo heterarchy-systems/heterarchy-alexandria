@@ -31,6 +31,9 @@ class LibrarianProviderClientFactory(ABC):
             secret_resolver [SecretResolver]: Value supplied to test_connection.
             test_query [str]: Value supplied to test_connection.
 
+            provider: Provider used by this operation.
+            secret_resolver: Secret resolver used by this operation.
+            test_query: Test query used by this operation.
         Returns:
             ProviderClientTestResult: Value produced by test_connection.
         """
@@ -47,7 +50,11 @@ class ApiKeyCredential:
     value: str
 
     def __repr__(self) -> str:
-        """Return a redacted representation."""
+        """Return a redacted representation.
+
+        Returns:
+            str result produced by repr.
+        """
         credential_repr = "ApiKeyCredential(value=***redacted***)"
         return credential_repr
 

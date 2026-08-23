@@ -18,10 +18,26 @@ from app.shared.types.extra_types import JSONObject
 
 
 def _skill_note_id(job_id: str) -> str:
+    """Execute skill note id.
+
+    Args:
+        job_id: Identifier for job.
+
+    Returns:
+        str result produced by skill note id.
+    """
     return str(uuid5(NAMESPACE_URL, f"heterarchy-alexandria:skill:{job_id}"))
 
 
 def _skill_tags(artifact: SkillAcquisitionArtifact) -> list[str]:
+    """Execute skill tags.
+
+    Args:
+        artifact: Artifact used by this operation.
+
+    Returns:
+        list[str] result produced by skill tags.
+    """
     tags = ["skill-acquisition", *artifact.tags]
     deduplicated: list[str] = []
     for tag in tags:
@@ -35,6 +51,15 @@ def _skill_frontmatter(
     job: SkillAcquisitionJob,
     artifact: SkillAcquisitionArtifact,
 ) -> JSONObject:
+    """Execute skill frontmatter.
+
+    Args:
+        job: Job used by this operation.
+        artifact: Artifact used by this operation.
+
+    Returns:
+        JSONObject result produced by skill frontmatter.
+    """
     return {
         "version": artifact.version,
         "purpose": artifact.purpose,
@@ -60,6 +85,15 @@ def _skill_markdown_body(
     job: SkillAcquisitionJob,
     artifact: SkillAcquisitionArtifact,
 ) -> str:
+    """Execute skill markdown body.
+
+    Args:
+        job: Job used by this operation.
+        artifact: Artifact used by this operation.
+
+    Returns:
+        str result produced by skill markdown body.
+    """
     usage = artifact.summary or artifact.purpose
     lines = [
         f"# {artifact.title.strip()}",
@@ -133,6 +167,14 @@ def _skill_markdown_body(
 
 
 def _input_contract(artifact: SkillAcquisitionArtifact) -> str:
+    """Execute input contract.
+
+    Args:
+        artifact: Artifact used by this operation.
+
+    Returns:
+        str result produced by input contract.
+    """
     items = _clean_items(artifact.required_tools)
     lines = ["- required_tools: " + (", ".join(items) if items else "none declared")]
     if artifact.input_schema:
@@ -143,6 +185,14 @@ def _input_contract(artifact: SkillAcquisitionArtifact) -> str:
 
 
 def _output_contract(artifact: SkillAcquisitionArtifact) -> str:
+    """Execute output contract.
+
+    Args:
+        artifact: Artifact used by this operation.
+
+    Returns:
+        str result produced by output contract.
+    """
     if artifact.output_schema:
         return "- output_schema:\n" + _json_block(artifact.output_schema)
     return _bullet_or_none(
@@ -154,6 +204,14 @@ def _output_contract(artifact: SkillAcquisitionArtifact) -> str:
 
 
 def _evidence_claim_mapping(artifact: SkillAcquisitionArtifact) -> str:
+    """Execute evidence claim mapping.
+
+    Args:
+        artifact: Artifact used by this operation.
+
+    Returns:
+        str result produced by evidence claim mapping.
+    """
     evidence_items = _evidence_item_payloads(artifact)
     if evidence_items:
         lines: list[str] = []
@@ -194,6 +252,15 @@ def _evidence_claim_mapping(artifact: SkillAcquisitionArtifact) -> str:
 
 
 def _next_steps(job: SkillAcquisitionJob, artifact: SkillAcquisitionArtifact) -> str:
+    """Execute next steps.
+
+    Args:
+        job: Job used by this operation.
+        artifact: Artifact used by this operation.
+
+    Returns:
+        str result produced by next steps.
+    """
     steps = _clean_items(artifact.next_steps)
     if steps:
         return _bullet_or_none(steps)

@@ -49,6 +49,12 @@ class ObsidianLegacyMetadataRepairService:
         vault_config_store: ObsidianVaultConfigStore,
         reindex: Callable[[], Awaitable[ObsidianReindexResult]],
     ) -> None:
+        """Initialize ObsidianLegacyMetadataRepairService state and dependencies.
+
+        Args:
+            vault_config_store: Vault config store used by this operation.
+            reindex: Reindex used by this operation.
+        """
         self._vault_config_store = vault_config_store
         self._reindex = reindex
 

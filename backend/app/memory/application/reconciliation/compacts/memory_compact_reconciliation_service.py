@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Protocol
+from abc import ABC, abstractmethod
 
 from app.memory.application.reconciliation.compacts.memory_compact_reconciliation_policy import (
     MemoryCompactReconciliationPolicy,
@@ -17,9 +17,10 @@ from app.memory.domain.entities.memory_reconciliation import (
 from app.memory.domain.event_enum.reconciliation_enums import MemoryTemporalRecallMode
 
 
-class TemporalRecallForCompaction(Protocol):
+class TemporalRecallForCompaction(ABC):
     """Minimal temporal recall surface required by Compact preparation."""
 
+    @abstractmethod
     async def recall(
         self,
         request: MemoryTemporalRecallRequest,
@@ -42,6 +43,12 @@ class MemoryCompactReconciliationService:
         temporal_recall_service: TemporalRecallForCompaction,
         policy: MemoryCompactReconciliationPolicy,
     ) -> None:
+        """Initialize MemoryCompactReconciliationService state and dependencies.
+
+        Args:
+            temporal_recall_service: Temporal recall service dependency.
+            policy: Policy used by this operation.
+        """
         self._temporal_recall_service = temporal_recall_service
         self._policy = policy
 

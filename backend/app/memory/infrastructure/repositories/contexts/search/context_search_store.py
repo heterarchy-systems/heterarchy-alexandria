@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.memory.domain.contracts.context_recall_contracts import (
     ContextFtsRecall,
     ContextVectorRecall,
@@ -13,7 +15,6 @@ from app.memory.infrastructure.repositories.contexts.embeddings.vector_search im
 from app.memory.infrastructure.repositories.contexts.search.fts_search import (
     search_context_fts,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ContextSearchStore:

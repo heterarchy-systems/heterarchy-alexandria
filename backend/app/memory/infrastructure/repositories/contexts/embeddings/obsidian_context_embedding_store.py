@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from sqlalchemy import case, func, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.memory.domain.contracts.context_contracts import ContextChunkEmbeddingUpdate
 from app.memory.domain.entities.context_read_models import (
     ContextChunkRecord,
@@ -22,8 +25,6 @@ from app.obsidian.infrastructure.models.obsidian_index_models import (
     ObsidianFileORM,
 )
 from app.shared.types.extra_types import JSONObject
-from sqlalchemy import case, func, or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ObsidianContextEmbeddingStore:
@@ -283,6 +284,19 @@ def _fingerprint_payload(
     normalize: bool | None,
     dimensions: int | None,
 ) -> JSONObject:
+    """Execute fingerprint payload.
+
+    Args:
+        provider: Provider used by this operation.
+        model: Model used by this operation.
+        provider_version: Provider version used by this operation.
+        pooling_mode: Pooling mode used by this operation.
+        normalize: Normalize used by this operation.
+        dimensions: Dimensions used by this operation.
+
+    Returns:
+        JSONObject result produced by fingerprint payload.
+    """
     return {
         "provider": provider,
         "model": model,

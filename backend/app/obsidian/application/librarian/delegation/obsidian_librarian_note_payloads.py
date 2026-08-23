@@ -26,7 +26,20 @@ def _save_note_command(
     relation_field: str,
     refs: list[JSONObject],
 ) -> ObsidianSaveNote:
-    """Build an Obsidian save command for approved workflow writes."""
+    """Build an Obsidian save command for approved workflow writes.
+
+    Args:
+        workflow: Workflow used by this operation.
+        title: Title used by this operation.
+        body: Body used by this operation.
+        alexandria_type: Alexandria type used by this operation.
+        note_id: Identifier for note.
+        relation_field: Relation field used by this operation.
+        refs: Refs used by this operation.
+
+    Returns:
+        ObsidianSaveNote result produced by save note command.
+    """
     frontmatter: JSONObject = {
         "workflow_thread_id": workflow.thread_id,
         "workflow_engine": "langgraph",
@@ -48,7 +61,15 @@ def _save_note_command(
 
 
 def _transcript_body(workflow: ObsidianLibrarianWorkflow, response: JSONObject) -> str:
-    """Render a transcript note body from a workflow response."""
+    """Render a transcript note body from a workflow response.
+
+    Args:
+        workflow: Workflow used by this operation.
+        response: Response value being processed.
+
+    Returns:
+        str result produced by transcript body.
+    """
     return f"""# Librarian Workflow
 
 ## Engine
@@ -63,7 +84,14 @@ LangGraph
 
 
 def _source_refs(response: JSONObject) -> tuple[SourceRef, ...]:
-    """Convert Obsidian source refs into Hermes librarian source refs."""
+    """Convert Obsidian source refs into Hermes librarian source refs.
+
+    Args:
+        response: Response value being processed.
+
+    Returns:
+        tuple[SourceRef, ...] result produced by source refs.
+    """
     refs: list[SourceRef] = []
     for item in source_refs_from_json(response.get("source_refs")):
         note_id = item.get("id")

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import cast
 
+from langgraph.graph import END, START, StateGraph
+
 from app.obsidian.application.librarian.graph.obsidian_librarian_graph_contracts import (
     ObsidianLibrarianDelegateService,
     ObsidianLibrarianGraphResult,
@@ -26,7 +28,6 @@ from app.obsidian.domain.contracts.obsidian_contracts import (
     ObsidianLibrarianWorkflowResume,
 )
 from app.obsidian.domain.entities.obsidian_note import ObsidianLibrarianWorkflow
-from langgraph.graph import END, START, StateGraph
 
 
 class ObsidianLibrarianLangGraphExecutor:
@@ -97,6 +98,11 @@ class ObsidianLibrarianLangGraphExecutor:
     def _build_planning_graph(self) -> StateGraph:
         # LangGraph accepts TypedDict state schemas at runtime, but its current
         # generic upper bound is not recognized by Pyrefly for this TypedDict.
+        """Build planning graph.
+
+        Returns:
+            Constructed planning graph.
+        """
         graph = StateGraph(ObsidianLibrarianGraphState)  # pyrefly: ignore [bad-specialization]
         graph.add_node("collect_context", self._nodes.collect_context)
         graph.add_node("plan_actions", self._nodes.plan_actions)
@@ -107,6 +113,11 @@ class ObsidianLibrarianLangGraphExecutor:
 
     def _build_execution_graph(self) -> StateGraph:
         # Keep the same narrow third-party typing workaround as the planning graph.
+        """Build execution graph.
+
+        Returns:
+            Constructed execution graph.
+        """
         graph = StateGraph(ObsidianLibrarianGraphState)  # pyrefly: ignore [bad-specialization]
         graph.add_node("execute_approved_actions", self._nodes.execute_approved_actions)
         graph.add_node("finalize", self._nodes.finalize)

@@ -20,10 +20,15 @@ from app.shared.types.extra_types import JSONObject
 
 
 def _empty_skill_schema() -> SkillSchemaPayload:
+    """Execute empty skill schema.
+
+    Returns:
+        SkillSchemaPayload result produced by empty skill schema.
+    """
     return {}
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class SkillAcquisitionJobCreate:
     """Fields required to create one durable skill-acquisition job."""
 
@@ -57,10 +62,10 @@ class SkillAcquisitionJobCreate:
 
     def __post_init__(self) -> None:
         """Normalize job evidence URLs to an immutable sequence."""
-        object.__setattr__(self, "evidence_urls", tuple(self.evidence_urls))
+        self.evidence_urls = tuple(self.evidence_urls)
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class SkillAcquisitionJobUpdate:
     """Fields allowed when updating one durable skill-acquisition job."""
 
@@ -86,10 +91,10 @@ class SkillAcquisitionJobUpdate:
 
     def __post_init__(self) -> None:
         """Normalize updated evidence URLs to an immutable sequence."""
-        object.__setattr__(self, "evidence_urls", tuple(self.evidence_urls))
+        self.evidence_urls = tuple(self.evidence_urls)
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class SkillAcquisitionEvidenceItem:
     """Claim-linked source evidence for an acquired skill artifact."""
 
@@ -104,10 +109,10 @@ class SkillAcquisitionEvidenceItem:
 
     def __post_init__(self) -> None:
         """Normalize supported claims to an immutable sequence."""
-        object.__setattr__(self, "supports_claims", tuple(self.supports_claims))
+        self.supports_claims = tuple(self.supports_claims)
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class SkillAcquisitionArtifact:
     """Structured skill artifact produced by librarian or agent acquisition."""
 
@@ -135,8 +140,8 @@ class SkillAcquisitionArtifact:
 
     def __post_init__(self) -> None:
         """Normalize artifact collections to immutable values."""
-        object.__setattr__(self, "tags", tuple(self.tags))
-        object.__setattr__(self, "required_tools", tuple(self.required_tools))
-        object.__setattr__(self, "evidence_urls", tuple(self.evidence_urls))
-        object.__setattr__(self, "evidence_items", tuple(self.evidence_items))
-        object.__setattr__(self, "next_steps", tuple(self.next_steps))
+        self.tags = tuple(self.tags)
+        self.required_tools = tuple(self.required_tools)
+        self.evidence_urls = tuple(self.evidence_urls)
+        self.evidence_items = tuple(self.evidence_items)
+        self.next_steps = tuple(self.next_steps)

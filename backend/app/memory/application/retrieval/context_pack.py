@@ -75,6 +75,14 @@ def build_context_pack(query: str, matches: list[ContextSearchMatch]) -> str:
 def _select_pack_matches(
     matches: list[ContextSearchMatch],
 ) -> list[ContextSearchMatch]:
+    """Execute select pack matches.
+
+    Args:
+        matches: Matches used by this operation.
+
+    Returns:
+        list[ContextSearchMatch] result produced by select pack matches.
+    """
     recall_statuses = frozenset(ContextStorageStatus.default_recall_values())
     best_by_context: dict[str, ContextSearchMatch] = {}
     for match in matches:
@@ -101,6 +109,14 @@ def _select_pack_matches(
 
 
 def _section_for_scope(scope: ContextScope) -> str:
+    """Execute section for scope.
+
+    Args:
+        scope: Scope used by this operation.
+
+    Returns:
+        str result produced by section for scope.
+    """
     if scope in _PROJECT_SCOPES:
         return "Project Context"
     if scope in _AGENT_SCOPES:
@@ -114,6 +130,17 @@ def _render_context_pack(
     evidence_references: list[str],
     content_by_context: dict[str, str],
 ) -> str:
+    """Render context pack.
+
+    Args:
+        query: Query used by this operation.
+        sections: Sections used by this operation.
+        evidence_references: Evidence references used by this operation.
+        content_by_context: Content by context used by this operation.
+
+    Returns:
+        Rendered context pack.
+    """
     lines = [
         "# Alexandria Context Pack",
         "",
@@ -146,6 +173,16 @@ def _match_lines(
     match: ContextSearchMatch,
     content: str,
 ) -> list[str]:
+    """Execute match lines.
+
+    Args:
+        entry_number: Entry number used by this operation.
+        match: Match used by this operation.
+        content: Content used by this operation.
+
+    Returns:
+        list[str] result produced by match lines.
+    """
     context = match.context
     chunk = match.chunk
     heading = f" — {_trim_text(chunk.heading, 160)}" if chunk.heading else ""
@@ -182,6 +219,15 @@ def _allocate_content_budget(
     matches: list[ContextSearchMatch],
     total_budget: int,
 ) -> dict[str, str]:
+    """Execute allocate content budget.
+
+    Args:
+        matches: Matches used by this operation.
+        total_budget: Total budget used by this operation.
+
+    Returns:
+        dict[str, str] result produced by allocate content budget.
+    """
     content_by_context: dict[str, str] = {}
     remaining_budget = total_budget
     for index, match in enumerate(matches):
@@ -194,6 +240,14 @@ def _allocate_content_budget(
 
 
 def _evidence_references(matches: list[ContextSearchMatch]) -> list[str]:
+    """Execute evidence references.
+
+    Args:
+        matches: Matches used by this operation.
+
+    Returns:
+        list[str] result produced by evidence references.
+    """
     references: list[str] = []
     for match in matches:
         metadata = match.context.context_metadata
@@ -210,12 +264,29 @@ def _evidence_references(matches: list[ContextSearchMatch]) -> list[str]:
 
 
 def _reference_values(value: JSONValue | None) -> list[str]:
+    """Execute reference values.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        list[str] result produced by reference values.
+    """
     if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
         return []
     return [item for item in value if isinstance(item, str) and item.strip()]
 
 
 def _trim_text(value: str, limit: int) -> str:
+    """Execute trim text.
+
+    Args:
+        value: Value being processed.
+        limit: Maximum number of items to process or return.
+
+    Returns:
+        str result produced by trim text.
+    """
     if limit <= 0:
         return ""
     if len(value) <= limit:

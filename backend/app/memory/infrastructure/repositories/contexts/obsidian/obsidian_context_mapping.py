@@ -50,6 +50,19 @@ def matches_context_filters(
     project: str | None = None,
     include_lifecycle_statuses: Sequence[ContextRecallLifecycleStatus] | None = None,
 ) -> bool:
+    """Return whether an Obsidian context matches the requested filters.
+
+    Args:
+        note: Obsidian note or note record being mapped or evaluated.
+        context: Context metadata associated with the note or chunk.
+        kind: Context kind required by the filter.
+        scope_filter: Optional context scope required by the filter.
+        project: Project scope associated with the artifact or context.
+        include_lifecycle_statuses: Lifecycle statuses allowed by the context filter.
+
+    Returns:
+        True when the requested filters match; otherwise False.
+    """
     if not is_recall_visible(note, include_lifecycle_statuses):
         return False
     if kind is not None and context.kind != kind:
@@ -106,6 +119,20 @@ def match_from_obsidian_rows(
     vector_score: float | None,
     why_retrieved: str,
 ) -> ContextSearchMatch:
+    """Build a context match from Obsidian rows.
+
+    Args:
+        note: Obsidian note or note record being mapped or evaluated.
+        chunk: Obsidian or context chunk being mapped.
+        context: Context metadata associated with the note or chunk.
+        score: Combined retrieval score assigned to the match.
+        fts_score: Full-text-search score contributing to the combined match.
+        vector_score: Vector similarity score contributing to the combined match.
+        why_retrieved: Human-readable retrieval rationale attached to the match.
+
+    Returns:
+        Context search match assembled from rows, scores, and retrieval rationale.
+    """
     chunk_record = chunk_record_from_obsidian_row(chunk, title=note.title)
     return ContextSearchMatch(
         context=context,
@@ -118,6 +145,14 @@ def match_from_obsidian_rows(
 
 
 def context_record_from_obsidian_row(note: ObsidianFileORM) -> ContextRecord:
+    """Build a context record from an Obsidian row.
+
+    Args:
+        note: Obsidian note or note record being mapped or evaluated.
+
+    Returns:
+        Context record mapped from the Obsidian note row.
+    """
     return context_record_from_obsidian_note(note_from_model(note))
 
 
@@ -125,6 +160,15 @@ def chunk_record_from_obsidian_row(
     chunk: ObsidianChunkORM,
     title: str,
 ) -> ContextChunkRecord:
+    """Build a chunk record from an Obsidian row.
+
+    Args:
+        chunk: Obsidian or context chunk being mapped.
+        title: Human-readable title for the note or artifact.
+
+    Returns:
+        Context chunk record mapped from the Obsidian chunk row.
+    """
     metadata = ContextMetadataPayload(
         source_surface="obsidian_vault",
         obsidian_note_id=chunk.note_id,
@@ -145,4 +189,12 @@ def chunk_record_from_obsidian_row(
 
 
 def raw_obsidian_chunk_id(chunk_id: str) -> str:
+    """Resolve the raw Obsidian chunk identifier.
+
+    Args:
+        chunk_id: Chunk identifier to normalize.
+
+    Returns:
+        Normalized raw chunk identifier.
+    """
     return chunk_id.removeprefix(OBSIDIAN_CHUNK_ID_PREFIX)

@@ -60,4 +60,12 @@ def ensure_review_passes(review: MemoryCompactReviewResult) -> None:
 
 
 def _normalize_section_heading(value: str) -> str:
+    """Normalize section heading.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        Normalized section heading.
+    """
     return re.sub(r"[^a-z0-9]+", " ", value.lower()).strip()

@@ -48,16 +48,12 @@ def test_compose_execs_uvicorn_and_isolates_maintenance_work() -> None:
     worker_service = compose[worker_start:worker_end]
 
     assert (
-        "uv run --locked --no-editable alembic upgrade head && exec /app/.venv/bin/uvicorn app.main:app"
+        "/app/.venv/bin/alembic upgrade head && exec /app/.venv/bin/uvicorn app.main:app"
         in compose
     )
     assert "--reload" not in compose
     assert (
-        "      - uv\n"
-        "      - run\n"
-        "      - --locked\n"
-        "      - --no-editable\n"
-        "      - python\n"
+        "      - /app/.venv/bin/python\n"
         "      - -m\n"
         "      - app.operations.workers.redis_maintenance_worker\n" in worker_service
     )
@@ -102,7 +98,7 @@ def test_performance_profile_matches_the_measured_single_user_host() -> None:
     performance = _read(PERFORMANCE_ENV_PATH)
 
     assert "SERVICE_RAG_EMBEDDING_THREADS=4\n" in performance
-    assert "SERVICE_RAG_MAINTENANCE_EMBEDDING_THREADS=2\n" in performance
+    assert "SERVICE_RAG_MAINTENANCE_EMBEDDING_THREADS=8\n" in performance
     assert "SERVICE_REDIS_MAINTENANCE_WORKER_CONCURRENCY=1\n" in performance
     assert "SERVICE_REDIS_MAINTENANCE_BATCH_LIMIT=250\n" in performance
     assert "SERVICE_REDIS_MAINTENANCE_RETRY_IDLE_SECONDS=120\n" in performance

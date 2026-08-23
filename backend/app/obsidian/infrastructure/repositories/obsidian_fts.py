@@ -7,12 +7,6 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import cast
 
-from app.obsidian.domain.event_enum.obsidian_enums import AlexandriaNoteType
-from app.obsidian.infrastructure.models.obsidian_index_models import (
-    ObsidianChunkORM,
-    ObsidianFileORM,
-)
-from app.shared.utils.text_metrics import extract_word_tokens
 from sqlalchemy import (
     Select,
     bindparam,
@@ -26,6 +20,13 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql.elements import ColumnElement
 
+from app.obsidian.domain.event_enum.obsidian_enums import AlexandriaNoteType
+from app.obsidian.infrastructure.models.obsidian_index_models import (
+    ObsidianChunkORM,
+    ObsidianFileORM,
+)
+from app.shared.utils.text_metrics import extract_word_tokens
+
 MAX_FTS_TOKEN_COUNT = 32
 MAX_FTS_TOKEN_LENGTH = 64
 EXACT_TITLE_FTS_RANK_BOOST = 1.0
@@ -35,7 +36,7 @@ type ObsidianFtsStatement = Select[ObsidianFtsRow]
 type ObsidianFtsParameter = str | int | list[str]
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class ObsidianFtsQuery:
     """SQL statement and parameters for one Obsidian PostgreSQL FTS query."""
 
@@ -44,7 +45,7 @@ class ObsidianFtsQuery:
 
     def __post_init__(self) -> None:
         """Freeze SQL bind parameters after query construction."""
-        object.__setattr__(self, "parameters", MappingProxyType(dict(self.parameters)))
+        self.parameters = MappingProxyType(dict(self.parameters))
 
 
 def build_obsidian_fts_query(
@@ -204,4 +205,12 @@ def build_obsidian_fts_query(
 
 
 def _escape_like_pattern(value: str) -> str:
+    """Execute escape like pattern.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str result produced by escape like pattern.
+    """
     return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")

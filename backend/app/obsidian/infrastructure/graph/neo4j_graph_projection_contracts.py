@@ -92,6 +92,7 @@ Neo4jProjectionParameter = (
 )
 
 
+# protocol-contract: structural-seam
 class Neo4jProjectionResult(Protocol):
     """Narrow async result behavior consumed by this adapter."""
 
@@ -112,6 +113,7 @@ class Neo4jProjectionResult(Protocol):
         """
 
 
+# protocol-contract: structural-seam
 class Neo4jProjectionTransaction(Protocol):
     """Narrow transaction behavior consumed by transaction callbacks."""
 
@@ -131,6 +133,7 @@ class Neo4jProjectionTransaction(Protocol):
         """
 
 
+# protocol-contract: structural-seam
 class Neo4jProjectionSession(Protocol):
     """Short-lived async session behavior used by one repository operation."""
 
@@ -196,6 +199,7 @@ class Neo4jProjectionSession(Protocol):
         """
 
 
+# protocol-contract: structural-seam
 class Neo4jProjectionDriver(Protocol):
     """One application-lifetime async Neo4j driver."""
 

@@ -260,6 +260,14 @@ def response_integer(raw: RedisResponse, field: str) -> int:
 
 
 def _delivery(raw: RedisResponse) -> RedisStreamDelivery:
+    """Execute delivery.
+
+    Args:
+        raw: Raw used by this operation.
+
+    Returns:
+        RedisStreamDelivery result produced by delivery.
+    """
     values = _sequence(raw, "stream delivery")
     if len(values) != 2:
         raise MaintenanceQueueUnavailableError(
@@ -273,6 +281,14 @@ def _delivery(raw: RedisResponse) -> RedisStreamDelivery:
 
 
 def _status_fields(raw: RedisResponse) -> MaintenanceStatusFields:
+    """Execute status fields.
+
+    Args:
+        raw: Raw used by this operation.
+
+    Returns:
+        MaintenanceStatusFields result produced by status fields.
+    """
     if not isinstance(raw, dict):
         raise MaintenanceQueueUnavailableError(
             "Redis maintenance status must be a mapping"
@@ -313,6 +329,15 @@ def _status_fields(raw: RedisResponse) -> MaintenanceStatusFields:
 
 
 def _required(value: str | None, field: str) -> str:
+    """Execute required.
+
+    Args:
+        value: Value being processed.
+        field: Field used by this operation.
+
+    Returns:
+        str result produced by required.
+    """
     if value is None or not value:
         raise MaintenanceQueueUnavailableError(
             f"Redis maintenance status field is missing: {field}"
@@ -321,12 +346,30 @@ def _required(value: str | None, field: str) -> str:
 
 
 def _sequence(raw: RedisResponse, field: str) -> Sequence[RedisResponse]:
+    """Execute sequence.
+
+    Args:
+        raw: Raw used by this operation.
+        field: Field used by this operation.
+
+    Returns:
+        Sequence[RedisResponse] result produced by sequence.
+    """
     if isinstance(raw, list | tuple):
         return raw
     raise MaintenanceQueueUnavailableError(f"Redis {field} must be a sequence")
 
 
 def _text(raw: RedisResponse, field: str) -> str:
+    """Execute text.
+
+    Args:
+        raw: Raw used by this operation.
+        field: Field used by this operation.
+
+    Returns:
+        str result produced by text.
+    """
     if isinstance(raw, bytes):
         try:
             return raw.decode("utf-8")
@@ -342,6 +385,15 @@ def _text(raw: RedisResponse, field: str) -> str:
 
 
 def _integer(value: str, field: str) -> int:
+    """Execute integer.
+
+    Args:
+        value: Value being processed.
+        field: Field used by this operation.
+
+    Returns:
+        int result produced by integer.
+    """
     try:
         return int(value)
     except ValueError as exc:
@@ -351,6 +403,15 @@ def _integer(value: str, field: str) -> int:
 
 
 def _response_integer(raw: RedisResponse, field: str) -> int:
+    """Execute response integer.
+
+    Args:
+        raw: Raw used by this operation.
+        field: Field used by this operation.
+
+    Returns:
+        int result produced by response integer.
+    """
     if isinstance(raw, bool):
         raise MaintenanceQueueUnavailableError(f"Redis {field} must be an integer")
     if isinstance(raw, int):
@@ -359,6 +420,15 @@ def _response_integer(raw: RedisResponse, field: str) -> int:
 
 
 def _json_integer(raw: JSONValue, field: str) -> int:
+    """Execute json integer.
+
+    Args:
+        raw: Raw used by this operation.
+        field: Field used by this operation.
+
+    Returns:
+        int result produced by json integer.
+    """
     if isinstance(raw, bool) or not isinstance(raw, int):
         raise MaintenanceQueueUnavailableError(
             f"Redis maintenance result field must be an integer: {field}"
@@ -367,6 +437,15 @@ def _json_integer(raw: JSONValue, field: str) -> int:
 
 
 def _datetime(value: str, field: str) -> datetime:
+    """Execute datetime.
+
+    Args:
+        value: Value being processed.
+        field: Field used by this operation.
+
+    Returns:
+        datetime result produced by datetime.
+    """
     try:
         return datetime.fromisoformat(value)
     except ValueError as exc:
@@ -376,6 +455,15 @@ def _datetime(value: str, field: str) -> datetime:
 
 
 def _optional_datetime(value: str | None, field: str) -> datetime | None:
+    """Execute optional datetime.
+
+    Args:
+        value: Value being processed.
+        field: Field used by this operation.
+
+    Returns:
+        datetime | None result produced by optional datetime.
+    """
     normalized = _nonblank(value)
     if normalized is None:
         return None
@@ -383,6 +471,14 @@ def _optional_datetime(value: str | None, field: str) -> datetime | None:
 
 
 def _nonblank(value: str | None) -> str | None:
+    """Execute nonblank.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str | None result produced by nonblank.
+    """
     if value is None:
         return None
     normalized = value.strip()

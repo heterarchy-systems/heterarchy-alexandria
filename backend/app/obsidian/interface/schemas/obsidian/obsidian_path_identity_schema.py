@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import StringConstraints
+
 from app.obsidian.domain.entities.obsidian_note import (
     ObsidianCanonicalIdentityResult,
     ObsidianExactPathStatus,
@@ -15,7 +17,6 @@ from app.shared.schemas.common_schemas import (
     StrictSchemaModel,
     described_field,
 )
-from pydantic import StringConstraints
 
 
 class ObsidianExactPathStatusResponse(StrictSchemaModel):

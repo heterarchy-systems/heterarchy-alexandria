@@ -1,0 +1,162 @@
+{
+  "authority": "rust",
+  "benchmark": "deterministic_compute_real_ffi",
+  "features": {
+    "chunking": {
+      "scenario_count": 5,
+      "scenarios": [
+        {
+          "calls_per_second": 195388.824,
+          "iterations_per_sample": 250,
+          "median_milliseconds": 0.005118,
+          "request_bytes": 283,
+          "request_megabytes_per_second": 55.295,
+          "response_bytes": 2273,
+          "samples": 7,
+          "scenario_index": 0
+        },
+        {
+          "calls_per_second": 192901.235,
+          "iterations_per_sample": 250,
+          "median_milliseconds": 0.005184,
+          "request_bytes": 522,
+          "request_megabytes_per_second": 100.694,
+          "response_bytes": 1294,
+          "samples": 7,
+          "scenario_index": 1
+        },
+        {
+          "calls_per_second": 136574.706,
+          "iterations_per_sample": 250,
+          "median_milliseconds": 0.007322,
+          "request_bytes": 825,
+          "request_megabytes_per_second": 112.674,
+          "response_bytes": 1638,
+          "samples": 7,
+          "scenario_index": 2
+        },
+        {
+          "calls_per_second": 20488.025,
+          "iterations_per_sample": 75,
+          "median_milliseconds": 0.048809,
+          "request_bytes": 11601,
+          "request_megabytes_per_second": 237.682,
+          "response_bytes": 13849,
+          "samples": 7,
+          "scenario_index": 3
+        },
+        {
+          "calls_per_second": 18448.823,
+          "iterations_per_sample": 250,
+          "median_milliseconds": 0.054204,
+          "request_bytes": 6042,
+          "request_megabytes_per_second": 111.468,
+          "response_bytes": 11098,
+          "samples": 7,
+          "scenario_index": 4
+        }
+      ],
+      "status": "measured"
+    },
+    "document_analysis": {
+      "scenario_count": 1,
+      "scenarios": [
+        {
+          "calls_per_second": 9945.795,
+          "iterations_per_sample": 250,
+          "median_milliseconds": 0.100545,
+          "request_bytes": 7197,
+          "request_megabytes_per_second": 71.58,
+          "response_bytes": 22879,
+          "samples": 7,
+          "scenario_index": 0
+        }
+      ],
+      "status": "measured"
+    },
+    "fingerprint": {
+      "scenario_count": 1,
+      "scenarios": [
+        {
+          "calls_per_second": 2325.819,
+          "iterations_per_sample": 20,
+          "median_milliseconds": 0.429956,
+          "request_bytes": 105885,
+          "request_megabytes_per_second": 246.269,
+          "response_bytes": 19121,
+          "samples": 7,
+          "scenario_index": 0
+        }
+      ],
+      "status": "measured"
+    },
+    "graph_compute": {
+      "scenario_count": 4,
+      "scenarios": [
+        {
+          "calls_per_second": 35160.508,
+          "iterations_per_sample": 250,
+          "median_milliseconds": 0.028441,
+          "request_bytes": 3339,
+          "request_megabytes_per_second": 117.401,
+          "response_bytes": 4055,
+          "samples": 7,
+          "scenario_index": 0
+        },
+        {
+          "calls_per_second": 49251.379,
+          "iterations_per_sample": 250,
+          "median_milliseconds": 0.020304,
+          "request_bytes": 2046,
+          "request_megabytes_per_second": 100.768,
+          "response_bytes": 3237,
+          "samples": 7,
+          "scenario_index": 1
+        },
+        {
+          "calls_per_second": 35946.655,
+          "iterations_per_sample": 250,
+          "median_milliseconds": 0.027819,
+          "request_bytes": 2596,
+          "request_megabytes_per_second": 93.318,
+          "response_bytes": 5404,
+          "samples": 7,
+          "scenario_index": 2
+        },
+        {
+          "calls_per_second": 52859.71,
+          "iterations_per_sample": 250,
+          "median_milliseconds": 0.018918,
+          "request_bytes": 1601,
+          "request_megabytes_per_second": 84.628,
+          "response_bytes": 3296,
+          "samples": 7,
+          "scenario_index": 3
+        }
+      ],
+      "status": "measured"
+    },
+    "link_extraction": {
+      "scenario_count": 1,
+      "scenarios": [
+        {
+          "calls_per_second": 2307.524,
+          "iterations_per_sample": 250,
+          "median_milliseconds": 0.433365,
+          "request_bytes": 6422,
+          "request_megabytes_per_second": 14.819,
+          "response_bytes": 31071,
+          "samples": 7,
+          "scenario_index": 0
+        }
+      ],
+      "status": "measured"
+    }
+  },
+  "interpretation": [
+    "Every measurement calls the release native extension through the production JSON FFI boundary.",
+    "Inputs are immutable accepted corpora; no retired Python compute implementation is executed.",
+    "The gate records steady-state call latency and byte throughput without weakening functional parity gates."
+  ],
+  "schema_version": 1
+}

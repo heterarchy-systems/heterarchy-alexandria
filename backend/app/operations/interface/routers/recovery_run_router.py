@@ -64,6 +64,9 @@ async def recovery_run(
         context_service: Context/RAG service.
         obsidian_service: Obsidian vault service.
 
+        http_request: Http request used by this operation.
+        context_service_factory: Factory that creates context service.
+        obsidian_service_factory: Factory that creates obsidian service.
     Returns:
         Recovery run response.
     """
@@ -127,6 +130,9 @@ async def retry_recovery_run(
         context_service: Context/RAG service.
         obsidian_service: Obsidian vault service.
 
+        http_request: Http request used by this operation.
+        context_service_factory: Factory that creates context service.
+        obsidian_service_factory: Factory that creates obsidian service.
     Returns:
         Recovery run response.
     """

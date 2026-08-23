@@ -30,7 +30,7 @@ REQUIRED_HEADINGS_BY_KIND: dict[ContextKind, tuple[str, ...]] = {
 }
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class ContextLintInput:
     """Input contract for linting context content."""
 
@@ -50,10 +50,10 @@ class ContextLintInput:
 
     def __post_init__(self) -> None:
         """Normalize caller-provided tags to an immutable sequence."""
-        object.__setattr__(self, "tags", tuple(self.tags))
+        self.tags = tuple(self.tags)
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class ContextLintResult:
     """Machine-readable lint result."""
 
@@ -70,10 +70,10 @@ class ContextLintResult:
 
     def __post_init__(self) -> None:
         """Normalize lint findings to immutable sequences."""
-        object.__setattr__(self, "errors", tuple(self.errors))
-        object.__setattr__(self, "warnings", tuple(self.warnings))
-        object.__setattr__(self, "suggestions", tuple(self.suggestions))
-        object.__setattr__(self, "redaction_report", tuple(self.redaction_report))
+        self.errors = tuple(self.errors)
+        self.warnings = tuple(self.warnings)
+        self.suggestions = tuple(self.suggestions)
+        self.redaction_report = tuple(self.redaction_report)
 
 
 def lint_context(payload: ContextLintInput) -> ContextLintResult:
@@ -161,6 +161,17 @@ def _save_suggestion(
     content: str,
     summary: str,
 ) -> SaveSuggestionPayload:
+    """Save suggestion.
+
+    Args:
+        kind: Kind used by this operation.
+        scope: Scope used by this operation.
+        content: Content used by this operation.
+        summary: Summary used by this operation.
+
+    Returns:
+        SaveSuggestionPayload result produced by save suggestion.
+    """
     should_save = kind in {
         ContextKind.DECISION,
         ContextKind.BUG_ROOT_CAUSE,

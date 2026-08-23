@@ -178,6 +178,15 @@ class LibrarianOAuthStatusEvaluator:
         provider_id: str,
         refresh_token: str | None,
     ) -> LibrarianOAuthStatusPayload:
+        """Execute missing expiry payload.
+
+        Args:
+            provider_id: Identifier for provider.
+            refresh_token: Refresh token used by this operation.
+
+        Returns:
+            LibrarianOAuthStatusPayload result produced by missing expiry payload.
+        """
         if refresh_token is None:
             return self.payload(
                 provider_id=provider_id,
@@ -197,6 +206,15 @@ class LibrarianOAuthStatusEvaluator:
         provider_id: str,
         expires_at: datetime | None,
     ) -> LibrarianOAuthStatusPayload:
+        """Execute refresh required payload.
+
+        Args:
+            provider_id: Identifier for provider.
+            expires_at: Expires at used by this operation.
+
+        Returns:
+            LibrarianOAuthStatusPayload result produced by refresh required payload.
+        """
         return self.payload(
             provider_id=provider_id,
             status=OAuthConnectionStatus.REFRESH_REQUIRED,

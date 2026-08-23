@@ -26,6 +26,11 @@ from app.memory.application.contexts.records.context_search_service import (
 from app.memory.application.contexts.records.context_service_lint_mixin import (
     ContextServiceLintMixin,
 )
+from app.memory.application.contexts.records.context_service_ports import (
+    ContextListPort,
+    ContextRecoveryPort,
+    ContextTemporalSearchPort,
+)
 from app.memory.application.contexts.records.context_soft_rebuild_service import (
     ContextSoftRebuildService,
 )
@@ -59,6 +64,9 @@ from app.memory.domain.repositories.contexts.context_graph_signal_provider impor
 from app.memory.domain.repositories.contexts.context_repository import (
     IContextRepository,
 )
+from app.memory.domain.repositories.contexts.context_retrieval_kernel_provider import (
+    IContextRetrievalKernelProvider,
+)
 from app.memory.domain.repositories.contexts.context_search_source import (
     IContextSearchSource,
 )
@@ -67,7 +75,12 @@ from app.shared.application.index_maintenance_coordinator import (
 )
 
 
-class ContextService(ContextServiceLintMixin):
+class ContextService(
+    ContextServiceLintMixin,
+    ContextRecoveryPort,
+    ContextListPort,
+    ContextTemporalSearchPort,
+):
     """Stable Context application facade over focused use-case services.
 
     The facade intentionally retains the public Context API surface used by HTTP,
@@ -79,6 +92,7 @@ class ContextService(ContextServiceLintMixin):
     def __init__(
         self,
         repository: IContextRepository,
+        retrieval_kernel_provider: IContextRetrievalKernelProvider,
         embedding_provider: EmbeddingProvider | None = None,
         vector_retrieval_enabled: bool = False,
         extra_search_sources: Sequence[IContextSearchSource] | None = None,
@@ -91,14 +105,17 @@ class ContextService(ContextServiceLintMixin):
 
         Args:
             repository: Context persistence port.
+            retrieval_kernel_provider: Single authoritative retrieval-ranking provider.
             embedding_provider: Optional local embedding provider.
             vector_retrieval_enabled: Whether vector indexing and query paths are wired.
             extra_search_sources: Optional additional Context RAG sources.
             canonical_context_repository: Optional canonical Markdown context adapter.
             graph_signal_provider: Optional score-preserving graph evidence provider.
             embedding_batch_transaction: Optional transaction boundary per reindex batch.
+            index_maintenance_coordinator: Index maintenance coordinator used by this operation.
         """
         search_sources = [repository, *(extra_search_sources or ())]
+        self._retrieval_kernel_provider = retrieval_kernel_provider
         self._index_maintenance_coordinator = (
             index_maintenance_coordinator or IndexMaintenanceCoordinator()
         )
@@ -107,11 +124,13 @@ class ContextService(ContextServiceLintMixin):
             provider=embedding_provider,
             vector_retrieval_enabled=vector_retrieval_enabled,
             search_sources=search_sources,
+            retrieval_kernel_provider=retrieval_kernel_provider,
             batch_transaction=embedding_batch_transaction,
         )
         self._search_service = ContextSearchService(
             search_sources=search_sources,
             embedding_service=self._embedding_service,
+            retrieval_kernel_provider=retrieval_kernel_provider,
             graph_signal_provider=graph_signal_provider,
         )
         self._soft_rebuild_service = ContextSoftRebuildService(
@@ -126,6 +145,15 @@ class ContextService(ContextServiceLintMixin):
             repository=repository,
             canonical_repository=canonical_context_repository,
         )
+
+    @property
+    def retrieval_kernel_authority(self) -> str:
+        """Return the retrieval-kernel runtime authority.
+
+        Returns:
+            Authority identifier reported by the injected compute provider.
+        """
+        return self._retrieval_kernel_provider.authority
 
     async def get(self, context_id: str) -> ContextRecord:
         """Return one Context or raise not-found.

@@ -51,6 +51,14 @@ class MemoryCompactCreationService:
         self,
         payload: MemoryCompactCreate,
     ) -> MemoryCompact | None:
+        """Find existing by signature.
+
+        Args:
+            payload: Validated payload for this operation.
+
+        Returns:
+            Matched existing by signature.
+        """
         signature = create_signature(payload)
         offset = 0
         while True:

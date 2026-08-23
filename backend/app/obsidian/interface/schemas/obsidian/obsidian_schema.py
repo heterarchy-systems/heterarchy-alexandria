@@ -109,6 +109,14 @@ class ObsidianIndexErrorResponse(StrictSchemaModel):
 
     @classmethod
     def from_entity(cls, error: ObsidianIndexError) -> ObsidianIndexErrorResponse:
+        """Build this schema from a domain entity.
+
+        Args:
+            error: Error details captured for the response or report.
+
+        Returns:
+            Schema populated from the domain entity.
+        """
         return cls(
             note_path=error.note_path,
             context_id=error.context_id,

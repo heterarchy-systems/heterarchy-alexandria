@@ -8,6 +8,13 @@ from typing import cast
 
 import anyio
 import pytest
+from tests.memory.context_retrieval_kernel_test_provider import (
+    TestContextRetrievalKernelProvider,
+)
+from tests.obsidian.graph.fakes.fake_obsidian_graph_projection_repository import (
+    FakeObsidianGraphProjectionRepository,
+)
+
 from app.memory.application.contexts.embedding.context_embedding_service import (
     ContextEmbeddingService,
 )
@@ -61,9 +68,6 @@ from app.obsidian.domain.event_enum.obsidian_enums import (
     ObsidianRelationType,
 )
 from app.shared.types.extra_types import JSONObject
-from tests.obsidian.graph.fakes.fake_obsidian_graph_projection_repository import (
-    FakeObsidianGraphProjectionRepository,
-)
 
 NOW = datetime(2026, 8, 3, tzinfo=UTC)
 
@@ -312,7 +316,7 @@ def test_graph_lane_does_not_disclose_outside_result_target_metadata() -> None:
 
     recalled = result.matches[0]
     assert recalled.graph_evidence == ()
-    assert recalled.why_retrieved == "SQLite retrieval evidence."
+    assert recalled.why_retrieved == "PostgreSQL retrieval evidence."
     assert "outside-scope" not in recalled.why_retrieved
     assert "PRIVATE CUSTOMER" not in recalled.why_retrieved
 
@@ -404,6 +408,7 @@ async def _search(
             ContextEmbeddingService,
             _HybridEmbeddingService(vector_matches),
         ),
+        retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
         graph_signal_provider=graph_signals,
     )
     return await service.search(
@@ -481,7 +486,7 @@ def _match(
         score=score,
         fts_score=score,
         vector_score=score,
-        why_retrieved="SQLite retrieval evidence.",
+        why_retrieved="PostgreSQL retrieval evidence.",
     )
 
 

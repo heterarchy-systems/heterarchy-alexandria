@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from typing import Annotated, Final, Literal
 
+from pydantic import AliasChoices, SecretStr, StringConstraints
+from pydantic_settings import BaseSettings
+
 from app.mcp_server.type_validate.oauth.mcp_auth_enums import McpAuthMode
 from app.memory.application.retrieval.embeddings.embedding_contract import (
     DEFAULT_EMBEDDING_DIMENSIONS,
@@ -15,8 +18,6 @@ from app.memory.application.retrieval.embeddings.embedding_factory import (
 )
 from app.shared.schemas.common_schemas import described_field
 from app.shared.utils.config import settings_model_config
-from pydantic import AliasChoices, SecretStr, StringConstraints
-from pydantic_settings import BaseSettings
 
 DEFAULT_CODEX_OAUTH_ISSUER: Final[str] = "https://auth.openai.com"
 DEFAULT_CODEX_OAUTH_CLIENT_ID: Final[str] = "app_EMoamEEZ73f0CkXaXp7hrann"

@@ -2,6 +2,9 @@
 
 from typing import Annotated
 
+from dependency_injector.wiring import Provide, inject
+from fastapi import APIRouter, Depends, Query, Response, status
+
 from app.container import ApplicationContainer
 from app.memory.application.contexts.records.context_service import ContextService
 from app.memory.domain.event_enum.context_enums import (
@@ -23,8 +26,6 @@ from app.shared.exceptions.exception_decorators import router_exception_status
 from app.shared.exceptions.route_exceptions import CONTEXT_ROUTE_EXCEPTION_MAPPING
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 from app.shared.type_validation.strict_json_body import model_validate_json_body
-from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, Query, Response, status
 
 router = APIRouter(prefix="/memory/contexts", tags=["library-contexts"])
 

@@ -44,6 +44,12 @@ class OAuthBearerTokenVerifier:
         config: OAuthBearerVerifierConfig,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
+        """Initialize OAuthBearerTokenVerifier state and dependencies.
+
+        Args:
+            config: Typed configuration used by this operation.
+            transport: Transport used by this operation.
+        """
         self._config = config
         self._transport = transport
         self._jwks: JsonWebKeySetPayload | None = None
@@ -70,6 +76,11 @@ class OAuthBearerTokenVerifier:
         return claims
 
     async def _read_jwks(self) -> JsonWebKeySetPayload:
+        """Read jwks.
+
+        Returns:
+            Loaded jwks.
+        """
         if self._jwks is not None:
             return self._jwks
         async with httpx.AsyncClient(transport=self._transport, timeout=10.0) as client:
@@ -87,12 +98,26 @@ class OAuthBearerTokenVerifier:
         header: JwtHeaderPayload,
         jwks: JsonWebKeySetPayload,
     ) -> rsa.RSAPublicKey:
+        """Execute public key.
+
+        Args:
+            header: Header used by this operation.
+            jwks: Jwks used by this operation.
+
+        Returns:
+            rsa.RSAPublicKey result produced by public key.
+        """
         for key in jwks.keys:
             if key.kid == header.kid:
                 return _rsa_public_key(key)
         raise OAuthBearerTokenError("Bearer token key id is unknown")
 
     def _validate_claims(self, claims: JwtClaimsPayload) -> None:
+        """Validate claims.
+
+        Args:
+            claims: Claims used by this operation.
+        """
         now = int(datetime.now(UTC).timestamp())
         if claims.iss != self._config.issuer:
             raise OAuthBearerTokenError("Bearer token issuer is invalid")
@@ -110,6 +135,14 @@ class OAuthBearerTokenVerifier:
 def _decode_unsigned_token(
     token: str,
 ) -> tuple[JwtHeaderPayload, JwtClaimsPayload, bytes, bytes]:
+    """Decode unsigned token.
+
+    Args:
+        token: Token used by this operation.
+
+    Returns:
+        Decoded unsigned token.
+    """
     segments = token.split(".")
     if len(segments) != 3:
         raise OAuthBearerTokenError("Bearer token is not a JWT")
@@ -125,12 +158,28 @@ def _decode_unsigned_token(
 
 
 def _decode_base64url(value: str) -> bytes:
+    """Decode base64url.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        Decoded base64url.
+    """
     padding_length = (-len(value)) % 4
     padded = value + ("=" * padding_length)
     return base64.urlsafe_b64decode(padded.encode("ascii"))
 
 
 def _rsa_public_key(key: RsaJsonWebKeyPayload) -> rsa.RSAPublicKey:
+    """Execute rsa public key.
+
+    Args:
+        key: Key used by this operation.
+
+    Returns:
+        rsa.RSAPublicKey result produced by rsa public key.
+    """
     public_numbers = rsa.RSAPublicNumbers(
         e=int.from_bytes(_decode_base64url(key.e), "big"),
         n=int.from_bytes(_decode_base64url(key.n), "big"),
@@ -140,12 +189,29 @@ def _rsa_public_key(key: RsaJsonWebKeyPayload) -> rsa.RSAPublicKey:
 
 
 def _audience_matches(aud: str | tuple[str, ...], expected: str) -> bool:
+    """Execute audience matches.
+
+    Args:
+        aud: Aud used by this operation.
+        expected: Expected used by this operation.
+
+    Returns:
+        Whether audience matches.
+    """
     if isinstance(aud, str):
         return aud == expected
     return expected in aud
 
 
 def _claim_scopes(claims: JwtClaimsPayload) -> Sequence[str]:
+    """Execute claim scopes.
+
+    Args:
+        claims: Claims used by this operation.
+
+    Returns:
+        Sequence[str] result produced by claim scopes.
+    """
     if claims.scp is not None:
         return claims.scp
     if claims.scope is not None:

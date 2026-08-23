@@ -78,6 +78,14 @@ class LibrarianProfileRouter:
         self,
         command: HermesLibrarianAskCommand,
     ) -> LibrarianRoutingDecision:
+        """Execute route requested profile.
+
+        Args:
+            command: Command used by this operation.
+
+        Returns:
+            LibrarianRoutingDecision result produced by route requested profile.
+        """
         profile_ref = command.librarian_profile_id or ""
         profile = await self.agent_repo.get(profile_ref)
         if profile is None:
@@ -98,6 +106,14 @@ class LibrarianProfileRouter:
         )
 
     async def _profile_by_name(self, profile_name: str) -> AgentProfile | None:
+        """Execute profile by name.
+
+        Args:
+            profile_name: Profile name used by this operation.
+
+        Returns:
+            AgentProfile | None result produced by profile by name.
+        """
         profiles = await self.agent_repo.list_all()
         for profile in profiles:
             if profile.name == profile_name:

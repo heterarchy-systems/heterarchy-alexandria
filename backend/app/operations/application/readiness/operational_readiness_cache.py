@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
-from typing import Protocol
+from abc import ABC, abstractmethod
 
 from app.operations.domain.entities.operational_readiness import (
     OperationalReadinessSnapshot,
 )
 
 
-class OperationalReadinessCache(Protocol):
+class OperationalReadinessCache(ABC):
     """Fail-open cache contract for short-lived readiness snapshots."""
 
+    @abstractmethod
     async def get(self) -> OperationalReadinessSnapshot | None:
         """Return the cached snapshot.
 
@@ -19,6 +20,7 @@ class OperationalReadinessCache(Protocol):
             Cached snapshot, or None on a miss or cache failure.
         """
 
+    @abstractmethod
     async def set(self, snapshot: OperationalReadinessSnapshot) -> None:
         """Store one snapshot without propagating cache failures.
 
@@ -27,7 +29,7 @@ class OperationalReadinessCache(Protocol):
         """
 
 
-class NoopOperationalReadinessCache:
+class NoopOperationalReadinessCache(OperationalReadinessCache):
     """Disabled cache implementation that preserves uncached behavior."""
 
     async def get(self) -> None:

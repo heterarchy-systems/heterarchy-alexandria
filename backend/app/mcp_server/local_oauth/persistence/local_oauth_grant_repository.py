@@ -302,6 +302,16 @@ def _client_connection_record(
     token_rows: tuple[McpOAuthTokenORM, ...],
     now: int,
 ) -> LocalOAuthClientConnectionRecord:
+    """Execute client connection record.
+
+    Args:
+        client_row: Client row used by this operation.
+        token_rows: Token rows used by this operation.
+        now: Now used by this operation.
+
+    Returns:
+        LocalOAuthClientConnectionRecord result produced by client connection record.
+    """
     refresh_rows = tuple(
         row for row in token_rows if row.token_kind == LocalOAuthTokenKind.REFRESH.value
     )
@@ -345,6 +355,16 @@ def _connection_status(
     unrevoked_refresh_rows: tuple[McpOAuthTokenORM, ...],
     active_refresh_rows: tuple[McpOAuthTokenORM, ...],
 ) -> LocalOAuthClientConnectionStatus:
+    """Execute connection status.
+
+    Args:
+        refresh_rows: Refresh rows used by this operation.
+        unrevoked_refresh_rows: Unrevoked refresh rows used by this operation.
+        active_refresh_rows: Active refresh rows used by this operation.
+
+    Returns:
+        LocalOAuthClientConnectionStatus result produced by connection status.
+    """
     if active_refresh_rows:
         return LocalOAuthClientConnectionStatus.CONNECTED
     if unrevoked_refresh_rows:
@@ -356,6 +376,15 @@ def _connection_scopes(
     metadata: JSONObject,
     token_row: McpOAuthTokenORM | None,
 ) -> tuple[str, ...]:
+    """Execute connection scopes.
+
+    Args:
+        metadata: Metadata used by this operation.
+        token_row: Token row used by this operation.
+
+    Returns:
+        tuple[str, ...] result produced by connection scopes.
+    """
     if token_row is not None:
         return tuple(token_row.scopes)
     scope = _metadata_text(metadata, "scope")
@@ -367,18 +396,43 @@ def _connection_scopes(
 def _latest_token_row(
     token_rows: tuple[McpOAuthTokenORM, ...],
 ) -> McpOAuthTokenORM | None:
+    """Execute latest token row.
+
+    Args:
+        token_rows: Token rows used by this operation.
+
+    Returns:
+        McpOAuthTokenORM | None result produced by latest token row.
+    """
     if not token_rows:
         return None
     return max(token_rows, key=lambda row: row.created_at)
 
 
 def _max_expires_at(token_rows: tuple[McpOAuthTokenORM, ...]) -> int | None:
+    """Execute max expires at.
+
+    Args:
+        token_rows: Token rows used by this operation.
+
+    Returns:
+        int | None result produced by max expires at.
+    """
     if not token_rows:
         return None
     return max(row.expires_at for row in token_rows)
 
 
 def _metadata_text(metadata: JSONObject, key: str) -> str | None:
+    """Execute metadata text.
+
+    Args:
+        metadata: Metadata used by this operation.
+        key: Key used by this operation.
+
+    Returns:
+        str | None result produced by metadata text.
+    """
     value = metadata.get(key)
     return value if isinstance(value, str) and value else None
 
@@ -395,6 +449,20 @@ def _add_token_pair(
     refresh_expires_at: int,
     now: int,
 ) -> None:
+    """Execute add token pair.
+
+    Args:
+        session: Active session used by this operation.
+        client_id: Identifier for client.
+        scopes: Scopes used by this operation.
+        resource: Resource used by this operation.
+        family_id: Identifier for family.
+        access_token_hash: Access token hash used by this operation.
+        refresh_token_hash: Refresh token hash used by this operation.
+        access_expires_at: Access expires at used by this operation.
+        refresh_expires_at: Refresh expires at used by this operation.
+        now: Now used by this operation.
+    """
     session.add_all(
         (
             McpOAuthTokenORM(

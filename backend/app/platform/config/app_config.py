@@ -8,15 +8,16 @@ from __future__ import annotations
 
 from urllib.parse import ParseResult, urlparse
 
-from app.mcp_server.type_validate.oauth.mcp_auth_enums import McpAuthMode
-from app.platform.config.app_config_fields import (
-    _LOCAL_HTTP_HOSTS,
-    AppConfigFields,
-)
 from pydantic import (
     SecretStr,
     field_validator,
     model_validator,
+)
+
+from app.mcp_server.type_validate.oauth.mcp_auth_enums import McpAuthMode
+from app.platform.config.app_config_fields import (
+    _LOCAL_HTTP_HOSTS,
+    AppConfigFields,
 )
 
 
@@ -243,12 +244,24 @@ def _require_values(
     mode_name: str,
     values: tuple[tuple[str, str | SecretStr | None], ...],
 ) -> None:
+    """Execute require values.
+
+    Args:
+        mode_name: Mode name used by this operation.
+        values: Values being processed.
+    """
     missing = [name for name, value in values if value is None or value == ""]
     if missing:
         raise ValueError(f"{mode_name} requires: {', '.join(missing)}")
 
 
 def _validate_local_oauth_urls(issuer: str, resource: str) -> None:
+    """Validate local oauth urls.
+
+    Args:
+        issuer: Issuer used by this operation.
+        resource: Resource used by this operation.
+    """
     issuer_url = urlparse(issuer)
     resource_url = urlparse(resource)
     _validate_oauth_url("mcp_oauth_issuer", issuer_url)
@@ -264,6 +277,12 @@ def _validate_local_oauth_urls(issuer: str, resource: str) -> None:
 
 
 def _validate_oauth_url(name: str, parsed: ParseResult) -> None:
+    """Validate oauth url.
+
+    Args:
+        name: Name used by this operation.
+        parsed: Parsed used by this operation.
+    """
     scheme = parsed.scheme
     hostname = parsed.hostname
     if hostname is None:

@@ -8,7 +8,7 @@ from datetime import datetime
 from app.librarian.domain.event_enum.collaboration_enums import LibrarianProfileRole
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class AgentProfile:
     """Read model for a librarian/agent profile."""
 
@@ -30,15 +30,7 @@ class AgentProfile:
 
     def __post_init__(self) -> None:
         """Normalize persisted enum values at the read-model boundary."""
-        object.__setattr__(
-            self,
-            "librarian_role",
-            LibrarianProfileRole(self.librarian_role),
-        )
-        object.__setattr__(self, "capabilities", tuple(self.capabilities))
+        self.librarian_role = LibrarianProfileRole(self.librarian_role)
+        self.capabilities = tuple(self.capabilities)
         if self.librarian_specialties is not None:
-            object.__setattr__(
-                self,
-                "librarian_specialties",
-                tuple(self.librarian_specialties),
-            )
+            self.librarian_specialties = tuple(self.librarian_specialties)

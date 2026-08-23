@@ -193,6 +193,14 @@ class LocalMcpOAuthApprovalService:
         )
 
     def _pairing_code_hash(self, approval_code: str) -> str | None:
+        """Execute pairing code hash.
+
+        Args:
+            approval_code: Approval code used by this operation.
+
+        Returns:
+            str | None result produced by pairing code hash.
+        """
         if hmac.compare_digest(
             approval_code.encode("utf-8"),
             self._settings.approval_key.encode("utf-8"),
@@ -201,6 +209,11 @@ class LocalMcpOAuthApprovalService:
         return hash_opaque_value(_normalize_pairing_code(approval_code))
 
     async def _raise_failed_approval(self, request_id: str) -> None:
+        """Execute raise failed approval.
+
+        Args:
+            request_id: Identifier for request.
+        """
         attempts = await self._repository.record_failed_approval(
             request_id, current_epoch_seconds()
         )
@@ -223,6 +236,14 @@ class LocalMcpOAuthApprovalService:
         self,
         client_id: str,
     ) -> LocalOAuthClientConnectionRecord | None:
+        """Execute client connection.
+
+        Args:
+            client_id: Identifier for client.
+
+        Returns:
+            LocalOAuthClientConnectionRecord | None result produced by client connection.
+        """
         for connection in await self.list_client_connections():
             if connection.client_id == client_id:
                 return connection
@@ -230,16 +251,34 @@ class LocalMcpOAuthApprovalService:
 
 
 def new_opaque_value() -> str:
+    """Create a new opaque approval value.
+
+    Returns:
+        New opaque approval value.
+    """
     return secrets.token_urlsafe(32)
 
 
 def _pairing_code() -> str:
+    """Execute pairing code.
+
+    Returns:
+        str result produced by pairing code.
+    """
     alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
     compact = "".join(secrets.choice(alphabet) for _ in range(8))
     return f"{compact[:4]}-{compact[4:]}"
 
 
 def _normalize_pairing_code(value: str) -> str:
+    """Normalize pairing code.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        Normalized pairing code.
+    """
     compact = "".join(character for character in value.upper() if character.isalnum())
     if len(compact) != 8:
         return compact
@@ -247,8 +286,21 @@ def _normalize_pairing_code(value: str) -> str:
 
 
 def hash_opaque_value(value: str) -> str:
+    """Hash an opaque approval value.
+
+    Args:
+        value: Value to transform.
+
+    Returns:
+        Stable hash of the opaque approval value.
+    """
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
 def current_epoch_seconds() -> int:
+    """Return the current Unix epoch time in seconds.
+
+    Returns:
+        Current Unix epoch time in seconds.
+    """
     return int(time.time())

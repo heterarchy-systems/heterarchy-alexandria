@@ -1,0 +1,471 @@
+{
+  "schema_version": 1,
+  "feature": "chunking",
+  "baseline": "backend/app/shared/search/markdown_text_chunking.py",
+  "cases": [
+    {
+      "case_id": "basic_heading_sections",
+      "relative_path": "Contexts/Chunk Basic.md",
+      "title": "Decision log",
+      "content": "# Decision log\n\n## Summary\nUse local embeddings.\n\n## Evidence\nFastEmbed works locally.\n",
+      "max_chars": 1400,
+      "overlap_chars": 160,
+      "expected": [
+        {
+          "chunk_index": 0,
+          "heading": "Decision log",
+          "content": "# Decision log"
+        },
+        {
+          "chunk_index": 1,
+          "heading": "Summary",
+          "content": "## Summary\nUse local embeddings."
+        },
+        {
+          "chunk_index": 2,
+          "heading": "Evidence",
+          "content": "## Evidence\nFastEmbed works locally."
+        }
+      ]
+    },
+    {
+      "case_id": "heading_depth_and_repetition",
+      "relative_path": "Contexts/Heading Depth.md",
+      "title": "Heading Depth",
+      "content": "# Root\nroot\n## Child\nchild\n### Grandchild\ngrandchild\n## Child\nrepeated\n###### Deep Jump\ndeep\n",
+      "max_chars": 1400,
+      "overlap_chars": 160,
+      "expected": [
+        {
+          "chunk_index": 0,
+          "heading": "Root",
+          "content": "# Root\nroot"
+        },
+        {
+          "chunk_index": 1,
+          "heading": "Child",
+          "content": "## Child\nchild"
+        },
+        {
+          "chunk_index": 2,
+          "heading": "Grandchild",
+          "content": "### Grandchild\ngrandchild"
+        },
+        {
+          "chunk_index": 3,
+          "heading": "Child",
+          "content": "## Child\nrepeated"
+        },
+        {
+          "chunk_index": 4,
+          "heading": "Deep Jump",
+          "content": "###### Deep Jump\ndeep"
+        }
+      ]
+    },
+    {
+      "case_id": "preamble_before_first_heading",
+      "relative_path": "Contexts/Preamble.md",
+      "title": "Preamble Title",
+      "content": "Lead paragraph before headings.\n\n# First\nBody.\n",
+      "max_chars": 1400,
+      "overlap_chars": 160,
+      "expected": [
+        {
+          "chunk_index": 0,
+          "heading": "Preamble Title",
+          "content": "Lead paragraph before headings."
+        },
+        {
+          "chunk_index": 1,
+          "heading": "First",
+          "content": "# First\nBody."
+        }
+      ]
+    },
+    {
+      "case_id": "korean_english_mixed_headings",
+      "relative_path": "Contexts/한영 혼합.md",
+      "title": "검색 품질",
+      "content": "# 검색 품질 Search Quality\n본문과 body가 섞여 있습니다.\n\n## 재현성 Reproducibility\n동일 입력은 identical output을 생성합니다.\n",
+      "max_chars": 1400,
+      "overlap_chars": 160,
+      "expected": [
+        {
+          "chunk_index": 0,
+          "heading": "검색 품질 Search Quality",
+          "content": "# 검색 품질 Search Quality\n본문과 body가 섞여 있습니다."
+        },
+        {
+          "chunk_index": 1,
+          "heading": "재현성 Reproducibility",
+          "content": "## 재현성 Reproducibility\n동일 입력은 identical output을 생성합니다."
+        }
+      ]
+    },
+    {
+      "case_id": "fenced_code_current_regex_semantics",
+      "relative_path": "Contexts/Fenced Heading.md",
+      "title": "Fence",
+      "content": "Preamble\n```md\n# Inside fence\nbody in fence\n```\n## Outside\noutside body\n",
+      "max_chars": 1400,
+      "overlap_chars": 160,
+      "expected": [
+        {
+          "chunk_index": 0,
+          "heading": "Fence",
+          "content": "Preamble\n```md"
+        },
+        {
+          "chunk_index": 1,
+          "heading": "Inside fence",
+          "content": "# Inside fence\nbody in fence\n```"
+        },
+        {
+          "chunk_index": 2,
+          "heading": "Outside",
+          "content": "## Outside\noutside body"
+        }
+      ]
+    },
+    {
+      "case_id": "lists_tables_quotes",
+      "relative_path": "Contexts/Structures.md",
+      "title": "Structures",
+      "content": "# Structures\n\n- first item\n- second item\n\n> quoted evidence\n\n| key | value |\n| --- | --- |\n| alpha | beta |\n",
+      "max_chars": 1400,
+      "overlap_chars": 160,
+      "expected": [
+        {
+          "chunk_index": 0,
+          "heading": "Structures",
+          "content": "# Structures\n\n- first item\n- second item\n\n> quoted evidence\n\n| key | value |\n| --- | --- |\n| alpha | beta |"
+        }
+      ]
+    },
+    {
+      "case_id": "link_heavy_text",
+      "relative_path": "Contexts/Links.md",
+      "title": "Links",
+      "content": "# Links\n[[Note]] [[Note|Alias]] [[Path/Note#Heading]] ![[Embed]] https://example.invalid/path?q=alexandria\n",
+      "max_chars": 1400,
+      "overlap_chars": 160,
+      "expected": [
+        {
+          "chunk_index": 0,
+          "heading": "Links",
+          "content": "# Links\n[[Note]] [[Note|Alias]] [[Path/Note#Heading]] ![[Embed]] https://example.invalid/path?q=alexandria"
+        }
+      ]
+    },
+    {
+      "case_id": "empty_content_title_fallback",
+      "relative_path": "Contexts/Empty Content.md",
+      "title": "Fallback title",
+      "content": "",
+      "max_chars": 1400,
+      "overlap_chars": 160,
+      "expected": [
+        {
+          "chunk_index": 0,
+          "heading": "Fallback title",
+          "content": "Fallback title"
+        }
+      ]
+    },
+    {
+      "case_id": "whitespace_content_trimmed_title_fallback",
+      "relative_path": "Contexts/Whitespace Content.md",
+      "title": "  Fallback with spaces  ",
+      "content": " \n\t\r",
+      "max_chars": 1400,
+      "overlap_chars": 160,
+      "expected": [
+        {
+          "chunk_index": 0,
+          "heading": "  Fallback with spaces  ",
+          "content": "Fallback with spaces"
+        }
+      ]
+    },
+    {
+      "case_id": "empty_title_and_content",
+      "relative_path": "Contexts/Empty All.md",
+      "title": "",
+      "content": "",
+      "max_chars": 1400,
+      "overlap_chars": 160,
+      "expected": []
+    },
+    {
+      "case_id": "single_unbroken_ascii",
+      "relative_path": "Contexts/Unbroken ASCII.md",
+      "title": "Unbroken",
+      "content": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "max_chars": 1400,
+      "overlap_chars": 160,
+      "expected": [
+        {
+          "chunk_index": 0,
+          "heading": "Unbroken",
+          "content": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        },
+        {
+          "chunk_index": 1,
+          "heading": "Unbroken",
+          "content": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        },
+        {
+          "chunk_index": 2,
+          "heading": "Unbroken",
+          "content": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      ]
+    },
+    {
+      "case_id": "single_unbroken_unicode",
+      "relative_path": "Contexts/Unbroken Unicode.md",
+      "title": "유니코드",
+      "content": "한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한",
+      "max_chars": 700,
+      "overlap_chars": 90,
+      "expected": [
+        {
+          "chunk_index": 0,
+          "heading": "유니코드",
+          "content": "한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한"
+        },
+        {
+          "chunk_index": 1,
+          "heading": "유니코드",
+          "content": "한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한"
+        },
+        {
+          "chunk_index": 2,
+          "heading": "유니코드",
+          "content": "한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한한"
+        }
+      ]
+    },
+    {
+      "case_id": "long_space_separated_overlap",
+      "relative_path": "Contexts/Long Tokens.md",
+      "title": "검색 품질",
+      "content": "# 검색 품질\n\n검색토큰-0 검색토큰-1 검색토큰-2 검색토큰-3 검색토큰-4 검색토큰-5 검색토큰-6 검색토큰-7 검색토큰-8 검색토큰-9 검색토큰-10 검색토큰-11 검색토큰-12 검색토큰-13 검색토큰-14 검색토큰-15 검색토큰-16 검색토큰-17 검색토큰-18 검색토큰-19 검색토큰-20 검색토큰-21 검색토큰-22 검색토큰-23 검색토큰-24 검색토큰-25 검색토큰-26 검색토큰-27 검색토큰-28 검색토큰-29 검색토큰-30 검색토큰-31 검색토큰-32 검색토큰-33 검색토큰-34 검색토큰-35 검색토큰-36 검색토큰-37 검색토큰-38 검색토큰-39 검색토큰-40 검색토큰-41 검색토큰-42 검색토큰-43 검색토큰-44 검색토큰-45 검색토큰-46 검색토큰-47 검색토큰-48 검색토큰-49 검색토큰-50 검색토큰-51 검색토큰-52 검색토큰-53 검색토큰-54 검색토큰-55 검색토큰-56 검색토큰-57 검색토큰-58 검색토큰-59 검색토큰-60 검색토큰-61 검색토큰-62 검색토큰-63 검색토큰-64 검색토큰-65 검색토큰-66 검색토큰-67 검색토큰-68 검색토큰-69 검색토큰-70 검색토큰-71 검색토큰-72 검색토큰-73 검색토큰-74 검색토큰-75 검색토큰-76 검색토큰-77 검색토큰-78 검색토큰-79 검색토큰-80 검색토큰-81 검색토큰-82 검색토큰-83 검색토큰-84 검색토큰-85 검색토큰-86 검색토큰-87 검색토큰-88 검색토큰-89 검색토큰-90 검색토큰-91 검색토큰-92 검색토큰-93 검색토큰-94 검색토큰-95 검색토큰-96 검색토큰-97 검색토큰-98 검색토큰-99 검색토큰-100 검색토큰-101 검색토큰-102 검색토큰-103 검색토큰-104 검색토큰-105 검색토큰-106 검색토큰-107 검색토큰-108 검색토큰-109 검색토큰-110 검색토큰-111 검색토큰-112 검색토큰-113 검색토큰-114 검색토큰-115 검색토큰-116 검색토큰-117 검색토큰-118 검색토큰-119 검색토큰-120 검색토큰-121 검색토큰-122 검색토큰-123 검색토큰-124 검색토큰-125 검색토큰-126 검색토큰-127 검색토큰-128 검색토큰-129 검색토큰-130 검색토큰-131 검색토큰-132 검색토큰-133 검색토큰-134 검색토큰-135 검색토큰-136 검색토큰-137 검색토큰-138 검색토큰-139 검색토큰-140 검색토큰-141 검색토큰-142 검색토큰-143 검색토큰-144 검색토큰-145 검색토큰-146 검색토큰-147 검색토큰-148 검색토큰-149 검색토큰-150 검색토큰-151 검색토큰-152 검색토큰-153 검색토큰-154 검색토큰-155 검색토큰-156 검색토큰-157 검색토큰-158 검색토큰-159 검색토큰-160 검색토큰-161 검색토큰-162 검색토큰-163 검색토큰-164 검색토큰-165 검색토큰-166 검색토큰-167 검색토큰-168 검색토큰-169 검색토큰-170 검색토큰-171 검색토큰-172 검색토큰-173 검색토큰-174 검색토큰-175 검색토큰-176 검색토큰-177 검색토큰-178 검색토큰-179 검색토큰-180 검색토큰-181 검색토큰-182 검색토큰-183 검색토큰-184 검색토큰-185 검색토큰-186 검색토큰-187 검색토큰-188 검색토큰-189 검색토큰-190 검색토큰-191 검색토큰-192 검색토큰-193 검색토큰-194 검색토큰-195 검색토큰-196 검색토큰-197 검색토큰-198 검색토큰-199 검색토큰-200 검색토큰-201 검색토큰-202 검색토큰-203 검색토큰-204 검색토큰-205 검색토큰-206 검색토큰-207 검색토큰-208 검색토큰-209 검색토큰-210 검색토큰-211 검색토큰-212 검색토큰-213 검색토큰-214 검색토큰-215 검색토큰-216 검색토큰-217 검색토큰-218 검색토큰-219 검색토큰-220 검색토큰-221 검색토큰-222 검색토큰-223 검색토큰-224 검색토큰-225 검색토큰-226 검색토큰-227 검색토큰-228 검색토큰-229 검색토큰-230 검색토큰-231 검색토큰-232 검색토큰-233 검색토큰-234 검색토큰-235 검색토큰-236 검색토큰-237 검색토큰-238 검색토큰-239 검색토큰-240 검색토큰-241 검색토큰-242 검색토큰-243 검색토큰-244 검색토큰-245 검색토큰-246 검색토큰-247 검색토큰-248 검색토큰-249 검색토큰-250 검색토큰-251 검색토큰-252 검색토큰-253 검색토큰-254 검색토큰-255 검색토큰-256 검색토큰-257 검색토큰-258 검색토큰-259 검색토큰-260 검색토큰-261 검색토큰-262 검색토큰-263 검색토큰-264 검색토큰-265 검색토큰-266 검색토큰-267 검색토큰-268 검색토큰-269 검색토큰-270 검색토큰-271 검색토큰-272 검색토큰-273 검색토큰-274 검색토큰-275 검색토큰-276 검색토큰-277 검색토큰-278 검색토큰-279 검색토큰-280 검색토큰-281 검색토큰-282 검색토큰-283 검색토큰-284 검색토큰-285 검색토큰-286 검색토큰-287 검색토큰-288 검색토큰-289 검색토큰-290 검색토큰-291 검색토큰-292 검색토큰-293 검색토큰-294 검색토큰-295 검색토큰-296 검색토큰-297 검색토큰-298 검색토큰-299 검색토큰-300 검색토큰-301 검색토큰-302 검색토큰-303 검색토큰-304 검색토큰-305 검색토큰-306 검색토큰-307 검색토큰-308 검색토큰-309 검색토큰-310 검색토큰-311 검색토큰-312 검색토큰-313 검색토큰-314 검색토큰-315 검색토큰-316 검색토큰-317 검색토큰-318 검색토큰-319 검색토큰-320 검색토큰-321 검색토큰-322 검색토큰-323 검색토큰-324 검색토큰-325 검색토큰-326 검색토큰-327 검색토큰-328 검색토큰-329 검색토큰-330 검색토큰-331 검색토큰-332 검색토큰-333 검색토큰-334 검색토큰-335 검색토큰-336 검색토큰-337 검색토큰-338 검색토큰-339 검색토큰-340 검색토큰-341 검색토큰-342 검색토큰-343 검색토큰-344 검색토큰-345 검색토큰-346 검색토큰-347 검색토큰-348 검색토큰-349",
+      "max_chars": 700,
+      "overlap_chars": 90,
+      "expected": [
+        {
+          "chunk_index": 0,
+          "heading": "검색 품질",
+          "content": "# 검색 품질\n\n검색토큰-0 검색토큰-1 검색토큰-2 검색토큰-3 검색토큰-4 검색토큰-5 검색토큰-6 검색토큰-7 검색토큰-8 검색토큰-9 검색토큰-10 검색토큰-11 검색토큰-12 검색토큰-13 검색토큰-14 검색토큰-15 검색토큰-16 검색토큰-17 검색토큰-18 검색토큰-19 검색토큰-20 검색토큰-21 검색토큰-22 검색토큰-23 검색토큰-24 검색토큰-25 검색토큰-26 검색토큰-27 검색토큰-28 검색토큰-29 검색토큰-30 검색토큰-31 검색토큰-32 검색토큰-33 검색토큰-34 검색토큰-35 검색토큰-36 검색토큰-37 검색토큰-38 검색토큰-39 검색토큰-40 검색토큰-41 검색토큰-42 검색토큰-43 검색토큰-44 검색토큰-45 검색토큰-46 검색토큰-47 검색토큰-48 검색토큰-49 검색토큰-50 검색토큰-51 검색토큰-52 검색토큰-53 검색토큰-54 검색토큰-55 검색토큰-56 검색토큰-57 검색토큰-58 검색토큰-59 검색토큰-60 검색토큰-61 검색토큰-62 검색토큰-63 검색토큰-64 검색토큰-65 검색토큰-66 검색토큰-67 검색토큰-68 검색토큰-69 검색토큰-70 검색토큰-71 검색토큰-72 검색토큰-73 검색토큰-74 검색토큰-75 검색토큰-76 검색토큰-77 검색토큰-78 검색토큰-79 검색토큰-80 검색토큰-81 검색토큰-82 검색토큰-83 검색토큰-84 검색토큰-85 검색토큰-86"
+        },
+        {
+          "chunk_index": 1,
+          "heading": "검색 품질",
+          "content": "검색토큰-76 검색토큰-77 검색토큰-78 검색토큰-79 검색토큰-80 검색토큰-81 검색토큰-82 검색토큰-83 검색토큰-84 검색토큰-85 검색토큰-86 검색토큰-87 검색토큰-88 검색토큰-89 검색토큰-90 검색토큰-91 검색토큰-92 검색토큰-93 검색토큰-94 검색토큰-95 검색토큰-96 검색토큰-97 검색토큰-98 검색토큰-99 검색토큰-100 검색토큰-101 검색토큰-102 검색토큰-103 검색토큰-104 검색토큰-105 검색토큰-106 검색토큰-107 검색토큰-108 검색토큰-109 검색토큰-110 검색토큰-111 검색토큰-112 검색토큰-113 검색토큰-114 검색토큰-115 검색토큰-116 검색토큰-117 검색토큰-118 검색토큰-119 검색토큰-120 검색토큰-121 검색토큰-122 검색토큰-123 검색토큰-124 검색토큰-125 검색토큰-126 검색토큰-127 검색토큰-128 검색토큰-129 검색토큰-130 검색토큰-131 검색토큰-132 검색토큰-133 검색토큰-134 검색토큰-135 검색토큰-136 검색토큰-137 검색토큰-138 검색토큰-139 검색토큰-140 검색토큰-141 검색토큰-142 검색토큰-143 검색토큰-144 검색토큰-145 검색토큰-146 검색토큰-147 검색토큰-148 검색토큰-149 검색토큰-150 검색토큰-151 검색토큰-152 검색토큰-153 검색토큰-154 검색토큰-155"
+        },
+        {
+          "chunk_index": 2,
+          "heading": "검색 품질",
+          "content": "검색토큰-146 검색토큰-147 검색토큰-148 검색토큰-149 검색토큰-150 검색토큰-151 검색토큰-152 검색토큰-153 검색토큰-154 검색토큰-155 검색토큰-156 검색토큰-157 검색토큰-158 검색토큰-159 검색토큰-160 검색토큰-161 검색토큰-162 검색토큰-163 검색토큰-164 검색토큰-165 검색토큰-166 검색토큰-167 검색토큰-168 검색토큰-169 검색토큰-170 검색토큰-171 검색토큰-172 검색토큰-173 검색토큰-174 검색토큰-175 검색토큰-176 검색토큰-177 검색토큰-178 검색토큰-179 검색토큰-180 검색토큰-181 검색토큰-182 검색토큰-183 검색토큰-184 검색토큰-185 검색토큰-186 검색토큰-187 검색토큰-188 검색토큰-189 검색토큰-190 검색토큰-191 검색토큰-192 검색토큰-193 검색토큰-194 검색토큰-195 검색토큰-196 검색토큰-197 검색토큰-198 검색토큰-199 검색토큰-200 검색토큰-201 검색토큰-202 검색토큰-203 검색토큰-204 검색토큰-205 검색토큰-206 검색토큰-207 검색토큰-208 검색토큰-209 검색토큰-210 검색토큰-211 검색토큰-212 검색토큰-213 검색토큰-214 검색토큰-215 검색토큰-216 검색토큰-217 검색토큰-218 검색토큰-219 검색토큰-220 검색토큰-221 검색토큰-222"
+        },
+        {
+          "chunk_index": 3,
+          "heading": "검색 품질",
+          "content": "검색토큰-213 검색토큰-214 검색토큰-215 검색토큰-216 검색토큰-217 검색토큰-218 검색토큰-219 검색토큰-220 검색토큰-221 검색토큰-222 검색토큰-223 검색토큰-224 검색토큰-225 검색토큰-226 검색토큰-227 검색토큰-228 검색토큰-229 검색토큰-230 검색토큰-231 검색토큰-232 검색토큰-233 검색토큰-234 검색토큰-235 검색토큰-236 검색토큰-237 검색토큰-238 검색토큰-239 검색토큰-240 검색토큰-241 검색토큰-242 검색토큰-243 검색토큰-244 검색토큰-245 검색토큰-246 검색토큰-247 검색토큰-248 검색토큰-249 검색토큰-250 검색토큰-251 검색토큰-252 검색토큰-253 검색토큰-254 검색토큰-255 검색토큰-256 검색토큰-257 검색토큰-258 검색토큰-259 검색토큰-260 검색토큰-261 검색토큰-262 검색토큰-263 검색토큰-264 검색토큰-265 검색토큰-266 검색토큰-267 검색토큰-268 검색토큰-269 검색토큰-270 검색토큰-271 검색토큰-272 검색토큰-273 검색토큰-274 검색토큰-275 검색토큰-276 검색토큰-277 검색토큰-278 검색토큰-279 검색토큰-280 검색토큰-281 검색토큰-282 검색토큰-283 검색토큰-284 검색토큰-285 검색토큰-286 검색토큰-287 검색토큰-288 검색토큰-289"
+        },
+        {
+          "chunk_index": 4,
+          "heading": "검색 품질",
+          "content": "검색토큰-280 검색토큰-281 검색토큰-282 검색토큰-283 검색토큰-284 검색토큰-285 검색토큰-286 검색토큰-287 검색토큰-288 검색토큰-289 검색토큰-290 검색토큰-291 검색토큰-292 검색토큰-293 검색토큰-294 검색토큰-295 검색토큰-296 검색토큰-297 검색토큰-298 검색토큰-299 검색토큰-300 검색토큰-301 검색토큰-302 검색토큰-303 검색토큰-304 검색토큰-305 검색토큰-306 검색토큰-307 검색토큰-308 검색토큰-309 검색토큰-310 검색토큰-311 검색토큰-312 검색토큰-313 검색토큰-314 검색토큰-315 검색토큰-316 검색토큰-317 검색토큰-318 검색토큰-319 검색토큰-320 검색토큰-321 검색토큰-322 검색토큰-323 검색토큰-324 검색토큰-325 검색토큰-326 검색토큰-327 검색토큰-328 검색토큰-329 검색토큰-330 검색토큰-331 검색토큰-332 검색토큰-333 검색토큰-334 검색토큰-335 검색토큰-336 검색토큰-337 검색토큰-338 검색토큰-339 검색토큰-340 검색토큰-341 검색토큰-342 검색토큰-343 검색토큰-344 검색토큰-345 검색토큰-346 검색토큰-347 검색토큰-348 검색토큰-349"
+        }
+      ]
+    },
+    {
+      "case_id": "separator_preference_paragraphs",
+      "relative_path": "Contexts/Paragraph Preference.md",
+      "title": "Paragraphs",
+      "content": "# Paragraphs\n\nFirst paragraph sentence. First paragraph sentence. First paragraph sentence. First paragraph sentence. First paragraph sentence. First paragraph sentence. First paragraph sentence. First paragraph sentence. \n\nSecond paragraph sentence. Second paragraph sentence. Second paragraph sentence. Second paragraph sentence. Second paragraph sentence. Second paragraph sentence. Second paragraph sentence. Second paragraph sentence. \nTrailing sentence. Trailing sentence. Trailing sentence. Trailing sentence. Trailing sentence. Trailing sentence. Trailing sentence. Trailing sentence. ",
+      "max_chars": 180,
+      "overlap_chars": 24,
+      "expected": [
+        {
+          "chunk_index": 0,
+          "heading": "Paragraphs",
+          "content": "# Paragraphs\n\nFirst paragraph sentence. First paragraph sentence. First paragraph sentence. First paragraph sentence. First paragraph sentence. First paragraph sentence."
+        },
+        {
+          "chunk_index": 1,
+          "heading": "Paragraphs",
+          "content": "paragraph sentence. First paragraph sentence. First paragraph sentence. \n\nSecond paragraph sentence. Second paragraph sentence. Second paragraph sentence."
+        },
+        {
+          "chunk_index": 2,
+          "heading": "Paragraphs",
+          "content": "paragraph sentence. Second paragraph sentence. Second paragraph sentence. Second paragraph sentence. Second paragraph sentence. Second paragraph sentence."
+        },
+        {
+          "chunk_index": 3,
+          "heading": "Paragraphs",
+          "content": "paragraph sentence. \nTrailing sentence. Trailing sentence. Trailing sentence. Trailing sentence. Trailing sentence. Trailing sentence. Trailing sentence. Trailing sentence."
+        }
+      ]
+    },
+    {
+      "case_id": "period_separator_preference",
+      "relative_path": "Contexts/Period Preference.md",
+      "title": "Periods",
+      "content": "# Periods\nSentence one. Sentence two. Sentence three. Sentence four. Sentence one. Sentence two. Sentence three. Sentence four. Sentence one. Sentence two. Sentence three. Sentence four. Sentence one. Sentence two. Sentence three. Sentence four. Sentence one. Sentence two. Sentence three. Sentence four. ",
+      "max_chars": 95,
+      "overlap_chars": 15,
+      "expected": [
+        {
+          "chunk_index": 0,
+          "heading": "Periods",
+          "content": "# Periods\nSentence one. Sentence two. Sentence three. Sentence four. Sentence one."
+        },
+        {
+          "chunk_index": 1,
+          "heading": "Periods",
+          "content": "Sentence one. Sentence two. Sentence three. Sentence four. Sentence one. Sentence two."
+        },
+        {
+          "chunk_index": 2,
+          "heading": "Periods",
+          "content": "Sentence two. Sentence three. Sentence four. Sentence one. Sentence two. Sentence three."
+        },
+        {
+          "chunk_index": 3,
+          "heading": "Periods",
+          "content": "Sentence three. Sentence four. Sentence one. Sentence two. Sentence three. Sentence four."
+        }
+      ]
+    },
+    {
+      "case_id": "crlf_headings_and_body",
+      "relative_path": "Contexts/CRLF Chunks.md",
+      "title": "CRLF",
+      "content": "# CRLF\r\n\r\n## Summary\r\nBody line one.\r\nBody line two.\r\n",
+      "max_chars": 1400,
+      "overlap_chars": 160,
+      "expected": [
+        {
+          "chunk_index": 0,
+          "heading": "CRLF",
+          "content": "# CRLF"
+        },
+        {
+          "chunk_index": 1,
+          "heading": "Summary",
+          "content": "## Summary\r\nBody line one.\r\nBody line two."
+        }
+      ]
+    },
+    {
+      "case_id": "python_unicode_whitespace_trim",
+      "relative_path": "Contexts/Unicode Whitespace.md",
+      "title": "Unicode Whitespace",
+      "content": "　 # Trimmed\nBody　 ",
+      "max_chars": 1400,
+      "overlap_chars": 160,
+      "expected": [
+        {
+          "chunk_index": 0,
+          "heading": "Trimmed",
+          "content": "# Trimmed\nBody"
+        }
+      ]
+    },
+    {
+      "case_id": "hash_without_heading_space",
+      "relative_path": "Contexts/Hash Literal.md",
+      "title": "Hash Literal",
+      "content": "#NotAHeading\nText\n####### AlsoNotAHeading\n",
+      "max_chars": 1400,
+      "overlap_chars": 160,
+      "expected": [
+        {
+          "chunk_index": 0,
+          "heading": "Hash Literal",
+          "content": "#NotAHeading\nText\n####### AlsoNotAHeading"
+        }
+      ]
+    },
+    {
+      "case_id": "heading_regex_cross_line_whitespace",
+      "relative_path": "Contexts/Cross Line Heading.md",
+      "title": "Cross Line",
+      "content": "#\nCaptured on next line\nBody\n",
+      "max_chars": 1400,
+      "overlap_chars": 160,
+      "expected": [
+        {
+          "chunk_index": 0,
+          "heading": "Captured on next line",
+          "content": "#\nCaptured on next line\nBody"
+        }
+      ]
+    },
+    {
+      "case_id": "overlap_larger_than_window",
+      "relative_path": "Contexts/Large Overlap.md",
+      "title": "Large Overlap",
+      "content": "alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu",
+      "max_chars": 18,
+      "overlap_chars": 30,
+      "expected": [
+        {
+          "chunk_index": 0,
+          "heading": "Large Overlap",
+          "content": "alpha beta gamma"
+        },
+        {
+          "chunk_index": 1,
+          "heading": "Large Overlap",
+          "content": "beta gamma delta"
+        },
+        {
+          "chunk_index": 2,
+          "heading": "Large Overlap",
+          "content": "gamma delta"
+        },
+        {
+          "chunk_index": 3,
+          "heading": "Large Overlap",
+          "content": "delta epsilon"
+        },
+        {
+          "chunk_index": 4,
+          "heading": "Large Overlap",
+          "content": "epsilon zeta eta"
+        },
+        {
+          "chunk_index": 5,
+          "heading": "Large Overlap",
+          "content": "zeta eta theta"
+        },
+        {
+          "chunk_index": 6,
+          "heading": "Large Overlap",
+          "content": "eta theta iota"
+        },
+        {
+          "chunk_index": 7,
+          "heading": "Large Overlap",
+          "content": "theta iota kappa"
+        },
+        {
+          "chunk_index": 8,
+          "heading": "Large Overlap",
+          "content": "iota kappa lambda"
+        },
+        {
+          "chunk_index": 9,
+          "heading": "Large Overlap",
+          "content": "kappa lambda mu"
+        }
+      ]
+    }
+  ]
+}

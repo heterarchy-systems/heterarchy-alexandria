@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import cast
 
 import orjson
+
 from app.shared.types.extra_types import JSONValue
 
 

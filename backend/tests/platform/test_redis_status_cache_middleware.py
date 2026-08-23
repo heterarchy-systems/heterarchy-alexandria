@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from typing import cast
 
-from app.platform.config.redis_config import RedisConfig
-from app.platform.middleware.redis_status_cache import RedisStatusCacheMiddleware
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.testclient import TestClient
 from redis.asyncio import Redis
+
+from app.platform.config.redis_config import RedisConfig
+from app.platform.middleware.redis_status_cache import RedisStatusCacheMiddleware
 
 
 class _FakeRedis:
@@ -62,7 +63,8 @@ def test_graph_and_embedding_status_use_requested_ttls() -> None:
         return {"calls": calls["graph"]}
 
     @app.get("/memory/contexts/rag/status")
-    async def embedding_status() -> dict[str, int]:
+    async def embedding_status(response: Response) -> dict[str, int]:
+        response.headers["X-Alexandria-Retrieval-Kernel-Authority"] = "rust"
         calls["embedding"] += 1
         return {"calls": calls["embedding"]}
 
@@ -76,9 +78,13 @@ def test_graph_and_embedding_status_use_requested_ttls() -> None:
     assert second_graph.headers["X-Alexandria-Cache"] == "HIT"
     assert first_embedding.headers["X-Alexandria-Cache"] == "MISS"
     assert second_embedding.headers["X-Alexandria-Cache"] == "HIT"
+    assert first_embedding.headers["X-Alexandria-Retrieval-Kernel-Authority"] == "rust"
+    assert second_embedding.headers["X-Alexandria-Retrieval-Kernel-Authority"] == "rust"
     assert calls == {"graph": 1, "embedding": 1}
     assert fake.set_ttls["alexandria:cache:graph-status:v1"] == 5
+    assert fake.set_ttls["alexandria:cache:graph-status:v1:headers"] == 5
     assert fake.set_ttls["alexandria:cache:embedding-health:v1"] == 10
+    assert fake.set_ttls["alexandria:cache:embedding-health:v1:headers"] == 10
     assert fake.closed == 0
 
 
@@ -87,7 +93,9 @@ def test_related_mutations_invalidate_cached_status() -> None:
     fake = _FakeRedis()
     fake.values = {
         "alexandria:cache:graph-status:v1": b"{}",
+        "alexandria:cache:graph-status:v1:headers": b"{}",
         "alexandria:cache:embedding-health:v1": b"{}",
+        "alexandria:cache:embedding-health:v1:headers": b"{}",
     }
 
     async def resolve_redis_client() -> Redis | None:
@@ -110,6 +118,8 @@ def test_related_mutations_invalidate_cached_status() -> None:
     assert response.status_code == 200
     assert set(fake.deleted) == {
         "alexandria:cache:graph-status:v1",
+        "alexandria:cache:graph-status:v1:headers",
         "alexandria:cache:embedding-health:v1",
+        "alexandria:cache:embedding-health:v1:headers",
     }
     assert fake.values == {}

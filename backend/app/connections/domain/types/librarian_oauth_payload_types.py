@@ -5,11 +5,12 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
+from typing_extensions import TypedDict
+
 from app.connections.domain.event_enum.provider_enums import (
     OAuthConnectionStatus,
     OAuthPollStatus,
 )
-from typing_extensions import TypedDict
 
 
 class LibrarianOAuthStartPayload(TypedDict, closed=True):

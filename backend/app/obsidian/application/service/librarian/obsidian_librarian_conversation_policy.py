@@ -15,6 +15,14 @@ SELECTION_CONTEXT_MAX_CHARS = 4_000
 
 
 def _delegate_status(payload: ObsidianLibrarianAsk) -> str:
+    """Execute delegate status.
+
+    Args:
+        payload: Validated payload for this operation.
+
+    Returns:
+        str result produced by delegate status.
+    """
     if not payload.delegate_to_librarian:
         return "local_only"
     if payload.provider_id or payload.profile_id:
@@ -29,6 +37,18 @@ def _librarian_search_queries(
     preferred_types: tuple[AlexandriaNoteType, ...],
     excluded_types: tuple[AlexandriaNoteType, ...],
 ) -> tuple[ObsidianSearchQuery, ...]:
+    """Execute librarian search queries.
+
+    Args:
+        query: Query used by this operation.
+        limit: Maximum number of items to process or return.
+        project: Project used by this operation.
+        preferred_types: Preferred types used by this operation.
+        excluded_types: Excluded types used by this operation.
+
+    Returns:
+        tuple[ObsidianSearchQuery, ...] result produced by librarian search queries.
+    """
     if preferred_types:
         return tuple(
             ObsidianSearchQuery(
@@ -50,6 +70,14 @@ def _librarian_search_queries(
 
 
 def _selection_excerpt(selection: str | None) -> str | None:
+    """Execute selection excerpt.
+
+    Args:
+        selection: Selection used by this operation.
+
+    Returns:
+        str | None result produced by selection excerpt.
+    """
     if selection is None:
         return None
     normalized = selection.strip()
@@ -66,6 +94,17 @@ def _librarian_input_context(
     selection_excerpt: str | None,
     source_refs: list[JSONObject],
 ) -> JSONObject:
+    """Execute librarian input context.
+
+    Args:
+        payload: Validated payload for this operation.
+        active_note: Active note used by this operation.
+        selection_excerpt: Selection excerpt used by this operation.
+        source_refs: Source refs used by this operation.
+
+    Returns:
+        JSONObject result produced by librarian input context.
+    """
     active_note_status = "not_requested" if payload.active_note_path is None else "read"
     selection_status = "not_requested" if selection_excerpt is None else "ingested"
     warnings: list[str] = []

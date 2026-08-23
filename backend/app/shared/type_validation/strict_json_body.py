@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 
-from app.shared.schemas.common_schemas import StrictSchemaModel
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from pydantic import ValidationError
+
+from app.shared.schemas.common_schemas import StrictSchemaModel
 
 
 def model_validate_json_body[SchemaT: StrictSchemaModel](
@@ -23,6 +24,14 @@ def model_validate_json_body[SchemaT: StrictSchemaModel](
     """
 
     async def dependency(request: Request) -> SchemaT:
+        """Execute dependency.
+
+        Args:
+            request: Validated request for this operation.
+
+        Returns:
+            SchemaT result produced by dependency.
+        """
         try:
             return schema_type.model_validate_json(await request.body())
         except ValidationError as exc:
@@ -51,6 +60,14 @@ def model_validate_optional_json_body[SchemaT: StrictSchemaModel](
     """
 
     async def dependency(request: Request) -> SchemaT | None:
+        """Execute dependency.
+
+        Args:
+            request: Validated request for this operation.
+
+        Returns:
+            SchemaT | None result produced by dependency.
+        """
         body = (await request.body()).strip()
         if not body or body == b"null":
             return None

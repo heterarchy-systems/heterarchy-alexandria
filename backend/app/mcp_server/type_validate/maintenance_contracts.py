@@ -47,6 +47,14 @@ class MaintenanceEmbeddingReindexToolRequest(StrictSchemaModel):
     @field_validator("requested_by", "source_id")
     @classmethod
     def normalize_nonblank_text(cls, value: str) -> str:
+        """Normalize required nonblank text.
+
+        Args:
+            value: Value to transform.
+
+        Returns:
+            Normalized value.
+        """
         normalized = value.strip()
         if not normalized:
             raise ValueError("value must not be blank")
@@ -80,6 +88,14 @@ class MaintenanceJobIdToolRequest(StrictSchemaModel):
     @field_validator("job_id")
     @classmethod
     def normalize_job_id(cls, value: str) -> str:
+        """Normalize a maintenance job identifier.
+
+        Args:
+            value: Value to transform.
+
+        Returns:
+            Normalized value.
+        """
         normalized = value.strip()
         if not normalized:
             raise ValueError("job_id must not be blank")

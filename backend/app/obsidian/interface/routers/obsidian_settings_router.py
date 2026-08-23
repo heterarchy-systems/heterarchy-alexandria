@@ -2,6 +2,9 @@
 
 from typing import Annotated
 
+from dependency_injector.wiring import Provide, inject
+from fastapi import APIRouter, Depends, status
+
 from app.container import ApplicationContainer
 from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.obsidian.interface.schemas.obsidian.maintenance.obsidian_settings_schema import (
@@ -13,8 +16,6 @@ from app.obsidian.interface.schemas.obsidian.obsidian_schema import (
 from app.shared.exceptions.exception_decorators import router_exception_status
 from app.shared.exceptions.route_exceptions import OBSIDIAN_ROUTE_EXCEPTION_MAPPING
 from app.shared.type_validation.strict_json_body import model_validate_json_body
-from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, status
 
 router = APIRouter(
     prefix="/obsidian/settings",

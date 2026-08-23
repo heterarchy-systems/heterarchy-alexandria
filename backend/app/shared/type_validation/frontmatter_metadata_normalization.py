@@ -99,6 +99,14 @@ def normalize_known_frontmatter_metadata(frontmatter: dict[str, JSONValue]) -> N
 def _string_collection_input(
     value: JSONValue,
 ) -> list[JSONValue] | tuple[JSONValue, ...]:
+    """Execute string collection input.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        list[JSONValue] | tuple[JSONValue, ...] result produced by string collection input.
+    """
     if value is None:
         return []
     if isinstance(value, list | tuple):
@@ -120,6 +128,14 @@ def _string_collection_input(
 
 
 def _looks_like_collection_representation(value: str) -> bool:
+    """Execute looks like collection representation.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        Whether looks like collection representation.
+    """
     if value.startswith("(") and value.endswith(")"):
         return True
     if value.startswith("[") and value.endswith("]"):

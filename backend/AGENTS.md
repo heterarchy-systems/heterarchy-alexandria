@@ -8,8 +8,8 @@
 
 Backend 코드를 수정하기 전에는 다음 문서를 순서대로 읽습니다.
 
-1. `backend/.agents/docs/rule/규칙.md`
-2. `backend/.agents/docs/rule/README.md`
+1. `.agents/python_dev_harness/docs/rule/규칙.md`
+2. `.agents/python_dev_harness/docs/rule/README.md`
 3. `README.md`에서 현재 작업과 직접 관련된 세부 규칙
 4. 사용자가 명시적으로 지정한 PRD 또는 작업 문서
 5. 관련 코드와 테스트
@@ -17,7 +17,7 @@ Backend 코드를 수정하기 전에는 다음 문서를 순서대로 읽습니
 Backend 개발 규칙의 Source of Truth는 다음 디렉터리입니다.
 
 ```text
-backend/.agents/docs/rule/
+.agents/python_dev_harness/docs/rule/
 ```
 
 PRD, 회의록, 기능 요구사항은 개발 규칙이 아닙니다. 사용자가 명시적으로 지정하거나 저장소에서 현재 Task에 연결한 경우에만 작업 입력으로 사용합니다.

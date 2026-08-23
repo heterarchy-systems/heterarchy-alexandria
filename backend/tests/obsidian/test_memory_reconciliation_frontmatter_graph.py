@@ -5,11 +5,11 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from app.memory.domain.event_enum.context_enums import ContextKind
-from app.obsidian.application.graph.relations.obsidian_graph_edge_builder import (
-    relation_edges_from_note,
-)
 from app.obsidian.application.graph.diagnostics.obsidian_graph_link_renderer import (
     add_or_update_alexandria_links_section,
+)
+from app.obsidian.application.graph.relations.native_obsidian_graph_edge_builder import (
+    create_native_obsidian_graph_edge_builder,
 )
 from app.obsidian.application.notes.frontmatter.obsidian_context_frontmatter_mapper import (
     context_content_hash,
@@ -78,7 +78,7 @@ def test_reconciliation_graph_relations_parse_and_render_all_official_types() ->
         "supersedes": [{"id": "ctx-old", "path": "Contexts/Old.md"}],
     }
 
-    edges = relation_edges_from_note(
+    edges = create_native_obsidian_graph_edge_builder().build(
         note_id="ctx-current",
         relative_path="Alexandria/Contexts/Current.md",
         alexandria_root="Alexandria",

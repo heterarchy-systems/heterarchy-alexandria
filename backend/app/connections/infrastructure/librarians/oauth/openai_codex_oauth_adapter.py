@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import httpx
+
 from app.connections.application.librarians.oauth_client import OAuthProviderClient
 from app.connections.domain.contracts.librarian_oauth_contracts import (
     OAuthDeviceAuthorization,

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from dependency_injector import containers, providers
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.connections.application.librarian_service import LibrarianService
 from app.connections.application.librarians.oauth_service import LibrarianOAuthService
 from app.connections.infrastructure.librarians.clients import LibrarianClientFactory
@@ -12,8 +15,6 @@ from app.connections.infrastructure.repositories.librarian_repository import (
     ProviderSecretRepository,
     SqlAlchemyLibrarianProviderRepository,
 )
-from dependency_injector import containers, providers
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ConnectionsContainer(containers.DeclarativeContainer):

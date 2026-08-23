@@ -1,0 +1,139 @@
+{
+  "direct_core": {
+    "benchmark": "retrieval_kernel_direct_core",
+    "profile": "release",
+    "result_limit": 50,
+    "scenarios": [
+      {
+        "best_match_candidates_per_second": 5879499.654579395,
+        "best_match_microseconds_per_candidate": 0.1700825,
+        "best_match_total_milliseconds": 8.504125,
+        "candidates_per_lane": 50,
+        "fusion_candidates_per_second": 2434489.411492616,
+        "fusion_microseconds_per_candidate": 0.41076375,
+        "fusion_total_milliseconds": 41.076375,
+        "iterations": 1000,
+        "total_candidate_count": 100
+      },
+      {
+        "best_match_candidates_per_second": 9917724.540754806,
+        "best_match_microseconds_per_candidate": 0.10082957999999999,
+        "best_match_total_milliseconds": 10.082958,
+        "candidates_per_lane": 1000,
+        "fusion_candidates_per_second": 5647596.953144034,
+        "fusion_microseconds_per_candidate": 0.17706646,
+        "fusion_total_milliseconds": 35.413292,
+        "iterations": 100,
+        "total_candidate_count": 2000
+      },
+      {
+        "best_match_candidates_per_second": 9739903.664560834,
+        "best_match_microseconds_per_candidate": 0.10267042000000001,
+        "best_match_total_milliseconds": 10.267042,
+        "candidates_per_lane": 10000,
+        "fusion_candidates_per_second": 7429604.589385629,
+        "fusion_microseconds_per_candidate": 0.134596665,
+        "fusion_total_milliseconds": 26.919333,
+        "iterations": 10,
+        "total_candidate_count": 20000
+      },
+      {
+        "best_match_candidates_per_second": 10589574.563841898,
+        "best_match_microseconds_per_candidate": 0.0944325,
+        "best_match_total_milliseconds": 9.44325,
+        "candidates_per_lane": 50000,
+        "fusion_candidates_per_second": 4703774.840458541,
+        "fusion_microseconds_per_candidate": 0.21259521,
+        "fusion_total_milliseconds": 42.519042,
+        "iterations": 2,
+        "total_candidate_count": 100000
+      }
+    ],
+    "schema_version": 1
+  },
+  "environment": {
+    "machine": "arm64",
+    "peak_rss_bytes": 211632128,
+    "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+    "python_version": "3.14.7"
+  },
+  "feature": "retrieval_kernel",
+  "generated_at": "2026-08-23T14:13:00.716646+00:00",
+  "interpretation": [
+    "Native FFI timing includes strict JSON decode, Rust ranking, and JSON encode.",
+    "Direct-core timing excludes Python and JSON conversion overhead.",
+    "The retired Python ranking implementation is not a benchmark oracle after cutover.",
+    "PostgreSQL FTS/pgvector query latency and graph enrichment are intentionally excluded.",
+    "Live endpoint provenance and quality remain a separate cutover/performance gate."
+  ],
+  "quality_evidence": {
+    "benchmark_tool_gate": "run_separately_by_xtask_perf",
+    "exact_title_corpus": "backend/benchmarks/golden_cases.exact_title.v1.json",
+    "frozen_pre_cutover_compatibility_corpus": "native/corpora/retrieval_kernel/v1/cases.json",
+    "live_endpoint_recall_metrics": "not_run",
+    "real_ffi_compatibility_gate": "run_by_cargo_xtask_test",
+    "reason": "This performance harness intentionally does not import or reimplement the retired Python ranking engine; correctness is owned by the frozen corpus and real-extension compatibility gates.",
+    "semantic_corpus": "backend/benchmarks/golden_cases.semantic.v1.json"
+  },
+  "result_limit": 50,
+  "scenarios": [
+    {
+      "best_match_result_count": 48,
+      "candidates_per_lane": 50,
+      "fusion_result_count": 50,
+      "iterations": 200,
+      "native_best_match_request_bytes": 6102,
+      "native_best_match_response_bytes": 3184,
+      "native_ffi_best_match_median_milliseconds": 0.030601,
+      "native_ffi_fusion_median_milliseconds": 0.090922,
+      "native_fusion_request_bytes": 12567,
+      "native_fusion_response_bytes": 11727,
+      "sample_count": 5,
+      "total_candidate_count": 100
+    },
+    {
+      "best_match_result_count": 50,
+      "candidates_per_lane": 1000,
+      "fusion_result_count": 50,
+      "iterations": 20,
+      "native_best_match_request_bytes": 129008,
+      "native_best_match_response_bytes": 3506,
+      "native_ffi_best_match_median_milliseconds": 0.527954,
+      "native_ffi_fusion_median_milliseconds": 1.146866,
+      "native_fusion_request_bytes": 266739,
+      "native_fusion_response_bytes": 12036,
+      "sample_count": 5,
+      "total_candidate_count": 2000
+    },
+    {
+      "best_match_result_count": 50,
+      "candidates_per_lane": 10000,
+      "fusion_result_count": 50,
+      "iterations": 2,
+      "native_best_match_request_bytes": 1379004,
+      "native_best_match_response_bytes": 3703,
+      "native_ffi_best_match_median_milliseconds": 5.444646,
+      "native_ffi_fusion_median_milliseconds": 11.707104,
+      "native_fusion_request_bytes": 2845931,
+      "native_fusion_response_bytes": 12347,
+      "sample_count": 3,
+      "total_candidate_count": 20000
+    },
+    {
+      "best_match_result_count": 50,
+      "candidates_per_lane": 50000,
+      "fusion_result_count": 50,
+      "iterations": 1,
+      "native_best_match_request_bytes": 7138996,
+      "native_best_match_response_bytes": 3805,
+      "native_ffi_best_match_median_milliseconds": 28.580834,
+      "native_ffi_fusion_median_milliseconds": 66.919209,
+      "native_fusion_request_bytes": 14717915,
+      "native_fusion_response_bytes": 12509,
+      "sample_count": 1,
+      "total_candidate_count": 100000
+    }
+  ],
+  "schema_version": 1,
+  "scope": "candidate_compute_and_real_json_ffi_only"
+}

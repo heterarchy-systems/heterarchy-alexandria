@@ -193,6 +193,14 @@ class ObsidianWriteTargetResolver:
         id_target: ObsidianNote | None,
         path_target: ObsidianNote | None,
     ) -> None:
+        """Execute raise identity conflict.
+
+        Args:
+            command: Command used by this operation.
+            safe_path: Safe path used by this operation.
+            id_target: Id target used by this operation.
+            path_target: Path target used by this operation.
+        """
         raise ObsidianIdentityConflictError(
             operation=command.write_mode.value,
             requested_note_id=command.note.note_id,
@@ -212,7 +220,13 @@ class ObsidianWriteTargetResolver:
         indexed_note: ObsidianNote | None,
         safe_path: str,
     ) -> None:
-        """Reject a stale compare-and-swap token before replacing Markdown."""
+        """Reject a stale compare-and-swap token before replacing Markdown.
+
+        Args:
+            payload: Validated payload for this operation.
+            indexed_note: Indexed note used by this operation.
+            safe_path: Safe path used by this operation.
+        """
         expected = payload.expected_content_hash
         if expected is None:
             return
@@ -253,7 +267,16 @@ def _preserve_omitted_update_fields(
     existing: ObsidianNote,
     provided_fields: frozenset[str] | None,
 ) -> ObsidianSaveNote:
-    """Retain existing optional fields omitted at the external update boundary."""
+    """Retain existing optional fields omitted at the external update boundary.
+
+    Args:
+        payload: Validated payload for this operation.
+        existing: Existing used by this operation.
+        provided_fields: Provided fields used by this operation.
+
+    Returns:
+        ObsidianSaveNote result produced by preserve omitted update fields.
+    """
     if provided_fields is None:
         return payload
     return replace(

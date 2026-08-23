@@ -49,6 +49,19 @@ def _score_rubric_item(
     stale_reasons: tuple[str, ...],
     contradictions: tuple[str, ...],
 ) -> MemoryCompactRubricScore:
+    """Execute score rubric item.
+
+    Args:
+        spec: Spec used by this operation.
+        compact: Compact used by this operation.
+        sections: Sections used by this operation.
+        missing_refs: Missing refs used by this operation.
+        stale_reasons: Stale reasons used by this operation.
+        contradictions: Contradictions used by this operation.
+
+    Returns:
+        MemoryCompactRubricScore result produced by score rubric item.
+    """
     if spec.code == "evidence_completeness":
         score, reasons = _score_evidence_completeness(
             sections=sections,
@@ -82,6 +95,15 @@ def _score_required_section(
     code: str,
     sections: dict[str, str],
 ) -> tuple[int, tuple[str, ...]]:
+    """Execute score required section.
+
+    Args:
+        code: Code used by this operation.
+        sections: Sections used by this operation.
+
+    Returns:
+        tuple[int, tuple[str, ...]] result produced by score required section.
+    """
     section = sections.get(code, "").strip()
     if not section:
         return 0, (f"{code}_missing",)
@@ -94,6 +116,15 @@ def _score_project_isolation(
     compact: MemoryCompact,
     sections: dict[str, str],
 ) -> tuple[int, tuple[str, ...]]:
+    """Execute score project isolation.
+
+    Args:
+        compact: Compact used by this operation.
+        sections: Sections used by this operation.
+
+    Returns:
+        tuple[int, tuple[str, ...]] result produced by score project isolation.
+    """
     if compact.project is None:
         return 2, ()
     body = "\n".join(sections.values()).lower()
@@ -111,6 +142,14 @@ def _score_project_isolation(
 
 
 def _score_concision(markdown_body: str) -> tuple[int, tuple[str, ...]]:
+    """Execute score concision.
+
+    Args:
+        markdown_body: Markdown body used by this operation.
+
+    Returns:
+        tuple[int, tuple[str, ...]] result produced by score concision.
+    """
     if len(markdown_body) > 12_000:
         return 0, ("compact_too_long",)
     if len(markdown_body) > 8_000:
@@ -119,6 +158,14 @@ def _score_concision(markdown_body: str) -> tuple[int, tuple[str, ...]]:
 
 
 def _score_actionability(sections: dict[str, str]) -> tuple[int, tuple[str, ...]]:
+    """Execute score actionability.
+
+    Args:
+        sections: Sections used by this operation.
+
+    Returns:
+        tuple[int, tuple[str, ...]] result produced by score actionability.
+    """
     next_actions = sections.get("next_actions", "")
     if not next_actions.strip():
         return 0, ("next_actions_missing",)
@@ -132,6 +179,16 @@ def _score_evidence_completeness(
     source_refs: tuple[MemoryCompactSourceRef, ...],
     missing_refs: tuple[str, ...],
 ) -> tuple[int, tuple[str, ...]]:
+    """Execute score evidence completeness.
+
+    Args:
+        sections: Sections used by this operation.
+        source_refs: Source refs used by this operation.
+        missing_refs: Missing refs used by this operation.
+
+    Returns:
+        tuple[int, tuple[str, ...]] result produced by score evidence completeness.
+    """
     if missing_refs:
         return 0, missing_refs
     evidence_summary = sections.get("evidence_summary", "")
@@ -142,6 +199,14 @@ def _score_evidence_completeness(
 
 
 def _markdown_sections(markdown_body: str) -> dict[str, str]:
+    """Execute markdown sections.
+
+    Args:
+        markdown_body: Markdown body used by this operation.
+
+    Returns:
+        dict[str, str] result produced by markdown sections.
+    """
     sections: dict[str, list[str]] = {}
     current_key: str | None = None
     for line in markdown_body.splitlines():
@@ -156,6 +221,14 @@ def _markdown_sections(markdown_body: str) -> dict[str, str]:
 
 
 def _section_key(heading: str) -> str:
+    """Execute section key.
+
+    Args:
+        heading: Heading used by this operation.
+
+    Returns:
+        str result produced by section key.
+    """
     normalized = re.sub(r"[^a-z0-9]+", " ", heading.lower()).strip()
     if normalized == "durable decisions":
         return "durable_decisions"
@@ -171,4 +244,12 @@ def _section_key(heading: str) -> str:
 
 
 def _words(value: str) -> list[str]:
+    """Execute words.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        list[str] result produced by words.
+    """
     return re.findall(r"[\w가-힣]+", value)

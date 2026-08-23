@@ -59,7 +59,7 @@ class ObsidianGraphResolvedTargetDiagnostic:
     source_kind: str
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class ObsidianGraphUnresolvedTargetDiagnostic:
     """One outgoing edge target that cannot be projected as a stable note edge."""
 
@@ -75,11 +75,11 @@ class ObsidianGraphUnresolvedTargetDiagnostic:
 
     def __post_init__(self) -> None:
         """Normalize candidate collections to immutable tuples."""
-        object.__setattr__(self, "candidate_note_ids", tuple(self.candidate_note_ids))
-        object.__setattr__(self, "candidate_paths", tuple(self.candidate_paths))
+        self.candidate_note_ids = tuple(self.candidate_note_ids)
+        self.candidate_paths = tuple(self.candidate_paths)
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class ObsidianGraphOutgoingLinkDiagnostic:
     """Counts and bounded details for outgoing graph edges from one note."""
 
@@ -95,8 +95,8 @@ class ObsidianGraphOutgoingLinkDiagnostic:
 
     def __post_init__(self) -> None:
         """Normalize edge detail collections to immutable tuples."""
-        object.__setattr__(self, "unresolved_targets", tuple(self.unresolved_targets))
-        object.__setattr__(self, "resolved_targets", tuple(self.resolved_targets))
+        self.unresolved_targets = tuple(self.unresolved_targets)
+        self.resolved_targets = tuple(self.resolved_targets)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -122,6 +122,15 @@ def _selector(
     note_id: str | None,
     path: str | None,
 ) -> ObsidianGraphNoteSelector:
+    """Execute selector.
+
+    Args:
+        note_id: Identifier for note.
+        path: Path used by this operation.
+
+    Returns:
+        ObsidianGraphNoteSelector result produced by selector.
+    """
     normalized_note_id = _normalize_note_id(note_id)
     normalized_path = _normalize_path(path)
     if normalized_note_id is None and normalized_path is None:
@@ -133,6 +142,14 @@ def _selector(
 
 
 def _normalize_note_id(note_id: str | None) -> str | None:
+    """Normalize note id.
+
+    Args:
+        note_id: Identifier for note.
+
+    Returns:
+        Normalized note id.
+    """
     if note_id is None:
         return None
     normalized = note_id.strip()
@@ -142,6 +159,14 @@ def _normalize_note_id(note_id: str | None) -> str | None:
 
 
 def _normalize_path(path: str | None) -> str | None:
+    """Normalize path.
+
+    Args:
+        path: Path used by this operation.
+
+    Returns:
+        Normalized path.
+    """
     if path is None:
         return None
     normalized = str(safe_relative_path(path.strip()))
@@ -155,6 +180,16 @@ def _outgoing_diagnostics(
     notes: tuple[ObsidianNote, ...],
     include_resolved_targets: bool,
 ) -> ObsidianGraphOutgoingLinkDiagnostic:
+    """Execute outgoing diagnostics.
+
+    Args:
+        edges: Edges used by this operation.
+        notes: Notes used by this operation.
+        include_resolved_targets: Whether to include resolved targets.
+
+    Returns:
+        ObsidianGraphOutgoingLinkDiagnostic result produced by outgoing diagnostics.
+    """
     notes_by_id = {note.note_id: note for note in notes}
     notes_by_path = {note.relative_path: note for note in notes}
     healthy_notes = tuple(
@@ -195,6 +230,19 @@ def _resolve_target(
     healthy_notes_by_path: dict[str, ObsidianNote],
     healthy_notes_by_link_name: dict[str, tuple[ObsidianNote, ...]],
 ) -> ObsidianGraphResolvedTargetDiagnostic | ObsidianGraphUnresolvedTargetDiagnostic:
+    """Resolve target.
+
+    Args:
+        edge: Edge used by this operation.
+        notes_by_id: Identifier for notes by.
+        notes_by_path: Notes by path used by this operation.
+        healthy_notes_by_id: Identifier for healthy notes by.
+        healthy_notes_by_path: Healthy notes by path used by this operation.
+        healthy_notes_by_link_name: Healthy notes by link name used by this operation.
+
+    Returns:
+        Resolved target.
+    """
     if edge.target_note_id is not None:
         target = healthy_notes_by_id.get(edge.target_note_id)
         if target is not None:
@@ -254,6 +302,15 @@ def _resolved_target(
     edge: ObsidianEdge,
     target: ObsidianNote,
 ) -> ObsidianGraphResolvedTargetDiagnostic:
+    """Execute resolved target.
+
+    Args:
+        edge: Edge used by this operation.
+        target: Target used by this operation.
+
+    Returns:
+        ObsidianGraphResolvedTargetDiagnostic result produced by resolved target.
+    """
     return ObsidianGraphResolvedTargetDiagnostic(
         edge_id=edge.edge_id,
         target_note_id=target.note_id,
@@ -267,6 +324,15 @@ def _unresolved_target_not_indexed(
     edge: ObsidianEdge,
     target: ObsidianNote,
 ) -> ObsidianGraphUnresolvedTargetDiagnostic:
+    """Execute unresolved target not indexed.
+
+    Args:
+        edge: Edge used by this operation.
+        target: Target used by this operation.
+
+    Returns:
+        ObsidianGraphUnresolvedTargetDiagnostic result produced by unresolved target not indexed.
+    """
     return ObsidianGraphUnresolvedTargetDiagnostic(
         edge_id=edge.edge_id,
         target_note_id=target.note_id,
@@ -283,6 +349,14 @@ def _unresolved_target_not_indexed(
 def _notes_by_link_name(
     notes: tuple[ObsidianNote, ...],
 ) -> dict[str, tuple[ObsidianNote, ...]]:
+    """Execute notes by link name.
+
+    Args:
+        notes: Notes used by this operation.
+
+    Returns:
+        dict[str, tuple[ObsidianNote, ...]] result produced by notes by link name.
+    """
     grouped: defaultdict[str, list[ObsidianNote]] = defaultdict(list)
     for note in notes:
         names = {_link_name(note.relative_path), note.title.strip().casefold()}
@@ -305,4 +379,12 @@ def _notes_by_link_name(
 
 
 def _link_name(path: str) -> str:
+    """Execute link name.
+
+    Args:
+        path: Path used by this operation.
+
+    Returns:
+        str result produced by link name.
+    """
     return PurePosixPath(path).stem.strip().casefold()

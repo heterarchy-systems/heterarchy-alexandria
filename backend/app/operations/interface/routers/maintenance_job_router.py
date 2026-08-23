@@ -157,6 +157,14 @@ async def get_maintenance_queue_status(
 def _required_submitter(
     submitter: MaintenanceJobSubmitter | None,
 ) -> MaintenanceJobSubmitter:
+    """Execute required submitter.
+
+    Args:
+        submitter: Submitter used by this operation.
+
+    Returns:
+        MaintenanceJobSubmitter result produced by required submitter.
+    """
     if submitter is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

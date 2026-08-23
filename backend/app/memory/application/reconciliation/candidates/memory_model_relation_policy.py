@@ -75,6 +75,17 @@ def _proposal_is_supported(
     candidate: MemoryCandidate,
     existing: MemoryRecallCandidate,
 ) -> bool:
+    """Execute proposal is supported.
+
+    Args:
+        proposal: Proposal used by this operation.
+        base: Base used by this operation.
+        candidate: Candidate used by this operation.
+        existing: Existing used by this operation.
+
+    Returns:
+        Whether proposal is supported.
+    """
     relation = proposal.relation
     scores = base.scores
     if relation is MemoryRelationType.UNRELATED:

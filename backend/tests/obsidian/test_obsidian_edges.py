@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import os
-
 from pathlib import Path
 
 import anyio
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.obsidian.domain.contracts.obsidian_contracts import ObsidianSaveNote
 from app.obsidian.domain.event_enum.obsidian_enums import AlexandriaNoteType
@@ -18,23 +20,18 @@ from app.obsidian.infrastructure.repositories.obsidian_index_repository import (
     SqlAlchemyObsidianIndexRepository,
 )
 from app.shared.infrastructure.database import Database
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 _OBSIDIAN_MODELS_LOADED = _obsidian_index_models
 
 
-def _database_url(path: Path) -> str:
-    del path
+def _database_url() -> str:
     return os.environ["DATABASE_URL"]
 
 
 async def _services(
     tmp_path: Path,
 ) -> tuple[Database, AsyncSession, ObsidianService]:
-    database = Database(
-        database_url=_database_url(tmp_path / "obsidian.db"), create_schema=True
-    )
+    database = Database(database_url=_database_url(), create_schema=True)
     await database.initialize()
     session = database.session()
     repository = SqlAlchemyObsidianIndexRepository(session=session)
@@ -46,8 +43,10 @@ async def _services(
     return database, session, obsidian
 
 
-def test_reindex_builds_sqlite_edge_source_cache_from_markdown(tmp_path: Path) -> None:
-    """Reindex should retain SQLite edges as Neo4j rebuild source cache."""
+def test_reindex_builds_postgres_edge_source_cache_from_markdown(
+    tmp_path: Path,
+) -> None:
+    """Reindex should retain PostgreSQL edge rows as the Neo4j rebuild source."""
 
     async def scenario() -> tuple[list[tuple[str, str, str]], str]:
         database, session, obsidian = await _services(tmp_path)
@@ -195,8 +194,10 @@ def test_repository_resolves_edges_after_target_note_is_indexed_later(
     assert edges == [("Alexandria/Late Target.md", "ctx_late_target")]
 
 
-def test_sqlite_edge_cache_preserves_incoming_backlink_source(tmp_path: Path) -> None:
-    """SQLite should preserve backlink source rows without serving traversal."""
+def test_postgres_edge_source_cache_preserves_incoming_backlink_source(
+    tmp_path: Path,
+) -> None:
+    """PostgreSQL should preserve backlink source rows without serving traversal."""
 
     async def scenario() -> list[tuple[str, str]]:
         database, session, obsidian = await _services(tmp_path)
@@ -235,7 +236,7 @@ def test_sqlite_edge_cache_preserves_incoming_backlink_source(tmp_path: Path) ->
     assert anyio.run(scenario) == [("ctx_source", "ctx_target")]
 
 
-def test_sqlite_edge_cache_persists_and_replaces_stale_source_edges(
+def test_postgres_edge_source_cache_persists_and_replaces_stale_source_edges(
     tmp_path: Path,
 ) -> None:
     """Saved edge rows should survive reopen and disappear after source replacement."""

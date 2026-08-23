@@ -6,6 +6,12 @@ from collections.abc import Sequence
 from itertools import batched
 from typing import cast
 
+from pgvector.sqlalchemy import Vector
+from sqlalchemy import Float, bindparam, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import load_only
+from sqlalchemy.sql.elements import ColumnElement
+
 from app.memory.application.retrieval.ranking.vector_scoring import (
     cosine_distance_to_score,
 )
@@ -44,11 +50,6 @@ from app.obsidian.infrastructure.repositories.obsidian_fts import (
 from app.shared.infrastructure.postgres_fts_relevance import (
     postgres_fts_rank_to_score,
 )
-from pgvector.sqlalchemy import Vector
-from sqlalchemy import Float, bindparam, select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import load_only
-from sqlalchemy.sql.elements import ColumnElement
 
 type RankedObsidianCandidate = tuple[str, str, float]
 type HydratedObsidianCandidate = tuple[ObsidianFileORM, ObsidianChunkORM, float]

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import StringConstraints, field_validator
+
 from app.memory.domain.contracts.memory_reconciliation_contracts import (
     MemoryCandidateCreate,
     MemoryReconciliationPreviewRequest,
@@ -13,6 +15,10 @@ from app.memory.interface.schemas.reconciliation.candidate.memory_reconciliation
     CanonicalClaimRequest,
     MemorySourceReferenceRequest,
 )
+from app.memory.interface.schemas.reconciliation.reconciliation_string_types import (
+    ReconciliationScopeFilterText,
+    ReconciliationTitleText,
+)
 from app.shared.schemas.common_schemas import (
     StrictSchemaModel,
     described_field,
@@ -20,15 +26,13 @@ from app.shared.schemas.common_schemas import (
 )
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 from app.shared.types.types_convert_utils import enum_value
-from pydantic import StringConstraints, field_validator
 
 
 class MemoryCandidateRequest(StrictSchemaModel):
     """Candidate memory submitted for reconciliation preview."""
 
     title: Annotated[
-        str,
-        StringConstraints(strict=True, min_length=1, max_length=2000),
+        ReconciliationTitleText,
         described_field("Title for this memory candidate request."),
     ]
     body: Annotated[
@@ -40,28 +44,23 @@ class MemoryCandidateRequest(StrictSchemaModel):
         ContextScope, described_field("Scope for this memory candidate request.")
     ]
     project: Annotated[
-        str | None,
-        StringConstraints(strict=True, max_length=1000),
+        ReconciliationScopeFilterText,
         described_field("Project for this memory candidate request."),
     ] = None
     workspace_id: Annotated[
-        str | None,
-        StringConstraints(strict=True, max_length=1000),
+        ReconciliationScopeFilterText,
         described_field("Workspace identifier for this memory candidate request."),
     ] = None
     agent_id: Annotated[
-        str | None,
-        StringConstraints(strict=True, max_length=1000),
+        ReconciliationScopeFilterText,
         described_field("Agent identifier for this memory candidate request."),
     ] = None
     user_id: Annotated[
-        str | None,
-        StringConstraints(strict=True, max_length=1000),
+        ReconciliationScopeFilterText,
         described_field("User identifier for this memory candidate request."),
     ] = None
     session_id: Annotated[
-        str | None,
-        StringConstraints(strict=True, max_length=1000),
+        ReconciliationScopeFilterText,
         described_field("Session identifier for this memory candidate request."),
     ] = None
     canonical_claims: Annotated[

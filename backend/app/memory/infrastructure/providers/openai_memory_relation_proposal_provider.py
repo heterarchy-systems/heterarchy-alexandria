@@ -6,6 +6,10 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Annotated
 
+from asyncer import asyncify
+from openai import OpenAI, OpenAIError
+from pydantic import StringConstraints, ValidationError
+
 from app.memory.domain.entities.memory_reconciliation import (
     CanonicalClaim,
     MemoryCandidate,
@@ -19,9 +23,6 @@ from app.memory.domain.repositories.contexts.memory_relation_proposal_provider i
     IMemoryRelationProposalProvider,
 )
 from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
-from asyncer import asyncify
-from openai import OpenAI, OpenAIError
-from pydantic import StringConstraints, ValidationError
 
 _MODEL_INSTRUCTIONS = """
 You classify the relation between two durable memory candidates.
@@ -126,6 +127,15 @@ def _proposal_prompt(
     candidate: MemoryCandidate,
     existing: MemoryRecallCandidate,
 ) -> str:
+    """Execute proposal prompt.
+
+    Args:
+        candidate: Candidate used by this operation.
+        existing: Existing used by this operation.
+
+    Returns:
+        str result produced by proposal prompt.
+    """
     return "\n".join(
         (
             "<candidate_data>",
@@ -151,6 +161,14 @@ def _proposal_prompt(
 
 
 def _claims_text(claims: tuple[CanonicalClaim, ...]) -> str:
+    """Execute claims text.
+
+    Args:
+        claims: Claims used by this operation.
+
+    Returns:
+        str result produced by claims text.
+    """
     return "; ".join(
         f"{claim.subject}|{claim.predicate}|{claim.object}|{claim.polarity.value}"
         for claim in claims

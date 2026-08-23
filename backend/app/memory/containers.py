@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from dependency_injector import containers, providers
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.connections.infrastructure.librarians.memory_relation_proposal_provider import (
     ConfiguredMemoryRelationProposalProvider,
 )
@@ -66,6 +69,9 @@ from app.memory.application.retrieval.embeddings.embedding_factory import (
 from app.memory.infrastructure.context_embedding_batch_transaction import (
     SqlAlchemyContextEmbeddingBatchTransaction,
 )
+from app.memory.infrastructure.providers.native_extension_loader import (
+    create_native_context_retrieval_kernel_provider,
+)
 from app.memory.infrastructure.repositories.context_repository import (
     SqlAlchemyContextRepository,
 )
@@ -92,8 +98,6 @@ from app.platform.config.app_config import AppConfig
 from app.shared.application.index_maintenance_coordinator import (
     IndexMaintenanceCoordinator,
 )
-from dependency_injector import containers, providers
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class MemoryContainer(containers.DeclarativeContainer):
@@ -121,6 +125,9 @@ class MemoryContainer(containers.DeclarativeContainer):
     obsidian_context_search_source = providers.Factory(
         SqlAlchemyObsidianContextSearchSource,
         session=db_session,
+    )
+    retrieval_kernel_provider = providers.Singleton(
+        create_native_context_retrieval_kernel_provider
     )
     context_embedding_batch_transaction = providers.Factory(
         SqlAlchemyContextEmbeddingBatchTransaction,
@@ -158,6 +165,7 @@ class MemoryContainer(containers.DeclarativeContainer):
         extra_search_sources=providers.List(obsidian_context_search_source),
         canonical_context_repository=canonical_context_gateway,
         graph_signal_provider=graph_signal_provider,
+        retrieval_kernel_provider=retrieval_kernel_provider,
         index_maintenance_coordinator=index_maintenance_coordinator,
         embedding_batch_transaction=context_embedding_batch_transaction,
     )

@@ -33,6 +33,14 @@ class ReviewMovePlanPayload(LibrarianReviewGatewayPayload):
     @field_validator("moves", mode="before")
     @classmethod
     def _list_or_empty(cls, value: JSONValue) -> JSONValue:
+        """List or empty.
+
+        Args:
+            value: Value being processed.
+
+        Returns:
+            Requested or empty.
+        """
         if isinstance(value, list):
             return tuple(value)
         return ()
@@ -117,6 +125,14 @@ def review_apply_confirmation_required_payload(move_plan: JSONValue) -> JSONValu
 
 
 def _object_or_empty(payload: JSONValue) -> JSONObject:
+    """Execute object or empty.
+
+    Args:
+        payload: Validated payload for this operation.
+
+    Returns:
+        JSONObject result produced by object or empty.
+    """
     if isinstance(payload, dict):
         return payload
     return {}

@@ -172,6 +172,14 @@ async def _set_secret(
     key: ProviderSecretKey,
     value: str,
 ) -> None:
+    """Execute set secret.
+
+    Args:
+        repository: Repository used by this operation.
+        provider_id: Identifier for provider.
+        key: Key used by this operation.
+        value: Value being processed.
+    """
     await repository.set_secret(
         provider_id=provider_id,
         key_name=key.value,
@@ -180,4 +188,12 @@ async def _set_secret(
 
 
 def _format_datetime(value: datetime) -> str:
+    """Format datetime.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        Formatted datetime.
+    """
     return aware_utc_datetime(value).isoformat()

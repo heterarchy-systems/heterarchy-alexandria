@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.memory.domain.entities.memory_reconciliation import MemoryReconciliationResult
 from app.memory.infrastructure.models.reconciliation_models import (
     MemoryReconciliationResultORM,
@@ -12,14 +15,17 @@ from app.memory.infrastructure.repositories.reconciliation.reconciliation_mappin
 from app.memory.infrastructure.repositories.reconciliation.reconciliation_payload_mapper import (
     result_payload,
 )
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ReconciliationResultStore:
     """Persist and query the latest execution result for each plan."""
 
     def __init__(self, session: AsyncSession) -> None:
+        """Initialize ReconciliationResultStore state and dependencies.
+
+        Args:
+            session: Active session used by this operation.
+        """
         self._session = session
 
     async def save_result(

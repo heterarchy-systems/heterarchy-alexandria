@@ -5,15 +5,16 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import cast
 
+from pgvector.sqlalchemy import Vector
+from sqlalchemy.engine import Dialect
+from sqlalchemy.sql.type_api import TypeEngine
+from sqlalchemy.types import TypeDecorator
+
 from app.shared.types.embedding_types import (
     EMBEDDING_VECTOR_DIMENSIONS,
     EmbeddingVector,
     normalize_embedding_vector,
 )
-from pgvector.sqlalchemy import Vector
-from sqlalchemy.engine import Dialect
-from sqlalchemy.sql.type_api import TypeEngine
-from sqlalchemy.types import TypeDecorator
 
 
 class EmbeddingVectorType(TypeDecorator[EmbeddingVector]):

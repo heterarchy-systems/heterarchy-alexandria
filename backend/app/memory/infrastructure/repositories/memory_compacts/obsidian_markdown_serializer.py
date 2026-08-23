@@ -83,10 +83,26 @@ def serialize_compact(compact: MemoryCompact) -> str:
 
 
 def _isoformat(value: datetime) -> str:
+    """Execute isoformat.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str result produced by isoformat.
+    """
     return aware_utc_datetime(value).isoformat().replace("+00:00", "Z")
 
 
 def _yaml_scalar(value: CompactFrontmatterValue) -> str:
+    """Execute yaml scalar.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str result produced by yaml scalar.
+    """
     if value is None:
         return "null"
     if isinstance(value, bool):
@@ -99,11 +115,28 @@ def _yaml_scalar(value: CompactFrontmatterValue) -> str:
 
 
 def _quoted_yaml_string(value: str) -> str:
+    """Execute quoted yaml string.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str result produced by quoted yaml string.
+    """
     escaped = value.replace("'", "''")
     return f"'{escaped}'"
 
 
 def _yaml_property_lines(key: str, value: CompactFrontmatterValue) -> list[str]:
+    """Execute yaml property lines.
+
+    Args:
+        key: Key used by this operation.
+        value: Value being processed.
+
+    Returns:
+        list[str] result produced by yaml property lines.
+    """
     if isinstance(value, tuple):
         if not value:
             return [f"{key}: []"]
@@ -112,6 +145,14 @@ def _yaml_property_lines(key: str, value: CompactFrontmatterValue) -> list[str]:
 
 
 def _obsidian_source_link(detail_path: str) -> str | None:
+    """Execute obsidian source link.
+
+    Args:
+        detail_path: Detail path used by this operation.
+
+    Returns:
+        str | None result produced by obsidian source link.
+    """
     normalized = detail_path.strip().lstrip("/")
     if not normalized.lower().endswith(".md") or "://" in normalized:
         return None

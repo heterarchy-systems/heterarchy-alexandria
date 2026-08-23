@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from openai import OpenAIError
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.connections.domain.event_enum.provider_enums import (
     AuthType,
     ProviderSecretKey,
@@ -45,8 +48,6 @@ from app.operations.application.readiness.external_api_rate_limit import (
     NoopExternalApiRateLimiter,
 )
 from app.shared.exceptions.connections_exceptions import ConnectionsDomainError
-from openai import OpenAIError
-from sqlalchemy.exc import SQLAlchemyError
 
 
 class ConfiguredMemoryRelationProposalProvider(IMemoryRelationProposalProvider):
@@ -63,6 +64,18 @@ class ConfiguredMemoryRelationProposalProvider(IMemoryRelationProposalProvider):
         response_fetcher: OpenAIResponseFetcher = fetch_openai_relation_proposal,
         rate_limiter: ExternalApiRateLimiter | None = None,
     ) -> None:
+        """Initialize ConfiguredMemoryRelationProposalProvider state and dependencies.
+
+        Args:
+            provider_repo: Provider repo used by this operation.
+            secret_repo: Secret repo used by this operation.
+            provider_id: Identifier for provider.
+            default_model: Default model used by this operation.
+            timeout_seconds: Maximum number of seconds allowed before timeout.
+            openai_client_builder: Openai client builder used by this operation.
+            response_fetcher: Response fetcher used by this operation.
+            rate_limiter: Rate limiter used by this operation.
+        """
         self._provider_repo = provider_repo
         self._secret_repo = secret_repo
         self._provider_id = _normalized_optional(provider_id)
@@ -130,6 +143,16 @@ class ConfiguredMemoryRelationProposalProvider(IMemoryRelationProposalProvider):
         provider_type: ProviderType | None,
         auth_type: AuthType,
     ) -> OpenAIClientConfig | None:
+        """Execute client config.
+
+        Args:
+            provider_id: Identifier for provider.
+            provider_type: Provider type used by this operation.
+            auth_type: Auth type used by this operation.
+
+        Returns:
+            OpenAIClientConfig | None result produced by client config.
+        """
         if provider_type is ProviderType.OPENAI and auth_type is AuthType.API_KEY:
             api_key = await self._secret_repo.resolve(
                 provider_id,
@@ -150,6 +173,14 @@ class ConfiguredMemoryRelationProposalProvider(IMemoryRelationProposalProvider):
 
 
 def _normalized_optional(value: str | None) -> str | None:
+    """Execute normalized optional.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str | None result produced by normalized optional.
+    """
     if value is None:
         return None
     normalized = value.strip()
@@ -157,6 +188,14 @@ def _normalized_optional(value: str | None) -> str | None:
 
 
 def _provider_scope(provider_type: ProviderType | None) -> str:
+    """Execute provider scope.
+
+    Args:
+        provider_type: Provider type used by this operation.
+
+    Returns:
+        str result produced by provider scope.
+    """
     if provider_type is None:
         return "openai-compatible"
     return provider_type.value

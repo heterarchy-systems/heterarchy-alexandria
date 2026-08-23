@@ -3,8 +3,17 @@
 from __future__ import annotations
 
 from app.shared.guardrails.check_broad_types import collect_failures as broad_failures
+from app.shared.guardrails.check_getattr_usage import (
+    collect_failures as dynamic_attribute_failures,
+)
+from app.shared.guardrails.check_docstring_contracts import (
+    collect_failures as docstring_failures,
+)
 from app.shared.guardrails.check_lazy_import_usage import (
     collect_failures as lazy_import_failures,
+)
+from app.shared.guardrails.check_protocol_usage import (
+    collect_failures as protocol_failures,
 )
 
 
@@ -16,6 +25,21 @@ def test_production_annotations_avoid_unjustified_broad_types() -> None:
 def test_local_imports_have_explicit_boundary_justification() -> None:
     """Ensure production local imports are explicitly justified."""
     assert lazy_import_failures() == []
+
+
+def test_dynamic_attribute_access_obeys_repository_policy() -> None:
+    """Reject forbidden dynamic attribute mutation and unjustified reads."""
+    assert dynamic_attribute_failures() == []
+
+
+def test_all_production_callables_have_complete_docstrings() -> None:
+    """Require Google-style callable documentation throughout production code."""
+    assert docstring_failures() == []
+
+
+def test_protocols_are_limited_to_explicit_structural_seams() -> None:
+    """Require managed ports to use ABC instead of implicit Protocol typing."""
+    assert protocol_failures() == []
 
 
 def test_from_import_paths_do_not_depend_on_accidental_reexports() -> None:

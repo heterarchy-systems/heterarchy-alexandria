@@ -96,6 +96,14 @@ class ObsidianReportBundleSupport:
         self,
         request: ObsidianReportBundleRequest,
     ) -> ObsidianReportBundleRequest:
+        """Normalize a report bundle request.
+
+        Args:
+            request: Request to normalize or process.
+
+        Returns:
+            Normalized value.
+        """
         root = self._vault_config_store.current().alexandria_root
         if request.source.relative_path is None:
             raise ObsidianValidationError("report bundle source.path is required")
@@ -161,6 +169,16 @@ class ObsidianReportBundleSupport:
         owner: ObsidianNote,
         source: ObsidianNoteWriteResult,
     ) -> ObsidianNoteWriteResult:
+        """Update report bundle ownership metadata.
+
+        Args:
+            contract: Normalized report-bundle contract whose ownership is updated.
+            owner: Owner metadata to persist on the report bundle.
+            source: Source metadata associated with the operation.
+
+        Returns:
+            Write result produced by the owner metadata update.
+        """
         field_name = _relation_field(contract.relation)
         targets = _relation_targets(owner.frontmatter.get(field_name))
         if not any(
@@ -203,6 +221,15 @@ class ObsidianReportBundleSupport:
         request: ObsidianReportBundleRequest,
         checkpoint: JSONObject | None,
     ) -> ObsidianReportBundleResult | None:
+        """Build a completed replay result.
+
+        Args:
+            request: Request to normalize or process.
+            checkpoint: Previously persisted report-bundle checkpoint.
+
+        Returns:
+            Completed replay result when a reusable checkpoint exists; otherwise None.
+        """
         if checkpoint is None or checkpoint.get("completion_status") not in {
             ObsidianReportBundleCompletionStatus.COMPLETED.value,
             ObsidianReportBundleCompletionStatus.COMPLETED_WITH_WARNINGS.value,
@@ -282,6 +309,19 @@ class ObsidianReportBundleSupport:
         source: ObsidianNoteWriteResult | None = None,
         owner_writes: tuple[ObsidianNoteWriteResult, ...] = (),
     ) -> ObsidianReportBundleResult:
+        """Build a report bundle failure result.
+
+        Args:
+            request: Request to normalize or process.
+            status: Current operation or report status.
+            stage: Report-bundle stage at which the failure occurred.
+            error: Error details captured for the response or report.
+            source: Source metadata associated with the operation.
+            owner_writes: Write results produced while persisting owner notes.
+
+        Returns:
+            Failure result describing the report-bundle stage and error.
+        """
         return ObsidianReportBundleResult(
             completion_status=status,
             idempotency_key=request.idempotency_key,
@@ -303,6 +343,14 @@ class ObsidianReportBundleSupport:
         request_hash: str,
         result: ObsidianReportBundleResult,
     ) -> None:
+        """Persist a report bundle checkpoint.
+
+        Args:
+            store: Checkpoint store used to persist report-bundle progress.
+            request: Request to normalize or process.
+            request_hash: Stable request hash used for checkpoint idempotency.
+            result: Operation result to serialize or persist.
+        """
         store.save(
             request.idempotency_key,
             {
@@ -329,6 +377,14 @@ class ObsidianReportBundleSupport:
 
 
 def _relation_field(relation: ObsidianRelationType) -> str:
+    """Execute relation field.
+
+    Args:
+        relation: Relation used by this operation.
+
+    Returns:
+        str result produced by relation field.
+    """
     if relation is ObsidianRelationType.CITES:
         return "source_ref_links"
     if relation is ObsidianRelationType.WIKILINK:
@@ -339,6 +395,14 @@ def _relation_field(relation: ObsidianRelationType) -> str:
 
 
 def _relation_targets(value: JSONValue | None) -> list[JSONValue]:
+    """Execute relation targets.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        list[JSONValue] result produced by relation targets.
+    """
     if value is None:
         return []
     if isinstance(value, list):
@@ -347,20 +411,56 @@ def _relation_targets(value: JSONValue | None) -> list[JSONValue]:
 
 
 def _operation_error(function: str, error: Exception) -> JSONObject:
+    """Execute operation error.
+
+    Args:
+        function: Function used by this operation.
+        error: Error value being processed.
+
+    Returns:
+        JSONObject result produced by operation error.
+    """
     return {"function": function, "message": str(error) or type(error).__name__}
 
 
 def _checkpoint_int(checkpoint: JSONObject, key: str) -> int:
+    """Execute checkpoint int.
+
+    Args:
+        checkpoint: Checkpoint used by this operation.
+        key: Key used by this operation.
+
+    Returns:
+        int result produced by checkpoint int.
+    """
     value = checkpoint.get(key)
     return value if isinstance(value, int) and not isinstance(value, bool) else 0
 
 
 def _checkpoint_string(checkpoint: JSONObject, key: str) -> str | None:
+    """Execute checkpoint string.
+
+    Args:
+        checkpoint: Checkpoint used by this operation.
+        key: Key used by this operation.
+
+    Returns:
+        str | None result produced by checkpoint string.
+    """
     value = checkpoint.get(key)
     return value if isinstance(value, str) else None
 
 
 def _checkpoint_strings(checkpoint: JSONObject, key: str) -> list[str]:
+    """Execute checkpoint strings.
+
+    Args:
+        checkpoint: Checkpoint used by this operation.
+        key: Key used by this operation.
+
+    Returns:
+        list[str] result produced by checkpoint strings.
+    """
     value = checkpoint.get(key)
     if not isinstance(value, list):
         return []
@@ -368,6 +468,15 @@ def _checkpoint_strings(checkpoint: JSONObject, key: str) -> list[str]:
 
 
 def _checkpoint_dicts(checkpoint: JSONObject, key: str) -> list[JSONObject]:
+    """Execute checkpoint dicts.
+
+    Args:
+        checkpoint: Checkpoint used by this operation.
+        key: Key used by this operation.
+
+    Returns:
+        list[JSONObject] result produced by checkpoint dicts.
+    """
     value = checkpoint.get(key)
     if not isinstance(value, list):
         return []

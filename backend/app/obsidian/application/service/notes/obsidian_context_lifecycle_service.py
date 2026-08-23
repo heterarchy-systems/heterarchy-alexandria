@@ -16,6 +16,7 @@ from app.obsidian.infrastructure.obsidian_vault_config_store import (
 )
 
 
+# protocol-contract: structural-seam
 class ObsidianContextReadHook(Protocol):
     """Read one canonical Context note by id."""
 
@@ -97,6 +98,11 @@ class ObsidianContextLifecycleService:
         )
 
     def _engine(self) -> ContextLifecycleEngine:
+        """Execute engine.
+
+        Returns:
+            ContextLifecycleEngine result produced by engine.
+        """
         config = self._vault_config_store.current()
         return ContextLifecycleEngine(
             self._repository,

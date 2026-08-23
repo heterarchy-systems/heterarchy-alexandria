@@ -1,0 +1,24 @@
+[package]
+name = "heterarchy-alexandria-py"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lib]
+name = "heterarchy_alexandria_native"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fastembed.workspace = true
+heterarchy-alexandria-core = { path = "../heterarchy-alexandria-core" }
+pyo3.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[build-dependencies]
+pyo3-build-config.workspace = true
+
+[lints]
+workspace = true

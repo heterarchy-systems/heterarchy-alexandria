@@ -127,6 +127,16 @@ def _request_default_plan(
     provider_by_reference: dict[str, LibrarianProvider],
     executable_providers: list[LibrarianProvider],
 ) -> LibrarianExecutionPlan:
+    """Execute request default plan.
+
+    Args:
+        command: Command used by this operation.
+        provider_by_reference: Provider by reference used by this operation.
+        executable_providers: Executable providers used by this operation.
+
+    Returns:
+        LibrarianExecutionPlan result produced by request default plan.
+    """
     provider = _plan_provider(
         command.provider_id,
         provider_by_reference,
@@ -154,6 +164,16 @@ def _profile_resolution(
     profile: AgentProfile,
     max_librarian_agents: int | None,
 ) -> LibrarianProfileResolution:
+    """Execute profile resolution.
+
+    Args:
+        command: Command used by this operation.
+        profile: Profile used by this operation.
+        max_librarian_agents: Max librarian agents used by this operation.
+
+    Returns:
+        LibrarianProfileResolution result produced by profile resolution.
+    """
     provider_id = command.provider_id
     if provider_id is None:
         provider_id = profile.preferred_librarian_provider
@@ -177,6 +197,16 @@ def _plan_provider(
     provider_by_reference: dict[str, LibrarianProvider],
     executable_providers: list[LibrarianProvider],
 ) -> LibrarianProvider | None:
+    """Execute plan provider.
+
+    Args:
+        provider_id: Identifier for provider.
+        provider_by_reference: Provider by reference used by this operation.
+        executable_providers: Executable providers used by this operation.
+
+    Returns:
+        LibrarianProvider | None result produced by plan provider.
+    """
     if provider_id is not None:
         return provider_by_reference.get(provider_id)
     if executable_providers:
@@ -187,6 +217,14 @@ def _plan_provider(
 def _provider_reference_lookup(
     providers: list[LibrarianProvider],
 ) -> dict[str, LibrarianProvider]:
+    """Execute provider reference lookup.
+
+    Args:
+        providers: Providers used by this operation.
+
+    Returns:
+        dict[str, LibrarianProvider] result produced by provider reference lookup.
+    """
     lookup: dict[str, LibrarianProvider] = {}
     for provider in providers:
         lookup[provider.id] = provider

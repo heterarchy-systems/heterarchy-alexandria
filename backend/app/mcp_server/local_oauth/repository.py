@@ -191,8 +191,10 @@ class LocalMcpOAuthRepository(LocalOAuthGrantRepository):
             code_hash: Value supplied to approve_authorization_request.
             code_expires_at: Value supplied to approve_authorization_request.
             now: Value supplied to approve_authorization_request.
+            pairing_code_hash: Pairing code hash used by this operation.
         Returns:
-            LocalOAuthAuthorizationCodeRecord | None: Value produced by approve_authorization_request."""
+            LocalOAuthAuthorizationCodeRecord | None: Value produced by approve_authorization_request.
+        """
         async with self._session_factory() as session, session.begin():
             request_row = await session.get(
                 McpOAuthAuthorizationRequestORM,
@@ -256,8 +258,10 @@ class LocalMcpOAuthRepository(LocalOAuthGrantRepository):
         Args:
             request_id: Value supplied to deny_authorization_request.
             now: Value supplied to deny_authorization_request.
+            pairing_code_hash: Pairing code hash used by this operation.
         Returns:
-            bool: Value produced by deny_authorization_request."""
+            bool: Value produced by deny_authorization_request.
+        """
         async with self._session_factory() as session, session.begin():
             row = await session.get(McpOAuthAuthorizationRequestORM, request_id)
             if row is None or row.consumed_at is not None or row.expires_at <= now:
@@ -305,6 +309,14 @@ class LocalMcpOAuthRepository(LocalOAuthGrantRepository):
 def _authorization_request_record(
     row: McpOAuthAuthorizationRequestORM,
 ) -> LocalOAuthAuthorizationRequestRecord:
+    """Execute authorization request record.
+
+    Args:
+        row: Row used by this operation.
+
+    Returns:
+        LocalOAuthAuthorizationRequestRecord result produced by authorization request record.
+    """
     return LocalOAuthAuthorizationRequestRecord(
         request_id=row.request_id,
         client_id=row.client_id,
@@ -322,4 +334,12 @@ def _authorization_request_record(
 
 
 def _frozen_mapping(value: JSONObject) -> Mapping[str, JSONValue]:
+    """Execute frozen mapping.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        Mapping[str, JSONValue] result produced by frozen mapping.
+    """
     return MappingProxyType(dict(value))

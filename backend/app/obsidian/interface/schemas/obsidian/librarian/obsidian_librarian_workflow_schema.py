@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import field_validator
+
 from app.obsidian.domain.contracts.obsidian_contracts import ObsidianLibrarianAsk
 from app.obsidian.domain.entities.obsidian_note import ObsidianLibrarianWorkflow
 from app.obsidian.domain.event_enum.obsidian_enums import (
@@ -13,21 +15,22 @@ from app.obsidian.domain.event_enum.obsidian_enums import (
 from app.obsidian.interface.schemas.obsidian.librarian.obsidian_librarian_type_aliases import (
     preferred_note_type_input,
 )
+from app.obsidian.interface.schemas.obsidian.obsidian_string_types import (
+    ObsidianQueryText,
+)
 from app.shared.schemas.common_schemas import (
     StrictSchemaModel,
     described_field,
     schema_list_default,
 )
 from app.shared.types.extra_types import JSONObject, JSONValue
-from pydantic import StringConstraints, field_validator
 
 
 class ObsidianLibrarianAskRequest(StrictSchemaModel):
     """Ask the Obsidian-aware Alexandria librarian."""
 
     query: Annotated[
-        str,
-        StringConstraints(strict=True, min_length=1),
+        ObsidianQueryText,
         described_field("Query for this Obsidian librarian ask request."),
     ]
     active_note_path: Annotated[
@@ -296,11 +299,29 @@ class ObsidianLibrarianWorkflowResponse(StrictSchemaModel):
 
 
 def _object_list_safe(state: JSONObject, key: str) -> JSONObject:
+    """Execute object list safe.
+
+    Args:
+        state: State used by this operation.
+        key: Key used by this operation.
+
+    Returns:
+        JSONObject result produced by object list safe.
+    """
     value = state.get(key)
     return dict(value) if isinstance(value, dict) else {}
 
 
 def _json_object_list(state: JSONObject, key: str) -> list[JSONObject]:
+    """Execute json object list.
+
+    Args:
+        state: State used by this operation.
+        key: Key used by this operation.
+
+    Returns:
+        list[JSONObject] result produced by json object list.
+    """
     value = state.get(key)
     if not isinstance(value, list):
         return []
@@ -308,6 +329,15 @@ def _json_object_list(state: JSONObject, key: str) -> list[JSONObject]:
 
 
 def _string_list(state: JSONObject, key: str) -> list[str]:
+    """Execute string list.
+
+    Args:
+        state: State used by this operation.
+        key: Key used by this operation.
+
+    Returns:
+        list[str] result produced by string list.
+    """
     value = state.get(key)
     if not isinstance(value, list):
         return []
@@ -315,10 +345,26 @@ def _string_list(state: JSONObject, key: str) -> list[str]:
 
 
 def _optional_string(value: JSONValue | None) -> str | None:
+    """Execute optional string.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str | None result produced by optional string.
+    """
     return value if isinstance(value, str) and value else None
 
 
 def _note_type(value: AlexandriaNoteType | str) -> AlexandriaNoteType:
+    """Execute note type.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        AlexandriaNoteType result produced by note type.
+    """
     if isinstance(value, AlexandriaNoteType):
         return value
     return AlexandriaNoteType(value)

@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from app.shared.schemas.common_schemas import described_field
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.shared.schemas.common_schemas import described_field
 
 
 class MaintenanceQueueConfig(BaseSettings):

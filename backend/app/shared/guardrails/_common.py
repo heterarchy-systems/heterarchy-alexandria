@@ -30,7 +30,19 @@ def resolve_backend_root(reference_file: Path, backend_root: Path | None) -> Pat
     Returns:
         Return value.
     """
-    return backend_root or reference_file.resolve().parents[3]
+    if backend_root is not None:
+        return backend_root.resolve()
+
+    search_roots = (Path.cwd().resolve(), *Path.cwd().resolve().parents)
+    for candidate in search_roots:
+        if (candidate / "pyproject.toml").is_file() and (candidate / "app").is_dir():
+            return candidate
+
+    for candidate in reference_file.resolve().parents:
+        if (candidate / "pyproject.toml").is_file() and (candidate / "app").is_dir():
+            return candidate
+
+    raise RuntimeError("Unable to resolve backend root for guardrail scan")
 
 
 def should_check(path: Path, backend_root: Path) -> bool:
@@ -71,14 +83,15 @@ def iter_guard_target_paths(
         Return value.
     """
     resolved_root = resolve_backend_root(reference_file, backend_root)
+    app_root = resolved_root / "app"
     return [
         path
-        for path in resolved_root.rglob("*.py")
+        for path in app_root.rglob("*.py")
         if should_check(path, backend_root=resolved_root)
     ]
 
 
-def parse_module(path: Path) -> ast.AST:
+def parse_module(path: Path) -> ast.Module:
     """Parse a Python file into an AST.
 
     Args:

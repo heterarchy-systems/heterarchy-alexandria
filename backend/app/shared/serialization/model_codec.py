@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from pydantic import BaseModel
+
 from app.shared.serialization.orjson_codec import dumps_json
 from app.shared.types.extra_types import JSONObject
-from pydantic import BaseModel
 
 
 def model_to_dict(model: BaseModel) -> JSONObject:

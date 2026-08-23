@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import StringConstraints, field_validator, model_validator
+
 from app.memory.domain.event_enum.context_enums import (
     ContextGraphDirection,
     ContextGraphSignalType,
@@ -25,7 +27,6 @@ from app.shared.schemas.common_schemas import (
     schema_list_default,
 )
 from app.shared.types.extra_types import JSONObject, JSONValue
-from pydantic import StringConstraints, field_validator, model_validator
 
 
 class ContextSearchRequest(StrictSchemaModel):

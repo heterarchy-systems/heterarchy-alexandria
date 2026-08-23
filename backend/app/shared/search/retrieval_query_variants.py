@@ -55,11 +55,23 @@ def focused_query_variants(
 
 
 def _append_token_variant(variants: list[str], tokens: tuple[str, ...]) -> None:
+    """Append token variant.
+
+    Args:
+        variants: Variants used by this operation.
+        tokens: Tokens used by this operation.
+    """
     if tokens:
         _append_variant(variants, " ".join(tokens))
 
 
 def _append_variant(variants: list[str], query: str) -> None:
+    """Append variant.
+
+    Args:
+        variants: Variants used by this operation.
+        query: Query used by this operation.
+    """
     normalized = " ".join(query.split())
     if normalized and normalized not in variants:
         variants.append(normalized)

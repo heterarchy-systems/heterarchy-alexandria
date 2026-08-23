@@ -15,6 +15,11 @@ class ObsidianReportBundleRunStore:
     """Persist non-canonical operation state outside the managed Markdown root."""
 
     def __init__(self, vault_path: Path) -> None:
+        """Initialize ObsidianReportBundleRunStore state and dependencies.
+
+        Args:
+            vault_path: Vault path used by this operation.
+        """
         self._root = vault_path / ".alexandria" / "report-bundle-runs"
 
     def load(self, idempotency_key: str) -> JSONObject | None:
@@ -59,5 +64,13 @@ class ObsidianReportBundleRunStore:
             temporary.unlink(missing_ok=True)
 
     def _path(self, idempotency_key: str) -> Path:
+        """Execute path.
+
+        Args:
+            idempotency_key: Idempotency key used by this operation.
+
+        Returns:
+            Path result produced by path.
+        """
         digest = hashlib.sha256(idempotency_key.encode("utf-8")).hexdigest()
         return self._root / f"{digest}.json"

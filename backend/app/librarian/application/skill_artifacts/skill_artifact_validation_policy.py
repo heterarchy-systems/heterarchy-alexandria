@@ -31,6 +31,11 @@ _REQUIRED_SKILL_SECTIONS: tuple[str, ...] = (
 
 
 def _validate_artifact(artifact: SkillAcquisitionArtifact) -> None:
+    """Validate artifact.
+
+    Args:
+        artifact: Artifact used by this operation.
+    """
     if not artifact.title.strip():
         raise LibrarianValidationError("Skill artifact title is required")
     if not artifact.purpose.strip():
@@ -73,6 +78,14 @@ def _validate_artifact(artifact: SkillAcquisitionArtifact) -> None:
 
 
 def _evidence_sources(evidence: list[str]) -> set[str]:
+    """Execute evidence sources.
+
+    Args:
+        evidence: Evidence used by this operation.
+
+    Returns:
+        set[str] result produced by evidence sources.
+    """
     sources: set[str] = set()
     for item in evidence:
         parsed = urlparse(item)
@@ -84,6 +97,14 @@ def _evidence_sources(evidence: list[str]) -> set[str]:
 
 
 def _all_evidence_handles(artifact: SkillAcquisitionArtifact) -> list[str]:
+    """Execute all evidence handles.
+
+    Args:
+        artifact: Artifact used by this operation.
+
+    Returns:
+        list[str] result produced by all evidence handles.
+    """
     handles = _clean_items(artifact.evidence_urls)
     handles.extend(
         item.url_or_path.strip()
@@ -94,6 +115,14 @@ def _all_evidence_handles(artifact: SkillAcquisitionArtifact) -> list[str]:
 
 
 def _structured_evidence_complete(artifact: SkillAcquisitionArtifact) -> bool:
+    """Execute structured evidence complete.
+
+    Args:
+        artifact: Artifact used by this operation.
+
+    Returns:
+        Whether structured evidence complete.
+    """
     for item in artifact.evidence_items:
         if not item.url_or_path.strip():
             return False
@@ -103,6 +132,14 @@ def _structured_evidence_complete(artifact: SkillAcquisitionArtifact) -> bool:
 
 
 def _all_supported_claims(artifact: SkillAcquisitionArtifact) -> list[str]:
+    """Execute all supported claims.
+
+    Args:
+        artifact: Artifact used by this operation.
+
+    Returns:
+        list[str] result produced by all supported claims.
+    """
     claims: list[str] = []
     for item in artifact.evidence_items:
         claims.extend(_clean_items(item.supports_claims))
@@ -115,6 +152,14 @@ def _verify_saved_contract(
     expected_body: str,
     expected_frontmatter: JSONObject,
 ) -> None:
+    """Verify saved contract.
+
+    Args:
+        saved_body: Saved body used by this operation.
+        saved_frontmatter: Saved frontmatter used by this operation.
+        expected_body: Expected body used for validation.
+        expected_frontmatter: Expected frontmatter used for validation.
+    """
     if saved_body.strip() != expected_body.strip():
         raise LibrarianValidationError("Published skill artifact body read-back failed")
     missing_sections = [

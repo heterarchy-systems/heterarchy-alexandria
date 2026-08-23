@@ -19,6 +19,11 @@ class MemoryReconciliationQueryService:
     """Read persisted reconciliation audit entities through explicit use cases."""
 
     def __init__(self, repository: IMemoryReconciliationQueryRepository) -> None:
+        """Initialize MemoryReconciliationQueryService state and dependencies.
+
+        Args:
+            repository: Repository used by this operation.
+        """
         self._repository = repository
 
     async def get_plan(self, plan_id: str) -> MemoryReconciliationPlan:

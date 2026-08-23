@@ -13,8 +13,8 @@ from app.memory.application.contexts.embedding.context_embedding_health_service 
 from app.memory.application.retrieval.embeddings.embedding_contract import (
     EmbeddingProvider,
 )
-from app.memory.application.retrieval.embeddings.fastembed_provider import (
-    FastEmbedEmbeddingProvider,
+from app.memory.application.retrieval.embeddings.fake_embedding_provider import (
+    FakeEmbeddingProvider,
 )
 from app.memory.domain.entities.context_read_models import ContextEmbeddingSourceStatus
 from app.memory.domain.event_enum.context_enums import RagHealthState, RagStrategy
@@ -23,12 +23,10 @@ from app.memory.domain.repositories.contexts.context_search_source import (
 )
 
 
-def _provider() -> FastEmbedEmbeddingProvider:
-    return FastEmbedEmbeddingProvider(
+def _provider() -> FakeEmbeddingProvider:
+    return FakeEmbeddingProvider(
         model_name="intfloat/multilingual-e5-small",
         dimensions=384,
-        cache_dir=None,
-        threads=1,
     )
 
 

@@ -31,6 +31,15 @@ class SkillArtifactVerificationService:
         expected_body: str,
         expected_frontmatter: JSONObject,
     ) -> None:
+        """Verify a skill artifact against its declared contract.
+
+        Args:
+            note_id: Stable identifier of the note or skill artifact.
+            title: Human-readable title for the note or artifact.
+            project: Project scope associated with the artifact or context.
+            expected_body: Expected Markdown body used to verify the skill artifact.
+            expected_frontmatter: Expected frontmatter used to verify the skill artifact.
+        """
         saved = await self._obsidian_service.read_note(note_id)
         if saved.note_id != note_id:
             raise LibrarianValidationError("Published skill artifact read-back failed")

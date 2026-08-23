@@ -7,6 +7,7 @@ from pathlib import Path
 
 from app.obsidian.domain.contracts.obsidian_contracts import ObsidianNoteIndex
 from app.obsidian.domain.event_enum.obsidian_enums import AlexandriaNoteType
+from app.obsidian.infrastructure.markdown.paths import canonical_relative_path
 from app.shared.types.extra_types import JSONObject
 
 
@@ -50,8 +51,29 @@ def validate_context_reindex_manifest(
     issues: list[ContextReindexManifestIssue] = []
     note_paths_by_id: dict[str, str] = {}
     context_paths_by_signature: dict[tuple[str | None, ...], str] = {}
+    canonical_path_counts: dict[str, int] = {}
+    for candidate in candidates:
+        relative_path = canonical_relative_path(candidate.payload.relative_path)
+        canonical_path_counts[relative_path] = (
+            canonical_path_counts.get(relative_path, 0) + 1
+        )
+    colliding_paths = {
+        relative_path
+        for relative_path, count in canonical_path_counts.items()
+        if count > 1
+    }
     for candidate in candidates:
         payload = candidate.payload
+        canonical_path = canonical_relative_path(payload.relative_path)
+        if canonical_path in colliding_paths:
+            issues.append(
+                _issue(
+                    candidate,
+                    "DUPLICATE_CANONICAL_PATH: multiple physical notes normalize "
+                    f"to {canonical_path}",
+                )
+            )
+            continue
         existing_path = note_paths_by_id.get(payload.note_id)
         if existing_path is not None:
             issues.append(
@@ -117,6 +139,14 @@ def supersedes_context_id(payload: ObsidianNoteIndex) -> str | None:
 def _invalid_supersede_reasons(
     candidates_by_id: dict[str, ContextReindexCandidate],
 ) -> dict[str, str]:
+    """Execute invalid supersede reasons.
+
+    Args:
+        candidates_by_id: Identifier for candidates by.
+
+    Returns:
+        dict[str, str] result produced by invalid supersede reasons.
+    """
     invalid_reasons: dict[str, str] = {}
     replacements_by_target: dict[str, str] = {}
     for context_id, candidate in candidates_by_id.items():
@@ -168,6 +198,12 @@ def _propagate_invalid_targets(
     candidates_by_id: dict[str, ContextReindexCandidate],
     invalid_reasons: dict[str, str],
 ) -> None:
+    """Execute propagate invalid targets.
+
+    Args:
+        candidates_by_id: Identifier for candidates by.
+        invalid_reasons: Invalid reasons used by this operation.
+    """
     while True:
         newly_invalid: dict[str, str] = {}
         for context_id, candidate in candidates_by_id.items():
@@ -186,6 +222,14 @@ def _propagate_invalid_targets(
 def _context_identity_signature(
     payload: ObsidianNoteIndex,
 ) -> tuple[str | None, ...] | None:
+    """Execute context identity signature.
+
+    Args:
+        payload: Validated payload for this operation.
+
+    Returns:
+        tuple[str | None, ...] | None result produced by context identity signature.
+    """
     if payload.alexandria_type is not AlexandriaNoteType.CONTEXT:
         return None
     frontmatter = payload.frontmatter
@@ -201,6 +245,14 @@ def _context_identity_signature(
 
 
 def _superseded_by_context_id(payload: ObsidianNoteIndex) -> str | None:
+    """Execute superseded by context id.
+
+    Args:
+        payload: Validated payload for this operation.
+
+    Returns:
+        str | None result produced by superseded by context id.
+    """
     if payload.alexandria_type is not AlexandriaNoteType.CONTEXT:
         return None
     return _json_text(payload.frontmatter, "superseded_by_context_id")
@@ -209,6 +261,14 @@ def _superseded_by_context_id(payload: ObsidianNoteIndex) -> str | None:
 def _cyclic_supersede_ids(
     candidates_by_id: dict[str, ContextReindexCandidate],
 ) -> set[str]:
+    """Execute cyclic supersede ids.
+
+    Args:
+        candidates_by_id: Identifier for candidates by.
+
+    Returns:
+        set[str] result produced by cyclic supersede ids.
+    """
     cyclic_ids: set[str] = set()
     for start_id in candidates_by_id:
         path: list[str] = []
@@ -231,6 +291,15 @@ def _issue(
     candidate: ContextReindexCandidate,
     message: str,
 ) -> ContextReindexManifestIssue:
+    """Execute issue.
+
+    Args:
+        candidate: Candidate used by this operation.
+        message: Message used by this operation.
+
+    Returns:
+        ContextReindexManifestIssue result produced by issue.
+    """
     return ContextReindexManifestIssue(
         relative_path=candidate.payload.relative_path,
         context_id=candidate.payload.note_id,
@@ -239,5 +308,14 @@ def _issue(
 
 
 def _json_text(frontmatter: JSONObject, key: str) -> str | None:
+    """Execute json text.
+
+    Args:
+        frontmatter: Frontmatter used by this operation.
+        key: Key used by this operation.
+
+    Returns:
+        str | None result produced by json text.
+    """
     value = frontmatter.get(key)
     return value if isinstance(value, str) else None

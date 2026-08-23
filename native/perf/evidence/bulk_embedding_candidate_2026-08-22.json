@@ -1,0 +1,169 @@
+{
+  "authority": "rust",
+  "direct_core": {
+    "batch_size": 16,
+    "benchmark": "bulk_embedding_direct_core",
+    "dimensions": 384,
+    "profile": "release",
+    "scenarios": [
+      {
+        "finalization_items_per_second": 847433.640437635,
+        "finalization_microseconds_per_item": 1.1800334000000001,
+        "finalization_total_milliseconds": 5.900167000000001,
+        "item_count": 1,
+        "iterations": 5000,
+        "preparation_items_per_second": 263284.3405056376,
+        "preparation_microseconds_per_item": 3.798175,
+        "preparation_total_milliseconds": 18.990875
+      },
+      {
+        "finalization_items_per_second": 2290895.965116527,
+        "finalization_microseconds_per_item": 0.4365104375,
+        "finalization_total_milliseconds": 6.984167,
+        "item_count": 16,
+        "iterations": 1000,
+        "preparation_items_per_second": 865625.2113342801,
+        "preparation_microseconds_per_item": 1.155234375,
+        "preparation_total_milliseconds": 18.48375
+      },
+      {
+        "finalization_items_per_second": 2805333.4250989067,
+        "finalization_microseconds_per_item": 0.35646386666666663,
+        "finalization_total_milliseconds": 10.693916,
+        "item_count": 100,
+        "iterations": 300,
+        "preparation_items_per_second": 1341224.2023907322,
+        "preparation_microseconds_per_item": 0.7455875,
+        "preparation_total_milliseconds": 22.367625
+      },
+      {
+        "finalization_items_per_second": 2926341.6398516227,
+        "finalization_microseconds_per_item": 0.3417236,
+        "finalization_total_milliseconds": 10.251708,
+        "item_count": 1000,
+        "iterations": 30,
+        "preparation_items_per_second": 1619309.3354208749,
+        "preparation_microseconds_per_item": 0.6175472333333334,
+        "preparation_total_milliseconds": 18.526417
+      },
+      {
+        "finalization_items_per_second": 1838995.908234104,
+        "finalization_microseconds_per_item": 0.543775,
+        "finalization_total_milliseconds": 16.31325,
+        "item_count": 10000,
+        "iterations": 3,
+        "preparation_items_per_second": 1515027.1757999659,
+        "preparation_microseconds_per_item": 0.6600541666666667,
+        "preparation_total_milliseconds": 19.801625
+      }
+    ],
+    "schema_version": 1
+  },
+  "environment": {
+    "machine": "arm64",
+    "peak_rss_bytes": 1428439040,
+    "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+    "python_version": "3.14.7"
+  },
+  "feature": "bulk_embedding",
+  "generated_at": "2026-08-23T14:12:58.911511+00:00",
+  "interpretation": [
+    "Native FFI timing includes strict JSON decode, Rust compute, and JSON encode.",
+    "The post-cutover performance harness does not retain a Python embedding compute oracle.",
+    "Functional parity is enforced by immutable pre-cutover corpora and real native FFI gates.",
+    "Cached inference timing measures only the Rust FastEmbed production compute path.",
+    "Cold-session timing uses a warm on-disk model cache and excludes network acquisition time."
+  ],
+  "model_contract": {
+    "dimensions": 384,
+    "document_input_format": "context-title-heading-content-v1+e5-passage-prefix-v1",
+    "input_kind": "e5_passage",
+    "model": "intfloat/multilingual-e5-small",
+    "normalize": true,
+    "pooling_mode": "mean",
+    "provider": "FASTEMBED_LOCAL",
+    "provider_version": "5.17.4"
+  },
+  "native_ffi_scenarios": [
+    {
+      "item_count": 1,
+      "iterations": 1000,
+      "native_ffi_finalize_median_milliseconds": 0.010452,
+      "native_ffi_prepare_median_milliseconds": 0.002938,
+      "native_finalize_request_bytes": 2154,
+      "native_finalize_response_bytes": 2018,
+      "native_prepare_request_bytes": 564,
+      "native_prepare_response_bytes": 886
+    },
+    {
+      "item_count": 16,
+      "iterations": 300,
+      "native_ffi_finalize_median_milliseconds": 0.13047,
+      "native_ffi_prepare_median_milliseconds": 0.019454,
+      "native_finalize_request_bytes": 28362,
+      "native_finalize_response_bytes": 26137,
+      "native_prepare_request_bytes": 3702,
+      "native_prepare_response_bytes": 7226
+    },
+    {
+      "item_count": 100,
+      "iterations": 50,
+      "native_ffi_finalize_median_milliseconds": 0.767973,
+      "native_ffi_prepare_median_milliseconds": 0.105651,
+      "native_finalize_request_bytes": 175458,
+      "native_finalize_response_bytes": 161295,
+      "native_prepare_request_bytes": 21426,
+      "native_prepare_response_bytes": 43182
+    },
+    {
+      "item_count": 1000,
+      "iterations": 5,
+      "native_ffi_finalize_median_milliseconds": 7.850983,
+      "native_ffi_prepare_median_milliseconds": 1.2061,
+      "native_finalize_request_bytes": 1753991,
+      "native_finalize_response_bytes": 1611198,
+      "native_prepare_request_bytes": 214026,
+      "native_prepare_response_bytes": 433608
+    }
+  ],
+  "native_inference": {
+    "cache_directory_present": true,
+    "cold_start": {
+      "definition": "first Rust session initialization from populated on-disk model cache",
+      "item_count": 1,
+      "native_ffi_milliseconds": 922.862333
+    },
+    "numerical_parity": {
+      "max_absolute_difference_tolerance": 0.0001,
+      "minimum_cosine_similarity": 0.99999,
+      "status": "verified_against_frozen_pre_cutover_baseline"
+    },
+    "status": "measured",
+    "threads": 4,
+    "warm_batches": [
+      {
+        "item_count": 1,
+        "native_ffi_items_per_second": 83.749,
+        "native_ffi_median_milliseconds": 11.940375,
+        "native_request_bytes": 705,
+        "samples": 3
+      },
+      {
+        "item_count": 16,
+        "native_ffi_items_per_second": 147.079,
+        "native_ffi_median_milliseconds": 108.78525,
+        "native_request_bytes": 3843,
+        "samples": 3
+      },
+      {
+        "item_count": 64,
+        "native_ffi_items_per_second": 141.112,
+        "native_ffi_median_milliseconds": 453.539583,
+        "native_request_bytes": 13971,
+        "samples": 3
+      }
+    ]
+  },
+  "schema_version": 2,
+  "scope": "native_preparation_finalization_real_ffi_and_cached_fastembed_inference"
+}

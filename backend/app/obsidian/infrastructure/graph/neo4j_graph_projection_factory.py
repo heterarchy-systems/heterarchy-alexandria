@@ -6,6 +6,8 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import cast
 
+from neo4j import AsyncGraphDatabase
+
 from app.obsidian.infrastructure.graph.neo4j_graph_projection_contracts import (
     Neo4jProjectionDriver,
 )
@@ -13,7 +15,6 @@ from app.obsidian.infrastructure.graph.neo4j_obsidian_graph_projection_repositor
     Neo4jObsidianGraphProjectionRepository,
 )
 from app.platform.config.app_config import AppConfig
-from neo4j import AsyncGraphDatabase
 
 
 @asynccontextmanager

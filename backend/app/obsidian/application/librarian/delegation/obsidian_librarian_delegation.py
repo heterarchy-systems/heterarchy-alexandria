@@ -76,6 +76,15 @@ def _delegate_command(
     payload: ObsidianLibrarianAsk,
     response: JSONObject,
 ) -> HermesLibrarianAskCommand:
+    """Execute delegate command.
+
+    Args:
+        payload: Validated payload for this operation.
+        response: Response value being processed.
+
+    Returns:
+        HermesLibrarianAskCommand result produced by delegate command.
+    """
     return HermesLibrarianAskCommand(
         prompt=_delegate_prompt(payload, response),
         agent_name="obsidian-librarian",
@@ -97,6 +106,15 @@ def _delegate_prompt(
     payload: ObsidianLibrarianAsk,
     response: JSONObject,
 ) -> str:
+    """Execute delegate prompt.
+
+    Args:
+        payload: Validated payload for this operation.
+        response: Response value being processed.
+
+    Returns:
+        str result produced by delegate prompt.
+    """
     return "\n\n".join(
         [
             "Answer the user's question using the Obsidian context packet below.",
@@ -114,6 +132,15 @@ def _delegate_brief(
     payload: ObsidianLibrarianAsk,
     response: JSONObject,
 ) -> str:
+    """Execute delegate brief.
+
+    Args:
+        payload: Validated payload for this operation.
+        response: Response value being processed.
+
+    Returns:
+        str result produced by delegate brief.
+    """
     source_paths = [
         str(ref.get("path"))
         for ref in _response_source_ref_objects(response)
@@ -140,6 +167,14 @@ def _delegate_brief(
 
 
 def _delegate_source_refs(response: JSONObject) -> tuple[SourceRef, ...]:
+    """Execute delegate source refs.
+
+    Args:
+        response: Response value being processed.
+
+    Returns:
+        tuple[SourceRef, ...] result produced by delegate source refs.
+    """
     refs: list[SourceRef] = []
     for item in _response_source_ref_objects(response):
         note_id = item.get("id")
@@ -160,6 +195,14 @@ def _delegate_source_refs(response: JSONObject) -> tuple[SourceRef, ...]:
 
 
 def _response_source_ref_objects(response: JSONObject) -> list[JSONObject]:
+    """Execute response source ref objects.
+
+    Args:
+        response: Response value being processed.
+
+    Returns:
+        list[JSONObject] result produced by response source ref objects.
+    """
     value = response.get("source_refs")
     if not isinstance(value, list):
         return []
@@ -167,6 +210,14 @@ def _response_source_ref_objects(response: JSONObject) -> list[JSONObject]:
 
 
 def _source_ref_type(alexandria_type: JSONValue | None) -> SourceRefType:
+    """Execute source ref type.
+
+    Args:
+        alexandria_type: Alexandria type used by this operation.
+
+    Returns:
+        SourceRefType result produced by source ref type.
+    """
     if alexandria_type == AlexandriaNoteType.MEMORY_COMPACT.value:
         return SourceRefType.MEMORY_COMPACT
     if alexandria_type == AlexandriaNoteType.SKILL.value:
@@ -182,6 +233,12 @@ def _append_delegate_response(
     response: JSONObject,
     delegate_payload: HermesLibrarianAskPayload,
 ) -> None:
+    """Execute append delegate response.
+
+    Args:
+        response: Response value being processed.
+        delegate_payload: Delegate payload used by this operation.
+    """
     status = _string_value(delegate_payload["status"])
     response["delegate_status"] = status
     response["provider_id"] = _optional_string_value(delegate_payload["provider_id"])
@@ -198,6 +255,14 @@ def _append_unavailable_delegate_response(
     profile_id: str | None,
     reason: str,
 ) -> None:
+    """Execute append unavailable delegate response.
+
+    Args:
+        response: Response value being processed.
+        provider_id: Identifier for provider.
+        profile_id: Identifier for profile.
+        reason: Reason used by this operation.
+    """
     response["delegate_status"] = "GUIDANCE_ONLY"
     response["provider_id"] = provider_id
     response["profile_id"] = profile_id
@@ -209,6 +274,12 @@ def _append_delegate_summary(
     response: JSONObject,
     delegate_payload: HermesLibrarianAskPayload,
 ) -> None:
+    """Execute append delegate summary.
+
+    Args:
+        response: Response value being processed.
+        delegate_payload: Delegate payload used by this operation.
+    """
     summaries: list[str] = []
     for item in delegate_payload["delegates"]:
         summary = item.get("summary")
@@ -224,11 +295,24 @@ def _append_delegate_summary(
 
 
 def _append_answer_section(response: JSONObject, heading: str, body: str) -> None:
+    """Execute append answer section.
+
+    Args:
+        response: Response value being processed.
+        heading: Heading used by this operation.
+        body: Body used by this operation.
+    """
     answer = str(response.get("answer_markdown") or "")
     response["answer_markdown"] = "\n\n".join([answer, f"## {heading}", body])
 
 
 def _append_action_preview(response: JSONObject, item: str) -> None:
+    """Execute append action preview.
+
+    Args:
+        response: Response value being processed.
+        item: Item being processed.
+    """
     value = response.get("action_preview")
     if not isinstance(value, list):
         response["action_preview"] = [item]
@@ -239,30 +323,78 @@ def _append_action_preview(response: JSONObject, item: str) -> None:
 
 
 def _string_value(value: JSONValue) -> str:
+    """Execute string value.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str result produced by string value.
+    """
     return value if isinstance(value, str) else str(value)
 
 
 def _optional_string_value(value: JSONValue | None) -> str | None:
+    """Execute optional string value.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str | None result produced by optional string value.
+    """
     return value if isinstance(value, str) and value else None
 
 
 def _selection_status(selection: str | None) -> str:
+    """Execute selection status.
+
+    Args:
+        selection: Selection used by this operation.
+
+    Returns:
+        str result produced by selection status.
+    """
     return "ingested" if selection is not None and selection.strip() else "none"
 
 
 def _selection_line(selection: str | None) -> str:
+    """Execute selection line.
+
+    Args:
+        selection: Selection used by this operation.
+
+    Returns:
+        str result produced by selection line.
+    """
     if selection is None or not selection.strip():
         return "Selection: none"
     return f"Selection provided:\n{_selection_excerpt(selection)}"
 
 
 def _selection_block(selection: str | None) -> str:
+    """Execute selection block.
+
+    Args:
+        selection: Selection used by this operation.
+
+    Returns:
+        str result produced by selection block.
+    """
     if selection is None or not selection.strip():
         return "## Selection\nnone"
     return f"## Selection\n{_selection_excerpt(selection)}"
 
 
 def _selection_excerpt(selection: str) -> str:
+    """Execute selection excerpt.
+
+    Args:
+        selection: Selection used by this operation.
+
+    Returns:
+        str result produced by selection excerpt.
+    """
     normalized = selection.strip()
     if len(normalized) <= DELEGATE_SELECTION_MAX_CHARS:
         return normalized

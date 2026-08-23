@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import StringConstraints
+
 from app.memory.domain.entities.memory_compact import (
     MemoryCompact,
     MemoryCompactSourceRef,
@@ -23,7 +25,6 @@ from app.shared.schemas.common_schemas import (
 )
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 from app.shared.types.extra_types import JSONObject
-from pydantic import StringConstraints
 
 NonBlankString = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
@@ -313,6 +314,14 @@ class MemoryCompactListResponse(StrictSchemaModel):
 
 
 def _response_warnings(warnings: list[str]) -> list[str]:
+    """Execute response warnings.
+
+    Args:
+        warnings: Warnings used by this operation.
+
+    Returns:
+        list[str] result produced by response warnings.
+    """
     normalized: list[str] = []
     seen: set[str] = set()
     for warning in warnings:
@@ -325,6 +334,14 @@ def _response_warnings(warnings: list[str]) -> list[str]:
 
 
 def _current_warning_code(warning: str) -> str:
+    """Execute current warning code.
+
+    Args:
+        warning: Warning used by this operation.
+
+    Returns:
+        str result produced by current warning code.
+    """
     if warning == "memory_compact_stale":
         return "current_memory_compact_stale"
     if warning == "memory_compact_timestamp_missing":

@@ -15,87 +15,9 @@ from app.memory.application.retrieval.embeddings.fake_embedding_provider import 
 from app.memory.application.retrieval.planning.context_query_planning import (
     context_query_variants,
 )
-from app.memory.application.retrieval.ranking.context_ranking import (
-    hybrid_candidate_limit,
-    merge_hybrid_matches,
-)
 from app.memory.application.retrieval.ranking.vector_math import cosine_similarity
-from app.memory.domain.entities.context_read_models import (
-    ContextChunkRecord,
-    ContextRecord,
-    ContextSearchMatch,
-)
-from app.memory.domain.event_enum.context_enums import (
-    ContextContentFormat,
-    ContextImportance,
-    ContextKind,
-    ContextScope,
-    ContextSourceType,
-    ContextStorageStatus,
-)
-from app.memory.domain.types.context_payload_types import ContextMetadataPayload
 
 NOW = datetime(2026, 7, 27, tzinfo=UTC)
-
-
-def _retrieval_match(
-    context_id: str,
-    chunk_suffix: str,
-    *,
-    score: float,
-    fts_score: float | None,
-    vector_score: float | None,
-) -> ContextSearchMatch:
-    context = ContextRecord(
-        id=context_id,
-        kind=ContextKind.RESEARCH,
-        title=f"Context {context_id}",
-        summary="Retrieval quality fixture.",
-        content="Search quality evidence.",
-        content_format=ContextContentFormat.MARKDOWN,
-        project="heterarchy-alexandria",
-        scope=ContextScope.PROJECT,
-        workspace_id="default",
-        agent_id=None,
-        user_id=None,
-        session_id=None,
-        visibility=ContextScope.PROJECT,
-        source_agent="Hermes",
-        source_type=ContextSourceType.AGENT,
-        importance=ContextImportance.HIGH,
-        tags=("retrieval-quality",),
-        status=ContextStorageStatus.SAVED,
-        quality_score=100,
-        warnings=(),
-        restore_prompt=None,
-        context_metadata=ContextMetadataPayload(),
-        created_at=NOW,
-        updated_at=NOW,
-        last_accessed_at=None,
-        expires_at=None,
-        archived_at=None,
-        access_count=0,
-        is_archived=False,
-    )
-    chunk = ContextChunkRecord(
-        id=f"chunk-{context_id}-{chunk_suffix}",
-        context_id=context_id,
-        chunk_index=int(chunk_suffix),
-        heading=f"Evidence {chunk_suffix}",
-        content="Search quality evidence.",
-        token_count=3,
-        content_hash=f"hash-{context_id}-{chunk_suffix}",
-        chunk_metadata=ContextMetadataPayload(),
-        created_at=NOW,
-    )
-    return ContextSearchMatch(
-        context=context,
-        chunk=chunk,
-        score=score,
-        fts_score=fts_score,
-        vector_score=vector_score,
-        why_retrieved="Single retrieval lane.",
-    )
 
 
 def test_markdown_chunker_keeps_heading_metadata_and_hashes() -> None:
@@ -189,13 +111,6 @@ def test_cosine_similarity_package_contract_handles_vector_edges() -> None:
     assert cosine_similarity([1.0], [1.0, 0.0]) == 0.0
 
 
-def test_hybrid_candidate_limit_overfetches_before_final_ranking() -> None:
-    """Hybrid recall should gather enough candidates for cross-lane fusion."""
-    assert hybrid_candidate_limit(1) == 6
-    assert hybrid_candidate_limit(5) == 30
-    assert hybrid_candidate_limit(20) == 50
-
-
 def test_context_query_variants_include_focused_korean_topic_terms() -> None:
     """Natural Korean questions should retain a focused lexical fallback."""
     variants = context_query_variants("검색 품질 개선을 위해서 뭐가 있을까요?")
@@ -203,93 +118,3 @@ def test_context_query_variants_include_focused_korean_topic_terms() -> None:
     assert variants[0] == "검색 품질 개선을 위해서 뭐가 있을까요?"
     assert "검색 품질" in variants
     assert len(variants) <= 16
-
-
-def test_hybrid_rank_fusion_combines_context_evidence_across_chunks() -> None:
-    """A context found by both lanes should retain both signals across chunks."""
-    fts_match = _retrieval_match(
-        "dual-source",
-        "1",
-        score=0.000003,
-        fts_score=0.000003,
-        vector_score=None,
-    )
-    vector_match = _retrieval_match(
-        "dual-source",
-        "2",
-        score=0.91,
-        fts_score=None,
-        vector_score=0.91,
-    )
-
-    ranked = merge_hybrid_matches(
-        fts_matches=[fts_match],
-        vector_matches=[vector_match],
-        limit=5,
-    )
-
-    assert len(ranked) == 1
-    assert ranked[0].fts_score == fts_match.fts_score
-    assert ranked[0].vector_score == vector_match.vector_score
-    assert "best-lane reciprocal-rank fusion" in ranked[0].why_retrieved
-
-
-def test_hybrid_rank_fusion_uses_semantic_tiebreaker_for_equal_lane_ranks() -> None:
-    """Equal isolated lane ranks should prefer semantic evidence by a minimal margin."""
-    lexical = _retrieval_match(
-        "lexical",
-        "1",
-        score=0.000004,
-        fts_score=0.000004,
-        vector_score=None,
-    )
-    semantic = _retrieval_match(
-        "semantic",
-        "1",
-        score=0.99,
-        fts_score=None,
-        vector_score=0.99,
-    )
-
-    ranked = merge_hybrid_matches(
-        fts_matches=[lexical],
-        vector_matches=[semantic],
-        limit=2,
-    )
-
-    assert [match.context.id for match in ranked] == ["semantic", "lexical"]
-
-
-def test_hybrid_rank_fusion_does_not_double_count_correlated_lane_noise() -> None:
-    """Cross-lane overlap should not outrank a stronger semantic-first result by addition."""
-    lexical_noise = _retrieval_match(
-        "noise",
-        "1",
-        score=0.000004,
-        fts_score=0.000004,
-        vector_score=None,
-    )
-    semantic = _retrieval_match(
-        "semantic",
-        "1",
-        score=0.99,
-        fts_score=None,
-        vector_score=0.99,
-    )
-    semantic_noise = _retrieval_match(
-        "noise",
-        "2",
-        score=0.95,
-        fts_score=None,
-        vector_score=0.95,
-    )
-
-    ranked = merge_hybrid_matches(
-        fts_matches=[lexical_noise],
-        vector_matches=[semantic, semantic_noise],
-        limit=2,
-    )
-
-    assert [match.context.id for match in ranked] == ["semantic", "noise"]
-    assert ranked[1].fts_score == lexical_noise.fts_score
-    assert ranked[1].vector_score == semantic_noise.vector_score

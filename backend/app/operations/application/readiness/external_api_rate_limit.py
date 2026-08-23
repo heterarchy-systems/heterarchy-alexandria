@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import re
-from typing import Protocol
+from abc import ABC, abstractmethod
 
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
@@ -24,6 +24,12 @@ class ExternalApiRateLimitedError(ExternalApiRateLimitError):
     """Raised when an outbound provider has exhausted its Redis budget."""
 
     def __init__(self, provider: str, retry_after_seconds: int) -> None:
+        """Initialize ExternalApiRateLimitedError state and dependencies.
+
+        Args:
+            provider: Provider used by this operation.
+            retry_after_seconds: Retry after seconds used by this operation.
+        """
         super().__init__(f"external API rate limit exceeded for {provider}")
         self.provider = provider
         self.retry_after_seconds = retry_after_seconds
@@ -33,9 +39,10 @@ class ExternalApiRateLimiterUnavailableError(ExternalApiRateLimitError):
     """Raised when a configured fail-closed provider budget cannot use Redis."""
 
 
-class ExternalApiRateLimiter(Protocol):
+class ExternalApiRateLimiter(ABC):
     """Async permit boundary used immediately before provider network calls."""
 
+    @abstractmethod
     async def acquire(
         self,
         provider: str,
@@ -51,7 +58,7 @@ class ExternalApiRateLimiter(Protocol):
         """
 
 
-class NoopExternalApiRateLimiter:
+class NoopExternalApiRateLimiter(ExternalApiRateLimiter):
     """Disabled provider budget used when Redis is not configured."""
 
     async def acquire(
@@ -60,10 +67,17 @@ class NoopExternalApiRateLimiter:
         subject: str,
         limit: int | None = None,
     ) -> None:
+        """Acquire an external API rate-limit permit.
+
+        Args:
+            provider: External provider whose rate-limit bucket is acquired.
+            subject: Rate-limit subject within the selected provider bucket.
+            limit: Maximum count or rate allowed by the operation.
+        """
         del provider, subject, limit
 
 
-class RedisExternalApiRateLimiter:
+class RedisExternalApiRateLimiter(ExternalApiRateLimiter):
     """Shared-client fixed-window budget for outbound provider calls."""
 
     def __init__(
@@ -73,6 +87,14 @@ class RedisExternalApiRateLimiter:
         window_seconds: int,
         key_prefix: str = "alexandria:rate:v1",
     ) -> None:
+        """Initialize RedisExternalApiRateLimiter state and dependencies.
+
+        Args:
+            client: Client used by this operation.
+            default_limit: Default limit used by this operation.
+            window_seconds: Window seconds used by this operation.
+            key_prefix: Key prefix used by this operation.
+        """
         self._limiter = RedisFixedWindowRateLimiter(client, key_prefix)
         self._default_limit = default_limit
         self._window_seconds = window_seconds
@@ -111,6 +133,14 @@ class RedisExternalApiRateLimiter:
 
 
 def _normalized_provider(provider: str) -> str:
+    """Execute normalized provider.
+
+    Args:
+        provider: Provider used by this operation.
+
+    Returns:
+        str result produced by normalized provider.
+    """
     normalized = _PROVIDER_PATTERN.sub("-", provider.strip().lower()).strip("-")
     if not normalized:
         raise ValueError("provider must contain at least one supported character")

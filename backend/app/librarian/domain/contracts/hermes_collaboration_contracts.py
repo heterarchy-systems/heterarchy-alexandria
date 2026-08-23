@@ -13,7 +13,7 @@ from app.librarian.domain.event_enum.collaboration_enums import (
 )
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class HermesLibrarianAskCommand:
     """Command produced when Hermes asks the librarian for work guidance."""
 
@@ -33,10 +33,10 @@ class HermesLibrarianAskCommand:
 
     def __post_init__(self) -> None:
         """Normalize routing specialties to an immutable sequence."""
-        object.__setattr__(self, "routing_specialties", tuple(self.routing_specialties))
+        self.routing_specialties = tuple(self.routing_specialties)
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class LibrarianDelegateResult:
     """Result from one synchronous librarian delegate lane."""
 
@@ -49,10 +49,10 @@ class LibrarianDelegateResult:
 
     def __post_init__(self) -> None:
         """Normalize delegate specialty matches to an immutable sequence."""
-        object.__setattr__(self, "matched_specialties", tuple(self.matched_specialties))
+        self.matched_specialties = tuple(self.matched_specialties)
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class HermesLibrarianAskResult:
     """Result returned to Hermes after an ask/delegation request."""
 
@@ -77,7 +77,7 @@ class HermesLibrarianAskResult:
 
     def __post_init__(self) -> None:
         """Normalize collaboration route and delegate collections."""
-        object.__setattr__(self, "route_preview", tuple(self.route_preview))
-        object.__setattr__(self, "selected_profiles", tuple(self.selected_profiles))
-        object.__setattr__(self, "matched_specialties", tuple(self.matched_specialties))
-        object.__setattr__(self, "delegates", tuple(self.delegates))
+        self.route_preview = tuple(self.route_preview)
+        self.selected_profiles = tuple(self.selected_profiles)
+        self.matched_specialties = tuple(self.matched_specialties)
+        self.delegates = tuple(self.delegates)

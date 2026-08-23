@@ -20,6 +20,14 @@ from app.shared.types.extra_types import JSONObject
 def _publication_failure_stage(
     error: LibrarianValidationError,
 ) -> SkillAcquisitionJobStage:
+    """Execute publication failure stage.
+
+    Args:
+        error: Error value being processed.
+
+    Returns:
+        SkillAcquisitionJobStage result produced by publication failure stage.
+    """
     if isinstance(error, SkillArtifactPublicationError):
         return error.stage
     normalized = str(error).lower()
@@ -29,18 +37,42 @@ def _publication_failure_stage(
 
 
 def _publication_error_skill_id(error: LibrarianValidationError) -> str | None:
+    """Execute publication error skill id.
+
+    Args:
+        error: Error value being processed.
+
+    Returns:
+        str | None result produced by publication error skill id.
+    """
     if isinstance(error, SkillArtifactPublicationError):
         return error.skill_id
     return None
 
 
 def _publication_error_skill_note_path(error: LibrarianValidationError) -> str | None:
+    """Execute publication error skill note path.
+
+    Args:
+        error: Error value being processed.
+
+    Returns:
+        str | None result produced by publication error skill note path.
+    """
     if isinstance(error, SkillArtifactPublicationError):
         return error.skill_note_path
     return None
 
 
 def _publication_error_reindex_status(error: LibrarianValidationError) -> str | None:
+    """Execute publication error reindex status.
+
+    Args:
+        error: Error value being processed.
+
+    Returns:
+        str | None result produced by publication error reindex status.
+    """
     if isinstance(error, SkillArtifactPublicationError):
         return error.reindex_status
     return None
@@ -49,12 +81,28 @@ def _publication_error_reindex_status(error: LibrarianValidationError) -> str | 
 def _publication_error_verification_status(
     error: LibrarianValidationError,
 ) -> str | None:
+    """Execute publication error verification status.
+
+    Args:
+        error: Error value being processed.
+
+    Returns:
+        str | None result produced by publication error verification status.
+    """
     if isinstance(error, SkillArtifactPublicationError):
         return error.verification_status
     return None
 
 
 def _completion_handoff_error(handoff: JSONObject | None) -> str | None:
+    """Execute completion handoff error.
+
+    Args:
+        handoff: Handoff used by this operation.
+
+    Returns:
+        str | None result produced by completion handoff error.
+    """
     if handoff is None:
         return "Skill acquisition handoff is required"
     required_fields = (
@@ -138,6 +186,18 @@ def _repair_handoff(
     skill_id: str | None = None,
     skill_note_path: str | None = None,
 ) -> JSONObject:
+    """Execute repair handoff.
+
+    Args:
+        job: Job used by this operation.
+        error_message: Error message used by this operation.
+        stage: Stage used by this operation.
+        skill_id: Identifier for skill.
+        skill_note_path: Skill note path used by this operation.
+
+    Returns:
+        JSONObject result produced by repair handoff.
+    """
     payload: JSONObject = {
         "decision": "skill_acquisition_repair_required",
         "job": {

@@ -63,7 +63,15 @@ class ObsidianLibrarianConversationService:
         save_note: ObsidianConversationSaveHook,
         search: ObsidianConversationSearchHook,
     ) -> None:
-        """Create the conversation service."""
+        """Create the conversation service.
+
+        Args:
+            vault_config_store: Vault config store used by this operation.
+            delegate_service: Delegate service dependency.
+            read_note_by_path: Read note by path used by this operation.
+            save_note: Save note used by this operation.
+            search: Search used by this operation.
+        """
         self._delegate_service = delegate_service
         self._read_note_by_path = read_note_by_path
         self._save_note = save_note

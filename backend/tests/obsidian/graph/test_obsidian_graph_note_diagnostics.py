@@ -8,6 +8,9 @@ from pathlib import Path
 
 import anyio
 import pytest
+from dependency_injector import providers
+from fastapi.testclient import TestClient
+
 from app.main import app as default_app, create_app
 from app.obsidian.application.graph.diagnostics.obsidian_graph_note_diagnostics_service import (
     ObsidianGraphNoteDiagnosticsService,
@@ -31,8 +34,6 @@ from app.obsidian.infrastructure.models.obsidian_index_models import (
 )
 from app.platform.config.app_config import AppConfig
 from app.shared.infrastructure.database import Database
-from dependency_injector import providers
-from fastapi.testclient import TestClient
 
 _OBSIDIAN_MODELS_LOADED = _obsidian_index_models
 _NOW = datetime(2026, 8, 3, tzinfo=UTC)
@@ -248,8 +249,7 @@ def test_validate_note_links_does_not_mask_missing_explicit_id_with_path() -> No
     assert unresolved.candidate_paths == ("Alexandria/Target.md",)
 
 
-def _database_url(path: Path) -> str:
-    del path
+def _database_url() -> str:
     return os.environ["DATABASE_URL"]
 
 
@@ -308,7 +308,7 @@ def test_graph_note_diagnostics_rest_contract_reports_validation_only_status(
             await session.close()
             await database.shutdown()
 
-    database_url = _database_url(tmp_path / "diagnostics.db")
+    database_url = _database_url()
     anyio.run(seed_database, database_url)
     monkeypatch.setenv("DATABASE_URL", database_url)
     app = create_app(

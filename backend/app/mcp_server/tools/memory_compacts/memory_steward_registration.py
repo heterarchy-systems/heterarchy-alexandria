@@ -28,7 +28,15 @@ def register_memory_steward_tools(
         project: str | None = None,
         max_compact_age_days: int = 30,
     ) -> JSONValue:
-        """Return RAG, Memory Compact, and vault-review readiness."""
+        """Return RAG, Memory Compact, and vault-review readiness.
+
+        Args:
+            project: Project used by this operation.
+            max_compact_age_days: Max compact age days used by this operation.
+
+        Returns:
+            JSONValue result produced by tool memory steward readiness.
+        """
         return await alexandria_memory_steward_readiness(
             api_client,
             project=project,
@@ -43,7 +51,18 @@ def register_memory_steward_tools(
         force: bool = False,
         covered_to: str | None = None,
     ) -> JSONValue:
-        """Plan or apply a CURRENT Memory Compact refresh from readiness evidence."""
+        """Plan or apply a CURRENT Memory Compact refresh from readiness evidence.
+
+        Args:
+            project: Project used by this operation.
+            max_compact_age_days: Max compact age days used by this operation.
+            apply: Apply used by this operation.
+            force: Whether to force the operation instead of using current state.
+            covered_to: Covered to used by this operation.
+
+        Returns:
+            JSONValue result produced by tool memory steward refresh current compact.
+        """
         return await alexandria_memory_steward_refresh_current_compact(
             api_client,
             project=project,

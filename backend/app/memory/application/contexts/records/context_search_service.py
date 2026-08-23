@@ -14,11 +14,6 @@ from app.memory.application.retrieval.planning.context_query_planning import (
 from app.memory.application.retrieval.planning.context_scope_filter import (
     filter_context_matches,
 )
-from app.memory.application.retrieval.ranking.context_ranking import (
-    hybrid_candidate_limit,
-    merge_hybrid_matches,
-    rank_best_matches_per_context,
-)
 from app.memory.domain.contracts.context_recall_contracts import (
     ContextFtsRecall,
     ContextRecallFilter,
@@ -38,6 +33,9 @@ from app.memory.domain.event_enum.context_enums import (
 from app.memory.domain.repositories.contexts.context_graph_signal_provider import (
     IContextGraphSignalProvider,
 )
+from app.memory.domain.repositories.contexts.context_retrieval_kernel_provider import (
+    IContextRetrievalKernelProvider,
+)
 from app.memory.domain.repositories.contexts.context_search_source import (
     IContextSearchSource,
 )
@@ -52,6 +50,7 @@ class ContextSearchService:
         self,
         search_sources: list[IContextSearchSource],
         embedding_service: ContextEmbeddingService,
+        retrieval_kernel_provider: IContextRetrievalKernelProvider,
         graph_signal_provider: IContextGraphSignalProvider | None = None,
     ) -> None:
         """Create the Context search service.
@@ -59,10 +58,12 @@ class ContextSearchService:
         Args:
             search_sources: Configured FTS and vector recall sources.
             embedding_service: Vector recall and dependency health collaborator.
+            retrieval_kernel_provider: Single authoritative retrieval-ranking provider.
             graph_signal_provider: Optional score-preserving graph evidence provider.
         """
         self._search_sources = search_sources
         self._embedding_service = embedding_service
+        self._retrieval_kernel_provider = retrieval_kernel_provider
         self._graph_signal_provider = graph_signal_provider
 
     async def search(
@@ -176,7 +177,7 @@ class ContextSearchService:
         else:
             candidate_filter = replace(
                 recall_filter,
-                limit=hybrid_candidate_limit(limit),
+                limit=self._retrieval_kernel_provider.hybrid_candidate_limit(limit),
             )
             fts_matches = await self._search_fts_sources(
                 ContextFtsRecall(query=query, recall_filter=candidate_filter)
@@ -185,7 +186,7 @@ class ContextSearchService:
                 query=query,
                 recall_filter=candidate_filter,
             )
-            matches = merge_hybrid_matches(
+            matches = self._retrieval_kernel_provider.merge(
                 fts_matches=fts_matches,
                 vector_matches=vector_matches,
                 limit=limit,
@@ -227,6 +228,14 @@ class ContextSearchService:
         self,
         recall: ContextFtsRecall,
     ) -> list[ContextSearchMatch]:
+        """Search fts sources.
+
+        Args:
+            recall: Recall used by this operation.
+
+        Returns:
+            Matching fts sources.
+        """
         for query_variant in context_query_variants(recall.query):
             variant_matches: list[ContextSearchMatch] = []
             variant_recall = ContextFtsRecall(
@@ -235,7 +244,7 @@ class ContextSearchService:
             )
             for source in self._search_sources:
                 variant_matches.extend(await source.search_fts(variant_recall))
-            ranked_variant = rank_best_matches_per_context(
+            ranked_variant = self._retrieval_kernel_provider.rank_best(
                 variant_matches,
                 recall.recall_filter.limit,
             )
@@ -248,6 +257,15 @@ def _preserves_primary_ranking(
     primary: list[ContextSearchMatch],
     enriched: list[ContextSearchMatch],
 ) -> bool:
+    """Execute preserves primary ranking.
+
+    Args:
+        primary: Primary used by this operation.
+        enriched: Enriched used by this operation.
+
+    Returns:
+        Whether preserves primary ranking.
+    """
     return [
         (
             match.context,
@@ -270,6 +288,14 @@ def _preserves_primary_ranking(
 
 
 def _exception_class_name(exc: Exception) -> str:
+    """Execute exception class name.
+
+    Args:
+        exc: Exception raised by the underlying operation.
+
+    Returns:
+        str result produced by exception class name.
+    """
     class_name = type(exc).__name__
     sanitized = "".join(
         character

@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from app.shared.schemas.common_schemas import described_field
-from app.shared.utils.config import settings_model_config
 from pydantic import StringConstraints, field_validator
 from pydantic_settings import BaseSettings
+
+from app.shared.schemas.common_schemas import described_field
+from app.shared.utils.config import settings_model_config
 
 
 class RedisConfig(BaseSettings):

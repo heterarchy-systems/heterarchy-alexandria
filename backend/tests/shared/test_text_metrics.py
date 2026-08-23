@@ -5,16 +5,7 @@ from __future__ import annotations
 from app.shared.utils.text_metrics import (
     count_word_tokens,
     extract_word_tokens,
-    sha256_text_hexdigest,
 )
-
-
-def test_sha256_text_hexdigest_returns_utf8_digest_when_content_is_unicode() -> None:
-    """Unicode text should hash through the backend-wide UTF-8 contract."""
-    assert (
-        sha256_text_hexdigest("Hermes 기억")
-        == "2e68da5e9f77c30b60b60a1dfbfb4743ecdf6053eb219db62662d733ed99ad24"
-    )
 
 
 def test_extract_word_tokens_returns_ordered_tokens_when_content_has_punctuation() -> (

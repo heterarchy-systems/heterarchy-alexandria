@@ -248,10 +248,7 @@ def test_repository_semantic_golden_cases_are_versioned_and_non_title_queries() 
     queries = _load_golden_queries(corpus_path)
 
     assert len(queries) == 10
-    assert {query.project for query in queries} == {
-        "heterarchy-alexandria",
-        "alexandria-hermes",
-    }
+    assert {query.project for query in queries} == {"heterarchy-alexandria"}
     assert all(query.expected_titles for query in queries)
     assert all(query.query not in query.expected_titles for query in queries)
 

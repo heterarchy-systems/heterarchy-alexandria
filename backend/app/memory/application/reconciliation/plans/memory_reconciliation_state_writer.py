@@ -32,6 +32,11 @@ class MemoryReconciliationStateWriter:
     """Write reconciliation read-model state through the repository port."""
 
     def __init__(self, repository: IMemoryReconciliationStateRepository) -> None:
+        """Initialize MemoryReconciliationStateWriter state and dependencies.
+
+        Args:
+            repository: Repository used by this operation.
+        """
         self._repository = repository
 
     async def persist_primary_relation(

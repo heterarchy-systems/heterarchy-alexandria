@@ -48,6 +48,12 @@ class MemoryReconciliationApplyService:
         repository: IMemoryReconciliationApplyRepository,
         canonical_gateway: IMemoryCanonicalMutationGateway,
     ) -> None:
+        """Initialize MemoryReconciliationApplyService state and dependencies.
+
+        Args:
+            repository: Repository used by this operation.
+            canonical_gateway: Canonical gateway used by this operation.
+        """
         self._repository = repository
         self._canonical_gateway = canonical_gateway
         self._state_writer = MemoryReconciliationStateWriter(repository)
@@ -104,6 +110,14 @@ class MemoryReconciliationApplyService:
         self,
         plan: MemoryReconciliationPlan,
     ) -> MemoryReconciliationResult:
+        """Apply plan.
+
+        Args:
+            plan: Plan used by this operation.
+
+        Returns:
+            MemoryReconciliationResult result produced by apply plan.
+        """
         created_context_ids: list[str] = []
         updated_context_ids: list[str] = []
         superseded_context_ids: list[str] = []
@@ -241,6 +255,21 @@ def _successful_result(
     review_queue_item_ids: list[str],
     warnings: list[str],
 ) -> MemoryReconciliationResult:
+    """Execute successful result.
+
+    Args:
+        plan: Plan used by this operation.
+        created_context_ids: Identifiers for created context.
+        updated_context_ids: Identifiers for updated context.
+        superseded_context_ids: Identifiers for superseded context.
+        created_relation_ids: Identifiers for created relation.
+        created_conflict_set_ids: Identifiers for created conflict set.
+        review_queue_item_ids: Identifiers for review queue item.
+        warnings: Warnings used by this operation.
+
+    Returns:
+        MemoryReconciliationResult result produced by successful result.
+    """
     return MemoryReconciliationResult(
         reconciliation_id=result_id(plan.plan_id),
         plan_id=plan.plan_id,

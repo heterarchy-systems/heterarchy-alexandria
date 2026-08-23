@@ -106,6 +106,8 @@ async def create_agent(
         request [AgentCreateRequest]: Value supplied to create_agent.
         service [AgentService]: Value supplied to create_agent.
 
+        request: Validated request for this operation.
+        service: Application service used by this operation.
     Returns:
         AgentResponse: Value produced by create_agent.
     """
@@ -132,6 +134,7 @@ async def list_agents(
     Args:
         service [AgentService]: Value supplied to list_agents.
 
+        service: Application service used by this operation.
     Returns:
         AgentResponseList: Value produced by list_agents.
     """
@@ -161,6 +164,8 @@ async def get_agent(
         agent_id [str]: Value supplied to get_agent.
         service [AgentService]: Value supplied to get_agent.
 
+        agent_id: Identifier for agent.
+        service: Application service used by this operation.
     Returns:
         AgentResponse: Value produced by get_agent.
     """
@@ -194,6 +199,9 @@ async def patch_agent(
         request [AgentPatchRequest]: Value supplied to patch_agent.
         service [AgentService]: Value supplied to patch_agent.
 
+        agent_id: Identifier for agent.
+        request: Validated request for this operation.
+        service: Application service used by this operation.
     Returns:
         AgentResponse: Value produced by patch_agent.
     """
@@ -220,5 +228,7 @@ async def delete_agent(
     Args:
         agent_id [str]: Value supplied to delete_agent.
         service [AgentService]: Value supplied to delete_agent.
+        agent_id: Identifier for agent.
+        service: Application service used by this operation.
     """
     await service.delete_agent(agent_id)

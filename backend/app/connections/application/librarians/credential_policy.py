@@ -218,6 +218,11 @@ def openai_codex_oauth_config_has_protected_change(
 
 
 def _ensure_openai_codex_oauth_config_payload_is_safe(config: JSONObject) -> None:
+    """Ensure openai codex oauth config payload is safe.
+
+    Args:
+        config: Typed configuration used by this operation.
+    """
     for key in OPENAI_CODEX_OAUTH_URL_KEYS:
         value = config.get(key.value)
         if value is None:
@@ -233,6 +238,12 @@ def _ensure_openai_codex_oauth_https_allowed_host(
     key: OpenAICodexOAuthConfigKey,
     url: str,
 ) -> None:
+    """Ensure openai codex oauth https allowed host.
+
+    Args:
+        key: Key used by this operation.
+        url: Url used by this operation.
+    """
     parsed = urlparse(url)
     hostname = parsed.hostname
     if parsed.scheme != "https" or hostname is None:
@@ -263,6 +274,11 @@ def _ensure_openai_codex_oauth_https_allowed_host(
 
 
 def _openai_codex_oauth_allowed_host_values() -> frozenset[str]:
+    """Execute openai codex oauth allowed host values.
+
+    Returns:
+        frozenset[str] result produced by openai codex oauth allowed host values.
+    """
     allowed_host_values = frozenset(
         host.value for host in OPENAI_CODEX_OAUTH_ALLOWED_HOSTS
     )
@@ -272,6 +288,14 @@ def _openai_codex_oauth_allowed_host_values() -> frozenset[str]:
 def _openai_codex_oauth_allowed_path_values_for(
     key: OpenAICodexOAuthConfigKey,
 ) -> frozenset[str]:
+    """Execute openai codex oauth allowed path values for.
+
+    Args:
+        key: Key used by this operation.
+
+    Returns:
+        frozenset[str] result produced by openai codex oauth allowed path values for.
+    """
     allowed_path_values = frozenset(
         path.value for path in openai_codex_oauth_allowed_paths_for(key)
     )
@@ -279,6 +303,14 @@ def _openai_codex_oauth_allowed_path_values_for(
 
 
 def _config_contains_credential_key(value: JSONValue) -> bool:
+    """Execute config contains credential key.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        Whether config contains credential key.
+    """
     if isinstance(value, dict):
         for key, nested in value.items():
             if _is_config_credential_key(_normalized_config_key(key)):
@@ -295,6 +327,14 @@ def _config_contains_credential_key(value: JSONValue) -> bool:
 
 
 def _is_config_credential_key(key: str) -> bool:
+    """Return whether config credential key.
+
+    Args:
+        key: Key used by this operation.
+
+    Returns:
+        Whether config credential key.
+    """
     try:
         ConfigCredentialKey(key)
     except ValueError:
@@ -303,11 +343,28 @@ def _is_config_credential_key(key: str) -> bool:
 
 
 def _normalized_config_key(key: str) -> str:
+    """Execute normalized config key.
+
+    Args:
+        key: Key used by this operation.
+
+    Returns:
+        str result produced by normalized config key.
+    """
     normalized_key = key.strip().lower().replace("-", "_")
     return normalized_key
 
 
 def _config_text_value(config: JSONObject, key: str) -> str | None:
+    """Execute config text value.
+
+    Args:
+        config: Typed configuration used by this operation.
+        key: Key used by this operation.
+
+    Returns:
+        str | None result produced by config text value.
+    """
     value = config.get(key)
     if isinstance(value, str):
         return value

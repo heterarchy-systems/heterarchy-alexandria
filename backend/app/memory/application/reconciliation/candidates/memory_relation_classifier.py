@@ -50,6 +50,11 @@ class MemoryRelationClassifier:
         self,
         proposal_provider: IMemoryRelationProposalProvider | None = None,
     ) -> None:
+        """Initialize MemoryRelationClassifier state and dependencies.
+
+        Args:
+            proposal_provider: Proposal provider provider dependency.
+        """
         self._proposal_provider = proposal_provider
 
     async def classify_with_model(
@@ -168,6 +173,18 @@ def _select_relation(
     scores: MemoryRelationScores,
     temporal_overlap: bool,
 ) -> tuple[MemoryRelationType, float, str, MemoryDecisionSource]:
+    """Execute select relation.
+
+    Args:
+        candidate: Candidate used by this operation.
+        existing: Existing used by this operation.
+        best: Best used by this operation.
+        scores: Scores used by this operation.
+        temporal_overlap: Temporal overlap used by this operation.
+
+    Returns:
+        tuple[MemoryRelationType, float, str, MemoryDecisionSource] result produced by select relation.
+    """
     if candidate.content_hash == existing.content_hash:
         return (
             MemoryRelationType.DUPLICATE,
@@ -267,6 +284,15 @@ def _select_relation(
 def _compare_claims(
     candidate: CanonicalClaim, existing: CanonicalClaim
 ) -> _ClaimComparison:
+    """Execute compare claims.
+
+    Args:
+        candidate: Candidate used by this operation.
+        existing: Existing used by this operation.
+
+    Returns:
+        _ClaimComparison result produced by compare claims.
+    """
     subject_equal = _normalized_text(candidate.subject) == _normalized_text(
         existing.subject
     )
@@ -316,6 +342,15 @@ def _scope_compatibility(
     candidate: MemoryCandidate,
     existing: MemoryRecallCandidate,
 ) -> float:
+    """Execute scope compatibility.
+
+    Args:
+        candidate: Candidate used by this operation.
+        existing: Existing used by this operation.
+
+    Returns:
+        float result produced by scope compatibility.
+    """
     if candidate.scope is not existing.scope:
         return 0.0
     identities = {
@@ -334,6 +369,15 @@ def _source_independence(
     candidate: MemoryCandidate,
     existing: MemoryRecallCandidate,
 ) -> float:
+    """Execute source independence.
+
+    Args:
+        candidate: Candidate used by this operation.
+        existing: Existing used by this operation.
+
+    Returns:
+        float result produced by source independence.
+    """
     candidate_ids = {
         (item.source_type, item.source_id) for item in candidate.source_refs
     }
@@ -344,4 +388,12 @@ def _source_independence(
 
 
 def _normalized_text(value: str) -> str:
+    """Execute normalized text.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str result produced by normalized text.
+    """
     return " ".join(value.casefold().split())

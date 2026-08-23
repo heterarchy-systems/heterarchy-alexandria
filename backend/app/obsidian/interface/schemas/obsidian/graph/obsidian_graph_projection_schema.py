@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
+from pydantic import StringConstraints
+
 from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild_service import (
     ObsidianGraphProjectionOperationError,
     ObsidianGraphProjectionRebuildReport,
@@ -13,7 +15,6 @@ from app.obsidian.domain.contracts.obsidian_graph_projection_contracts import (
     ObsidianGraphProjectionIssueCount,
 )
 from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
-from pydantic import StringConstraints
 
 
 class ObsidianGraphProjectionOperationErrorResponse(StrictSchemaModel):
@@ -93,6 +94,14 @@ class ObsidianGraphProjectionIssueCountResponse(StrictSchemaModel):
         cls,
         item: ObsidianGraphProjectionIssueCount,
     ) -> ObsidianGraphProjectionIssueCountResponse:
+        """Build this schema from a domain entity.
+
+        Args:
+            item: Domain item to serialize into the response schema.
+
+        Returns:
+            Schema populated from the domain entity.
+        """
         return cls(code=item.code.value, count=item.count)
 
 

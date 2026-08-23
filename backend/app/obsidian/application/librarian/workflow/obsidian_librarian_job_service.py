@@ -147,6 +147,17 @@ class ObsidianLibrarianJobService:
         report: ObsidianVaultMoveReport | None = None,
         error_message: str | None = None,
     ) -> ObsidianLibrarianJob:
+        """Execute set job.
+
+        Args:
+            job_id: Identifier for job.
+            status: Status value used by this operation.
+            report: Report used by this operation.
+            error_message: Error message used by this operation.
+
+        Returns:
+            ObsidianLibrarianJob result produced by set job.
+        """
         current = datetime.now(UTC)
         previous = self.get_job(job_id)
         job = ObsidianLibrarianJob(

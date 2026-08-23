@@ -37,6 +37,13 @@ class ObsidianContextLifecycleCoordinator:
         vault_path: Path,
         alexandria_root: str,
     ) -> None:
+        """Initialize ObsidianContextLifecycleCoordinator state and dependencies.
+
+        Args:
+            repository: Repository used by this operation.
+            vault_path: Vault path used by this operation.
+            alexandria_root: Alexandria root used by this operation.
+        """
         self._repository = repository
         self._vault_path = vault_path
         self._alexandria_root = alexandria_root

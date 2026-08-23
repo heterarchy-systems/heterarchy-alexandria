@@ -8,6 +8,8 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
+from asyncer import asyncify
+
 from app.memory.domain.entities.memory_compact import (
     MemoryCompact,
     MemoryCompactSourceRef,
@@ -34,7 +36,6 @@ from app.memory.infrastructure.repositories.memory_compacts.note_store import (
 from app.shared.exceptions.memory_compact_exceptions import MemoryCompactNotFoundError
 from app.shared.infrastructure.identifiers import new_uuid
 from app.shared.types.types_convert_utils import aware_utc_datetime
-from asyncer import asyncify
 
 
 class MemoryCompactCreateRepositoryDelegate:
@@ -259,6 +260,12 @@ def _persist_created_compact(
     store: MemoryCompactNoteStore,
     compact: MemoryCompact,
 ) -> None:
+    """Execute persist created compact.
+
+    Args:
+        store: Store used by this operation.
+        compact: Compact used by this operation.
+    """
     if compact.status is MemoryCompactStatus.CURRENT:
         _supersede_current_project(
             store,
@@ -272,6 +279,15 @@ def _require_compact(
     store: MemoryCompactNoteStore,
     compact_id: str,
 ) -> MemoryCompact:
+    """Execute require compact.
+
+    Args:
+        store: Store used by this operation.
+        compact_id: Identifier for compact.
+
+    Returns:
+        MemoryCompact result produced by require compact.
+    """
     compact = store.get(compact_id)
     if compact is None:
         raise MemoryCompactNotFoundError(f"Memory compact not found: {compact_id}")
@@ -283,6 +299,13 @@ def _supersede_current_project(
     project: str | None,
     excluded_id: str | None,
 ) -> None:
+    """Execute supersede current project.
+
+    Args:
+        store: Store used by this operation.
+        project: Project used by this operation.
+        excluded_id: Identifier for excluded.
+    """
     now = datetime.now(UTC)
     for compact in store.read_all():
         if (
@@ -306,6 +329,18 @@ def _filter_compacts(
     covered_after: datetime | None,
     covered_before: datetime | None,
 ) -> list[MemoryCompact]:
+    """Execute filter compacts.
+
+    Args:
+        compacts: Compacts used by this operation.
+        project: Project used by this operation.
+        status: Status value used by this operation.
+        covered_after: Covered after used by this operation.
+        covered_before: Covered before used by this operation.
+
+    Returns:
+        list[MemoryCompact] result produced by filter compacts.
+    """
     if project is not None:
         compacts = [item for item in compacts if item.project == project]
     if status is not None:
@@ -323,6 +358,15 @@ def _source_refs(
     compact_id: str,
     payload: MemoryCompactCreate,
 ) -> tuple[MemoryCompactSourceRef, ...]:
+    """Execute source refs.
+
+    Args:
+        compact_id: Identifier for compact.
+        payload: Validated payload for this operation.
+
+    Returns:
+        tuple[MemoryCompactSourceRef, ...] result produced by source refs.
+    """
     return tuple(
         MemoryCompactSourceRef(
             id=new_uuid(),

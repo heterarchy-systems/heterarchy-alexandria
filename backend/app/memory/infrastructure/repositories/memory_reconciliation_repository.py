@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.memory.domain.repositories.reconciliation.memory_reconciliation_repository import (
     IMemoryReconciliationRepository,
 )
@@ -27,7 +29,6 @@ from app.memory.infrastructure.repositories.reconciliation.reconciliation_result
 from app.memory.infrastructure.repositories.reconciliation.reconciliation_temporal_store import (
     ReconciliationTemporalStore,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class SqlAlchemyMemoryReconciliationRepository(
@@ -41,6 +42,11 @@ class SqlAlchemyMemoryReconciliationRepository(
     """Assemble focused stores behind the stable transaction-scoped repository API."""
 
     def __init__(self, session: AsyncSession) -> None:
+        """Initialize SqlAlchemyMemoryReconciliationRepository state and dependencies.
+
+        Args:
+            session: Active session used by this operation.
+        """
         self._plan_store = ReconciliationPlanStore(session)
         self._result_store = ReconciliationResultStore(session)
         self._relation_store = ReconciliationRelationStore(session)

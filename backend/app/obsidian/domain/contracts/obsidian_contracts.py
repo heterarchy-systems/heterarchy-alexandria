@@ -41,7 +41,7 @@ class ObsidianEdgeIndex:
     source_kind: ObsidianEdgeSourceKind
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class ObsidianNoteIndex:
     """Normalized note data discovered during vault indexing."""
 
@@ -63,12 +63,12 @@ class ObsidianNoteIndex:
 
     def __post_init__(self) -> None:
         """Normalize indexed-note collections to immutable values."""
-        object.__setattr__(self, "tags", tuple(self.tags))
-        object.__setattr__(self, "chunks", tuple(self.chunks))
-        object.__setattr__(self, "edges", tuple(self.edges))
+        self.tags = tuple(self.tags)
+        self.chunks = tuple(self.chunks)
+        self.edges = tuple(self.edges)
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class ObsidianSearchQuery:
     """Search parameters for Obsidian note retrieval."""
 
@@ -83,15 +83,11 @@ class ObsidianSearchQuery:
 
     def __post_init__(self) -> None:
         """Normalize search filters to immutable values."""
-        object.__setattr__(
-            self,
-            "excluded_alexandria_types",
-            tuple(self.excluded_alexandria_types),
-        )
-        object.__setattr__(self, "tags", tuple(self.tags))
+        self.excluded_alexandria_types = tuple(self.excluded_alexandria_types)
+        self.tags = tuple(self.tags)
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class ObsidianSaveNote:
     """Payload for creating or replacing one managed Markdown note."""
 
@@ -109,7 +105,7 @@ class ObsidianSaveNote:
 
     def __post_init__(self) -> None:
         """Normalize note tags to an immutable sequence."""
-        object.__setattr__(self, "tags", tuple(self.tags))
+        self.tags = tuple(self.tags)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -140,7 +136,7 @@ class ObsidianReportBundleVerify:
     duplicates: bool = True
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class ObsidianReportBundleRequest:
     """Idempotent Source/owner/reindex/graph verification operation."""
 
@@ -154,7 +150,7 @@ class ObsidianReportBundleRequest:
 
     def __post_init__(self) -> None:
         """Normalize graph owner inputs to immutable values."""
-        object.__setattr__(self, "graph_owners", tuple(self.graph_owners))
+        self.graph_owners = tuple(self.graph_owners)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -218,7 +214,7 @@ class ObsidianVaultMoveRequest:
     reason: str
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class ObsidianVaultMovePlanRequest:
     """Dry-run safe move planning request."""
 
@@ -226,10 +222,10 @@ class ObsidianVaultMovePlanRequest:
 
     def __post_init__(self) -> None:
         """Normalize planned moves to an immutable sequence."""
-        object.__setattr__(self, "moves", tuple(self.moves))
+        self.moves = tuple(self.moves)
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class ObsidianVaultMoveApplyRequest:
     """Safe move application request."""
 
@@ -240,10 +236,10 @@ class ObsidianVaultMoveApplyRequest:
 
     def __post_init__(self) -> None:
         """Normalize applied moves to an immutable sequence."""
-        object.__setattr__(self, "moves", tuple(self.moves))
+        self.moves = tuple(self.moves)
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class ObsidianLibrarianAsk:
     """Obsidian-side librarian ask payload."""
 
@@ -262,11 +258,7 @@ class ObsidianLibrarianAsk:
 
     def __post_init__(self) -> None:
         """Normalize preferred note types to an immutable sequence."""
-        object.__setattr__(
-            self,
-            "preferred_alexandria_types",
-            tuple(self.preferred_alexandria_types),
-        )
+        self.preferred_alexandria_types = tuple(self.preferred_alexandria_types)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -276,7 +268,7 @@ class ObsidianLibrarianWorkflowStart:
     ask: ObsidianLibrarianAsk
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class ObsidianLibrarianWorkflowResume:
     """Resume request with approved workflow action ids."""
 
@@ -285,4 +277,4 @@ class ObsidianLibrarianWorkflowResume:
 
     def __post_init__(self) -> None:
         """Normalize approved action identifiers to an immutable sequence."""
-        object.__setattr__(self, "approved_actions", tuple(self.approved_actions))
+        self.approved_actions = tuple(self.approved_actions)

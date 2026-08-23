@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import StringConstraints, field_validator
+
 from app.memory.domain.contracts.memory_existing_reconciliation_contracts import (
     ExistingMemoryReconciliationRequest,
 )
 from app.memory.domain.event_enum.context_enums import ContextScope
 from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
-from pydantic import StringConstraints, field_validator
 
 
 class ExistingMemoryReconciliationHttpRequest(StrictSchemaModel):

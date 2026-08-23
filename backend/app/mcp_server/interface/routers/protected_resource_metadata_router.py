@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import cast
 
+from fastapi import APIRouter, Request
+
 from app.mcp_server.protected_resource_metadata import protected_resource_metadata
 from app.mcp_server.type_validate.oauth.auth_contracts import (
     MCP_OAUTH_PROTECTED_RESOURCE_PATH,
@@ -13,7 +15,6 @@ from app.mcp_server.type_validate.oauth.config_contracts import (
     McpProtectedResourceConfig,
 )
 from app.shared.types.extra_types import JSONObject
-from fastapi import APIRouter, Request
 
 router = APIRouter(tags=["mcp-oauth"])
 

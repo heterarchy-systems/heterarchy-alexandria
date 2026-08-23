@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from time import monotonic
-from typing import Literal, Protocol
+from typing import Literal
 from uuid import uuid4
 
 from app.obsidian.domain.contracts.obsidian_graph_projection_contracts import (
@@ -27,9 +28,10 @@ GraphProjectionStatus = Literal["disabled", "uninitialized", "ready", "unavailab
 PROJECTION_VERSION = 1
 
 
-class ObsidianGraphProjectionSourceBuilderProtocol(Protocol):
+class ObsidianGraphProjectionSourceBuilderProtocol(ABC):
     """Projection source builder behavior consumed by rebuild operations."""
 
+    @abstractmethod
     async def build(self) -> ObsidianGraphProjectionSourceSnapshot:
         """Return one read-only source snapshot for projection rebuild.
 
@@ -49,7 +51,7 @@ class ObsidianGraphProjectionOperationError:
     detail: str | None = None
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class ObsidianGraphProjectionRebuildReport:
     """Stable result contract for one explicit projection rebuild request."""
 
@@ -75,12 +77,12 @@ class ObsidianGraphProjectionRebuildReport:
 
     def __post_init__(self) -> None:
         """Normalize rebuild diagnostics to immutable tuples."""
-        object.__setattr__(self, "errors", tuple(self.errors))
-        object.__setattr__(self, "issues", tuple(self.issues))
-        object.__setattr__(self, "issue_counts", tuple(self.issue_counts))
+        self.errors = tuple(self.errors)
+        self.issues = tuple(self.issues)
+        self.issue_counts = tuple(self.issue_counts)
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class ObsidianGraphProjectionStatusReport:
     """Stable status contract for the optional graph projection."""
 
@@ -101,12 +103,8 @@ class ObsidianGraphProjectionStatusReport:
 
     def __post_init__(self) -> None:
         """Normalize status diagnostics to immutable tuples."""
-        object.__setattr__(self, "errors", tuple(self.errors))
-        object.__setattr__(
-            self,
-            "last_run_issue_counts",
-            tuple(self.last_run_issue_counts),
-        )
+        self.errors = tuple(self.errors)
+        self.last_run_issue_counts = tuple(self.last_run_issue_counts)
 
 
 class ObsidianGraphProjectionRebuildService:
@@ -129,6 +127,7 @@ class ObsidianGraphProjectionRebuildService:
             repository: Optional graph projection adapter; absent when disabled.
             run_id_factory: Optional deterministic run id source for tests.
             monotonic_seconds: Optional monotonic clock for duration measurement.
+            index_maintenance_coordinator: Index maintenance coordinator used by this operation.
         """
         self._config = config
         self._source_builder = source_builder
@@ -168,6 +167,11 @@ class ObsidianGraphProjectionRebuildService:
             )
 
     def _disabled_report(self) -> ObsidianGraphProjectionRebuildReport:
+        """Execute disabled report.
+
+        Returns:
+            ObsidianGraphProjectionRebuildReport result produced by disabled report.
+        """
         run_id = self._run_id_factory()
         started_at = self._monotonic_seconds()
         return ObsidianGraphProjectionRebuildReport(
@@ -187,7 +191,16 @@ class ObsidianGraphProjectionRebuildService:
         include_issue_details: bool,
         issue_limit: int,
     ) -> ObsidianGraphProjectionRebuildReport:
-        """Build and activate one graph run while holding maintenance ownership."""
+        """Build and activate one graph run while holding maintenance ownership.
+
+        Args:
+            repository: Repository used by this operation.
+            include_issue_details: Whether to include issue details.
+            issue_limit: Issue limit used by this operation.
+
+        Returns:
+            ObsidianGraphProjectionRebuildReport result produced by rebuild enabled.
+        """
         run_id = self._run_id_factory()
         started_at = self._monotonic_seconds()
         try:
@@ -321,6 +334,15 @@ class ObsidianGraphProjectionRebuildService:
 
 
 def _duration(started_at: float, ended_at: float) -> float:
+    """Execute duration.
+
+    Args:
+        started_at: Started at used by this operation.
+        ended_at: Ended at used by this operation.
+
+    Returns:
+        float result produced by duration.
+    """
     return round(max(0.0, ended_at - started_at), 6)
 
 
@@ -328,6 +350,15 @@ def _operation_failure(
     code: str,
     exc: Exception,
 ) -> ObsidianGraphProjectionOperationError:
+    """Execute operation failure.
+
+    Args:
+        code: Code used by this operation.
+        exc: Exception raised by the underlying operation.
+
+    Returns:
+        ObsidianGraphProjectionOperationError result produced by operation failure.
+    """
     return ObsidianGraphProjectionOperationError(
         code=code,
         detail=f"{type(exc).__name__} while updating optional graph projection",
@@ -337,6 +368,14 @@ def _operation_failure(
 def _operation_issue(
     issue: ObsidianGraphProjectionIssue,
 ) -> ObsidianGraphProjectionOperationError:
+    """Execute operation issue.
+
+    Args:
+        issue: Issue used by this operation.
+
+    Returns:
+        ObsidianGraphProjectionOperationError result produced by operation issue.
+    """
     return ObsidianGraphProjectionOperationError(
         code=issue.code.value,
         relative_path=issue.relative_path,
@@ -349,6 +388,14 @@ def _operation_issue(
 def _issue_counts(
     issues: tuple[ObsidianGraphProjectionIssue, ...],
 ) -> tuple[ObsidianGraphProjectionIssueCount, ...]:
+    """Execute issue counts.
+
+    Args:
+        issues: Issues used by this operation.
+
+    Returns:
+        tuple[ObsidianGraphProjectionIssueCount, ...] result produced by issue counts.
+    """
     counts = Counter(issue.code for issue in issues)
     return tuple(
         ObsidianGraphProjectionIssueCount(code=code, count=counts[code])

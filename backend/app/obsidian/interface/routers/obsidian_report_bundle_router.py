@@ -2,6 +2,9 @@
 
 from typing import Annotated
 
+from dependency_injector.wiring import Provide, inject
+from fastapi import APIRouter, Depends, status
+
 from app.container import ApplicationContainer
 from app.obsidian.application.service.notes.obsidian_report_bundle_service import (
     ObsidianReportBundleService,
@@ -12,8 +15,6 @@ from app.obsidian.interface.schemas.obsidian.obsidian_report_bundle_schema impor
 )
 from app.shared.exceptions.exception_decorators import router_exception_status
 from app.shared.exceptions.route_exceptions import OBSIDIAN_SAVE_ROUTE_EXCEPTION_MAPPING
-from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, status
 
 router = APIRouter()
 

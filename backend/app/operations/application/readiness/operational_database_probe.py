@@ -24,6 +24,11 @@ class OperationalDatabaseProbe:
         self._database = database
 
     async def snapshot(self) -> OperationalDatabaseSnapshot:
+        """Capture the operational database readiness snapshot.
+
+        Returns:
+            Current operational database snapshot.
+        """
         try:
             async with self._database.session_factory()() as session:
                 await session.execute(text("SELECT 1"))
@@ -46,6 +51,14 @@ class OperationalDatabaseProbe:
 async def _schema_version(
     session: AsyncSession,
 ) -> str | None:
+    """Execute schema version.
+
+    Args:
+        session: Active session used by this operation.
+
+    Returns:
+        str | None result produced by schema version.
+    """
     table_exists = await session.scalar(
         text("SELECT to_regclass('public.alembic_version')")
     )

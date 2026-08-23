@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "benchmark": "reconciliation_candidates_direct_core",
+  "profile": "release",
+  "block_size": 8,
+  "vector_dimensions": 8,
+  "scenarios": [
+    {
+      "item_count": 1000,
+      "iterations": 20,
+      "elapsed_milliseconds": 19.887375,
+      "items_per_second": 1005663.1405602802,
+      "comparison_pairs": 3500,
+      "comparisons_per_second": 3519820.9919609805,
+      "theoretical_all_pairs": 499500,
+      "comparison_reduction_ratio": 0.007007007007007007,
+      "retained_pairs": 0
+    },
+    {
+      "item_count": 10000,
+      "iterations": 5,
+      "elapsed_milliseconds": 54.222834,
+      "items_per_second": 922120.7434491528,
+      "comparison_pairs": 35000,
+      "comparisons_per_second": 3227422.602072035,
+      "theoretical_all_pairs": 49995000,
+      "comparison_reduction_ratio": 0.0007000700070007,
+      "retained_pairs": 0
+    },
+    {
+      "item_count": 100000,
+      "iterations": 1,
+      "elapsed_milliseconds": 82.10758299999999,
+      "items_per_second": 1217914.306404562,
+      "comparison_pairs": 350000,
+      "comparisons_per_second": 4262700.072415967,
+      "theoretical_all_pairs": 4999950000,
+      "comparison_reduction_ratio": 0.00007000070000700007,
+      "retained_pairs": 0
+    }
+  ]
+}

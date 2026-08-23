@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+from sqlalchemy import delete
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.memory.infrastructure.models.context_models import (
     ContextAccessEventORM,
     ContextChunkORM,
     ContextORM,
 )
-from sqlalchemy import delete
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def delete_context_rows(

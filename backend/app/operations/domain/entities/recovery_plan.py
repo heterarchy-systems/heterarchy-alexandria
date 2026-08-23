@@ -15,7 +15,7 @@ from app.operations.domain.event_enum.operational_readiness_enums import (
 )
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class RecoverySourceSnapshot:
     """Read-only source preservation preflight evidence."""
 
@@ -30,11 +30,7 @@ class RecoverySourceSnapshot:
 
     def __post_init__(self) -> None:
         """Freeze the source manifest mapping."""
-        object.__setattr__(
-            self,
-            "markdown_manifest",
-            MappingProxyType(dict(self.markdown_manifest)),
-        )
+        self.markdown_manifest = MappingProxyType(dict(self.markdown_manifest))
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,7 +42,7 @@ class RecoveryPlanStep:
     mutates_state: bool
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class RecoveryPlan:
     """Read-only recovery dry-run plan."""
 
@@ -71,14 +67,12 @@ class RecoveryPlan:
 
     def __post_init__(self) -> None:
         """Normalize recovery plan collections to immutable values."""
-        object.__setattr__(self, "diagnosis", tuple(self.diagnosis))
-        object.__setattr__(self, "blocked_reasons", tuple(self.blocked_reasons))
-        object.__setattr__(self, "steps", tuple(self.steps))
-        object.__setattr__(
-            self,
-            "estimated_reindex_scope",
-            MappingProxyType(dict(self.estimated_reindex_scope)),
+        self.diagnosis = tuple(self.diagnosis)
+        self.blocked_reasons = tuple(self.blocked_reasons)
+        self.steps = tuple(self.steps)
+        self.estimated_reindex_scope = MappingProxyType(
+            dict(self.estimated_reindex_scope)
         )
-        object.__setattr__(self, "service_impact", tuple(self.service_impact))
-        object.__setattr__(self, "next_actions", tuple(self.next_actions))
-        object.__setattr__(self, "warnings", tuple(self.warnings))
+        self.service_impact = tuple(self.service_impact)
+        self.next_actions = tuple(self.next_actions)
+        self.warnings = tuple(self.warnings)

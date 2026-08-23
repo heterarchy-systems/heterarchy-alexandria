@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-import os
-
 import hashlib
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 
 import anyio
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.connections.domain.entities.read_models import LibrarianProvider
 from app.connections.domain.event_enum.provider_enums import AuthType, ProviderType
 from app.connections.domain.repositories.librarian_repository import (
@@ -26,13 +27,12 @@ from app.librarian.application.skill_artifacts.skill_artifact_publication_contra
 from app.librarian.application.skill_artifacts.skill_artifact_publisher import (
     ObsidianSkillArtifactPublisher,
 )
-from app.librarian.application.skill_library.skill_library_search_service import (
-    SkillLibrarySearchService,
-)
 from app.librarian.application.skill_library.skill_library_search_contracts import (
     SkillCapabilityBrief,
 )
-from app.librarian.domain.event_enum.skill_search_enums import SkillSearchDecision
+from app.librarian.application.skill_library.skill_library_search_service import (
+    SkillLibrarySearchService,
+)
 from app.librarian.domain.contracts.skill_acquisition_contracts import (
     SkillAcquisitionArtifact,
     SkillAcquisitionEvidenceItem,
@@ -46,6 +46,7 @@ from app.librarian.domain.event_enum.skill_acquisition_enums import (
     ItemStatus,
     RiskLevel,
 )
+from app.librarian.domain.event_enum.skill_search_enums import SkillSearchDecision
 from app.librarian.infrastructure.repositories.skill_acquisition_job_repository import (
     SqlAlchemySkillAcquisitionJobRepository,
 )
@@ -57,7 +58,6 @@ from app.obsidian.domain.event_enum.obsidian_enums import (
 from app.shared.exceptions.librarian_exceptions import LibrarianValidationError
 from app.shared.exceptions.obsidian_exceptions import ObsidianValidationError
 from app.shared.infrastructure.database import Database
-from sqlalchemy.ext.asyncio import AsyncSession
 
 _NOW = datetime(2026, 5, 18, 17, 30, tzinfo=UTC)
 _PROMPT_REFERENCE = "Prompts/Task Prompts/Librarian Operating Prompt v0.1.md"
@@ -1025,7 +1025,7 @@ def test_skill_acquisition_completion_persists_sanitized_secret_guardrail_failur
 def test_skill_acquisition_completion_records_artifact_without_context_write(
     tmp_path: Path,
 ) -> None:
-    """Completing a guidance-only job should skip SQLite skill and context CRUD."""
+    """Completing a guidance-only job should skip retired internal skill and context CRUD."""
 
     async def run_case() -> tuple[
         SkillAcquisitionJobStatus,

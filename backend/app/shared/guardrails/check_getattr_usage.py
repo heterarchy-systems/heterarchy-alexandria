@@ -12,7 +12,12 @@ from app.shared.guardrails._common import (
     parse_module,
 )
 
-FORBIDDEN_DYNAMIC_ATTRIBUTE_CALLS = {"getattr", "hasattr", "setattr"}
+FORBIDDEN_DYNAMIC_ATTRIBUTE_CALLS = {
+    "getattr",
+    "hasattr",
+    "setattr",
+    "object.__setattr__",
+}
 
 
 class DynamicAttributeVisitor(ast.NodeVisitor):
@@ -41,12 +46,15 @@ class DynamicAttributeVisitor(ast.NodeVisitor):
         Returns:
             None.
         """
-        if not isinstance(node.func, ast.Name):
+        call_name = self._call_name(node.func)
+        if call_name not in FORBIDDEN_DYNAMIC_ATTRIBUTE_CALLS:
             self.generic_visit(node)
             return
 
-        call_name = node.func.id
-        if call_name not in FORBIDDEN_DYNAMIC_ATTRIBUTE_CALLS:
+        if call_name in {"setattr", "object.__setattr__"}:
+            self.failures.append(
+                f"{self._path}:{node.lineno}: {call_name} usage is forbidden"
+            )
             self.generic_visit(node)
             return
 
@@ -62,6 +70,26 @@ class DynamicAttributeVisitor(ast.NodeVisitor):
             f"{self._path}:{node.lineno}: {call_name} usage without justification"
         )
         self.generic_visit(node)
+
+    @staticmethod
+    def _call_name(node: ast.expr) -> str:
+        """Return the supported dynamic-attribute call name.
+
+        Args:
+            node: Call target expression.
+
+        Returns:
+            Canonical call name when recognized, otherwise an empty string.
+        """
+        if isinstance(node, ast.Name):
+            return node.id
+        if (
+            isinstance(node, ast.Attribute)
+            and isinstance(node.value, ast.Name)
+            and node.value.id == "object"
+        ):
+            return f"object.{node.attr}"
+        return ""
 
 
 def collect_failures(backend_root: Path | None = None) -> list[str]:

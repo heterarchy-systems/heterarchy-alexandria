@@ -1,0 +1,218 @@
+schema_version = 1
+
+[cutover]
+forbidden_production_markers = [
+    "python_fallback(",
+    "legacy_python_compute",
+    "python_ranking_compat",
+    "_python_chunker",
+]
+
+[features.document_analysis]
+authority = "rust"
+python_retirement = "complete"
+legacy_inventory_complete = true
+golden_corpora = ["native/corpora/document_analysis/v1/cases.json"]
+forbidden_python_imports_when_rust = [
+    "app.obsidian.infrastructure.markdown.python_note_index_compute",
+]
+
+[[features.document_analysis.legacy_python_markers]]
+path = "backend/app/obsidian/infrastructure/markdown/frontmatter.py"
+contains = "def _parse_frontmatter_lines("
+
+[[features.document_analysis.legacy_python_markers]]
+path = "backend/app/obsidian/infrastructure/markdown/python_note_index_compute.py"
+contains = "class PythonNoteIndexComputeProvider:"
+
+[[features.document_analysis.legacy_python_markers]]
+path = "backend/app/obsidian/application/notes/obsidian_note_indexer.py"
+contains = "PythonNoteIndexComputeProvider()"
+
+[features.chunking]
+authority = "rust"
+python_retirement = "complete"
+legacy_inventory_complete = true
+golden_corpora = ["native/corpora/chunking/v1/cases.json"]
+forbidden_python_imports_when_rust = [
+    "app.obsidian.infrastructure.markdown.python_note_index_compute",
+]
+
+[[features.chunking.legacy_python_markers]]
+path = "backend/app/shared/search/markdown_text_chunking.py"
+contains = "def _split_large_section("
+
+[[features.chunking.legacy_python_markers]]
+path = "backend/app/obsidian/infrastructure/markdown/python_note_index_compute.py"
+contains = "class PythonNoteIndexComputeProvider:"
+
+[[features.chunking.legacy_python_markers]]
+path = "backend/app/obsidian/application/notes/obsidian_note_indexer.py"
+contains = "PythonNoteIndexComputeProvider()"
+
+[features.link_extraction]
+authority = "rust"
+python_retirement = "complete"
+legacy_inventory_complete = true
+golden_corpora = ["native/corpora/link_extraction/v1/cases.json"]
+forbidden_python_imports_when_rust = [
+    "app.obsidian.application.graph.relations.obsidian_graph_edge_builder",
+    "app.obsidian.application.graph.relations.python_obsidian_graph_edge_compute_provider",
+]
+
+[[features.link_extraction.legacy_python_markers]]
+path = "backend/app/obsidian/application/graph/relations/obsidian_graph_edge_builder.py"
+contains = "def relation_edges_from_note("
+
+[[features.link_extraction.legacy_python_markers]]
+path = "backend/app/obsidian/application/graph/relations/python_obsidian_graph_edge_compute_provider.py"
+contains = "class PythonObsidianGraphEdgeComputeProvider:"
+
+[[features.link_extraction.legacy_python_markers]]
+path = "backend/app/obsidian/application/notes/obsidian_note_indexer.py"
+contains = "PythonObsidianGraphEdgeComputeProvider()"
+
+[features.fingerprint]
+authority = "rust"
+python_retirement = "complete"
+legacy_inventory_complete = true
+golden_corpora = ["native/corpora/fingerprint/v1/cases.json"]
+forbidden_python_imports_when_rust = [
+    "app.obsidian.infrastructure.markdown.python_note_index_compute",
+]
+
+[[features.fingerprint.legacy_python_markers]]
+path = "backend/app/obsidian/application/notes/obsidian_note_templates.py"
+contains = "def sha256_text("
+
+[[features.fingerprint.legacy_python_markers]]
+path = "backend/app/shared/utils/text_metrics.py"
+contains = "def sha256_text_hexdigest("
+
+[[features.fingerprint.legacy_python_markers]]
+path = "backend/app/obsidian/infrastructure/markdown/python_note_index_compute.py"
+contains = "class PythonNoteIndexComputeProvider:"
+
+[[features.fingerprint.legacy_python_markers]]
+path = "backend/app/obsidian/application/notes/obsidian_note_indexer.py"
+contains = "PythonNoteIndexComputeProvider()"
+
+[features.graph_compute]
+authority = "rust"
+python_retirement = "complete"
+legacy_inventory_complete = true
+golden_corpora = ["native/corpora/graph_compute/v1/cases.json"]
+forbidden_python_imports_when_rust = [
+    "app.obsidian.application.graph.projection.python_obsidian_graph_projection_compute_provider",
+]
+
+[[features.graph_compute.legacy_python_markers]]
+path = "backend/app/obsidian/application/graph/projection/obsidian_graph_projection_source_builder.py"
+contains = "def _projection_edges("
+
+[[features.graph_compute.legacy_python_markers]]
+path = "backend/app/obsidian/application/graph/projection/obsidian_graph_projection_source_builder.py"
+contains = "def _notes_by_link_name("
+
+[[features.graph_compute.legacy_python_markers]]
+path = "backend/app/obsidian/application/graph/projection/obsidian_graph_projection_source_builder.py"
+contains = "def compute_python_graph_projection_source("
+
+[[features.graph_compute.legacy_python_markers]]
+path = "backend/app/obsidian/application/graph/projection/python_obsidian_graph_projection_compute_provider.py"
+contains = "class PythonObsidianGraphProjectionComputeProvider("
+
+[[features.graph_compute.legacy_python_markers]]
+path = "backend/app/obsidian/containers.py"
+contains = "PythonObsidianGraphProjectionComputeProvider"
+
+[[features.graph_compute.legacy_python_markers]]
+path = "native/tests/generate_graph_compute_corpus.py"
+contains = "def live_projection("
+
+[features.embedding_compute]
+authority = "rust"
+python_retirement = "complete"
+legacy_inventory_complete = true
+golden_corpora = [
+    "native/corpora/bulk_embedding/v1/cases.json",
+    "native/corpora/bulk_embedding/v1/python_fastembed_numerical_baseline.json",
+]
+forbidden_python_imports_when_rust = [
+    "from fastembed",
+    "app.memory.application.retrieval.embeddings.fastembed_provider",
+]
+
+[[features.embedding_compute.legacy_python_markers]]
+path = "backend/app/memory/application/retrieval/embeddings/fastembed_provider.py"
+contains = "from fastembed import TextEmbedding"
+
+[[features.embedding_compute.legacy_python_markers]]
+path = "native/tests/generate_bulk_embedding_corpus.py"
+contains = "def build_corpus("
+
+[[features.embedding_compute.legacy_python_markers]]
+path = "native/tests/fastembed_numerical_parity.py"
+contains = "FastEmbedEmbeddingProvider"
+
+[[features.embedding_compute.legacy_python_markers]]
+path = "native/tests/bulk_embedding_perf.py"
+contains = "def _python_prepare("
+
+[[features.embedding_compute.legacy_python_markers]]
+path = "native/tests/bulk_embedding_perf.py"
+contains = "def _python_finalize("
+
+[features.retrieval_kernel]
+authority = "rust"
+python_retirement = "complete"
+legacy_inventory_complete = true
+golden_corpora = [
+    "backend/benchmarks/golden_cases.exact_title.v1.json",
+    "backend/benchmarks/golden_cases.semantic.v1.json",
+    "native/corpora/retrieval_kernel/v1/cases.json",
+]
+forbidden_python_imports_when_rust = [
+    "app.memory.application.retrieval.ranking.context_ranking",
+]
+
+[[features.retrieval_kernel.legacy_python_markers]]
+path = "backend/app/memory/application/retrieval/ranking/context_ranking.py"
+contains = "VECTOR_RECIPROCAL_RANK_WEIGHT"
+
+[[features.retrieval_kernel.legacy_python_markers]]
+path = "backend/app/memory/application/retrieval/ranking/context_ranking.py"
+contains = "def merge_hybrid_matches("
+
+[[features.retrieval_kernel.legacy_python_markers]]
+path = "backend/app/memory/application/retrieval/ranking/python_context_hybrid_fusion_provider.py"
+contains = "class PythonContextHybridFusionProvider("
+
+[[features.retrieval_kernel.legacy_python_markers]]
+path = "backend/app/memory/containers.py"
+contains = "PythonContextHybridFusionProvider"
+
+[features.reconciliation_candidates]
+authority = "rust"
+python_retirement = "complete"
+legacy_inventory_complete = true
+golden_corpora = [
+    "native/corpora/reconciliation_candidates/v1/cases.json",
+]
+forbidden_python_imports_when_rust = []
+
+[[features.reconciliation_candidates.legacy_python_markers]]
+path = "native/tests/generate_reconciliation_candidate_corpus.py"
+contains = "def discover_baseline("
+
+[[features.reconciliation_candidates.legacy_python_markers]]
+path = "native/tests/reconciliation_candidates_ffi_parity.py"
+contains = "GENERATOR_PATH"
+
+[[features.reconciliation_candidates.legacy_python_markers]]
+path = "native/tests/reconciliation_candidates_perf.py"
+contains = "discover_baseline"
+
+[[features.reconciliation_candidates.legacy_python_markers]]
+path = "native/tests/reconciliation_candidates_perf.py"
+contains = "python_baseline_milliseconds"

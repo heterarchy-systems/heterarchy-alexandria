@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import StringConstraints
+
 from app.obsidian.domain.contracts.obsidian_contracts import (
     ObsidianVaultMoveApplyRequest,
     ObsidianVaultMovePlanRequest,
@@ -16,16 +18,18 @@ from app.obsidian.domain.entities.obsidian_note import (
     ObsidianVaultMoveReport,
     ObsidianVaultMoveSkip,
 )
+from app.obsidian.interface.schemas.obsidian.obsidian_string_types import (
+    ObsidianPathText,
+    ObsidianQueryText,
+)
 from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
-from pydantic import StringConstraints
 
 
 class ObsidianVaultPathSearchRequest(StrictSchemaModel):
     """Metadata/path search request for vault operation planning."""
 
     query: Annotated[
-        str,
-        StringConstraints(strict=True, min_length=1),
+        ObsidianQueryText,
         described_field("Query for this Obsidian vault path search request."),
     ]
     scope_path: Annotated[
@@ -38,13 +42,11 @@ class ObsidianVaultMoveRequestSchema(StrictSchemaModel):
     """One requested safe vault move."""
 
     source_path: Annotated[
-        str,
-        StringConstraints(strict=True, min_length=1),
+        ObsidianPathText,
         described_field("Source path for this Obsidian vault move request."),
     ]
     destination_path: Annotated[
-        str,
-        StringConstraints(strict=True, min_length=1),
+        ObsidianPathText,
         described_field("Destination path for this Obsidian vault move request."),
     ]
     reason: Annotated[

@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
+from pydantic import ConfigDict
+
 from app.connections.domain.event_enum.provider_enums import (
     OAuthConnectionStatus,
     OAuthPollStatus,
 )
 from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
 from app.shared.schemas.datetime_schemas import AwareTimestamp
-from pydantic import ConfigDict
 
 
 class LibrarianOAuthStartResponse(StrictSchemaModel):

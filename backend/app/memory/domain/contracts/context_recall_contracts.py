@@ -125,6 +125,14 @@ def validated_scope_identity(
 
 
 def _normalized_identity(value: str | None) -> str | None:
+    """Execute normalized identity.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str | None result produced by normalized identity.
+    """
     if value is None:
         return None
     normalized = value.strip()

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.memory.domain.repositories.contexts.context_repository import (
     IContextRepository,
 )
@@ -23,7 +25,6 @@ from app.memory.infrastructure.repositories.contexts.records.context_repository_
 from app.memory.infrastructure.repositories.contexts.search.context_search_store import (
     ContextSearchStore,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class SqlAlchemyContextRepository(

@@ -34,6 +34,14 @@ def build_embedding_document_text(
 
 
 def _normalized_optional_text(value: str | None) -> str | None:
+    """Execute normalized optional text.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str | None result produced by normalized optional text.
+    """
     if value is None:
         return None
     normalized = " ".join(value.split())

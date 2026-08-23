@@ -71,6 +71,14 @@ class EmbeddingReindexJobResultResponse(StrictSchemaModel):
         cls,
         result: EmbeddingReindexJobResult,
     ) -> EmbeddingReindexJobResultResponse:
+        """Build this schema from a domain entity.
+
+        Args:
+            result: Operation result to serialize or persist.
+
+        Returns:
+            Schema populated from the domain entity.
+        """
         return cls(
             scanned=result.scanned,
             updated=result.updated,
@@ -192,6 +200,14 @@ class MaintenanceQueueStatusResponse(StrictSchemaModel):
         cls,
         snapshot: MaintenanceQueueSnapshot,
     ) -> MaintenanceQueueStatusResponse:
+        """Build this schema from a domain entity.
+
+        Args:
+            snapshot: Operational snapshot to serialize or verify.
+
+        Returns:
+            Schema populated from the domain entity.
+        """
         return cls(
             stream_length=snapshot.stream_length,
             pending=snapshot.pending,

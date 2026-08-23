@@ -6,7 +6,6 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import suppress
 from typing import Protocol, cast
 
-from app.platform.config.redis_config import RedisConfig
 from fastapi import FastAPI
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
@@ -14,6 +13,10 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp
+
+from app.platform.config.redis_config import RedisConfig
+from app.shared.serialization.orjson_codec import dumps_json, loads_json
+from app.shared.types.extra_types import JSONValue
 
 RequestHandler = Callable[[Request], Awaitable[Response]]
 RedisClientResolver = Callable[[], Awaitable[Redis | None]]
@@ -30,6 +33,7 @@ _INVALIDATION_PATHS = {
 }
 
 
+# protocol-contract: structural-seam
 class ResponseBodyStream(Protocol):
     """Narrow Starlette streaming response surface returned by call_next."""
 
@@ -45,6 +49,13 @@ class RedisStatusCacheMiddleware(BaseHTTPMiddleware):
         config: RedisConfig,
         resolve_redis_client: RedisClientResolver,
     ) -> None:
+        """Initialize RedisStatusCacheMiddleware state and dependencies.
+
+        Args:
+            app: App used by this operation.
+            config: Typed configuration used by this operation.
+            resolve_redis_client: Resolve redis client used by this operation.
+        """
         super().__init__(app)
         self._enabled = config.url is not None
         self._resolve_redis_client = resolve_redis_client
@@ -90,7 +101,7 @@ class RedisStatusCacheMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         invalidation_keys = _INVALIDATION_PATHS.get(request.url.path, ())
         if invalidation_keys and response.status_code < 400:
-            await _delete_fail_open(client, invalidation_keys)
+            await _delete_fail_open(client, _expanded_cache_keys(invalidation_keys))
         return response
 
     async def _cached_response(
@@ -101,18 +112,35 @@ class RedisStatusCacheMiddleware(BaseHTTPMiddleware):
         cache_key: str,
         ttl_seconds: int,
     ) -> Response:
+        """Execute cached response.
+
+        Args:
+            client: Client used by this operation.
+            request: Validated request for this operation.
+            call_next: Call next used by this operation.
+            cache_key: Cache key used by this operation.
+            ttl_seconds: Ttl seconds used by this operation.
+
+        Returns:
+            Response result produced by cached response.
+        """
         cached = await _get_fail_open(client, cache_key)
-        if cached is not None:
+        cached_headers = await _get_fail_open(client, _headers_cache_key(cache_key))
+        decoded_headers = (
+            None if cached_headers is None else _decode_response_headers(cached_headers)
+        )
+        if cached is not None and decoded_headers is not None:
+            decoded_headers["X-Alexandria-Cache"] = "HIT"
             return Response(
                 content=cached,
                 status_code=200,
-                media_type="application/json",
-                headers={"X-Alexandria-Cache": "HIT"},
+                headers=decoded_headers,
             )
         response = await call_next(request)
         stream = cast(ResponseBodyStream, response)
         body = await _response_body(stream.body_iterator)
         headers = dict(response.headers)
+        cache_headers = dict(response.headers)
         headers["X-Alexandria-Cache"] = "MISS"
         rebuilt = Response(
             content=body,
@@ -123,8 +151,14 @@ class RedisStatusCacheMiddleware(BaseHTTPMiddleware):
         content_type = response.headers.get("content-type", "")
         if response.status_code == 200 and content_type.startswith("application/json"):
             with suppress(RedisError):
-                operation = client.set(cache_key, body, ex=ttl_seconds)
-                await cast(Awaitable[bool | None], operation)
+                body_operation = client.set(cache_key, body, ex=ttl_seconds)
+                await cast(Awaitable[bool | None], body_operation)
+                headers_operation = client.set(
+                    _headers_cache_key(cache_key),
+                    _encode_response_headers(cache_headers),
+                    ex=ttl_seconds,
+                )
+                await cast(Awaitable[bool | None], headers_operation)
         return rebuilt
 
 
@@ -148,6 +182,15 @@ def install_redis_status_cache_middleware(
 
 
 async def _get_fail_open(client: Redis, key: str) -> bytes | None:
+    """Return fail open.
+
+    Args:
+        client: Client used by this operation.
+        key: Key used by this operation.
+
+    Returns:
+        Requested fail open.
+    """
     try:
         operation = client.get(key)
         value = await cast(Awaitable[bytes | str | None], operation)
@@ -158,7 +201,76 @@ async def _get_fail_open(client: Redis, key: str) -> bytes | None:
     return None
 
 
+def _headers_cache_key(cache_key: str) -> str:
+    """Return the companion key for cached response-header metadata.
+
+    Args:
+        cache_key: Redis key storing the cached response body.
+
+    Returns:
+        Redis key storing the matching response headers.
+    """
+    return f"{cache_key}:headers"
+
+
+def _expanded_cache_keys(cache_keys: tuple[str, ...]) -> tuple[str, ...]:
+    """Return body and header keys for cache invalidation.
+
+    Args:
+        cache_keys: Status-response body cache keys to invalidate.
+
+    Returns:
+        Body keys interleaved with their companion header keys.
+    """
+    return tuple(
+        key
+        for cache_key in cache_keys
+        for key in (cache_key, _headers_cache_key(cache_key))
+    )
+
+
+def _encode_response_headers(headers: dict[str, str]) -> bytes:
+    """Serialize response headers for a short-lived status cache entry.
+
+    Args:
+        headers: Original response headers emitted before cache decoration.
+
+    Returns:
+        JSON bytes containing the response-header snapshot.
+    """
+    return dumps_json(cast(JSONValue, headers))
+
+
+def _decode_response_headers(value: bytes) -> dict[str, str] | None:
+    """Validate and decode cached response-header metadata.
+
+    Args:
+        value: Serialized response-header metadata read from Redis.
+
+    Returns:
+        Validated response headers, or None for malformed or legacy metadata.
+    """
+    try:
+        decoded = loads_json(value)
+    except ValueError:
+        return None
+    if not isinstance(decoded, dict):
+        return None
+    headers: dict[str, str] = {}
+    for name, header_value in decoded.items():
+        if not isinstance(header_value, str):
+            return None
+        headers[name] = header_value
+    return headers
+
+
 async def _delete_fail_open(client: Redis, keys: tuple[str, ...]) -> None:
+    """Delete fail open.
+
+    Args:
+        client: Client used by this operation.
+        keys: Keys used by this operation.
+    """
     try:
         operation = client.delete(*keys)
         await cast(Awaitable[int], operation)
@@ -167,6 +279,14 @@ async def _delete_fail_open(client: Redis, keys: tuple[str, ...]) -> None:
 
 
 async def _response_body(iterator: AsyncIterator[bytes]) -> bytes:
+    """Execute response body.
+
+    Args:
+        iterator: Iterator used by this operation.
+
+    Returns:
+        bytes result produced by response body.
+    """
     body = bytearray()
     async for chunk in iterator:
         body.extend(chunk)

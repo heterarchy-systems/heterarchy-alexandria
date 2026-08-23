@@ -31,7 +31,17 @@ def register_memory_compact_tools(
         limit: int = 20,
         offset: int = 0,
     ) -> JSONValue:
-        """List durable Memory Compact artifacts."""
+        """List durable Memory Compact artifacts.
+
+        Args:
+            project: Project used by this operation.
+            status: Status value used by this operation.
+            limit: Maximum number of items to process or return.
+            offset: Pagination offset.
+
+        Returns:
+            JSONValue result produced by tool list memory compact artifacts.
+        """
         return await alexandria_list_memory_compact_artifacts(
             api_client,
             project=project,
@@ -44,10 +54,24 @@ def register_memory_compact_tools(
     async def _tool_get_current_memory_compact(
         project: str | None = None,
     ) -> JSONValue:
-        """Read the current Memory Compact for a project."""
+        """Read the current Memory Compact for a project.
+
+        Args:
+            project: Project used by this operation.
+
+        Returns:
+            JSONValue result produced by tool get current memory compact.
+        """
         return await alexandria_get_current_memory_compact(api_client, project)
 
     @server.tool(name="alexandria_get_memory_compact")
     async def _tool_get_memory_compact(compact_id: str) -> JSONValue:
-        """Read one selected Memory Compact by id."""
+        """Read one selected Memory Compact by id.
+
+        Args:
+            compact_id: Identifier for compact.
+
+        Returns:
+            JSONValue result produced by tool get memory compact.
+        """
         return await alexandria_get_memory_compact(api_client, compact_id)

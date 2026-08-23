@@ -6,6 +6,9 @@ import logging
 import time
 from collections.abc import Awaitable, Callable
 
+from fastapi import FastAPI, Request
+from fastapi.responses import Response
+
 from app.shared.serialization.orjson_codec import dumps_json
 from app.shared.utils.http_helpers.request_logging import (
     RequestLogContext,
@@ -21,8 +24,6 @@ from app.shared.utils.http_helpers.trace_context import (
     resolve_request_id,
     resolve_trace_context,
 )
-from fastapi import FastAPI, Request
-from fastapi.responses import Response
 
 
 def install_request_logging_middleware(

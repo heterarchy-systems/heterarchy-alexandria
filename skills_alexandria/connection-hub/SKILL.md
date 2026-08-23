@@ -19,6 +19,12 @@ tokens.
 - Treat Librarian OAuth as optional; core memory and local retrieval must remain
   usable without it.
 
+## Procedure
+1. Run the preflight checks and confirm the local backend/readiness surface.
+2. Start the exact connection flow for OpenAI Librarian or the requested MCP client.
+3. Poll the returned status instead of guessing completion from browser state.
+4. Finish only after the verification checks succeed; use the bounded repair path for a classified failure.
+
 ## Preflight
 
 ```bash

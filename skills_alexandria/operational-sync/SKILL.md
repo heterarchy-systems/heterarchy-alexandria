@@ -21,6 +21,12 @@ Use this skill to restore heterarchy-alexandria retrieval health without modifyi
 - Never overwrite the live Vault directly from a browser request.
 - Stop only when `/operations/readiness` is `READY` or the remaining blocker is explicitly explained.
 
+## Procedure
+1. Read operational readiness, RAG status, graph status, and maintenance queue state before mutating anything.
+2. Reindex the canonical Vault when note/index drift exists and treat the returned `graph_projection` as primary graph evidence.
+3. Catch up only stale/missing embeddings with bounded `force=false` maintenance jobs unless full recomputation is explicitly required.
+4. Recheck graph, queue, RAG, and readiness; stop only when remaining warnings/issues are zero or explicitly bounded and documented.
+
 ## Fast path
 
 Run from the repo root unless noted otherwise.
@@ -84,8 +90,10 @@ Use a stable `source_id` for duplicate suppression and keep `limit` bounded to `
 
 After every vault reindex, re-check RAG status. Vault reindex can create new missing embedding rows, so enqueue another bounded embedding job if needed.
 
-If graph projection is enabled, rebuild it after vault reindex so removed notes,
-changed links, lineage, and impact signals do not remain stale:
+Vault reindex now projects the current indexed graph when Neo4j projection is enabled.
+Treat the returned `graph_projection` object as the primary projection result. Run the
+dedicated rebuild only when projection is missing, stale, failed, intentionally skipped,
+or an explicit diagnostic rebuild is required:
 
 ```bash
 curl -fsS -X POST \

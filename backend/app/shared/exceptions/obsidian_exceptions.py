@@ -41,7 +41,16 @@ class ObsidianIdentityConflictError(ObsidianDomainError):
         path_target_id: str | None,
         recommended_operation: str,
     ) -> None:
-        """Create a machine-readable identity conflict."""
+        """Create a machine-readable identity conflict.
+
+        Args:
+            operation: Operation used by this operation.
+            requested_note_id: Identifier for requested note.
+            requested_path: Requested path used by this operation.
+            id_target_path: Id target path used by this operation.
+            path_target_id: Identifier for path target.
+            recommended_operation: Recommended operation used by this operation.
+        """
         super().__init__("IDENTITY_CONFLICT")
         self._detail: JSONObject = {
             "error_code": "IDENTITY_CONFLICT",
@@ -71,7 +80,12 @@ class ObsidianWriteTargetNotFoundError(ObsidianDomainError):
         requested_note_id: str | None,
         requested_path: str | None,
     ) -> None:
-        """Create a machine-readable missing-target error."""
+        """Create a machine-readable missing-target error.
+
+        Args:
+            requested_note_id: Identifier for requested note.
+            requested_path: Requested path used by this operation.
+        """
         super().__init__("WRITE_TARGET_NOT_FOUND")
         self._detail: JSONObject = {
             "error_code": "WRITE_TARGET_NOT_FOUND",
@@ -95,6 +109,7 @@ class ObsidianIdempotencyConflictError(ObsidianDomainError):
     """Raised when one idempotency key is reused for a different request."""
 
     def __init__(self) -> None:
+        """Initialize ObsidianIdempotencyConflictError state and dependencies."""
         super().__init__("IDEMPOTENCY_KEY_REUSED")
 
     def route_detail(self) -> JSONObject:

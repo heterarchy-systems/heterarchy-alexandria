@@ -33,6 +33,7 @@ from benchmarks.context_rag_benchmark_quality import (
 
 SEARCH_PATH = "/memory/contexts/retrieval/search"
 RAG_STATUS_PATH = "/memory/contexts/rag/status"
+RETRIEVAL_KERNEL_AUTHORITY_HEADER = "X-Alexandria-Retrieval-Kernel-Authority"
 DEFAULT_TOKEN_ENV = "ALEXANDRIA_BENCHMARK_BEARER_TOKEN"
 DEFAULT_QUERIES = (
     "Graph-aware Context Retrieval",
@@ -222,12 +223,13 @@ async def _benchmark_case(
     return summarize_case(benchmark_query, strategy, observations, failures)
 
 
-async def _read_rag_status(client: httpx.AsyncClient) -> object:
+async def _read_rag_status(client: httpx.AsyncClient) -> tuple[object, str | None]:
     response = await client.get(RAG_STATUS_PATH)
     if response.is_error:
         detail = " ".join(response.text.split())[:240]
-        return {"status_code": response.status_code, "error": detail}
-    return response.json()
+        return {"status_code": response.status_code, "error": detail}, None
+    authority = response.headers.get(RETRIEVAL_KERNEL_AUTHORITY_HEADER)
+    return response.json(), authority
 
 
 async def _run(config: BenchmarkConfig) -> BenchmarkReport:
@@ -237,7 +239,7 @@ async def _run(config: BenchmarkConfig) -> BenchmarkReport:
         timeout=timeout,
         headers=_request_headers(config.token_env),
     ) as client:
-        rag_status = await _read_rag_status(client)
+        rag_status, retrieval_kernel_authority = await _read_rag_status(client)
         cases = tuple(
             [
                 await _benchmark_case(client, config, benchmark_query, strategy)
@@ -264,6 +266,7 @@ async def _run(config: BenchmarkConfig) -> BenchmarkReport:
             if config.golden_cases_path is None
             else str(config.golden_cases_path.resolve())
         ),
+        retrieval_kernel_authority=retrieval_kernel_authority,
         graph_phase_timing_available=False,
         server_memory_timing_available=False,
     )

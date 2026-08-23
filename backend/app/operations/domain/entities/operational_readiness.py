@@ -80,7 +80,7 @@ class OperationalReconciliationSnapshot:
     latest_failure_at: datetime | None
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class OperationalReadinessSnapshot:
     """Read-only operational readiness snapshot."""
 
@@ -103,6 +103,6 @@ class OperationalReadinessSnapshot:
 
     def __post_init__(self) -> None:
         """Normalize readiness findings and actions to immutable values."""
-        object.__setattr__(self, "warnings", tuple(self.warnings))
-        object.__setattr__(self, "blockers", tuple(self.blockers))
-        object.__setattr__(self, "next_actions", tuple(self.next_actions))
+        self.warnings = tuple(self.warnings)
+        self.blockers = tuple(self.blockers)
+        self.next_actions = tuple(self.next_actions)

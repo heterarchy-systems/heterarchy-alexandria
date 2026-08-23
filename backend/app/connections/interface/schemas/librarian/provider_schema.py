@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Annotated, cast
 
+from pydantic import ConfigDict
+
 from app.connections.domain.event_enum.provider_enums import AuthType, ProviderType
 from app.connections.domain.types.librarian_provider_payload_types import (
     LibrarianProviderPatchPayload,
@@ -17,7 +19,6 @@ from app.shared.schemas.common_schemas import (
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 from app.shared.serialization.model_codec import schema_payload
 from app.shared.types.extra_types import JSONObject
-from pydantic import ConfigDict
 
 
 class LibrarianProviderCreateRequest(StrictSchemaModel):

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.memory.domain.contracts.context_contracts import ContextChunkEmbeddingUpdate
 from app.memory.domain.entities.context_read_models import (
     ContextChunkRecord,
@@ -15,7 +17,6 @@ from app.memory.infrastructure.repositories.contexts.embeddings.embedding_reinde
     update_chunk_embeddings,
 )
 from app.shared.types.extra_types import JSONObject
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ContextEmbeddingStore:

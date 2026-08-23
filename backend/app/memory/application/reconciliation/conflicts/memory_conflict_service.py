@@ -27,6 +27,11 @@ class MemoryConflictService:
     """List, inspect, review, and explicitly resolve durable conflict sets."""
 
     def __init__(self, repository: IMemoryReconciliationConflictRepository) -> None:
+        """Initialize MemoryConflictService state and dependencies.
+
+        Args:
+            repository: Repository used by this operation.
+        """
         self._repository = repository
 
     async def list(

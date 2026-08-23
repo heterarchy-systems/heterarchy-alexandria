@@ -46,6 +46,14 @@ class ReviewQueuePayload(CliPayloadSchema):
     @field_validator("items", mode="before")
     @classmethod
     def _filter_item_objects(cls, value: JSONValue) -> JSONValue:
+        """Execute filter item objects.
+
+        Args:
+            value: Value being processed.
+
+        Returns:
+            JSONValue result produced by filter item objects.
+        """
         if isinstance(value, list):
             return tuple(item for item in value if isinstance(item, dict))
         return value
@@ -124,6 +132,14 @@ class ReadinessPayload(CliPayloadSchema):
     @field_validator("next_actions", mode="before")
     @classmethod
     def _filter_next_action_objects(cls, value: JSONValue) -> JSONValue:
+        """Execute filter next action objects.
+
+        Args:
+            value: Value being processed.
+
+        Returns:
+            JSONValue result produced by filter next action objects.
+        """
         if isinstance(value, list):
             return tuple(item for item in value if isinstance(item, dict))
         return value
@@ -226,6 +242,14 @@ def validate_combined_check_payload(payload: JSONValue) -> CombinedCheckPayload:
 
 
 def _object_or_empty(payload: JSONValue) -> JSONObject:
+    """Execute object or empty.
+
+    Args:
+        payload: Validated payload for this operation.
+
+    Returns:
+        JSONObject result produced by object or empty.
+    """
     if isinstance(payload, dict):
         return payload
     return {}

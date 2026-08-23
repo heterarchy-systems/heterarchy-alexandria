@@ -11,8 +11,10 @@ from app.obsidian.domain.entities.obsidian_index_error_repair import (
     ObsidianIndexErrorRepairSkip,
 )
 from app.obsidian.domain.event_enum.obsidian_enums import ObsidianIndexErrorCode
+from app.obsidian.interface.schemas.obsidian.obsidian_string_types import (
+    ObsidianRepairPlanHash,
+)
 from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
-from pydantic import StringConstraints
 
 
 class ObsidianIndexErrorRepairCandidateResponse(StrictSchemaModel):
@@ -54,6 +56,14 @@ class ObsidianIndexErrorRepairCandidateResponse(StrictSchemaModel):
         cls,
         item: ObsidianIndexErrorRepairCandidate,
     ) -> ObsidianIndexErrorRepairCandidateResponse:
+        """Build this schema from a domain entity.
+
+        Args:
+            item: Domain item to serialize into the response schema.
+
+        Returns:
+            Schema populated from the domain entity.
+        """
         return cls(
             note_path=item.note_path,
             error_code=item.error_code,
@@ -88,6 +98,14 @@ class ObsidianIndexErrorRepairSkipResponse(StrictSchemaModel):
         cls,
         item: ObsidianIndexErrorRepairSkip,
     ) -> ObsidianIndexErrorRepairSkipResponse:
+        """Build this schema from a domain entity.
+
+        Args:
+            item: Domain item to serialize into the response schema.
+
+        Returns:
+            Schema populated from the domain entity.
+        """
         return cls(
             note_path=item.note_path,
             error_code=item.error_code,
@@ -130,6 +148,14 @@ class ObsidianIndexErrorRepairPlanResponse(StrictSchemaModel):
         cls,
         plan: ObsidianIndexErrorRepairPlan,
     ) -> ObsidianIndexErrorRepairPlanResponse:
+        """Build this schema from a domain entity.
+
+        Args:
+            plan: Recovery or repair plan being verified or serialized.
+
+        Returns:
+            Schema populated from the domain entity.
+        """
         return cls(
             plan_hash=plan.plan_hash,
             dry_run=plan.dry_run,
@@ -149,8 +175,7 @@ class ObsidianIndexErrorRepairApplyRequest(StrictSchemaModel):
     """Hash-lock required to apply the most recently inspected source state."""
 
     expected_plan_hash: Annotated[
-        str,
-        StringConstraints(strict=True, min_length=64, max_length=64),
+        ObsidianRepairPlanHash,
         described_field(
             "Expected plan hash for this Obsidian index error repair apply request."
         ),
@@ -212,6 +237,14 @@ class ObsidianIndexErrorRepairReportResponse(StrictSchemaModel):
         cls,
         report: ObsidianIndexErrorRepairReport,
     ) -> ObsidianIndexErrorRepairReportResponse:
+        """Build this schema from a domain entity.
+
+        Args:
+            report: Report entity to serialize into the response schema.
+
+        Returns:
+            Schema populated from the domain entity.
+        """
         return cls(
             status=report.status,
             plan_hash=report.plan_hash,

@@ -2,6 +2,9 @@
 
 from typing import Annotated
 
+from dependency_injector.wiring import Provide, inject
+from fastapi import APIRouter, Depends, status
+
 from app.connections.application.librarians.oauth_service import LibrarianOAuthService
 from app.connections.interface.schemas.librarian.oauth_schema import (
     LibrarianOAuthStartResponse,
@@ -10,8 +13,6 @@ from app.connections.interface.schemas.librarian.oauth_schema import (
 from app.container import ApplicationContainer
 from app.shared.exceptions.exception_decorators import router_exception_status
 from app.shared.exceptions.route_exceptions import CONNECTIONS_ROUTE_EXCEPTION_MAPPING
-from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, status
 
 router = APIRouter(
     prefix="/settings/connections",

@@ -94,6 +94,11 @@ class MemoryCompactNoteStore:
                 path.unlink()
 
     def _note_paths(self) -> list[Path]:
+        """Execute note paths.
+
+        Returns:
+            list[Path] result produced by note paths.
+        """
         if not self._base_dir.exists():
             return []
         return sorted(self._base_dir.rglob(f"*{NOTE_SUFFIX}"))
@@ -103,6 +108,15 @@ class MemoryCompactNoteStore:
         compact_id: str,
         created_at: datetime | None = None,
     ) -> Path | None:
+        """Execute compact path.
+
+        Args:
+            compact_id: Identifier for compact.
+            created_at: Created at used by this operation.
+
+        Returns:
+            Path | None result produced by compact path.
+        """
         if not is_safe_note_id(compact_id):
             return None
         directory = self._base_dir
@@ -111,6 +125,14 @@ class MemoryCompactNoteStore:
         return directory / f"{compact_id}{NOTE_SUFFIX}"
 
     def _paths_for_compact_id(self, compact_id: str) -> list[Path]:
+        """Execute paths for compact id.
+
+        Args:
+            compact_id: Identifier for compact.
+
+        Returns:
+            list[Path] result produced by paths for compact id.
+        """
         if not is_safe_note_id(compact_id) or not self._base_dir.exists():
             return []
         matching_paths: list[Path] = []
@@ -125,4 +147,12 @@ class MemoryCompactNoteStore:
 
 
 def _compact_sort_key(compact: MemoryCompact) -> tuple[datetime, datetime]:
+    """Execute compact sort key.
+
+    Args:
+        compact: Compact used by this operation.
+
+    Returns:
+        tuple[datetime, datetime] result produced by compact sort key.
+    """
     return compact.updated_at, compact.created_at

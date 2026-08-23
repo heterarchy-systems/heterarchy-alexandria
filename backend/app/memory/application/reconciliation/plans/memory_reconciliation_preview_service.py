@@ -39,6 +39,15 @@ class MemoryReconciliationPreviewService:
         plan_service: MemoryReconciliationPlanService,
         repository: IMemoryReconciliationPlanRepository,
     ) -> None:
+        """Initialize MemoryReconciliationPreviewService state and dependencies.
+
+        Args:
+            candidate_service: Candidate service dependency.
+            recall_service: Recall service dependency.
+            classifier: Classifier used by this operation.
+            plan_service: Plan service dependency.
+            repository: Repository used by this operation.
+        """
         self._candidate_service = candidate_service
         self._recall_service = recall_service
         self._classifier = classifier

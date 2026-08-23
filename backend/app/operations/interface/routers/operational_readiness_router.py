@@ -70,6 +70,7 @@ async def operational_readiness(
         obsidian_service: Obsidian vault service.
         reconciliation_service: Memory reconciliation diagnostics service.
 
+        readiness_cache: Readiness cache used by this operation.
     Returns:
         Read-only operational readiness response.
     """
@@ -123,6 +124,7 @@ async def operational_capabilities(
         obsidian_service: Canonical Vault health boundary.
         reconciliation_service: Optional reconciliation diagnostics boundary.
 
+        readiness_cache: Readiness cache used by this operation.
     Returns:
         Independent capability readiness response.
     """

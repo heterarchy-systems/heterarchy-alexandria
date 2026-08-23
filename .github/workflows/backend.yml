@@ -19,9 +19,6 @@ on:
 permissions:
   contents: read
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
 jobs:
   backend:
     name: Backend quality gate
@@ -50,8 +47,3 @@ jobs:
       - name: Run backend parity gate
         working-directory: backend
         run: make ci
-
-      - name: Validate Docker Compose graph profile
-        run: |
-          docker compose config --quiet --no-env-resolution
-          docker compose --profile graph config --quiet --no-env-resolution

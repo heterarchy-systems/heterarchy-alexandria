@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import os
-
 from datetime import UTC, datetime
 from pathlib import Path
 
 import anyio
+from pytest import MonkeyPatch
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.memory.application.integration.obsidian_context_read_mapper import (
     context_record_from_obsidian_note,
 )
@@ -29,9 +32,6 @@ from app.shared.exceptions.obsidian_exceptions import (
     ObsidianValidationError,
 )
 from app.shared.infrastructure.database import Database
-from pytest import MonkeyPatch
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 NESTED_METADATA = (
     b"custom_metadata:\n"
@@ -43,15 +43,12 @@ NESTED_METADATA = (
 )
 
 
-def _database_url(path: Path) -> str:
-    del path
+def _database_url() -> str:
     return os.environ["DATABASE_URL"]
 
 
 async def _service(tmp_path: Path) -> tuple[Database, AsyncSession, ObsidianService]:
-    database = Database(
-        database_url=_database_url(tmp_path / "obsidian.db"), create_schema=True
-    )
+    database = Database(database_url=_database_url(), create_schema=True)
     await database.initialize()
     session = database.session()
     service = ObsidianService(
@@ -450,9 +447,7 @@ def test_repository_nested_transaction_recovers_after_sqlalchemy_error(
     """One SQLAlchemy write error must not poison the next note upsert."""
 
     async def scenario() -> tuple[str, str]:
-        database = Database(
-            database_url=_database_url(tmp_path / "obsidian.db"), create_schema=True
-        )
+        database = Database(database_url=_database_url(), create_schema=True)
         await database.initialize()
         session = database.session()
         repository = SqlAlchemyObsidianIndexRepository(session=session)

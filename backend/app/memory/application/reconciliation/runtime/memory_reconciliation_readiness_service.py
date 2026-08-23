@@ -2,51 +2,34 @@
 
 from __future__ import annotations
 
-from typing import Protocol
-
-from app.memory.domain.entities.context_read_models import ContextRecord
+from app.memory.application.contexts.records.context_service_ports import (
+    ContextListPort,
+)
+from app.memory.application.reconciliation.runtime.memory_reconciliation_readiness_ports import (
+    MemoryReconciliationReadinessPort,
+)
 from app.memory.domain.entities.memory_reconciliation_diagnostics import (
     MemoryReconciliationDiagnostics,
 )
-from app.memory.domain.event_enum.context_enums import ContextScope
 from app.memory.domain.repositories.reconciliation.memory_reconciliation_readiness_repository import (
     IMemoryReconciliationReadinessRepository,
 )
 
 
-class ReconciliationContextCountService(Protocol):
-    """Minimal canonical Context count surface used by diagnostics."""
-
-    async def list_contexts(
-        self,
-        limit: int,
-        offset: int,
-        project: str | None,
-        scope: ContextScope | None,
-        include_archived: bool,
-    ) -> tuple[list[ContextRecord], int]:
-        """Return a bounded page and total canonical Context count.
-
-        Args:
-            limit: Limit.
-            offset: Offset.
-            project: Project.
-            scope: Scope.
-            include_archived: Include archived.
-
-        Returns:
-            tuple[list[ContextRecord], int]: Operation result.
-        """
-
-
-class MemoryReconciliationReadinessService:
+class MemoryReconciliationReadinessService(MemoryReconciliationReadinessPort):
     """Combine reconciliation SQL metrics with canonical Context coverage."""
 
     def __init__(
         self,
         repository: IMemoryReconciliationReadinessRepository,
-        context_service: ReconciliationContextCountService,
+        context_service: ContextListPort,
     ) -> None:
+        """Initialize MemoryReconciliationReadinessService state and dependencies.
+
+        Args:
+            repository: Repository used by this operation.
+            context_service: Context service dependency.
+        """
         self._repository = repository
         self._context_service = context_service
 

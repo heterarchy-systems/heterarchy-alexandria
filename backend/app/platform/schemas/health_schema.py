@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+from pydantic import ConfigDict, StrictBool, StrictStr
+
 from app.platform.lifecycle.dependency_health_enums import DependencyHealthStatus
 from app.platform.lifecycle.lifecycle_enums import LifecycleStatus
 from app.platform.lifecycle.snapshot import LifecycleSnapshot
 from app.shared.schemas.common_schemas import StrictSchemaModel
-from pydantic import ConfigDict, StrictBool, StrictStr
 
 
 class HealthPayloadModel(StrictSchemaModel):
@@ -162,6 +163,14 @@ def heartbeat_payload_from_snapshot(
 
 
 def _dependency_unavailable_reason(snapshot: LifecycleSnapshot) -> str | None:
+    """Execute dependency unavailable reason.
+
+    Args:
+        snapshot: Snapshot used by this operation.
+
+    Returns:
+        str | None result produced by dependency unavailable reason.
+    """
     if snapshot.database_status is DependencyHealthStatus.UNAVAILABLE:
         return "database_unavailable"
     if snapshot.redis_status is DependencyHealthStatus.UNAVAILABLE:

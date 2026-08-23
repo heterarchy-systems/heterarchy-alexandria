@@ -151,6 +151,16 @@ class LibrarianClientFactory(LibrarianProviderClientFactory):
         auth_type: AuthType,
         secret_resolver: SecretResolver,
     ) -> ProviderClientTestResult:
+        """Execute test openai codex oauth.
+
+        Args:
+            provider: Provider used by this operation.
+            auth_type: Auth type used by this operation.
+            secret_resolver: Secret resolver used by this operation.
+
+        Returns:
+            ProviderClientTestResult result produced by test openai codex oauth.
+        """
         if auth_type is not AuthType.OAUTH:
             result = ProviderClientTestResult(
                 provider_id=provider.id,

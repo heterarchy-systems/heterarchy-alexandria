@@ -9,6 +9,7 @@ from typing import Protocol
 from redis.asyncio import Redis
 
 
+# protocol-contract: structural-seam
 class RedisConnectionSettings(Protocol):
     """Minimal settings contract required by the shared Redis lifecycle."""
 
@@ -22,6 +23,7 @@ def create_redis_client(redis_url: str, max_connections: int = 8) -> Redis:
     Args:
         redis_url: Redis connection URL.
 
+        max_connections: Maximum Redis connections allowed in the pool.
     Returns:
         Lazy redis-py client with bounded command timeouts.
     """

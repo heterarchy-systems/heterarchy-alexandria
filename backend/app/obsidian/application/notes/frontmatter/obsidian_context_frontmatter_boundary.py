@@ -4,6 +4,15 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import (
+    BeforeValidator,
+    ConfigDict,
+    ValidationError,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
+
 from app.memory.domain.event_enum.context_enums import (
     ContextImportance,
     ContextKind,
@@ -28,14 +37,6 @@ from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 from app.shared.type_validation.strict_json_value import model_validate_json_value
 from app.shared.types.extra_types import JSONObject, JSONValue
-from pydantic import (
-    BeforeValidator,
-    ConfigDict,
-    ValidationError,
-    ValidationInfo,
-    field_validator,
-    model_validator,
-)
 
 
 class ContextProvenanceBoundary(StrictSchemaModel):

@@ -2,6 +2,9 @@
 
 from typing import Annotated
 
+from dependency_injector.wiring import Provide, inject
+from fastapi import APIRouter, Depends, status
+
 from app.container import ApplicationContainer
 from app.memory.application.reconciliation.runtime.memory_existing_reconciliation_service import (
     MemoryExistingReconciliationService,
@@ -15,8 +18,6 @@ from app.memory.interface.schemas.reconciliation.existing.memory_existing_reconc
 from app.shared.exceptions.exception_decorators import router_exception_status
 from app.shared.exceptions.route_exceptions import CONTEXT_ROUTE_EXCEPTION_MAPPING
 from app.shared.type_validation.strict_json_body import model_validate_json_body
-from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, status
 
 router = APIRouter(
     prefix="/memory/reconciliation/existing",

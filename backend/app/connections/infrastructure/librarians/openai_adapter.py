@@ -6,6 +6,8 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
 
+from openai import OpenAI
+
 from app.connections.domain.contracts.librarian_client_contracts import (
     ApiKeyCredential,
     ProviderClientTestResult,
@@ -15,10 +17,9 @@ from app.shared.exceptions.connections_exceptions import (
     ConnectionsProviderUnsupportedError,
 )
 from app.shared.types.extra_types import JSONObject
-from openai import OpenAI
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class OpenAIClientConfig:
     """Constructor config for the official OpenAI SDK client."""
 
@@ -30,11 +31,7 @@ class OpenAIClientConfig:
     def __post_init__(self) -> None:
         """Freeze optional SDK headers after config construction."""
         if self.default_headers is not None:
-            object.__setattr__(
-                self,
-                "default_headers",
-                MappingProxyType(dict(self.default_headers)),
-            )
+            self.default_headers = MappingProxyType(dict(self.default_headers))
 
 
 OpenAIClientBuilder = Callable[[OpenAIClientConfig], OpenAI]

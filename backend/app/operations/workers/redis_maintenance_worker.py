@@ -73,6 +73,12 @@ def _create_worker_container(config: MaintenanceQueueConfig) -> ApplicationConta
     Neo4j driver from being initialized when graph projection is enabled. Resource
     initialization stays lazy so the worker does not also allocate the API Redis
     pool or unrelated application resources.
+
+    Args:
+        config: Typed configuration used by this operation.
+
+    Returns:
+        Created worker container.
     """
     container = ApplicationContainer()
     container.app_config.override(
@@ -94,6 +100,15 @@ async def _consumer_loop(
     database: Database,
     container: ApplicationContainer,
 ) -> None:
+    """Execute consumer loop.
+
+    Args:
+        worker_index: Worker index used by this operation.
+        stop_event: Stop event used by this operation.
+        consumer: Consumer used by this operation.
+        database: Database used by this operation.
+        container: Container used by this operation.
+    """
     consumer_name = f"{socket.gethostname()}-{os.getpid()}-{worker_index}"
     while not stop_event.is_set():
         try:
@@ -117,6 +132,14 @@ async def _process_delivery(
     database: Database,
     container: ApplicationContainer,
 ) -> None:
+    """Process delivery.
+
+    Args:
+        delivery: Delivery used by this operation.
+        consumer: Consumer used by this operation.
+        database: Database used by this operation.
+        container: Container used by this operation.
+    """
     attempt = await consumer.mark_running(delivery)
     try:
         result = await _execute_job(delivery, database, container)
@@ -168,6 +191,16 @@ async def _execute_job(
     database: Database,
     container: ApplicationContainer,
 ) -> EmbeddingReindexJobResult:
+    """Execute job.
+
+    Args:
+        delivery: Delivery used by this operation.
+        database: Database used by this operation.
+        container: Container used by this operation.
+
+    Returns:
+        EmbeddingReindexJobResult result produced by execute job.
+    """
     if delivery.job.kind is not MaintenanceJobKind.EMBEDDING_REINDEX:
         raise RuntimeError(f"unsupported maintenance job kind: {delivery.job.kind}")
     async with database.request_session():
@@ -188,6 +221,14 @@ async def _execute_job(
 
 
 def _safe_error_summary(exc: Exception) -> str:
+    """Execute safe error summary.
+
+    Args:
+        exc: Exception raised by the underlying operation.
+
+    Returns:
+        str result produced by safe error summary.
+    """
     message = " ".join(str(exc).split())
     if message:
         return f"{type(exc).__name__}: {message}"[:1000]
@@ -195,6 +236,12 @@ def _safe_error_summary(exc: Exception) -> str:
 
 
 async def _interruptible_sleep(stop_event: asyncio.Event, seconds: float) -> None:
+    """Execute interruptible sleep.
+
+    Args:
+        stop_event: Stop event used by this operation.
+        seconds: Seconds used by this operation.
+    """
     try:
         await asyncio.wait_for(stop_event.wait(), timeout=seconds)
     except TimeoutError:
@@ -202,6 +249,11 @@ async def _interruptible_sleep(stop_event: asyncio.Event, seconds: float) -> Non
 
 
 def _install_signal_handlers(stop_event: asyncio.Event) -> None:
+    """Execute install signal handlers.
+
+    Args:
+        stop_event: Stop event used by this operation.
+    """
     loop = asyncio.get_running_loop()
     for signal_name in (signal.SIGTERM, signal.SIGINT):
         try:

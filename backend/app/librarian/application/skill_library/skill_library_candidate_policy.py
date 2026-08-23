@@ -18,6 +18,15 @@ def _dedupe_candidates(
     hits: list[ObsidianSearchHit],
     brief: SkillCapabilityBrief,
 ) -> list[SkillSearchCandidate]:
+    """Execute dedupe candidates.
+
+    Args:
+        hits: Hits used by this operation.
+        brief: Brief used by this operation.
+
+    Returns:
+        list[SkillSearchCandidate] result produced by dedupe candidates.
+    """
     candidates: list[SkillSearchCandidate] = []
     seen: set[str] = set()
     for hit in hits:
@@ -40,6 +49,16 @@ def _candidate_from_hit(
     brief: SkillCapabilityBrief,
     status: str,
 ) -> SkillSearchCandidate:
+    """Execute candidate from hit.
+
+    Args:
+        hit: Hit used by this operation.
+        brief: Brief used by this operation.
+        status: Status value used by this operation.
+
+    Returns:
+        SkillSearchCandidate result produced by candidate from hit.
+    """
     note = hit.note
     required_tools = _string_list(note.frontmatter.get("required_tools"))
     risk_level = _risk_level(note.frontmatter.get("risk_level"))
@@ -142,6 +161,20 @@ def _hard_gates(
     matched_terms: Sequence[str],
     has_evidence: bool,
 ) -> JSONObject:
+    """Execute hard gates.
+
+    Args:
+        status: Status value used by this operation.
+        missing_tools: Missing tools used by this operation.
+        risk_level: Risk level used by this operation.
+        risk_tolerance: Risk tolerance used by this operation.
+        has_procedure: Has procedure used by this operation.
+        matched_terms: Matched terms used by this operation.
+        has_evidence: Has evidence used by this operation.
+
+    Returns:
+        JSONObject result produced by hard gates.
+    """
     return {
         "active_status": {
             "passed": status == "active",
@@ -177,6 +210,18 @@ def _candidate_score(
     project_match: bool,
     tool_match: bool,
 ) -> int:
+    """Execute candidate score.
+
+    Args:
+        matched_terms: Matched terms used by this operation.
+        has_procedure: Has procedure used by this operation.
+        has_evidence: Has evidence used by this operation.
+        project_match: Project match used by this operation.
+        tool_match: Tool match used by this operation.
+
+    Returns:
+        int result produced by candidate score.
+    """
     score = 0
     score += min(2, len(matched_terms))
     score += 2 if project_match else 0
@@ -187,6 +232,15 @@ def _candidate_score(
 
 
 def _skill_status(status: str, frontmatter: JSONObject) -> str:
+    """Execute skill status.
+
+    Args:
+        status: Status value used by this operation.
+        frontmatter: Frontmatter used by this operation.
+
+    Returns:
+        str result produced by skill status.
+    """
     if isinstance(frontmatter, dict):
         for key in ("skill_status", "status", "requested_status"):
             value = frontmatter.get(key)
@@ -196,6 +250,14 @@ def _skill_status(status: str, frontmatter: JSONObject) -> str:
 
 
 def _risk_level(value: JSONValue) -> RiskLevel:
+    """Execute risk level.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        RiskLevel result produced by risk level.
+    """
     if isinstance(value, RiskLevel):
         return value
     if isinstance(value, str):
@@ -207,10 +269,26 @@ def _risk_level(value: JSONValue) -> RiskLevel:
 
 
 def _risk_rank(value: RiskLevel) -> int:
+    """Execute risk rank.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        int result produced by risk rank.
+    """
     return {RiskLevel.LOW: 0, RiskLevel.MEDIUM: 1, RiskLevel.HIGH: 2}[value]
 
 
 def _has_procedure(body: str) -> bool:
+    """Return whether procedure.
+
+    Args:
+        body: Body used by this operation.
+
+    Returns:
+        Whether procedure.
+    """
     match = re.search(
         r"^##+\s+.*(Procedure|단계별 절차).*$",
         body,
@@ -227,6 +305,15 @@ def _has_procedure(body: str) -> bool:
 
 
 def _matched_terms(brief: SkillCapabilityBrief, haystack: str) -> list[str]:
+    """Execute matched terms.
+
+    Args:
+        brief: Brief used by this operation.
+        haystack: Haystack used by this operation.
+
+    Returns:
+        list[str] result produced by matched terms.
+    """
     needles = [brief.capability, *brief.required_tools]
     if brief.environment:
         needles.append(brief.environment)
@@ -242,15 +329,39 @@ def _matched_terms(brief: SkillCapabilityBrief, haystack: str) -> list[str]:
 
 
 def _important_words(value: str) -> list[str]:
+    """Execute important words.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        list[str] result produced by important words.
+    """
     return list(re.findall(r"[A-Za-z0-9_-]{4,}", value.lower())[:8])
 
 
 def _evidence_from_body(body: str) -> list[str]:
+    """Execute evidence from body.
+
+    Args:
+        body: Body used by this operation.
+
+    Returns:
+        list[str] result produced by evidence from body.
+    """
     urls = re.findall(r"https?://[^\s)]+", body)
     return urls[:5]
 
 
 def _string_list(value: JSONValue) -> list[str]:
+    """Execute string list.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        list[str] result produced by string list.
+    """
     if not isinstance(value, list):
         return []
     items: list[str] = []
@@ -262,10 +373,26 @@ def _string_list(value: JSONValue) -> list[str]:
 
 
 def _lower_items(values: Sequence[str]) -> list[str]:
+    """Execute lower items.
+
+    Args:
+        values: Values being processed.
+
+    Returns:
+        list[str] result produced by lower items.
+    """
     return [value.strip().lower() for value in values if value.strip()]
 
 
 def _optional_string(value: JSONValue) -> str | None:
+    """Execute optional string.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str | None result produced by optional string.
+    """
     if isinstance(value, str) and value.strip():
         return value.strip()
     return None

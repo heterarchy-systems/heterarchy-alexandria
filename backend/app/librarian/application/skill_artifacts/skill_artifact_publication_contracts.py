@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Protocol
 
 from app.librarian.domain.contracts.skill_acquisition_contracts import (
     SkillAcquisitionArtifact,
@@ -62,9 +62,10 @@ class PublishedSkillArtifact:
     repair_hint: str | None = None
 
 
-class SkillArtifactPublisher(Protocol):
+class SkillArtifactPublisher(ABC):
     """Boundary for publishing acquired skills to the durable library."""
 
+    @abstractmethod
     async def publish_skill_artifact(
         self,
         job: SkillAcquisitionJob,

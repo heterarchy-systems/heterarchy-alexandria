@@ -116,6 +116,14 @@ def readiness_warnings(
 
 
 def _compact_timestamp_missing(compact: CurrentCompactPayload) -> bool:
+    """Execute compact timestamp missing.
+
+    Args:
+        compact: Compact used by this operation.
+
+    Returns:
+        Whether compact timestamp missing.
+    """
     return any(
         warning
         in {

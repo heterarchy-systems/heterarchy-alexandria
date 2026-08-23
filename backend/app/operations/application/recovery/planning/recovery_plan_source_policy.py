@@ -11,6 +11,7 @@ from app.obsidian.infrastructure.markdown.paths import discover_managed_markdown
 from app.operations.domain.entities.recovery_plan import RecoverySourceSnapshot
 
 
+# protocol-contract: structural-seam
 class DiskUsageSnapshot(Protocol):
     """Filesystem capacity values required by recovery source planning."""
 
@@ -23,11 +24,19 @@ class DiskUsageSnapshot(Protocol):
         """
 
 
+# protocol-contract: structural-seam
 class DiskUsageProvider(Protocol):
     """Callable boundary for filesystem capacity inspection."""
 
     def __call__(self, path: Path) -> DiskUsageSnapshot:
-        """Return capacity values for one filesystem path."""
+        """Return capacity values for one filesystem path.
+
+        Args:
+            path: Path used by this operation.
+
+        Returns:
+            DiskUsageSnapshot result produced by call.
+        """
 
 
 def _source_snapshot(
@@ -35,7 +44,16 @@ def _source_snapshot(
     alexandria_root: str,
     disk_usage_provider: DiskUsageProvider = disk_usage,
 ) -> RecoverySourceSnapshot:
-    """Capture bounded canonical Markdown evidence for recovery planning."""
+    """Capture bounded canonical Markdown evidence for recovery planning.
+
+    Args:
+        vault_path: Vault path used by this operation.
+        alexandria_root: Alexandria root used by this operation.
+        disk_usage_provider: Disk usage provider provider dependency.
+
+    Returns:
+        RecoverySourceSnapshot result produced by source snapshot.
+    """
     vault = Path(vault_path)
     root = vault / alexandria_root
     access_error: str | None = None
@@ -69,7 +87,15 @@ def _source_snapshot(
 
 
 def _markdown_manifest(vault: Path, markdown_files: list[Path]) -> dict[str, str]:
-    """Return a metadata inventory without rereading every Markdown file."""
+    """Return a metadata inventory without rereading every Markdown file.
+
+    Args:
+        vault: Vault used by this operation.
+        markdown_files: Markdown files used by this operation.
+
+    Returns:
+        dict[str, str] result produced by markdown manifest.
+    """
     return {
         str(path.relative_to(vault)): inventory_token
         for path in markdown_files
@@ -78,7 +104,14 @@ def _markdown_manifest(vault: Path, markdown_files: list[Path]) -> dict[str, str
 
 
 def _file_inventory_token(path: Path) -> str | None:
-    """Return a cheap token that detects ordinary file writes."""
+    """Return a cheap token that detects ordinary file writes.
+
+    Args:
+        path: Path used by this operation.
+
+    Returns:
+        str | None result produced by file inventory token.
+    """
     try:
         stat = path.stat()
     except OSError:
@@ -87,6 +120,14 @@ def _file_inventory_token(path: Path) -> str | None:
 
 
 def _file_sha256(path: Path | None) -> str | None:
+    """Execute file sha256.
+
+    Args:
+        path: Path used by this operation.
+
+    Returns:
+        str | None result produced by file sha256.
+    """
     if path is None or not path.exists() or not path.is_file():
         return None
     digest = sha256()

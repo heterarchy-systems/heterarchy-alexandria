@@ -135,6 +135,14 @@ async def alexandria_review_memory_compact(
 def _source_ref_payloads(
     source_refs: Sequence[Mapping[str, JSONValue]] | None,
 ) -> list[JSONObject]:
+    """Execute source ref payloads.
+
+    Args:
+        source_refs: Source refs used by this operation.
+
+    Returns:
+        list[JSONObject] result produced by source ref payloads.
+    """
     if source_refs is None:
         return []
     payloads: list[JSONObject] = []
@@ -155,6 +163,14 @@ def _source_ref_payloads(
 def _source_observation_payloads(
     source_observations: Sequence[Mapping[str, JSONValue]] | None,
 ) -> list[JSONObject]:
+    """Execute source observation payloads.
+
+    Args:
+        source_observations: Source observations used by this operation.
+
+    Returns:
+        list[JSONObject] result produced by source observation payloads.
+    """
     if source_observations is None:
         return []
     payloads: list[JSONObject] = []

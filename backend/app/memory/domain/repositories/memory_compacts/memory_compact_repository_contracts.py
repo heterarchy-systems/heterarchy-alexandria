@@ -22,7 +22,7 @@ class MemoryCompactSourceRefCreate:
     source_hash: str | None = None
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class MemoryCompactCreate:
     """Fields required to create a Memory Compact."""
 
@@ -39,4 +39,4 @@ class MemoryCompactCreate:
 
     def __post_init__(self) -> None:
         """Normalize source references to the immutable internal representation."""
-        object.__setattr__(self, "source_refs", tuple(self.source_refs))
+        self.source_refs = tuple(self.source_refs)

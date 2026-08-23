@@ -102,4 +102,12 @@ def same_report_identity(left: ObsidianNote, right: ObsidianNote) -> bool:
 
 # Broad type justified: frontmatter identity values can be any JSON scalar.
 def _normalized_identity_value(value: object) -> str:
+    """Execute normalized identity value.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str result produced by normalized identity value.
+    """
     return " ".join(value.casefold().split()) if isinstance(value, str) else ""

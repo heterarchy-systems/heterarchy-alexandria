@@ -13,8 +13,8 @@ from app.memory.application.retrieval.embeddings.embedding_contract import (
 from app.memory.application.retrieval.embeddings.fake_embedding_provider import (
     FakeEmbeddingProvider,
 )
-from app.memory.application.retrieval.embeddings.fastembed_provider import (
-    FastEmbedEmbeddingProvider,
+from app.memory.infrastructure.providers.native_fastembed_embedding_provider import (
+    create_native_fastembed_embedding_provider,
 )
 
 EmbeddingProviderName = Literal["fastembed", "fake-test", "disabled"]
@@ -45,7 +45,7 @@ def create_embedding_provider(
         return None
     if provider_name == "fake-test":
         return FakeEmbeddingProvider(model_name=model_name, dimensions=dimensions)
-    return FastEmbedEmbeddingProvider(
+    return create_native_fastembed_embedding_provider(
         model_name=model_name,
         dimensions=dimensions,
         cache_dir=cache_dir,

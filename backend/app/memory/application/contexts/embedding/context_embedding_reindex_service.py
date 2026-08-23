@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Protocol
+
+from asyncer import asyncify
 
 from app.memory.application.contexts.embedding.context_embedding_health_service import (
     ContextEmbeddingHealthService,
@@ -28,15 +30,16 @@ from app.memory.domain.repositories.contexts.context_search_source import (
 from app.shared.exceptions.memory_context_exceptions import MemoryContextValidationError
 from app.shared.types.embedding_types import normalize_embedding_vector
 from app.shared.types.types_convert_utils import now_utc
-from asyncer import asyncify
 
 
-class ContextEmbeddingBatchTransaction(Protocol):
+class ContextEmbeddingBatchTransaction(ABC):
     """Transaction boundary owned by one resumable embedding batch."""
 
+    @abstractmethod
     async def release_read_transaction(self) -> None:
         """End the read transaction before CPU-intensive embedding inference."""
 
+    @abstractmethod
     async def commit_embedding_updates(self) -> None:
         """Commit the current batch so later batches cannot roll it back."""
 
@@ -153,6 +156,19 @@ async def _select_embedding_source_batches(
     force: bool,
     processed_by_source: dict[int, set[str]],
 ) -> tuple[list[_EmbeddingSourceBatch], int]:
+    """Execute select embedding source batches.
+
+    Args:
+        sources: Sources used by this operation.
+        provider: Provider used by this operation.
+        fingerprint_key: Fingerprint key used by this operation.
+        limit: Maximum number of items to process or return.
+        force: Whether to force the operation instead of using current state.
+        processed_by_source: Processed by source used by this operation.
+
+    Returns:
+        tuple[list[_EmbeddingSourceBatch], int] result produced by select embedding source batches.
+    """
     source_batches: list[_EmbeddingSourceBatch] = []
     scanned = 0
     for source_index, source in enumerate(sources):
@@ -187,6 +203,15 @@ async def _embed_documents(
     provider: EmbeddingProvider,
     texts: list[str],
 ) -> list[list[float]]:
+    """Execute embed documents.
+
+    Args:
+        provider: Provider used by this operation.
+        texts: Texts used by this operation.
+
+    Returns:
+        list[list[float]] result produced by embed documents.
+    """
     return await asyncify(provider.embed_documents, abandon_on_cancel=True)(texts)
 
 
@@ -194,6 +219,15 @@ async def _embedding_updates(
     provider: EmbeddingProvider,
     chunks: list[ContextChunkRecord],
 ) -> list[ContextChunkEmbeddingUpdate]:
+    """Execute embedding updates.
+
+    Args:
+        provider: Provider used by this operation.
+        chunks: Chunks used by this operation.
+
+    Returns:
+        list[ContextChunkEmbeddingUpdate] result produced by embedding updates.
+    """
     if not chunks:
         return []
     document_texts = [
@@ -248,5 +282,13 @@ async def _embedding_updates(
 
 
 def _chunk_title(chunk: ContextChunkRecord) -> str | None:
+    """Execute chunk title.
+
+    Args:
+        chunk: Chunk used by this operation.
+
+    Returns:
+        str | None result produced by chunk title.
+    """
     title = chunk.chunk_metadata.get("title")
     return title if isinstance(title, str) else None

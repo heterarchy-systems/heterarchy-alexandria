@@ -13,7 +13,7 @@ uv run pyrefly check
 uv run pytest -q
 ```
 
-Before backend changes, read `backend/AGENTS.md` and the canonical development rules under `backend/.agents/docs/rule/`.
+Before backend changes, read `backend/AGENTS.md` and the canonical development rules under `.agents/python_dev_harness/docs/rule/`.
 
 ## Pull requests
 

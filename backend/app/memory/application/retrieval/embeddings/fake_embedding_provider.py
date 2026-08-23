@@ -87,6 +87,14 @@ class FakeEmbeddingProvider(EmbeddingProvider):
         return vector
 
     def _embed(self, text: str) -> list[float]:
+        """Execute embed.
+
+        Args:
+            text: Text used by this operation.
+
+        Returns:
+            list[float] result produced by embed.
+        """
         buckets = [0.0 for _ in range(self.dimensions)]
         for index, byte in enumerate(text.encode("utf-8")):
             buckets[index % self.dimensions] += float(byte) / 255.0

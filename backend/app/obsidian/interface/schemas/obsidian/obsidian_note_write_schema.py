@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import StringConstraints, field_validator
+
 from app.obsidian.domain.contracts.obsidian_contracts import (
     ObsidianSaveNote,
     ObsidianWriteNote,
@@ -30,7 +32,6 @@ from app.shared.type_validation.frontmatter_metadata_normalization import (
     normalize_string_collection,
 )
 from app.shared.types.extra_types import JSONObject, JSONValue
-from pydantic import StringConstraints, field_validator
 
 
 class ObsidianSaveNoteRequest(StrictSchemaModel):
@@ -242,6 +243,14 @@ class ObsidianNoteWriteResponse(StrictSchemaModel):
 
 
 def _note_type(value: AlexandriaNoteType | str) -> AlexandriaNoteType:
+    """Execute note type.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        AlexandriaNoteType result produced by note type.
+    """
     if isinstance(value, AlexandriaNoteType):
         return value
     return AlexandriaNoteType(value)
@@ -250,6 +259,14 @@ def _note_type(value: AlexandriaNoteType | str) -> AlexandriaNoteType:
 def _optional_note_type(
     value: AlexandriaNoteType | str | None,
 ) -> AlexandriaNoteType | None:
+    """Execute optional note type.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        AlexandriaNoteType | None result produced by optional note type.
+    """
     if value is None:
         return None
     return _note_type(value)

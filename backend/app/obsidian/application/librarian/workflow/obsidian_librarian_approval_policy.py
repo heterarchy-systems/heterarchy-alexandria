@@ -14,7 +14,14 @@ from app.shared.types.extra_types import JSONObject
 def _pending_actions_from_state(
     state: ObsidianLibrarianGraphState,
 ) -> list[JSONObject]:
-    """Plan workflow actions that require explicit user approval."""
+    """Plan workflow actions that require explicit user approval.
+
+    Args:
+        state: State used by this operation.
+
+    Returns:
+        list[JSONObject] result produced by pending actions from state.
+    """
     actions: list[JSONObject] = [
         _action("save_transcript", "Save transcript", "save_transcript"),
         _action("create_context_note", "Create context note", "create_context"),
@@ -30,6 +37,16 @@ def _pending_actions_from_state(
 
 
 def _action(action_id: str, label: str, action_type: str) -> JSONObject:
+    """Execute action.
+
+    Args:
+        action_id: Identifier for action.
+        label: Label used by this operation.
+        action_type: Action type used by this operation.
+
+    Returns:
+        JSONObject result produced by action.
+    """
     return {
         "id": action_id,
         "label": label,

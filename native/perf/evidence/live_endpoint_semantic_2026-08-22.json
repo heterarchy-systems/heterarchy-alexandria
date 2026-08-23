@@ -1,0 +1,1429 @@
+{
+  "cases": [
+    {
+      "effective_strategies": [
+        "FTS_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 0,
+      "latency_max_ms": 16490.821,
+      "latency_mean_ms": 16490.821,
+      "latency_min_ms": 16490.821,
+      "latency_p50_ms": 16490.821,
+      "latency_p95_ms": 16490.821,
+      "match_count_max": 1,
+      "match_count_min": 1,
+      "mean_reciprocal_rank": 1.0,
+      "project": "heterarchy-alexandria",
+      "query": "Alexandria modernization에서 permanent debt baseline을 왜 허용하지 않기로 했지?",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "FTS_ONLY",
+      "response_bytes_p50": 30203,
+      "retrieved_context_id_variants": [
+        [
+          "67bcb6b4-981a-4b16-bd0e-d3461572d602"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "VECTOR_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 0,
+      "latency_max_ms": 1801.441,
+      "latency_mean_ms": 1801.441,
+      "latency_min_ms": 1801.441,
+      "latency_p50_ms": 1801.441,
+      "latency_p95_ms": 1801.441,
+      "match_count_max": 1,
+      "match_count_min": 1,
+      "mean_reciprocal_rank": 1.0,
+      "project": "heterarchy-alexandria",
+      "query": "Alexandria modernization에서 permanent debt baseline을 왜 허용하지 않기로 했지?",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "VECTOR_ONLY",
+      "response_bytes_p50": 31194,
+      "retrieved_context_id_variants": [
+        [
+          "67bcb6b4-981a-4b16-bd0e-d3461572d602"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "HYBRID"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 3,
+      "latency_max_ms": 17911.823,
+      "latency_mean_ms": 17911.823,
+      "latency_min_ms": 17911.823,
+      "latency_p50_ms": 17911.823,
+      "latency_p95_ms": 17911.823,
+      "match_count_max": 5,
+      "match_count_min": 5,
+      "mean_reciprocal_rank": 1.0,
+      "project": "heterarchy-alexandria",
+      "query": "Alexandria modernization에서 permanent debt baseline을 왜 허용하지 않기로 했지?",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "HYBRID",
+      "response_bytes_p50": 70186,
+      "retrieved_context_id_variants": [
+        [
+          "67bcb6b4-981a-4b16-bd0e-d3461572d602",
+          "ac529f47-0aae-4364-911f-56d84b98822b",
+          "a3912121-bd88-4468-8b89-eacb19c8f5ec",
+          "b549ef0b-f4dc-43bb-8355-80334f0bd5f5",
+          "b6a3291c-9a4a-48a5-9121-4a6d3e15f23b"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20",
+          "heterarchy-alexandria Rust Compute Migration Plan Index 2026-08-22",
+          "2026-08-02 Daily Memory Compact",
+          "2026-08-12 Daily Memory Compact",
+          "heterarchy-alexandria Project Index"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "FTS_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 0,
+      "latency_max_ms": 16748.618,
+      "latency_mean_ms": 16748.618,
+      "latency_min_ms": 16748.618,
+      "latency_p50_ms": 16748.618,
+      "latency_p95_ms": 16748.618,
+      "match_count_max": 1,
+      "match_count_min": 1,
+      "mean_reciprocal_rank": 1.0,
+      "project": "heterarchy-alexandria",
+      "query": "MCP v2와 strict Pydantic, Dependency Injector 규칙을 Alexandria backend에 이식하기로 한 개발 계약",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "FTS_ONLY",
+      "response_bytes_p50": 32680,
+      "retrieved_context_id_variants": [
+        [
+          "67bcb6b4-981a-4b16-bd0e-d3461572d602"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "VECTOR_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 0,
+      "latency_max_ms": 1544.038,
+      "latency_mean_ms": 1544.038,
+      "latency_min_ms": 1544.038,
+      "latency_p50_ms": 1544.038,
+      "latency_p95_ms": 1544.038,
+      "match_count_max": 1,
+      "match_count_min": 1,
+      "mean_reciprocal_rank": 1.0,
+      "project": "heterarchy-alexandria",
+      "query": "MCP v2와 strict Pydantic, Dependency Injector 규칙을 Alexandria backend에 이식하기로 한 개발 계약",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "VECTOR_ONLY",
+      "response_bytes_p50": 31261,
+      "retrieved_context_id_variants": [
+        [
+          "67bcb6b4-981a-4b16-bd0e-d3461572d602"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "HYBRID"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 5,
+      "latency_max_ms": 17779.593,
+      "latency_mean_ms": 17779.593,
+      "latency_min_ms": 17779.593,
+      "latency_p50_ms": 17779.593,
+      "latency_p95_ms": 17779.593,
+      "match_count_max": 5,
+      "match_count_min": 5,
+      "mean_reciprocal_rank": 1.0,
+      "project": "heterarchy-alexandria",
+      "query": "MCP v2와 strict Pydantic, Dependency Injector 규칙을 Alexandria backend에 이식하기로 한 개발 계약",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "HYBRID",
+      "response_bytes_p50": 90435,
+      "retrieved_context_id_variants": [
+        [
+          "67bcb6b4-981a-4b16-bd0e-d3461572d602",
+          "ac529f47-0aae-4364-911f-56d84b98822b",
+          "b27e75af-5813-4fb1-9347-4c2cd56e3352",
+          "82641f84-67d1-43a2-b1c1-d9591907e78f",
+          "7daafba1-4321-4fc4-a1a7-aeef7325cf75"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20",
+          "heterarchy-alexandria Rust Compute Migration Plan Index 2026-08-22",
+          "heterarchy-alexandria Retrieval Benchmark Harness and Verification 2026-08-21",
+          "Python Harness and Development Rules",
+          "heterarchy-alexandria Retrieval Performance Verification Summary 2026-08-21"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "FTS_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 0,
+      "latency_max_ms": 16881.032,
+      "latency_mean_ms": 16881.032,
+      "latency_min_ms": 16881.032,
+      "latency_p50_ms": 16881.032,
+      "latency_p95_ms": 16881.032,
+      "match_count_max": 0,
+      "match_count_min": 0,
+      "mean_reciprocal_rank": 0.0,
+      "project": "alexandria-hermes",
+      "query": "Memory Steward가 hard delete를 허용하려면 어떤 안전 조건들을 먼저 만족해야 하나?",
+      "ranking_stable": true,
+      "recall_at_1": 0.0,
+      "recall_at_3": 0.0,
+      "requested_strategy": "FTS_ONLY",
+      "response_bytes_p50": 492,
+      "retrieved_context_id_variants": [
+        []
+      ],
+      "retrieved_title_variants": [
+        []
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "VECTOR_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 3,
+      "latency_max_ms": 1553.137,
+      "latency_mean_ms": 1553.137,
+      "latency_min_ms": 1553.137,
+      "latency_p50_ms": 1553.137,
+      "latency_p95_ms": 1553.137,
+      "match_count_max": 3,
+      "match_count_min": 3,
+      "mean_reciprocal_rank": 1.0,
+      "project": "alexandria-hermes",
+      "query": "Memory Steward가 hard delete를 허용하려면 어떤 안전 조건들을 먼저 만족해야 하나?",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "VECTOR_ONLY",
+      "response_bytes_p50": 39490,
+      "retrieved_context_id_variants": [
+        [
+          "d7111f69-acac-4540-8dde-3a312b222472",
+          "fff9ac3e-4804-4691-8d86-afce5ee822fc",
+          "588bc9a6-7fcf-40ff-b251-8f408225f45a"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Alexandria Memory Steward Contract",
+          "Alexandria Memory Steward Daily Tick",
+          "Memory Compact 품질 및 생명주기 Specification"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "HYBRID"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 4,
+      "latency_max_ms": 18898.095,
+      "latency_mean_ms": 18898.095,
+      "latency_min_ms": 18898.095,
+      "latency_p50_ms": 18898.095,
+      "latency_p95_ms": 18898.095,
+      "match_count_max": 5,
+      "match_count_min": 5,
+      "mean_reciprocal_rank": 1.0,
+      "project": "alexandria-hermes",
+      "query": "Memory Steward가 hard delete를 허용하려면 어떤 안전 조건들을 먼저 만족해야 하나?",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "HYBRID",
+      "response_bytes_p50": 60634,
+      "retrieved_context_id_variants": [
+        [
+          "d7111f69-acac-4540-8dde-3a312b222472",
+          "fff9ac3e-4804-4691-8d86-afce5ee822fc",
+          "588bc9a6-7fcf-40ff-b251-8f408225f45a",
+          "fe8415f1-31a4-4949-9b17-7f9489aed7dc",
+          "965539ba-c8fd-432b-87fc-0c466177e3ec"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Alexandria Memory Steward Contract",
+          "Alexandria Memory Steward Daily Tick",
+          "Memory Compact 품질 및 생명주기 Specification",
+          "Alexandria Memory Steward",
+          "Alexandria Knowledge Operating System"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "FTS_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract",
+        "Memory Compact 품질 및 생명주기 Specification"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 3,
+      "latency_max_ms": 17896.206,
+      "latency_mean_ms": 17896.206,
+      "latency_min_ms": 17896.206,
+      "latency_p50_ms": 17896.206,
+      "latency_p95_ms": 17896.206,
+      "match_count_max": 3,
+      "match_count_min": 3,
+      "mean_reciprocal_rank": 1.0,
+      "project": "alexandria-hermes",
+      "query": "새 CURRENT Memory Compact를 승격한 뒤 이전 CURRENT를 어떻게 처리하는가?",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "FTS_ONLY",
+      "response_bytes_p50": 46791,
+      "retrieved_context_id_variants": [
+        [
+          "588bc9a6-7fcf-40ff-b251-8f408225f45a",
+          "d7111f69-acac-4540-8dde-3a312b222472",
+          "ae601626-fb65-49f6-9583-c357dadd217d"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Memory Compact 품질 및 생명주기 Specification",
+          "Alexandria Memory Steward Contract",
+          "2026-08-17 Manual Forgetting Audit"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "VECTOR_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract",
+        "Memory Compact 품질 및 생명주기 Specification"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 3,
+      "latency_max_ms": 1771.124,
+      "latency_mean_ms": 1771.124,
+      "latency_min_ms": 1771.124,
+      "latency_p50_ms": 1771.124,
+      "latency_p95_ms": 1771.124,
+      "match_count_max": 3,
+      "match_count_min": 3,
+      "mean_reciprocal_rank": 1.0,
+      "project": "alexandria-hermes",
+      "query": "새 CURRENT Memory Compact를 승격한 뒤 이전 CURRENT를 어떻게 처리하는가?",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "VECTOR_ONLY",
+      "response_bytes_p50": 41248,
+      "retrieved_context_id_variants": [
+        [
+          "588bc9a6-7fcf-40ff-b251-8f408225f45a",
+          "d7111f69-acac-4540-8dde-3a312b222472",
+          "1aad0c40-fe63-4f56-8dbc-cde8da8ae791"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Memory Compact 품질 및 생명주기 Specification",
+          "Alexandria Memory Steward Contract",
+          "2026-08-15 Memory Steward Temporal Compaction and Full Reindex"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "HYBRID"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract",
+        "Memory Compact 품질 및 생명주기 Specification"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 5,
+      "latency_max_ms": 20512.567,
+      "latency_mean_ms": 20512.567,
+      "latency_min_ms": 20512.567,
+      "latency_p50_ms": 20512.567,
+      "latency_p95_ms": 20512.567,
+      "match_count_max": 5,
+      "match_count_min": 5,
+      "mean_reciprocal_rank": 1.0,
+      "project": "alexandria-hermes",
+      "query": "새 CURRENT Memory Compact를 승격한 뒤 이전 CURRENT를 어떻게 처리하는가?",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "HYBRID",
+      "response_bytes_p50": 70513,
+      "retrieved_context_id_variants": [
+        [
+          "588bc9a6-7fcf-40ff-b251-8f408225f45a",
+          "d7111f69-acac-4540-8dde-3a312b222472",
+          "000e259d-2cf2-46aa-8bfe-06d613e2ab2e",
+          "1aad0c40-fe63-4f56-8dbc-cde8da8ae791",
+          "e41382ac-a5f3-47d8-a6fa-b421a3e7c33c"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Memory Compact 품질 및 생명주기 Specification",
+          "Alexandria Memory Steward Contract",
+          "2026-08-17 Daily Memory Compact",
+          "2026-08-15 Memory Steward Temporal Compaction and Full Reindex",
+          "2026-08-06 Memory Steward Daily Health"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "FTS_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract",
+        "Memory Compact 품질 및 생명주기 Specification"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 2,
+      "latency_max_ms": 20218.946,
+      "latency_mean_ms": 20218.946,
+      "latency_min_ms": 20218.946,
+      "latency_p50_ms": 20218.946,
+      "latency_p95_ms": 20218.946,
+      "match_count_max": 3,
+      "match_count_min": 3,
+      "mean_reciprocal_rank": 0.5,
+      "project": "alexandria-hermes",
+      "query": "temporal compact의 week_N은 ISO week가 아니라 어떤 기준으로 계산하지?",
+      "ranking_stable": true,
+      "recall_at_1": 0.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "FTS_ONLY",
+      "response_bytes_p50": 60074,
+      "retrieved_context_id_variants": [
+        [
+          "1e80c799-ff4b-4b03-9852-baa63d749b1d",
+          "d7111f69-acac-4540-8dde-3a312b222472",
+          "f7ab4ece-2821-4f3c-b608-9e1856a0d9a3"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Crypto Intelligence Bitcoin Morning Read v3 실행 프롬프트",
+          "Alexandria Memory Steward Contract",
+          "2026-08-15 Daily Memory Compact"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "VECTOR_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract",
+        "Memory Compact 품질 및 생명주기 Specification"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 3,
+      "latency_max_ms": 1803.903,
+      "latency_mean_ms": 1803.903,
+      "latency_min_ms": 1803.903,
+      "latency_p50_ms": 1803.903,
+      "latency_p95_ms": 1803.903,
+      "match_count_max": 4,
+      "match_count_min": 4,
+      "mean_reciprocal_rank": 1.0,
+      "project": "alexandria-hermes",
+      "query": "temporal compact의 week_N은 ISO week가 아니라 어떤 기준으로 계산하지?",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "VECTOR_ONLY",
+      "response_bytes_p50": 50798,
+      "retrieved_context_id_variants": [
+        [
+          "d7111f69-acac-4540-8dde-3a312b222472",
+          "fff9ac3e-4804-4691-8d86-afce5ee822fc",
+          "588bc9a6-7fcf-40ff-b251-8f408225f45a",
+          "202b5955-24d1-432f-92dc-e0ffe31b9f06"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Alexandria Memory Steward Contract",
+          "Alexandria Memory Steward Daily Tick",
+          "Memory Compact 품질 및 생명주기 Specification",
+          "2026-08-01 Daily Memory Compact"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "HYBRID"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract",
+        "Memory Compact 품질 및 생명주기 Specification"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 4,
+      "latency_max_ms": 22168.804,
+      "latency_mean_ms": 22168.804,
+      "latency_min_ms": 22168.804,
+      "latency_p50_ms": 22168.804,
+      "latency_p95_ms": 22168.804,
+      "match_count_max": 5,
+      "match_count_min": 5,
+      "mean_reciprocal_rank": 1.0,
+      "project": "alexandria-hermes",
+      "query": "temporal compact의 week_N은 ISO week가 아니라 어떤 기준으로 계산하지?",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "HYBRID",
+      "response_bytes_p50": 90830,
+      "retrieved_context_id_variants": [
+        [
+          "d7111f69-acac-4540-8dde-3a312b222472",
+          "f7ab4ece-2821-4f3c-b608-9e1856a0d9a3",
+          "1e80c799-ff4b-4b03-9852-baa63d749b1d",
+          "fff9ac3e-4804-4691-8d86-afce5ee822fc",
+          "588bc9a6-7fcf-40ff-b251-8f408225f45a"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Alexandria Memory Steward Contract",
+          "2026-08-15 Daily Memory Compact",
+          "Crypto Intelligence Bitcoin Morning Read v3 실행 프롬프트",
+          "Alexandria Memory Steward Daily Tick",
+          "Memory Compact 품질 및 생명주기 Specification"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "FTS_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Neo4j 기능 05 Graph-aware Context Retrieval"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 0,
+      "latency_max_ms": 17392.403,
+      "latency_mean_ms": 17392.403,
+      "latency_min_ms": 17392.403,
+      "latency_p50_ms": 17392.403,
+      "latency_p95_ms": 17392.403,
+      "match_count_max": 3,
+      "match_count_min": 3,
+      "mean_reciprocal_rank": 0.333333,
+      "project": "alexandria-hermes",
+      "query": "Neo4j graph evidence가 primary FTS vector ranking을 바꾸면 retrieval은 어떻게 동작해야 하나?",
+      "ranking_stable": true,
+      "recall_at_1": 0.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "FTS_ONLY",
+      "response_bytes_p50": 24585,
+      "retrieved_context_id_variants": [
+        [
+          "fff9ac3e-4804-4691-8d86-afce5ee822fc",
+          "965539ba-c8fd-432b-87fc-0c466177e3ec",
+          "ctx_alexandria_neo4j_feature_05_graph_aware_context_20260803"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Alexandria Memory Steward Daily Tick",
+          "Alexandria Knowledge Operating System",
+          "Neo4j 기능 05 Graph-aware Context Retrieval"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "VECTOR_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Neo4j 기능 05 Graph-aware Context Retrieval"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 3,
+      "latency_max_ms": 1511.714,
+      "latency_mean_ms": 1511.714,
+      "latency_min_ms": 1511.714,
+      "latency_p50_ms": 1511.714,
+      "latency_p95_ms": 1511.714,
+      "match_count_max": 3,
+      "match_count_min": 3,
+      "mean_reciprocal_rank": 1.0,
+      "project": "alexandria-hermes",
+      "query": "Neo4j graph evidence가 primary FTS vector ranking을 바꾸면 retrieval은 어떻게 동작해야 하나?",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "VECTOR_ONLY",
+      "response_bytes_p50": 45746,
+      "retrieved_context_id_variants": [
+        [
+          "ctx_alexandria_neo4j_feature_05_graph_aware_context_20260803",
+          "ctx_alexandria_neo4j_graph_read_model_20260803",
+          "ctx_alexandria_neo4j_feature_index_20260803"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Neo4j 기능 05 Graph-aware Context Retrieval",
+          "Neo4j Graph Read-Model 고도화 진행 기록",
+          "Neo4j 고도화 기능별 장기기억 인덱스"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "HYBRID"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Neo4j 기능 05 Graph-aware Context Retrieval"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 2,
+      "latency_max_ms": 18911.469,
+      "latency_mean_ms": 18911.469,
+      "latency_min_ms": 18911.469,
+      "latency_p50_ms": 18911.469,
+      "latency_p95_ms": 18911.469,
+      "match_count_max": 5,
+      "match_count_min": 5,
+      "mean_reciprocal_rank": 1.0,
+      "project": "alexandria-hermes",
+      "query": "Neo4j graph evidence가 primary FTS vector ranking을 바꾸면 retrieval은 어떻게 동작해야 하나?",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "HYBRID",
+      "response_bytes_p50": 65873,
+      "retrieved_context_id_variants": [
+        [
+          "ctx_alexandria_neo4j_feature_05_graph_aware_context_20260803",
+          "ctx_alexandria_neo4j_graph_read_model_20260803",
+          "fff9ac3e-4804-4691-8d86-afce5ee822fc",
+          "000e259d-2cf2-46aa-8bfe-06d613e2ab2e",
+          "965539ba-c8fd-432b-87fc-0c466177e3ec"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Neo4j 기능 05 Graph-aware Context Retrieval",
+          "Neo4j Graph Read-Model 고도화 진행 기록",
+          "Alexandria Memory Steward Daily Tick",
+          "2026-08-17 Daily Memory Compact",
+          "Alexandria Knowledge Operating System"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "FTS_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Neo4j 기능 05 Graph-aware Context Retrieval"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 2,
+      "latency_max_ms": 18791.629,
+      "latency_mean_ms": 18791.629,
+      "latency_min_ms": 18791.629,
+      "latency_p50_ms": 18791.629,
+      "latency_p95_ms": 18791.629,
+      "match_count_max": 4,
+      "match_count_min": 4,
+      "mean_reciprocal_rank": 0.5,
+      "project": "alexandria-hermes",
+      "query": "graph mode disabled일 때 warning이나 graph evidence를 붙이지 않는 no-op contract",
+      "ranking_stable": true,
+      "recall_at_1": 0.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "FTS_ONLY",
+      "response_bytes_p50": 63811,
+      "retrieved_context_id_variants": [
+        [
+          "ctx_alexandria_skill_reindex_review_20260812",
+          "ctx_alexandria_neo4j_feature_05_graph_aware_context_20260803",
+          "ctx_alexandria_neo4j_graph_read_model_20260803",
+          "186e9f29-faf8-481c-8698-715adfa4ee7e"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Alexandria 스킬 지식 및 리인덱싱 고도화 리뷰",
+          "Neo4j 기능 05 Graph-aware Context Retrieval",
+          "Neo4j Graph Read-Model 고도화 진행 기록",
+          "2026-08-20 Memory Steward Daily Health — ATTENTION REQUIRED"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "VECTOR_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Neo4j 기능 05 Graph-aware Context Retrieval"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 3,
+      "latency_max_ms": 1476.437,
+      "latency_mean_ms": 1476.437,
+      "latency_min_ms": 1476.437,
+      "latency_p50_ms": 1476.437,
+      "latency_p95_ms": 1476.437,
+      "match_count_max": 4,
+      "match_count_min": 4,
+      "mean_reciprocal_rank": 1.0,
+      "project": "alexandria-hermes",
+      "query": "graph mode disabled일 때 warning이나 graph evidence를 붙이지 않는 no-op contract",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "VECTOR_ONLY",
+      "response_bytes_p50": 59990,
+      "retrieved_context_id_variants": [
+        [
+          "ctx_alexandria_neo4j_feature_05_graph_aware_context_20260803",
+          "ctx_alexandria_neo4j_feature_index_20260803",
+          "ctx_alexandria_neo4j_graph_read_model_20260803",
+          "000e259d-2cf2-46aa-8bfe-06d613e2ab2e"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Neo4j 기능 05 Graph-aware Context Retrieval",
+          "Neo4j 고도화 기능별 장기기억 인덱스",
+          "Neo4j Graph Read-Model 고도화 진행 기록",
+          "2026-08-17 Daily Memory Compact"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "HYBRID"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Neo4j 기능 05 Graph-aware Context Retrieval"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 3,
+      "latency_max_ms": 20031.693,
+      "latency_mean_ms": 20031.693,
+      "latency_min_ms": 20031.693,
+      "latency_p50_ms": 20031.693,
+      "latency_p95_ms": 20031.693,
+      "match_count_max": 5,
+      "match_count_min": 5,
+      "mean_reciprocal_rank": 1.0,
+      "project": "alexandria-hermes",
+      "query": "graph mode disabled일 때 warning이나 graph evidence를 붙이지 않는 no-op contract",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "HYBRID",
+      "response_bytes_p50": 78163,
+      "retrieved_context_id_variants": [
+        [
+          "ctx_alexandria_neo4j_feature_05_graph_aware_context_20260803",
+          "000e259d-2cf2-46aa-8bfe-06d613e2ab2e",
+          "ctx_alexandria_skill_reindex_review_20260812",
+          "ctx_alexandria_neo4j_graph_read_model_20260803",
+          "ctx_alexandria_neo4j_feature_index_20260803"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Neo4j 기능 05 Graph-aware Context Retrieval",
+          "2026-08-17 Daily Memory Compact",
+          "Alexandria 스킬 지식 및 리인덱싱 고도화 리뷰",
+          "Neo4j Graph Read-Model 고도화 진행 기록",
+          "Neo4j 고도화 기능별 장기기억 인덱스"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "FTS_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Neo4j 기능 05 Graph-aware Context Retrieval"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 0,
+      "latency_max_ms": 17458.884,
+      "latency_mean_ms": 17458.884,
+      "latency_min_ms": 17458.884,
+      "latency_p50_ms": 17458.884,
+      "latency_p95_ms": 17458.884,
+      "match_count_max": 1,
+      "match_count_min": 1,
+      "mean_reciprocal_rank": 1.0,
+      "project": "alexandria-hermes",
+      "query": "Graph evidence lane은 primary recall ordering과 score를 preserve해야 한다는 규칙",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "FTS_ONLY",
+      "response_bytes_p50": 6220,
+      "retrieved_context_id_variants": [
+        [
+          "ctx_alexandria_neo4j_feature_05_graph_aware_context_20260803"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Neo4j 기능 05 Graph-aware Context Retrieval"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "VECTOR_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Neo4j 기능 05 Graph-aware Context Retrieval"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 0,
+      "latency_max_ms": 1515.319,
+      "latency_mean_ms": 1515.319,
+      "latency_min_ms": 1515.319,
+      "latency_p50_ms": 1515.319,
+      "latency_p95_ms": 1515.319,
+      "match_count_max": 5,
+      "match_count_min": 5,
+      "mean_reciprocal_rank": 1.0,
+      "project": "alexandria-hermes",
+      "query": "Graph evidence lane은 primary recall ordering과 score를 preserve해야 한다는 규칙",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "VECTOR_ONLY",
+      "response_bytes_p50": 49461,
+      "retrieved_context_id_variants": [
+        [
+          "ctx_alexandria_neo4j_feature_05_graph_aware_context_20260803",
+          "000e259d-2cf2-46aa-8bfe-06d613e2ab2e",
+          "fe8415f1-31a4-4949-9b17-7f9489aed7dc",
+          "97c3d21d-59fa-4917-bbde-c65242552ba1",
+          "prompt_evidence_intelligence_closing_review_v3_scheduler_system"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Neo4j 기능 05 Graph-aware Context Retrieval",
+          "2026-08-17 Daily Memory Compact",
+          "Alexandria Memory Steward",
+          "Evidence Intelligence Closing Review — GPT Task Scheduler Runtime Prompt v6",
+          "Evidence Intelligence Closing Review v3 실행 프롬프트"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "HYBRID"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Neo4j 기능 05 Graph-aware Context Retrieval"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 0,
+      "latency_max_ms": 18601.388,
+      "latency_mean_ms": 18601.388,
+      "latency_min_ms": 18601.388,
+      "latency_p50_ms": 18601.388,
+      "latency_p95_ms": 18601.388,
+      "match_count_max": 5,
+      "match_count_min": 5,
+      "mean_reciprocal_rank": 1.0,
+      "project": "alexandria-hermes",
+      "query": "Graph evidence lane은 primary recall ordering과 score를 preserve해야 한다는 규칙",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "HYBRID",
+      "response_bytes_p50": 49116,
+      "retrieved_context_id_variants": [
+        [
+          "ctx_alexandria_neo4j_feature_05_graph_aware_context_20260803",
+          "000e259d-2cf2-46aa-8bfe-06d613e2ab2e",
+          "fe8415f1-31a4-4949-9b17-7f9489aed7dc",
+          "97c3d21d-59fa-4917-bbde-c65242552ba1",
+          "prompt_evidence_intelligence_closing_review_v3_scheduler_system"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Neo4j 기능 05 Graph-aware Context Retrieval",
+          "2026-08-17 Daily Memory Compact",
+          "Alexandria Memory Steward",
+          "Evidence Intelligence Closing Review — GPT Task Scheduler Runtime Prompt v6",
+          "Evidence Intelligence Closing Review v3 실행 프롬프트"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "FTS_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "heterarchy-alexandria Project Index",
+        "Alexandria Knowledge Operating System"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 0,
+      "latency_max_ms": 16002.473,
+      "latency_mean_ms": 16002.473,
+      "latency_min_ms": 16002.473,
+      "latency_p50_ms": 16002.473,
+      "latency_p95_ms": 16002.473,
+      "match_count_max": 0,
+      "match_count_min": 0,
+      "mean_reciprocal_rank": 0.0,
+      "project": "heterarchy-alexandria",
+      "query": "Alexandria에서 archived PRD와 현재 제품 계약을 구분해서 탐색하려면 어느 source mount를 봐야 하나?",
+      "ranking_stable": true,
+      "recall_at_1": 0.0,
+      "recall_at_3": 0.0,
+      "requested_strategy": "FTS_ONLY",
+      "response_bytes_p50": 532,
+      "retrieved_context_id_variants": [
+        []
+      ],
+      "retrieved_title_variants": [
+        []
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "VECTOR_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "heterarchy-alexandria Project Index",
+        "Alexandria Knowledge Operating System"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 0,
+      "latency_max_ms": 1460.655,
+      "latency_mean_ms": 1460.655,
+      "latency_min_ms": 1460.655,
+      "latency_p50_ms": 1460.655,
+      "latency_p95_ms": 1460.655,
+      "match_count_max": 2,
+      "match_count_min": 2,
+      "mean_reciprocal_rank": 1.0,
+      "project": "heterarchy-alexandria",
+      "query": "Alexandria에서 archived PRD와 현재 제품 계약을 구분해서 탐색하려면 어느 source mount를 봐야 하나?",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "VECTOR_ONLY",
+      "response_bytes_p50": 43220,
+      "retrieved_context_id_variants": [
+        [
+          "965539ba-c8fd-432b-87fc-0c466177e3ec",
+          "67bcb6b4-981a-4b16-bd0e-d3461572d602"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Alexandria Knowledge Operating System",
+          "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "HYBRID"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "heterarchy-alexandria Project Index",
+        "Alexandria Knowledge Operating System"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 2,
+      "latency_max_ms": 17301.569,
+      "latency_mean_ms": 17301.569,
+      "latency_min_ms": 17301.569,
+      "latency_p50_ms": 17301.569,
+      "latency_p95_ms": 17301.569,
+      "match_count_max": 5,
+      "match_count_min": 5,
+      "mean_reciprocal_rank": 1.0,
+      "project": "heterarchy-alexandria",
+      "query": "Alexandria에서 archived PRD와 현재 제품 계약을 구분해서 탐색하려면 어느 source mount를 봐야 하나?",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "HYBRID",
+      "response_bytes_p50": 75168,
+      "retrieved_context_id_variants": [
+        [
+          "965539ba-c8fd-432b-87fc-0c466177e3ec",
+          "67bcb6b4-981a-4b16-bd0e-d3461572d602",
+          "000e259d-2cf2-46aa-8bfe-06d613e2ab2e",
+          "8246d89c-cd14-4c0d-8b20-e5d76635cc37",
+          "c6249a0a-0341-406f-9f1c-67db7a6779bb"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Alexandria Knowledge Operating System",
+          "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20",
+          "2026-08-17 Daily Memory Compact",
+          "heterarchy-alexandria Rust Compute 02 Document Analysis and Frontmatter Plan 2026-08-22",
+          "heterarchy-alexandria Retrieval Quality Benchmark and Scope Correction 2026-08-21"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "FTS_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "heterarchy-alexandria Project Index",
+        "Alexandria Knowledge Operating System"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 0,
+      "latency_max_ms": 6532.363,
+      "latency_mean_ms": 6532.363,
+      "latency_min_ms": 6532.363,
+      "latency_p50_ms": 6532.363,
+      "latency_p95_ms": 6532.363,
+      "match_count_max": 5,
+      "match_count_min": 5,
+      "mean_reciprocal_rank": 1.0,
+      "project": "heterarchy-alexandria",
+      "query": "운영 evidence와 active specification, archived design source를 한곳에서 찾아가는 인덱스",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "FTS_ONLY",
+      "response_bytes_p50": 58355,
+      "retrieved_context_id_variants": [
+        [
+          "965539ba-c8fd-432b-87fc-0c466177e3ec",
+          "1b63cc1c-42f3-4b86-ab4f-6fd38c2ae49a",
+          "97c3d21d-59fa-4917-bbde-c65242552ba1",
+          "b9067dde-a079-401f-885f-9ba1bcb8ce23",
+          "080e5dfb-8c03-4ce1-afbb-d1aba0ae9006"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Alexandria Knowledge Operating System",
+          "2026-08-19 Daily Memory Compact",
+          "Evidence Intelligence Closing Review — GPT Task Scheduler Runtime Prompt v6",
+          "Evidence Intelligence Morning Read — GPT Task Scheduler Runtime Prompt v6",
+          "Evidence Intelligence Weekend & Holiday Brief — GPT Task Scheduler Runtime Prompt v6"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "VECTOR_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "heterarchy-alexandria Project Index",
+        "Alexandria Knowledge Operating System"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 0,
+      "latency_max_ms": 1495.934,
+      "latency_mean_ms": 1495.934,
+      "latency_min_ms": 1495.934,
+      "latency_p50_ms": 1495.934,
+      "latency_p95_ms": 1495.934,
+      "match_count_max": 4,
+      "match_count_min": 4,
+      "mean_reciprocal_rank": 0.5,
+      "project": "heterarchy-alexandria",
+      "query": "운영 evidence와 active specification, archived design source를 한곳에서 찾아가는 인덱스",
+      "ranking_stable": true,
+      "recall_at_1": 0.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "VECTOR_ONLY",
+      "response_bytes_p50": 70521,
+      "retrieved_context_id_variants": [
+        [
+          "000e259d-2cf2-46aa-8bfe-06d613e2ab2e",
+          "965539ba-c8fd-432b-87fc-0c466177e3ec",
+          "1b63cc1c-42f3-4b86-ab4f-6fd38c2ae49a",
+          "67bcb6b4-981a-4b16-bd0e-d3461572d602"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "2026-08-17 Daily Memory Compact",
+          "Alexandria Knowledge Operating System",
+          "2026-08-19 Daily Memory Compact",
+          "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    },
+    {
+      "effective_strategies": [
+        "HYBRID"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "heterarchy-alexandria Project Index",
+        "Alexandria Knowledge Operating System"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 0,
+      "latency_max_ms": 17851.986,
+      "latency_mean_ms": 17851.986,
+      "latency_min_ms": 17851.986,
+      "latency_p50_ms": 17851.986,
+      "latency_p95_ms": 17851.986,
+      "match_count_max": 5,
+      "match_count_min": 5,
+      "mean_reciprocal_rank": 1.0,
+      "project": "heterarchy-alexandria",
+      "query": "운영 evidence와 active specification, archived design source를 한곳에서 찾아가는 인덱스",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "HYBRID",
+      "response_bytes_p50": 58606,
+      "retrieved_context_id_variants": [
+        [
+          "965539ba-c8fd-432b-87fc-0c466177e3ec",
+          "1b63cc1c-42f3-4b86-ab4f-6fd38c2ae49a",
+          "b9067dde-a079-401f-885f-9ba1bcb8ce23",
+          "97c3d21d-59fa-4917-bbde-c65242552ba1",
+          "080e5dfb-8c03-4ce1-afbb-d1aba0ae9006"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Alexandria Knowledge Operating System",
+          "2026-08-19 Daily Memory Compact",
+          "Evidence Intelligence Morning Read — GPT Task Scheduler Runtime Prompt v6",
+          "Evidence Intelligence Closing Review — GPT Task Scheduler Runtime Prompt v6",
+          "Evidence Intelligence Weekend & Holiday Brief — GPT Task Scheduler Runtime Prompt v6"
+        ]
+      ],
+      "successful_samples": 1,
+      "warning_count_max": 0
+    }
+  ],
+  "environment": {
+    "base_url": "http://127.0.0.1:8000",
+    "golden_case_count": 10,
+    "golden_cases_path": "/Users/imhaneul/Documents/herterarchy/heterarchy-alexandria/backend/benchmarks/golden_cases.semantic.v1.json",
+    "graph_phase_timing_available": false,
+    "limit": 5,
+    "measured_at": "2026-08-22T08:51:17.599956+00:00",
+    "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+    "project": null,
+    "python_version": "3.13.5",
+    "repetitions": 1,
+    "server_memory_timing_available": false,
+    "warmups": 0
+  },
+  "quality_by_strategy": [
+    {
+      "evaluated_cases": 10,
+      "mean_reciprocal_rank": 0.633333,
+      "recall_at_1": 0.5,
+      "recall_at_3": 0.8,
+      "requested_strategy": "FTS_ONLY",
+      "unstable_case_count": 0
+    },
+    {
+      "evaluated_cases": 10,
+      "mean_reciprocal_rank": 0.95,
+      "recall_at_1": 0.9,
+      "recall_at_3": 1.0,
+      "requested_strategy": "VECTOR_ONLY",
+      "unstable_case_count": 0
+    },
+    {
+      "evaluated_cases": 10,
+      "mean_reciprocal_rank": 1.0,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "HYBRID",
+      "unstable_case_count": 0
+    }
+  ],
+  "rag_status": {
+    "default_strategy": "HYBRID",
+    "dimensions": 384,
+    "embedding": "HEALTHY",
+    "fingerprint": {
+      "dimensions": 384,
+      "document_input_format": "context-title-heading-content-v1+e5-passage-prefix-v1",
+      "model": "intfloat/multilingual-e5-small",
+      "normalize": true,
+      "pooling_mode": "mean",
+      "provider": "FASTEMBED_LOCAL",
+      "provider_version": "0.8.0"
+    },
+    "fts": "HEALTHY",
+    "model_name": "intfloat/multilingual-e5-small",
+    "source_statuses": [
+      {
+        "current_fingerprint": {
+          "dimensions": 384,
+          "document_input_format": "context-title-heading-content-v1+e5-passage-prefix-v1",
+          "model": "intfloat/multilingual-e5-small",
+          "normalize": true,
+          "pooling_mode": "mean",
+          "provider": "FASTEMBED_LOCAL",
+          "provider_version": "0.8.0"
+        },
+        "current_rows": 0,
+        "missing_rows": 0,
+        "source_name": "context_vault",
+        "stale_rows": 0,
+        "status": "HEALTHY",
+        "stored_fingerprints": [],
+        "total_rows": 0
+      },
+      {
+        "current_fingerprint": {
+          "dimensions": 384,
+          "document_input_format": "context-title-heading-content-v1+e5-passage-prefix-v1",
+          "model": "intfloat/multilingual-e5-small",
+          "normalize": true,
+          "pooling_mode": "mean",
+          "provider": "FASTEMBED_LOCAL",
+          "provider_version": "0.8.0"
+        },
+        "current_rows": 13540,
+        "missing_rows": 0,
+        "source_name": "obsidian_vault",
+        "stale_rows": 0,
+        "status": "HEALTHY",
+        "stored_fingerprints": [
+          {
+            "dimensions": 384,
+            "model": "intfloat/multilingual-e5-small",
+            "normalize": true,
+            "pooling_mode": "mean",
+            "provider": "FASTEMBED_LOCAL",
+            "provider_version": "0.8.0"
+          }
+        ],
+        "total_rows": 13540
+      }
+    ],
+    "vector": "HEALTHY",
+    "warnings": []
+  }
+}

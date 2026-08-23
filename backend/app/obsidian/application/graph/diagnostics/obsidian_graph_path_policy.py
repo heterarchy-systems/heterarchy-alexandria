@@ -17,6 +17,16 @@ def _wikilink_targets(
     relative_path: str,
     alexandria_root: str,
 ) -> list[str]:
+    """Execute wikilink targets.
+
+    Args:
+        body: Body used by this operation.
+        relative_path: Relative path used by this operation.
+        alexandria_root: Alexandria root used by this operation.
+
+    Returns:
+        list[str] result produced by wikilink targets.
+    """
     targets: list[str] = []
     for match in _WIKILINK_RE.finditer(_linkable_markdown(body)):
         target = _normalize_wikilink_target_path(
@@ -34,6 +44,16 @@ def _normalize_wikilink_target_path(
     relative_path: str,
     alexandria_root: str,
 ) -> str | None:
+    """Normalize wikilink target path.
+
+    Args:
+        path: Path used by this operation.
+        relative_path: Relative path used by this operation.
+        alexandria_root: Alexandria root used by this operation.
+
+    Returns:
+        Normalized wikilink target path.
+    """
     normalized = _normalize_markdown_target(path)
     if normalized is None:
         return None
@@ -48,6 +68,15 @@ def _normalize_wikilink_target_path(
 
 
 def _normalize_target_path(path: str | None, alexandria_root: str) -> str | None:
+    """Normalize target path.
+
+    Args:
+        path: Path used by this operation.
+        alexandria_root: Alexandria root used by this operation.
+
+    Returns:
+        Normalized target path.
+    """
     normalized = _normalize_markdown_target(path)
     if normalized is None:
         return None
@@ -62,6 +91,14 @@ def _normalize_target_path(path: str | None, alexandria_root: str) -> str | None
 
 
 def _normalize_markdown_target(path: str | None) -> str | None:
+    """Normalize markdown target.
+
+    Args:
+        path: Path used by this operation.
+
+    Returns:
+        Normalized markdown target.
+    """
     if path is None:
         return None
     normalized = path.strip()
@@ -89,7 +126,14 @@ _FENCE_START_RE = re.compile(r"^[ \t]{0,3}(?P<fence>`{3,}|~{3,})")
 
 
 def _linkable_markdown(body: str) -> str:
-    """Remove comments and code regions that Obsidian does not render as links."""
+    """Remove comments and code regions that Obsidian does not render as links.
+
+    Args:
+        body: Body used by this operation.
+
+    Returns:
+        str result produced by linkable markdown.
+    """
     visible_lines: list[str] = []
     fence_character: str | None = None
     fence_length = 0

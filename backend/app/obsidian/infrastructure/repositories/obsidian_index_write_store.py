@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from sqlalchemy import delete, select
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.obsidian.domain.contracts.obsidian_contracts import (
     ObsidianNoteIndex,
 )
@@ -31,9 +35,6 @@ from app.obsidian.infrastructure.repositories.obsidian_index_row_cleanup import 
 from app.shared.exceptions.obsidian_exceptions import ObsidianIndexWriteError
 from app.shared.infrastructure.identifiers import new_uuid
 from app.shared.types.types_convert_utils import aware_utc_datetime
-from sqlalchemy import delete, select
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ObsidianIndexWriteStore:
@@ -65,6 +66,14 @@ class ObsidianIndexWriteStore:
             ) from exc
 
     async def _upsert_note(self, payload: ObsidianNoteIndex) -> ObsidianNote:
+        """Execute upsert note.
+
+        Args:
+            payload: Validated payload for this operation.
+
+        Returns:
+            ObsidianNote result produced by upsert note.
+        """
         now = datetime.now(UTC)
         path_model = await get_obsidian_file_by_path(
             self._session, payload.relative_path
@@ -147,6 +156,12 @@ class ObsidianIndexWriteStore:
         payload: ObsidianNoteIndex,
         now: datetime,
     ) -> None:
+        """Execute replace chunks.
+
+        Args:
+            payload: Validated payload for this operation.
+            now: Now used by this operation.
+        """
         with self._session.no_autoflush:
             existing_embeddings = await existing_chunk_embeddings(
                 session=self._session,
@@ -204,6 +219,12 @@ class ObsidianIndexWriteStore:
         payload: ObsidianNoteIndex,
         now: datetime,
     ) -> None:
+        """Execute replace edges.
+
+        Args:
+            payload: Validated payload for this operation.
+            now: Now used by this operation.
+        """
         await self._session.execute(
             delete(ObsidianEdgeORM).where(
                 ObsidianEdgeORM.source_note_id == payload.note_id

@@ -63,6 +63,7 @@ async def initialize_database(database_url: str) -> AsyncGenerator[Database]:
     Args:
         database_url [str]: Async SQLAlchemy database URL used to create the resource.
 
+        database_url: Database url used by this operation.
     Yields:
         Database: Initialized database resource for the application lifecycle.
     """
@@ -141,6 +142,7 @@ def create_session(database: Database) -> AsyncSession:
     Args:
         database [Database]: Value supplied to create_session.
 
+        database: Database used by this operation.
     Returns:
         AsyncSession: Value produced by create_session.
     """

@@ -26,6 +26,14 @@ from app.operations.domain.event_enum.operational_recovery_enums import (
 
 
 def _parent_run_for_retry(parent_run_id: str | None) -> RecoveryRun | None:
+    """Execute parent run for retry.
+
+    Args:
+        parent_run_id: Identifier for parent run.
+
+    Returns:
+        RecoveryRun | None result produced by parent run for retry.
+    """
     if parent_run_id is None:
         return None
     manifest_path = _manifest_path_by_id(run_id=parent_run_id)
@@ -37,6 +45,14 @@ def _parent_run_for_retry(parent_run_id: str | None) -> RecoveryRun | None:
 def _successful_parent_steps(
     parent_run: RecoveryRun | None,
 ) -> dict[tuple[str, str], RecoveryRunStepResult]:
+    """Execute successful parent steps.
+
+    Args:
+        parent_run: Parent run used by this operation.
+
+    Returns:
+        dict[tuple[str, str], RecoveryRunStepResult] result produced by successful parent steps.
+    """
     if parent_run is None:
         return {}
     return {
@@ -47,6 +63,11 @@ def _successful_parent_steps(
 
 
 def _recovery_steps() -> list[RecoveryPlanStep]:
+    """Execute recovery steps.
+
+    Returns:
+        list[RecoveryPlanStep] result produced by recovery steps.
+    """
     return [
         RecoveryPlanStep("snapshot_sources", "Snapshot source vault metadata", False),
         RecoveryPlanStep("reindex_vault", "Rebuild Obsidian index cache", True),
@@ -56,6 +77,15 @@ def _recovery_steps() -> list[RecoveryPlanStep]:
 
 
 def _blocked_run(plan: RecoveryPlan, manifest_path: Path) -> RecoveryRun:
+    """Execute blocked run.
+
+    Args:
+        plan: Plan used by this operation.
+        manifest_path: Manifest path used by this operation.
+
+    Returns:
+        RecoveryRun result produced by blocked run.
+    """
     now = datetime.now(UTC)
     return RecoveryRun(
         id=plan.id,
@@ -86,6 +116,16 @@ def _interrupted_active_run(
     source_snapshot: RecoverySourceSnapshot,
     manifest_path: Path,
 ) -> RecoveryRun:
+    """Execute interrupted active run.
+
+    Args:
+        active_lock: Active lock used by this operation.
+        source_snapshot: Source snapshot used by this operation.
+        manifest_path: Manifest path used by this operation.
+
+    Returns:
+        RecoveryRun result produced by interrupted active run.
+    """
     started_at = active_lock.started_at or datetime.now(UTC)
     now = datetime.now(UTC)
     return RecoveryRun(
@@ -116,4 +156,12 @@ def _interrupted_active_run(
 
 
 def _default_retry_idempotency_key(parent_run_id: str) -> str:
+    """Execute default retry idempotency key.
+
+    Args:
+        parent_run_id: Identifier for parent run.
+
+    Returns:
+        str result produced by default retry idempotency key.
+    """
     return f"retry:{parent_run_id}"

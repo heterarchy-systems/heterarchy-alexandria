@@ -7,6 +7,10 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import cast
 
+from pgvector.sqlalchemy import Vector
+from sqlalchemy import Float, Select, bindparam, false, or_, select
+from sqlalchemy.sql.elements import ColumnElement
+
 from app.memory.domain.contracts.context_recall_contracts import (
     ContextVectorRecall,
 )
@@ -17,16 +21,13 @@ from app.memory.infrastructure.repositories.contexts.records.scope_recall_filter
     scope_recall_clause,
 )
 from app.shared.types.embedding_types import EmbeddingVector
-from pgvector.sqlalchemy import Vector
-from sqlalchemy import Float, Select, bindparam, false, or_, select
-from sqlalchemy.sql.elements import ColumnElement
 
 type ContextVectorRow = tuple[str, str, float]
 type ContextVectorStatement = Select[ContextVectorRow]
 type ContextVectorParameter = EmbeddingVector | list[float] | str | int
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class ContextVectorQuery:
     """SQLAlchemy statement and bind parameters for a context vector query."""
 
@@ -35,11 +36,7 @@ class ContextVectorQuery:
 
     def __post_init__(self) -> None:
         """Freeze SQL bind parameters after query construction."""
-        object.__setattr__(
-            self,
-            "parameters",
-            MappingProxyType(dict(self.parameters)),
-        )
+        self.parameters = MappingProxyType(dict(self.parameters))
 
 
 def build_context_vector_query(

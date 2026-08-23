@@ -2,23 +2,10 @@
 
 from __future__ import annotations
 
-import hashlib
 import re
 from typing import Final
 
 _WORD_TOKEN_PATTERN: Final[re.Pattern[str]] = re.compile(r"\w+")
-
-
-def sha256_text_hexdigest(text: str) -> str:
-    """Return the SHA-256 hex digest for UTF-8 text content.
-
-    Args:
-        text: Text content to hash.
-
-    Returns:
-        SHA-256 hex digest for the UTF-8 encoded content.
-    """
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def extract_word_tokens(

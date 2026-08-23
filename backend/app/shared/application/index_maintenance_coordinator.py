@@ -3,19 +3,21 @@
 from __future__ import annotations
 
 import asyncio
+from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from dataclasses import dataclass
-from typing import Literal, Protocol
+from typing import Literal
 
 from app.shared.exceptions.common_exceptions import IndexMaintenanceConflictError
 
 type IndexLeaseMode = Literal["exclusive", "shared"]
 
 
-class IndexWriteProcessLock(Protocol):
+class IndexWriteProcessLock(ABC):
     """Cross-process shared/exclusive lease for one rebuildable index database."""
 
+    @abstractmethod
     def operation(
         self,
         wait: bool,
@@ -124,6 +126,16 @@ class IndexMaintenanceCoordinator:
         wait: bool,
         requested_mode: IndexLeaseMode,
     ) -> AsyncIterator[None]:
+        """Execute lease.
+
+        Args:
+            name: Name used by this operation.
+            wait: Wait used by this operation.
+            requested_mode: Requested mode used by this operation.
+
+        Yields:
+            Values yielded by lease.
+        """
         task = asyncio.current_task()
         if task is None:
             raise RuntimeError("index maintenance requires an active asyncio task")
@@ -159,6 +171,17 @@ class IndexMaintenanceCoordinator:
         wait: bool,
         requested_mode: IndexLeaseMode,
     ) -> tuple[bool, IndexLeaseMode]:
+        """Acquire local.
+
+        Args:
+            task_id: Identifier for task.
+            name: Name used by this operation.
+            wait: Wait used by this operation.
+            requested_mode: Requested mode used by this operation.
+
+        Returns:
+            tuple[bool, IndexLeaseMode] result produced by acquire local.
+        """
         async with self._condition:
             existing = self._task_leases.get(task_id)
             if existing is not None:
@@ -178,6 +201,12 @@ class IndexMaintenanceCoordinator:
             return True, "exclusive"
 
     async def _acquire_shared(self, task_id: int, name: str) -> None:
+        """Acquire shared.
+
+        Args:
+            task_id: Identifier for task.
+            name: Name used by this operation.
+        """
         while (
             self._exclusive_owner_task_id is not None
             or self._waiting_exclusive_count > 0
@@ -192,6 +221,13 @@ class IndexMaintenanceCoordinator:
         name: str,
         wait: bool,
     ) -> None:
+        """Acquire exclusive.
+
+        Args:
+            task_id: Identifier for task.
+            name: Name used by this operation.
+            wait: Wait used by this operation.
+        """
         if not self._exclusive_available():
             if not wait:
                 active = self.active_operation or "concurrent index writes"
@@ -209,9 +245,19 @@ class IndexMaintenanceCoordinator:
         self._active_operation = name
 
     def _exclusive_available(self) -> bool:
+        """Execute exclusive available.
+
+        Returns:
+            Whether exclusive available.
+        """
         return self._exclusive_owner_task_id is None and self._active_shared_count == 0
 
     async def _release_local(self, task_id: int) -> None:
+        """Release local.
+
+        Args:
+            task_id: Identifier for task.
+        """
         async with self._condition:
             lease = self._task_leases.get(task_id)
             if lease is None:

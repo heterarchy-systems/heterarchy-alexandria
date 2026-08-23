@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.memory.domain.contracts.context_recall_contracts import ContextFtsRecall
 from app.memory.domain.entities.context_read_models import ContextSearchMatch
 from app.memory.infrastructure.models.context_models import ContextChunkORM, ContextORM
@@ -15,8 +18,6 @@ from app.memory.infrastructure.repositories.contexts.search.fts import (
 from app.shared.infrastructure.postgres_fts_relevance import (
     postgres_fts_rank_to_score,
 )
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def search_context_fts(

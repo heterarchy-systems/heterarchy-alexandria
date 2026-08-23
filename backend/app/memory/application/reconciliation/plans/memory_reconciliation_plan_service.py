@@ -94,6 +94,14 @@ class MemoryReconciliationPlanService:
 
 
 def _generated_idempotency_key(candidate: MemoryCandidate) -> str:
+    """Execute generated idempotency key.
+
+    Args:
+        candidate: Candidate used by this operation.
+
+    Returns:
+        str result produced by generated idempotency key.
+    """
     identity_parts = (
         candidate.scope.value,
         candidate.project or "",

@@ -4,6 +4,8 @@ from collections.abc import Awaitable, Callable, Mapping
 from functools import wraps
 from typing import Protocol, cast, runtime_checkable
 
+from fastapi import HTTPException
+
 from app.shared.exceptions.common_exceptions import (
     RedisExceptionArgValue,
     RedisExceptionAware,
@@ -15,7 +17,6 @@ from app.shared.exceptions.common_exceptions import (
     RedisExceptionPolicyMap,
     RedisExceptionResult,
 )
-from fastapi import HTTPException
 
 type RouteExceptionStatusValue = int | tuple[int, str]
 type RouteExceptionStatusMapping = Mapping[type[Exception], RouteExceptionStatusValue]
@@ -27,6 +28,7 @@ type RouteExceptionDecorator = Callable[[RouteAsyncHandler], RouteAsyncHandler]
 
 
 @runtime_checkable
+# protocol-contract: structural-seam
 class RouteExceptionWithDetail(Protocol):
     """Exception that exposes a structured route-safe detail payload."""
 
@@ -43,6 +45,15 @@ def _resolve_redis_exception_policy(
     error: Exception,
     mapping: RedisExceptionPolicyMap,
 ) -> RedisExceptionPolicy:
+    """Resolve redis exception policy.
+
+    Args:
+        error: Error being processed.
+        mapping: Typed mapping used by this operation.
+
+    Returns:
+        RedisExceptionPolicy result produced by resolve redis exception policy.
+    """
     for exception_type, policy in mapping.items():
         if isinstance(error, exception_type):
             return policy
@@ -64,12 +75,30 @@ def redis_exceptions(
     """
 
     def decorator(func: RedisExceptionHandler) -> RedisExceptionHandler:
+        """Execute decorator.
+
+        Args:
+            func: Callable wrapped by this decorator.
+
+        Returns:
+            RedisExceptionHandler result produced by decorator.
+        """
+
         @wraps(func)
         async def wrapper(
             self: RedisExceptionAware,
             *args: RedisExceptionArgValue,
             **kwargs: RedisExceptionArgValue,
         ) -> RedisExceptionResult:
+            """Execute wrapper.
+
+            Args:
+                args: Positional arguments forwarded to the wrapped callable.
+                kwargs: Keyword arguments forwarded to the wrapped callable.
+
+            Returns:
+                RedisExceptionResult result produced by wrapper.
+            """
             try:
                 return await func(self, *args, **kwargs)
             except Exception as error:
@@ -113,16 +142,34 @@ def router_exception_status(
     """Map route-layer exceptions to HTTP status responses.
 
     Args:
-        mapping [RouteExceptionStatusMapping]: Value supplied to router_exception_status.
+        mapping: Value supplied to router_exception_status.
 
     Returns:
         RouteExceptionDecorator: Value produced by router_exception_status.
     """
 
     def decorator(handler: RouteAsyncHandler) -> RouteAsyncHandler:
+        """Execute decorator.
+
+        Args:
+            handler: Route handler wrapped by this decorator.
+
+        Returns:
+            RouteAsyncHandler result produced by decorator.
+        """
+
         @wraps(handler)
         # Broad type justified: FastAPI route decorators must forward arbitrary handler arguments.
         async def wrapped(*args: object, **kwargs: object) -> RouteHandlerResult:
+            """Execute wrapped.
+
+            Args:
+                args: Positional arguments forwarded to the wrapped callable.
+                kwargs: Keyword arguments forwarded to the wrapped callable.
+
+            Returns:
+                RouteHandlerResult result produced by wrapped.
+            """
             try:
                 return await handler(*args, **kwargs)
             except HTTPException:

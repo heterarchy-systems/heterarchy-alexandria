@@ -5,14 +5,6 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import asynccontextmanager
 
-from app.shared.infrastructure.database_session_scope import DatabaseSessionScope
-from app.shared.infrastructure.postgres_database_policy import (
-    POSTGRES_MAX_OVERFLOW,
-    POSTGRES_POOL_RECYCLE_SECONDS,
-    POSTGRES_POOL_SIZE,
-    POSTGRES_POOL_TIMEOUT_SECONDS,
-    postgres_connect_args,
-)
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import (
@@ -22,6 +14,15 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.pool import NullPool
+
+from app.shared.infrastructure.database_session_scope import DatabaseSessionScope
+from app.shared.infrastructure.postgres_database_policy import (
+    POSTGRES_MAX_OVERFLOW,
+    POSTGRES_POOL_RECYCLE_SECONDS,
+    POSTGRES_POOL_SIZE,
+    POSTGRES_POOL_TIMEOUT_SECONDS,
+    postgres_connect_args,
+)
 
 __all__ = (
     "Base",

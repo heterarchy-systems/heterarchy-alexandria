@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -15,6 +14,9 @@ from app.memory.infrastructure.repositories.context_repository import (
     SqlAlchemyContextRepository,
 )
 from app.shared.infrastructure.database import Database
+from tests.memory.context_retrieval_kernel_test_provider import (
+    TestContextRetrievalKernelProvider,
+)
 from tests.memory.context_seed import seed_context
 from tests.memory.retrieval_quality_metrics import (
     GoldenRetrievalResult,
@@ -44,7 +46,8 @@ def test_personal_memory_golden_queries_recall_expected_contexts(
             database.session() as session,
         ):
             service = ContextService(
-                repository=SqlAlchemyContextRepository(session=session)
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
+                repository=SqlAlchemyContextRepository(session=session),
             )
             search_quality = await seed_context(
                 session,

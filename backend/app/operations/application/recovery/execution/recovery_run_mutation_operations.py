@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from app.memory.application.contexts.records.context_service_ports import (
+    ContextRecoveryPort,
+)
+from app.obsidian.application.service.obsidian_service_ports import ObsidianRecoveryPort
 from app.operations.application.recovery.execution.recovery_run_contracts import (
-    ContextRecoveryService,
-    ContextRecoveryServiceFactory,
-    ObsidianRecoveryService,
-    ObsidianRecoveryServiceFactory,
+    ContextRecoveryPortFactory,
+    ObsidianRecoveryPortFactory,
     resolve_recovery_service,
 )
 from app.shared.infrastructure.database import Database
@@ -19,10 +21,10 @@ class RecoveryRunMutationOperations:
     def __init__(
         self,
         database: Database,
-        context_service: ContextRecoveryService,
-        obsidian_service: ObsidianRecoveryService,
-        context_service_factory: ContextRecoveryServiceFactory | None = None,
-        obsidian_service_factory: ObsidianRecoveryServiceFactory | None = None,
+        context_service: ContextRecoveryPort,
+        obsidian_service: ObsidianRecoveryPort,
+        context_service_factory: ContextRecoveryPortFactory | None = None,
+        obsidian_service_factory: ObsidianRecoveryPortFactory | None = None,
     ) -> None:
         """Initialize recovery mutation dependencies.
 
@@ -30,6 +32,8 @@ class RecoveryRunMutationOperations:
             database: Shared database coordinator.
             context_service: Context embedding recovery boundary.
             obsidian_service: Obsidian index recovery boundary.
+            context_service_factory: Factory that creates context service.
+            obsidian_service_factory: Factory that creates obsidian service.
         """
         self._database = database
         self._context_service_factory = context_service_factory or (
@@ -40,6 +44,11 @@ class RecoveryRunMutationOperations:
         )
 
     async def reindex_vault(self) -> JSONObject:
+        """Reindex the Obsidian vault.
+
+        Returns:
+            Reindex operation result.
+        """
         async with self._database.request_session() as session:
             try:
                 service = await resolve_recovery_service(self._obsidian_service_factory)
@@ -57,6 +66,11 @@ class RecoveryRunMutationOperations:
         }
 
     async def reindex_embeddings(self) -> JSONObject:
+        """Reindex context embeddings.
+
+        Returns:
+            Reindex operation result.
+        """
         async with self._database.request_session() as session:
             try:
                 service = await resolve_recovery_service(self._context_service_factory)

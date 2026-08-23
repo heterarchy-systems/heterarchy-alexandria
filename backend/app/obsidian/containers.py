@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 
+from dependency_injector import containers, providers
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.memory.application.contexts.embedding.context_embedding_recovery_service import (
     ContextEmbeddingRecoveryService,
 )
@@ -34,6 +37,9 @@ from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.obsidian.application.service.vault.obsidian_vault_reindex_service import (
     ObsidianVaultReindexService,
 )
+from app.obsidian.infrastructure.graph.native_obsidian_graph_projection_compute_provider import (
+    create_native_obsidian_graph_projection_compute_provider,
+)
 from app.obsidian.infrastructure.graph.sqlalchemy_obsidian_graph_projection_source import (
     SqlAlchemyObsidianGraphProjectionSource,
 )
@@ -51,8 +57,6 @@ from app.shared.application.index_maintenance_coordinator import (
     IndexMaintenanceCoordinator,
 )
 from app.shared.infrastructure.database import Database
-from dependency_injector import containers, providers
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 def _build_context_reindex_hook(
@@ -60,11 +64,21 @@ def _build_context_reindex_hook(
     context_service: ContextService | None,
     recovery_service: ContextEmbeddingRecoveryService | None,
 ) -> Callable[[], Awaitable[None]] | None:
-    """Build an async hook that backfills context embeddings after vault reindex."""
+    """Build an async hook that backfills context embeddings after vault reindex.
+
+    Args:
+        enabled: Whether the capability is enabled.
+        context_service: Context service dependency.
+        recovery_service: Recovery service dependency.
+
+    Returns:
+        Constructed context reindex hook.
+    """
     if not enabled or context_service is None or recovery_service is None:
         return None
 
     async def _hook() -> None:
+        """Execute hook."""
         await recovery_service.recover(context_service)
 
     return _hook
@@ -96,9 +110,13 @@ class ObsidianContainer(containers.DeclarativeContainer):
         SqlAlchemyObsidianGraphProjectionSource,
         session=db_session,
     )
+    graph_projection_compute_provider = providers.Singleton(
+        create_native_obsidian_graph_projection_compute_provider,
+    )
     graph_projection_source_builder = providers.Factory(
         ObsidianGraphProjectionSourceBuilder,
         source=graph_projection_source,
+        compute_provider=graph_projection_compute_provider,
     )
     graph_projection_rebuild_service = providers.Factory(
         ObsidianGraphProjectionRebuildService,

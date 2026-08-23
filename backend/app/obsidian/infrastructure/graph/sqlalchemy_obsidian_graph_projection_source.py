@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.obsidian.domain.entities.obsidian_note import ObsidianEdge, ObsidianNote
 from app.obsidian.domain.repositories.obsidian_graph_projection_source_repository import (
     IObsidianGraphProjectionSourceRepository,
@@ -14,8 +17,6 @@ from app.obsidian.infrastructure.repositories.obsidian_index_mapping import (
     edge_from_model,
     note_from_model,
 )
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class SqlAlchemyObsidianGraphProjectionSource(IObsidianGraphProjectionSourceRepository):

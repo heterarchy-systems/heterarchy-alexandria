@@ -32,6 +32,9 @@ from app.obsidian.domain.event_enum.obsidian_enums import (
 from app.obsidian.infrastructure.models.obsidian_index_models import ObsidianFileORM
 from app.shared.infrastructure.database import Database
 from app.shared.serialization.orjson_codec import dumps_json
+from tests.memory.context_retrieval_kernel_test_provider import (
+    TestContextRetrievalKernelProvider,
+)
 from tests.memory.context_seed import seed_context
 
 
@@ -54,7 +57,8 @@ def test_explicit_archived_recall_preserves_default_and_scope_safety(
             database.session() as session,
         ):
             service = ContextService(
-                repository=SqlAlchemyContextRepository(session=session)
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
+                repository=SqlAlchemyContextRepository(session=session),
             )
             alpha = await seed_context(
                 session,
@@ -112,7 +116,8 @@ def test_explicit_pending_review_recall_keeps_saved_default_compatibility(
             database.session() as session,
         ):
             service = ContextService(
-                repository=SqlAlchemyContextRepository(session=session)
+                retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
+                repository=SqlAlchemyContextRepository(session=session),
             )
             saved = await seed_context(
                 session,

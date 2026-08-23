@@ -20,6 +20,7 @@ DEFAULT_READINESS_CACHE_KEY = "alexandria:operations:readiness:v1"
 _SNAPSHOT_ADAPTER = TypeAdapter(OperationalReadinessSnapshot)
 
 
+# protocol-contract: structural-seam
 class RedisReadinessClient(Protocol):
     """Narrow Redis command surface required by the readiness cache."""
 
@@ -121,6 +122,12 @@ class RedisOperationalReadinessCache(OperationalReadinessCache):
 
     @staticmethod
     def _log_failure(operation: str, error: Exception) -> None:
+        """Execute log failure.
+
+        Args:
+            operation: Operation used by this operation.
+            error: Error value being processed.
+        """
         logger.warning(
             "Redis readiness cache operation failed and will be bypassed",
             extra={

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from sqlalchemy import or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.memory.domain.entities.memory_reconciliation import MemoryRelationRecord
 from app.memory.infrastructure.models.reconciliation_models import MemoryRelationORM
 from app.memory.infrastructure.repositories.reconciliation.reconciliation_mapping import (
@@ -10,14 +13,17 @@ from app.memory.infrastructure.repositories.reconciliation.reconciliation_mappin
 from app.memory.infrastructure.repositories.reconciliation.reconciliation_payload_mapper import (
     relation_payload,
 )
-from sqlalchemy import or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ReconciliationRelationStore:
     """Persist and query idempotent directed memory relations."""
 
     def __init__(self, session: AsyncSession) -> None:
+        """Initialize ReconciliationRelationStore state and dependencies.
+
+        Args:
+            session: Active session used by this operation.
+        """
         self._session = session
 
     async def upsert(

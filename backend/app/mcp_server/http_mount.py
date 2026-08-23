@@ -103,6 +103,14 @@ async def mcp_streamable_http_lifespan(
 
 
 def _is_public_mcp_request(scope: Scope) -> bool:
+    """Return whether public mcp request.
+
+    Args:
+        scope: Scope used by this operation.
+
+    Returns:
+        Whether public mcp request.
+    """
     if scope["type"] != "http":
         return False
     path = str(scope.get("path", ""))

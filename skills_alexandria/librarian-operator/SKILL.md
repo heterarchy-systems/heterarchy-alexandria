@@ -28,6 +28,12 @@ Other ownership boundaries:
 - Memory Steward owns reconciliation, conflicts, Memory Compact lifecycle, and periodic compaction.
 - Provider selection, credentials, and OAuth are internal execution details and are not agent-facing MCP controls.
 
+## Procedure
+1. Search the existing skill library first with the narrowest capability brief that represents the task.
+2. Reuse a sufficient active skill instead of starting acquisition.
+3. If the best candidate is partial or absent, start one bounded acquisition job with the observed gaps and evidence requirements.
+4. Poll the durable job to completion, then verify the published skill is rediscoverable before handing it back.
+
 ## Public MCP contract
 
 ### 1. Search first
@@ -119,7 +125,12 @@ A Librarian-created skill may emit durable Context/evidence that Memory Steward 
 
 Never persist secrets, OAuth tokens, device codes, raw credentials, or transient provider logs in Skill notes or handoffs. Provider/OAuth setup belongs to the connection-management boundary, not the requesting agent.
 
+## Source evidence
+- https://github.com/heterarchy-systems/heterarchy-alexandria/blob/main/backend/app/librarian/application/skill_library/skill_library_search_service.py
+- https://github.com/heterarchy-systems/heterarchy-alexandria/blob/main/backend/app/mcp_server/tools/skills/skill_acquisition_registration.py
+
 ## Related Alexandria skills
 
 - [[Skills/Active/Alexandria Library]] — canonical search/read/write rules.
 - [[Skills/Active/Alexandria Operational Sync]] — index, embedding, graph, and recovery operations.
+- `skills_alexandria/safe-markdown-storage/SKILL.md` — canonical Skill/Context Markdown persistence rules.

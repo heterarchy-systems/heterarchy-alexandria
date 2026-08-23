@@ -8,6 +8,7 @@ from typing import Protocol
 from app.mcp_server.type_validate.oauth.mcp_auth_enums import McpAuthMode
 
 
+# protocol-contract: structural-seam
 class McpHttpAuthConfig(Protocol):
     """Configuration surface required by the public MCP bearer-token gate."""
 
@@ -25,6 +26,7 @@ class McpHttpAuthConfig(Protocol):
         ...
 
 
+# protocol-contract: structural-seam
 class McpProtectedResourceConfig(Protocol):
     """Configuration surface required by protected-resource discovery."""
 
@@ -47,6 +49,7 @@ class McpProtectedResourceConfig(Protocol):
         ...
 
 
+# protocol-contract: structural-seam
 class LocalMcpOAuthRuntimeConfig(Protocol):
     """Configuration surface required to assemble self-hosted MCP OAuth."""
 

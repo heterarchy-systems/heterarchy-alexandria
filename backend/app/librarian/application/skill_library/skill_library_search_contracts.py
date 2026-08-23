@@ -3,16 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Protocol
 
 from app.librarian.domain.event_enum.skill_acquisition_enums import RiskLevel
 from app.librarian.domain.event_enum.skill_search_enums import SkillSearchDecision
-from app.obsidian.domain.contracts.obsidian_contracts import ObsidianSearchQuery
-from app.obsidian.domain.entities.obsidian_note import ObsidianSearchHit
 from app.shared.types.extra_types import JSONObject
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class SkillCapabilityBrief:
     """Normalized capability need used for skill-library search."""
 
@@ -28,12 +25,12 @@ class SkillCapabilityBrief:
 
     def __post_init__(self) -> None:
         """Normalize capability brief collections to immutable values."""
-        object.__setattr__(self, "required_tools", tuple(self.required_tools))
-        object.__setattr__(self, "constraints", tuple(self.constraints))
-        object.__setattr__(self, "success_criteria", tuple(self.success_criteria))
+        self.required_tools = tuple(self.required_tools)
+        self.constraints = tuple(self.constraints)
+        self.success_criteria = tuple(self.success_criteria)
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class SkillSearchCandidate:
     """One normalized reusable skill candidate."""
 
@@ -57,15 +54,15 @@ class SkillSearchCandidate:
 
     def __post_init__(self) -> None:
         """Normalize candidate evidence collections to immutable values."""
-        object.__setattr__(self, "required_tools", tuple(self.required_tools))
-        object.__setattr__(self, "evidence", tuple(self.evidence))
-        object.__setattr__(self, "matched_terms", tuple(self.matched_terms))
-        object.__setattr__(self, "limitations", tuple(self.limitations))
-        object.__setattr__(self, "why_match", tuple(self.why_match))
-        object.__setattr__(self, "gaps", tuple(self.gaps))
+        self.required_tools = tuple(self.required_tools)
+        self.evidence = tuple(self.evidence)
+        self.matched_terms = tuple(self.matched_terms)
+        self.limitations = tuple(self.limitations)
+        self.why_match = tuple(self.why_match)
+        self.gaps = tuple(self.gaps)
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class SkillSearchResult:
     """Search-first result for one normalized capability brief."""
 
@@ -80,24 +77,5 @@ class SkillSearchResult:
 
     def __post_init__(self) -> None:
         """Normalize search result collections to immutable values."""
-        object.__setattr__(self, "candidates", tuple(self.candidates))
-        object.__setattr__(self, "gaps", tuple(self.gaps))
-
-
-class SkillSearchBackend(Protocol):
-    """Minimal Obsidian search capability required by the evaluator."""
-
-    async def search(
-        self,
-        query: ObsidianSearchQuery,
-        refresh: bool = True,
-    ) -> list[ObsidianSearchHit]:
-        """Return matching Obsidian search hits.
-
-        Args:
-            query: Obsidian search query.
-            refresh: Whether to refresh the index before searching.
-
-        Returns:
-            Ranked Obsidian search hits.
-        """
+        self.candidates = tuple(self.candidates)
+        self.gaps = tuple(self.gaps)

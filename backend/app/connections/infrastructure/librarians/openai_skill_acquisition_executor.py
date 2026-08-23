@@ -5,6 +5,9 @@ from __future__ import annotations
 import logging
 
 import anyio
+from asyncer import asyncify
+from openai import OpenAIError
+
 from app.connections.domain.entities.read_models import LibrarianProvider
 from app.connections.domain.event_enum.provider_enums import (
     AuthType,
@@ -48,8 +51,6 @@ from app.shared.exceptions.librarian_exceptions import (
     LibrarianSkillAcquisitionExecutionError,
     LibrarianSkillAcquisitionProviderError,
 )
-from asyncer import asyncify
-from openai import OpenAIError
 
 _DEFAULT_MODEL = "gpt-5.5"
 _DEFAULT_SKILL_ACQUISITION_TIMEOUT_SECONDS = 120.0
@@ -89,6 +90,7 @@ class OpenAISkillAcquisitionExecutor:
             provider_repo: Provider metadata repository.
             secret_repo: Provider secret resolver.
             openai_client_builder: SDK client builder boundary.
+            rate_limiter: Rate limiter used by this operation.
         """
         self.provider_repo = provider_repo
         self.secret_repo = secret_repo
@@ -198,6 +200,16 @@ class OpenAISkillAcquisitionExecutor:
         provider_type: ProviderType | None,
         auth_type: AuthType,
     ) -> OpenAIClientConfig | None:
+        """Execute client config.
+
+        Args:
+            provider: Provider used by this operation.
+            provider_type: Provider type used by this operation.
+            auth_type: Auth type used by this operation.
+
+        Returns:
+            OpenAIClientConfig | None result produced by client config.
+        """
         if provider_type is ProviderType.OPENAI and auth_type is AuthType.API_KEY:
             api_key = await self.secret_repo.resolve(
                 provider.id,
@@ -219,6 +231,14 @@ class OpenAISkillAcquisitionExecutor:
         self,
         provider: LibrarianProvider,
     ) -> OpenAIClientConfig | None:
+        """Execute codex client config.
+
+        Args:
+            provider: Provider used by this operation.
+
+        Returns:
+            OpenAIClientConfig | None result produced by codex client config.
+        """
         client_config = await self._codex_config_builder.build(
             provider_id=provider.id,
             timeout=_skill_acquisition_timeout_seconds(provider),
@@ -227,6 +247,14 @@ class OpenAISkillAcquisitionExecutor:
 
 
 def _parse_provider_type(provider: LibrarianProvider) -> ProviderType:
+    """Parse provider type.
+
+    Args:
+        provider: Provider used by this operation.
+
+    Returns:
+        Parsed provider type.
+    """
     provider_type = parse_provider_type(provider.provider_type)
     if provider_type not in {ProviderType.OPENAI, ProviderType.OPENAI_CODEX}:
         raise LibrarianSkillAcquisitionProviderError(
@@ -236,10 +264,26 @@ def _parse_provider_type(provider: LibrarianProvider) -> ProviderType:
 
 
 def _provider_scope(provider_type: ProviderType) -> str:
+    """Execute provider scope.
+
+    Args:
+        provider_type: Provider type used by this operation.
+
+    Returns:
+        str result produced by provider scope.
+    """
     return provider_type.value
 
 
 def _parse_auth_type(provider: LibrarianProvider) -> AuthType:
+    """Parse auth type.
+
+    Args:
+        provider: Provider used by this operation.
+
+    Returns:
+        Parsed auth type.
+    """
     try:
         auth_type = parse_auth_type(provider.auth_type)
     except ValueError as error:
@@ -254,6 +298,14 @@ def _parse_auth_type(provider: LibrarianProvider) -> AuthType:
 
 
 def _model_for_provider(provider: LibrarianProvider) -> str:
+    """Execute model for provider.
+
+    Args:
+        provider: Provider used by this operation.
+
+    Returns:
+        str result produced by model for provider.
+    """
     model = string_config_value(provider.config.get("model"))
     if model is None:
         return _DEFAULT_MODEL
@@ -261,10 +313,23 @@ def _model_for_provider(provider: LibrarianProvider) -> str:
 
 
 def _acquisition_instructions() -> str:
+    """Execute acquisition instructions.
+
+    Returns:
+        str result produced by acquisition instructions.
+    """
     return _DEFAULT_INSTRUCTIONS
 
 
 def _skill_acquisition_timeout_seconds(provider: LibrarianProvider) -> float:
+    """Execute skill acquisition timeout seconds.
+
+    Args:
+        provider: Provider used by this operation.
+
+    Returns:
+        float result produced by skill acquisition timeout seconds.
+    """
     value = provider.config.get(_SKILL_ACQUISITION_TIMEOUT_CONFIG_KEY)
     timeout_seconds = positive_float_config_value(value)
     if timeout_seconds is None:
@@ -277,6 +342,13 @@ def _log_provider_timeout(
     provider_type: ProviderType | None,
     timeout_seconds: float,
 ) -> None:
+    """Execute log provider timeout.
+
+    Args:
+        provider_id: Identifier for provider.
+        provider_type: Provider type used by this operation.
+        timeout_seconds: Maximum number of seconds allowed before timeout.
+    """
     logger.warning(
         "Skill acquisition provider execution timed out",
         extra={
@@ -292,6 +364,13 @@ def _log_provider_execution_failure(
     provider_type: ProviderType | None,
     error: Exception,
 ) -> None:
+    """Execute log provider execution failure.
+
+    Args:
+        provider_id: Identifier for provider.
+        provider_type: Provider type used by this operation.
+        error: Error value being processed.
+    """
     logger.warning(
         "Skill acquisition provider execution failed",
         extra={

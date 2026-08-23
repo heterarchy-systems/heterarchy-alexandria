@@ -2,31 +2,23 @@
 
 from __future__ import annotations
 
-import hashlib
-from collections.abc import Mapping
 from datetime import UTC, datetime
-from pathlib import Path
 
 from app.obsidian.domain.contracts.obsidian_contracts import (
-    ObsidianChunkIndex,
     ObsidianLibrarianAsk,
     ObsidianSaveNote,
 )
 from app.obsidian.domain.entities.obsidian_note import ObsidianNote, ObsidianSearchHit
 from app.obsidian.domain.event_enum.obsidian_enums import AlexandriaNoteType
 from app.obsidian.infrastructure.markdown.frontmatter import (
-    FrontmatterValue,
-    frontmatter_text,
     timestamp_text,
 )
 from app.obsidian.infrastructure.markdown.paths import safe_filename
 from app.shared.infrastructure.identifiers import new_uuid
-from app.shared.search.markdown_text_chunking import split_markdown_text
 from app.shared.type_validation.frontmatter_metadata_normalization import (
     normalize_known_frontmatter_metadata,
 )
 from app.shared.types.extra_types import JSONObject
-from app.shared.utils.text_metrics import count_word_tokens
 
 LIBRARIAN_OPERATIONS_FOLDER = "_Ops/Librarian"
 
@@ -37,6 +29,17 @@ def frontmatter_for_save(
     title: str,
     redaction_warnings: list[str],
 ) -> JSONObject:
+    """Build frontmatter for a note save.
+
+    Args:
+        payload: Validated request or librarian payload consumed by the operation.
+        note_id: Stable identifier of the note or skill artifact.
+        title: Human-readable title for the note or artifact.
+        redaction_warnings: Redaction warnings persisted in note frontmatter.
+
+    Returns:
+        Canonical frontmatter object ready for note serialization.
+    """
     now = timestamp_text(datetime.now(UTC))
     frontmatter = dict(payload.frontmatter)
     frontmatter.update(
@@ -59,52 +62,21 @@ def frontmatter_for_save(
     return frontmatter
 
 
-def chunks_for_body(body: str, title: str) -> list[ObsidianChunkIndex]:
-    if not body.strip():
-        return [
-            ObsidianChunkIndex(
-                chunk_index=0,
-                heading_path=None,
-                text="",
-                content_hash=sha256_text(""),
-                token_count=0,
-            )
-        ]
-    return [
-        ObsidianChunkIndex(
-            chunk_index=chunk.chunk_index,
-            heading_path=chunk.heading,
-            text=chunk.content,
-            content_hash=sha256_text(chunk.content),
-            token_count=count_word_tokens(chunk.content),
-        )
-        for chunk in split_markdown_text(title=title, content=body)
-    ]
-
-
-def title_from_document(
-    frontmatter: Mapping[str, FrontmatterValue],
-    body: str,
-    path: Path,
-) -> str:
-    title = frontmatter_text(frontmatter, "title")
-    if title:
-        return title
-    for line in body.splitlines():
-        if line.startswith("# "):
-            return line.removeprefix("# ").strip()
-    return path.stem
-
-
-def sha256_text(text: str) -> str:
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-
 def default_note_path(
     root: str,
     note_type: AlexandriaNoteType,
     title: str,
 ) -> str:
+    """Build the default note path.
+
+    Args:
+        root: Configured root folder used to build the target note path.
+        note_type: Obsidian note type used to choose the default folder.
+        title: Human-readable title for the note or artifact.
+
+    Returns:
+        Computed default value.
+    """
     folder = {
         AlexandriaNoteType.CONTEXT: "Contexts/Projects",
         AlexandriaNoteType.MEMORY_COMPACT: "Memory Compacts",
@@ -119,6 +91,14 @@ def default_note_path(
 
 
 def default_folders(root: str) -> tuple[str, ...]:
+    """Build the default Obsidian folder set.
+
+    Args:
+        root: Configured root folder used to build the target note path.
+
+    Returns:
+        Computed default value.
+    """
     return (
         root,
         f"{root}/Memory Compacts",
@@ -151,6 +131,11 @@ def default_folders(root: str) -> tuple[str, ...]:
 
 
 def start_here_body() -> str:
+    """Build the Start Here note body.
+
+    Returns:
+        Rendered Start Here Markdown body.
+    """
     return """# Alexandria START HERE
 
 ## Summary
@@ -169,6 +154,16 @@ def librarian_answer(
     hits: list[ObsidianSearchHit],
     active_note: ObsidianNote | None,
 ) -> str:
+    """Render the librarian answer section.
+
+    Args:
+        payload: Validated request or librarian payload consumed by the operation.
+        hits: Retrieval or search hits included in the generated output.
+        active_note: Optional active Obsidian note used as source context.
+
+    Returns:
+        Rendered librarian answer Markdown.
+    """
     lines = [
         "# Alexandria Librarian Context Packet",
         "",
@@ -203,6 +198,15 @@ def librarian_answer(
 
 
 def _bounded_context(text: str, limit: int = 4_000) -> str:
+    """Execute bounded context.
+
+    Args:
+        text: Text used by this operation.
+        limit: Maximum number of items to process or return.
+
+    Returns:
+        str result produced by bounded context.
+    """
     stripped = text.strip()
     if len(stripped) <= limit:
         return stripped
@@ -210,6 +214,14 @@ def _bounded_context(text: str, limit: int = 4_000) -> str:
 
 
 def source_ref(note: ObsidianNote) -> JSONObject:
+    """Render a source reference.
+
+    Args:
+        note: Obsidian note or note record being mapped or evaluated.
+
+    Returns:
+        Serialized source reference object.
+    """
     return {
         "id": note.note_id,
         "alexandria_type": note.alexandria_type.value,
@@ -223,6 +235,15 @@ def source_refs_for_librarian(
     hits: list[ObsidianSearchHit],
     active_note: ObsidianNote | None,
 ) -> list[JSONObject]:
+    """Render source references for a librarian response.
+
+    Args:
+        hits: Retrieval or search hits included in the generated output.
+        active_note: Optional active Obsidian note used as source context.
+
+    Returns:
+        Serialized source reference objects for librarian output.
+    """
     refs: list[JSONObject] = []
     seen_note_ids: set[str] = set()
     if active_note is not None:
@@ -237,6 +258,11 @@ def source_refs_for_librarian(
 
 
 def conversation_id() -> str:
+    """Create a librarian conversation identifier.
+
+    Returns:
+        New librarian conversation identifier.
+    """
     timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
     return f"librarian_chat_{timestamp}_{new_uuid()[:8]}"
 
@@ -246,6 +272,16 @@ def librarian_transcript_body(
     answer: str,
     hits: list[ObsidianSearchHit],
 ) -> str:
+    """Build a librarian transcript note body.
+
+    Args:
+        payload: Validated request or librarian payload consumed by the operation.
+        answer: Generated librarian answer included in the transcript.
+        hits: Retrieval or search hits included in the generated output.
+
+    Returns:
+        Rendered librarian transcript Markdown body.
+    """
     source_lines = "\n".join(
         f"- [[{hit.note.relative_path.removesuffix('.md')}]] (`id: {hit.note.note_id}`)"
         for hit in hits

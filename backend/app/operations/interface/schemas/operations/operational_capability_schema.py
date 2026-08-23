@@ -41,6 +41,14 @@ class OperationalCapabilityResponse(StrictSchemaModel):
         cls,
         item: OperationalCapability,
     ) -> OperationalCapabilityResponse:
+        """Build this schema from a domain entity.
+
+        Args:
+            item: Domain item to serialize into the response schema.
+
+        Returns:
+            Schema populated from the domain entity.
+        """
         return cls(
             state=item.state,
             ready=item.ready,
@@ -80,6 +88,14 @@ class OperationalCapabilitySnapshotResponse(StrictSchemaModel):
         cls,
         snapshot: OperationalCapabilitySnapshot,
     ) -> OperationalCapabilitySnapshotResponse:
+        """Build this schema from a domain entity.
+
+        Args:
+            snapshot: Operational snapshot to serialize or verify.
+
+        Returns:
+            Schema populated from the domain entity.
+        """
         return cls(
             checked_at=snapshot.checked_at,
             core_memory=OperationalCapabilityResponse.from_entity(snapshot.core_memory),

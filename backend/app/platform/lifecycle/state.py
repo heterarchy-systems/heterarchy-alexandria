@@ -130,4 +130,9 @@ class LifecycleState:
             )
 
     def _lifecycle_accepts_traffic(self) -> bool:
+        """Execute lifecycle accepts traffic.
+
+        Returns:
+            Whether lifecycle accepts traffic.
+        """
         return lifecycle_accepts_traffic(self._status)

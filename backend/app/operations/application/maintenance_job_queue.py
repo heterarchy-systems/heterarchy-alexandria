@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Protocol
 
 from app.operations.domain.entities.maintenance_job import (
     EmbeddingReindexJobResult,
@@ -21,7 +21,11 @@ class MaintenanceSubmissionRateLimitError(RuntimeError):
     """Raised when a caller exceeds the configured submission budget."""
 
     def __init__(self, retry_after_seconds: int) -> None:
-        """Initialize the explicit retry delay."""
+        """Initialize the explicit retry delay.
+
+        Args:
+            retry_after_seconds: Retry after seconds used by this operation.
+        """
         super().__init__("maintenance submission rate limit exceeded")
         self.retry_after_seconds = retry_after_seconds
 
@@ -34,12 +38,14 @@ class MaintenanceJobDelivery:
     job: MaintenanceJobSnapshot
 
 
-class MaintenanceJobSubmitter(Protocol):
+class MaintenanceJobSubmitter(ABC):
     """API-facing maintenance queue operations."""
 
+    @abstractmethod
     async def ensure_consumer_group(self) -> None:
         """Create the Redis stream and consumer group idempotently."""
 
+    @abstractmethod
     async def enqueue(self, request: MaintenanceJobRequest) -> MaintenanceJobSnapshot:
         """Submit one rate-limited and deduplicated maintenance job.
 
@@ -50,6 +56,7 @@ class MaintenanceJobSubmitter(Protocol):
             Immutable queued or deduplicated maintenance job snapshot.
         """
 
+    @abstractmethod
     async def get(self, job_id: str) -> MaintenanceJobSnapshot | None:
         """Read one job snapshot by identifier.
 
@@ -60,6 +67,7 @@ class MaintenanceJobSubmitter(Protocol):
             Immutable job snapshot, or None when the identifier is unknown.
         """
 
+    @abstractmethod
     async def queue_status(self) -> MaintenanceQueueSnapshot:
         """Read bounded backlog and consumer evidence.
 
@@ -68,12 +76,14 @@ class MaintenanceJobSubmitter(Protocol):
         """
 
 
-class MaintenanceJobConsumer(Protocol):
+class MaintenanceJobConsumer(ABC):
     """Worker-facing Redis Streams operations."""
 
+    @abstractmethod
     async def ensure_consumer_group(self) -> None:
         """Create the Redis stream and consumer group idempotently."""
 
+    @abstractmethod
     async def receive(self, consumer_name: str) -> MaintenanceJobDelivery | None:
         """Claim one retry-eligible or newly submitted job.
 
@@ -84,6 +94,7 @@ class MaintenanceJobConsumer(Protocol):
             Claimed job delivery, or None when no work is available.
         """
 
+    @abstractmethod
     async def mark_running(self, delivery: MaintenanceJobDelivery) -> int:
         """Mark a delivery running and return its attempt number.
 
@@ -94,6 +105,7 @@ class MaintenanceJobConsumer(Protocol):
             Persisted one-based execution attempt number.
         """
 
+    @abstractmethod
     async def mark_succeeded(
         self,
         delivery: MaintenanceJobDelivery,
@@ -106,6 +118,7 @@ class MaintenanceJobConsumer(Protocol):
             result: Bounded embedding reindex result to persist.
         """
 
+    @abstractmethod
     async def mark_failed(
         self,
         delivery: MaintenanceJobDelivery,

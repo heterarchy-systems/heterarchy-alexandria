@@ -60,7 +60,7 @@ Obsidian 문서는 안정적인 title을 사용한다.
 ```json
 {
   "query": "Memory Steward의 CURRENT 생명주기는?",
-  "project": "alexandria-hermes",
+  "project": "heterarchy-alexandria",
   "expected_titles": [
     "Alexandria Memory Steward Contract"
   ]
@@ -188,6 +188,8 @@ Golden Query 파일은 각 정답 note의 실제 recall scope를 명시한다. c
 
 ### 6.2 올바른 project scope로 다시 측정한 FTS 기준선
 
+> **Benchmark provenance:** 이 절의 Project Index 행과 이어지는 동일 benchmark 행의 수치는 리브랜딩 이전에 측정한 역사적 값이다. 표시는 현재 canonical 이름으로 정규화했으며, release gate로 재사용할 때는 현재 query/title로 다시 측정한다.
+
 4개의 실제 canonical Obsidian note를 올바른 project scope에서 `FTS_ONLY`, limit 5, 1 sample로 재측정했다.
 
 ```text
@@ -200,9 +202,9 @@ ranking instability = 0
 | Golden Query | Project | Expected rank | 관찰 |
 | --- | --- | ---: | --- |
 | Engineering Modernization Contract | `heterarchy-alexandria` | 1 | 정답 1위 |
-| Neo4j 기능 05 Graph-aware Context Retrieval | `alexandria-hermes` | 1 | 정답 1위 |
-| Alexandria Memory Steward Contract | `alexandria-hermes` | 2 | Daily Health가 본문 빈도로 1위 |
-| Alexandria-Hermes Source Index | `alexandria-hermes` | 1 | 정답 1위 |
+| Neo4j 기능 05 Graph-aware Context Retrieval | `heterarchy-alexandria` | 1 | 정답 1위 |
+| Alexandria Memory Steward Contract | `heterarchy-alexandria` | 2 | Daily Health가 본문 빈도로 1위 |
+| heterarchy-alexandria Project Index (pre-rebrand measurement) | `heterarchy-alexandria` | 1 | 정답 1위 |
 
 이 측정으로 실제 lexical relevance 결함은 **exact title 문서가 같은 단어를 본문에서 자주 사용하는 문서에 밀릴 수 있는 문제**로 좁혀졌다.
 
@@ -258,7 +260,7 @@ original query
 | Engineering Modernization Contract | 1.073 s | 1.077 s | 1.00 | 1 |
 | Neo4j 기능 05 Graph-aware Context Retrieval | 1.236 s | 1.257 s | 1.00 | 1 |
 | Alexandria Memory Steward Contract | 1.308 s | 1.309 s | 1.00 | 1 |
-| Alexandria-Hermes Source Index | 1.423 s | 1.463 s | 1.00 | 1 |
+| heterarchy-alexandria Project Index (pre-rebrand measurement) | 1.423 s | 1.463 s | 1.00 | 1 |
 
 정책 변경은 정확한 원문 결과가 있을 때 관련성이 낮은 fallback 결과로 응답을 억지로 채우지 않는다. 더 넓은 recall이 필요한 자연어 질문은 원문 결과가 0건일 때 기존 focused fallback을 그대로 사용한다.
 
@@ -291,7 +293,7 @@ current-source one-off server에서 같은 4개 Golden Query를 warmup 1회 + me
 | Engineering Modernization Contract | 1.073 s | 0.230 s | 1.00 |
 | Neo4j 기능 05 Graph-aware Context Retrieval | 1.236 s | 0.219 s | 1.00 |
 | Alexandria Memory Steward Contract | 1.308 s | 0.301 s | 1.00 |
-| Alexandria-Hermes Source Index | 1.423 s | 0.434 s | 1.00 |
+| heterarchy-alexandria Project Index (pre-rebrand measurement) | 1.423 s | 0.434 s | 1.00 |
 
 최초 올바른 project-scoped 기준선과 비교해도 품질은 `Recall@1 0.75 → 1.00`으로 개선됐고, query별 수 초에서 10초 이상이던 FTS 응답은 수백 ms 범위로 내려왔다.
 
@@ -356,7 +358,7 @@ search hot path
 | Engineering Modernization Contract | 76 ms | 94 ms | 160 ms |
 | Neo4j 기능 05 Graph-aware Context Retrieval | 64 ms | 100 ms | 156 ms |
 | Alexandria Memory Steward Contract | 150 ms | 92 ms | 236 ms |
-| Alexandria-Hermes Source Index | 285 ms | 93 ms | 379 ms |
+| heterarchy-alexandria Project Index (pre-rebrand measurement) | 285 ms | 93 ms | 379 ms |
 
 최종 범위는 다음과 같다.
 

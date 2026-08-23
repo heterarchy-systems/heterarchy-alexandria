@@ -42,10 +42,25 @@ def _review_queue(
     limit: LimitOption = 20,
     summary: SummaryOption = False,
 ) -> int:
-    """List notes waiting for vault curation."""
+    """List notes waiting for vault curation.
+
+    Args:
+        project: Project used by this operation.
+        scope_path: Scope path used by this operation.
+        limit: Maximum number of items to process or return.
+        summary: Summary used by this operation.
+
+    Returns:
+        int result produced by review queue.
+    """
     options = VaultReviewOptions(project=project, scope_path=scope_path, limit=limit)
 
     async def operation() -> JSONValue:
+        """Execute operation.
+
+        Returns:
+            JSONValue result produced by operation.
+        """
         payload = await build_maintenance_gateway().review_queue(options)
         if summary:
             return review_queue_summary(payload)
@@ -60,10 +75,24 @@ def _review_move_plan(
     scope_path: ScopePathOption = None,
     limit: LimitOption = 20,
 ) -> int:
-    """Build a dry-run safe move plan from review queue candidates."""
+    """Build a dry-run safe move plan from review queue candidates.
+
+    Args:
+        project: Project used by this operation.
+        scope_path: Scope path used by this operation.
+        limit: Maximum number of items to process or return.
+
+    Returns:
+        int result produced by review move plan.
+    """
     options = VaultReviewOptions(project=project, scope_path=scope_path, limit=limit)
 
     async def operation() -> JSONValue:
+        """Execute operation.
+
+        Returns:
+            JSONValue result produced by operation.
+        """
         return await build_maintenance_gateway().review_move_plan(options)
 
     exit_code = run_json_command(operation, error_prefix="Alexandria API error")
@@ -79,7 +108,20 @@ def _review_apply_moves(
     no_reindex: NoReindexOption = False,
     verification_query: VerificationQueryOption = None,
 ) -> int:
-    """Apply safe moves from review queue candidates and write a report."""
+    """Apply safe moves from review queue candidates and write a report.
+
+    Args:
+        project: Project used by this operation.
+        scope_path: Scope path used by this operation.
+        limit: Maximum number of items to process or return.
+        report_path: Report path used by this operation.
+        confirm_apply: Confirm apply used by this operation.
+        no_reindex: No reindex used by this operation.
+        verification_query: Verification query used by this operation.
+
+    Returns:
+        int result produced by review apply moves.
+    """
     options = VaultReviewApplyOptions(
         review=VaultReviewOptions(
             project=project,
@@ -93,6 +135,11 @@ def _review_apply_moves(
     )
 
     async def operation() -> JSONValue:
+        """Execute operation.
+
+        Returns:
+            JSONValue result produced by operation.
+        """
         return await build_maintenance_gateway().review_apply_moves(options)
 
     exit_code = run_json_command(

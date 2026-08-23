@@ -336,6 +336,28 @@ async def _alexandria_write_note(
     frontmatter_mode: str,
     expected_content_hash: str | None = None,
 ) -> JSONValue:
+    """Execute alexandria write note.
+
+    Args:
+        client: Client used by this operation.
+        endpoint: Endpoint used by this operation.
+        title: Title used by this operation.
+        body: Body used by this operation.
+        alexandria_type: Alexandria type used by this operation.
+        match_by: Match by used by this operation.
+        note_id: Identifier for note.
+        path: Path used by this operation.
+        project: Project used by this operation.
+        tags: Tags used by this operation.
+        status: Status value used by this operation.
+        source: Source used by this operation.
+        frontmatter: Frontmatter used by this operation.
+        frontmatter_mode: Frontmatter mode used by this operation.
+        expected_content_hash: Expected content hash used for validation.
+
+    Returns:
+        JSONValue result produced by alexandria write note.
+    """
     payload: JSONObject = {
         "title": title,
         "body": body,

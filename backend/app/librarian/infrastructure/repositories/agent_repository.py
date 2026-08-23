@@ -18,7 +18,14 @@ from app.shared.types.types_convert_utils import aware_utc_datetime
 
 
 def _to_read_model(row: AgentProfileORM) -> AgentProfile:
-    """Map an agent ORM row into the domain read model."""
+    """Map an agent ORM row into the domain read model.
+
+    Args:
+        row: Row used by this operation.
+
+    Returns:
+        AgentProfile result produced by to read model.
+    """
     return AgentProfile(
         id=row.id,
         name=row.name,
@@ -55,6 +62,7 @@ class SqlAlchemyAgentRepository(IAgentRepository):
         Args:
             payload [AgentCreate]: Value supplied to create.
 
+            payload: Validated payload for this operation.
         Returns:
             AgentProfile: Value produced by create.
         """
@@ -69,6 +77,7 @@ class SqlAlchemyAgentRepository(IAgentRepository):
         Args:
             agent_id [str]: Value supplied to get.
 
+            agent_id: Identifier for agent.
         Returns:
             AgentProfile | None: Value produced by get.
         """
@@ -91,6 +100,8 @@ class SqlAlchemyAgentRepository(IAgentRepository):
             agent_id [str]: Value supplied to update.
             payload [AgentUpdate]: Value supplied to update.
 
+            agent_id: Identifier for agent.
+            payload: Validated payload for this operation.
         Returns:
             AgentProfile: Value produced by update.
         """
@@ -147,6 +158,7 @@ class SqlAlchemyAgentRepository(IAgentRepository):
 
         Args:
             agent_id [str]: Value supplied to delete.
+            agent_id: Identifier for agent.
         """
         model = await self._session.get(AgentProfileORM, agent_id)
         if model is None:

@@ -191,6 +191,17 @@ class AlexandriaApiClient:
         payload: JSONValue | None,
         params: JSONObject | None,
     ) -> JSONValue:
+        """Execute request.
+
+        Args:
+            method: Method used by this operation.
+            path: Path used by this operation.
+            payload: Validated payload for this operation.
+            params: Params used by this operation.
+
+        Returns:
+            JSONValue result produced by request.
+        """
         request_body = None if payload is None else json_body_bytes(payload)
         headers: HttpHeaders = {"Accept": "application/json"}
         if request_body is not None:
@@ -219,6 +230,14 @@ class AlexandriaApiClient:
 
 
 def _query_params(params: JSONObject | None) -> list[tuple[str, QueryParamValue]]:
+    """Execute query params.
+
+    Args:
+        params: Params used by this operation.
+
+    Returns:
+        list[tuple[str, QueryParamValue]] result produced by query params.
+    """
     if params is None:
         return []
     compact: list[tuple[str, QueryParamValue]] = []

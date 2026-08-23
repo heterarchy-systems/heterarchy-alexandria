@@ -46,6 +46,14 @@ def normalized_alexandria_note_type(
 
 
 def _normalized_type_token(value: str) -> str:
+    """Execute normalized type token.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str result produced by normalized type token.
+    """
     return value.strip().casefold().replace("-", "_").replace(" ", "_")
 
 

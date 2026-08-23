@@ -64,6 +64,14 @@ async def execute_delegates(
 
 
 def _delegate_result(plan: LibrarianExecutionPlan) -> LibrarianDelegateResult:
+    """Execute delegate result.
+
+    Args:
+        plan: Plan used by this operation.
+
+    Returns:
+        LibrarianDelegateResult result produced by delegate result.
+    """
     profile_id = "request-default" if plan.profile is None else plan.profile.id
     role = LibrarianProfileRole.DEFAULT_SEARCH
     if plan.profile is not None:
@@ -82,6 +90,14 @@ def _delegate_result(plan: LibrarianExecutionPlan) -> LibrarianDelegateResult:
 
 
 def _delegate_kind(role: LibrarianProfileRole) -> LibrarianDelegateKind:
+    """Execute delegate kind.
+
+    Args:
+        role: Role used by this operation.
+
+    Returns:
+        LibrarianDelegateKind result produced by delegate kind.
+    """
     if role is LibrarianProfileRole.SPECIALIST:
         return LibrarianDelegateKind.SPECIALTY_REVIEW
     if role is LibrarianProfileRole.QUALITY_REVIEWER:
@@ -95,6 +111,15 @@ def _delegate_summary(
     role: LibrarianProfileRole,
     matched_specialties: tuple[str, ...],
 ) -> str:
+    """Execute delegate summary.
+
+    Args:
+        role: Role used by this operation.
+        matched_specialties: Matched specialties used by this operation.
+
+    Returns:
+        str result produced by delegate summary.
+    """
     if role is LibrarianProfileRole.SPECIALIST and matched_specialties:
         return f"Specialist reviewed matching specialties: {', '.join(matched_specialties)}"
     if role is LibrarianProfileRole.QUALITY_REVIEWER:

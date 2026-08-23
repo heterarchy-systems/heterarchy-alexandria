@@ -1,0 +1,13 @@
+.git
+.github
+.chatgpt2codex
+.DS_Store
+.env
+.env.*
+*.env
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+backend/data
+native/target

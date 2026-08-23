@@ -69,6 +69,14 @@ class ObsidianLibrarianActionExecutor:
         self,
         state: ObsidianLibrarianGraphState,
     ) -> ObsidianLibrarianGraphState:
+        """Execute the librarian action.
+
+        Args:
+            state: Current workflow state.
+
+        Returns:
+            Graph state after executing the current librarian action.
+        """
         response = dict(state_object(state, "response"))
         completed_actions = list(state_string_list(state, "completed_actions"))
         transcript_path = state_optional_string(state, "transcript_path")
@@ -113,6 +121,15 @@ class ObsidianLibrarianActionExecutor:
         workflow: ObsidianLibrarianWorkflow,
         response: JSONObject,
     ) -> ObsidianNote:
+        """Save transcript.
+
+        Args:
+            workflow: Workflow used by this operation.
+            response: Response value being processed.
+
+        Returns:
+            ObsidianNote result produced by save transcript.
+        """
         body = transcript_body(workflow, response)
         refs = source_refs_from_json(response.get("source_refs"))
         return await self._obsidian_service.save_note(
@@ -133,6 +150,16 @@ class ObsidianLibrarianActionExecutor:
         response: JSONObject,
         note_kind: str,
     ) -> ObsidianNote:
+        """Create answer note.
+
+        Args:
+            workflow: Workflow used by this operation.
+            response: Response value being processed.
+            note_kind: Note kind used by this operation.
+
+        Returns:
+            Created answer note.
+        """
         alexandria_type = (
             AlexandriaNoteType.SKILL
             if note_kind == "skill"
@@ -166,6 +193,15 @@ class ObsidianLibrarianActionExecutor:
         workflow: ObsidianLibrarianWorkflow,
         response: JSONObject,
     ) -> ObsidianNote:
+        """Apply graph links.
+
+        Args:
+            workflow: Workflow used by this operation.
+            response: Response value being processed.
+
+        Returns:
+            ObsidianNote result produced by apply graph links.
+        """
         active_note_path = workflow.active_note_path
         if active_note_path is None:
             raise ObsidianValidationError("active note is required for graph links")
@@ -179,6 +215,15 @@ class ObsidianLibrarianActionExecutor:
         workflow: ObsidianLibrarianWorkflow,
         response: JSONObject,
     ) -> JSONObject | None:
+        """Execute ask gpt oauth librarian.
+
+        Args:
+            workflow: Workflow used by this operation.
+            response: Response value being processed.
+
+        Returns:
+            JSONObject | None result produced by ask gpt oauth librarian.
+        """
         if self._delegate_service is None:
             return None
         command = HermesLibrarianAskCommand(

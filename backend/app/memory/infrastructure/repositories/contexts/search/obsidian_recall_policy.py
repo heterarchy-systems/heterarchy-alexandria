@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from sqlalchemy import func
+from sqlalchemy.sql.elements import ColumnElement
+
 from app.memory.domain.contracts.context_recall_contracts import (
     ScopeIdentity,
 )
@@ -22,13 +25,19 @@ from app.obsidian.infrastructure.models.obsidian_index_models import (
     ObsidianFileORM,
 )
 from app.shared.types.extra_types import JSONObject
-from sqlalchemy import func
-from sqlalchemy.sql.elements import ColumnElement
 
 OBSIDIAN_MATCH_LIMIT_MULTIPLIER = 4
 
 
 def _candidate_limit(limit: int) -> int:
+    """Execute candidate limit.
+
+    Args:
+        limit: Maximum number of items to process or return.
+
+    Returns:
+        int result produced by candidate limit.
+    """
     return max(limit, limit * OBSIDIAN_MATCH_LIMIT_MULTIPLIER)
 
 
@@ -37,7 +46,26 @@ def _obsidian_scope_recall_clause(
     project_column: ColumnElement[str | None],
     scope_filter: ScopeIdentity,
 ) -> ColumnElement[bool]:
+    """Execute obsidian scope recall clause.
+
+    Args:
+        frontmatter_column: Frontmatter column used by this operation.
+        project_column: Project column used by this operation.
+        scope_filter: Scope filter used by this operation.
+
+    Returns:
+        ColumnElement[bool] result produced by obsidian scope recall clause.
+    """
+
     def extract(key: str) -> ColumnElement[str | None]:
+        """Execute extract.
+
+        Args:
+            key: Key used by this operation.
+
+        Returns:
+            ColumnElement[str | None] result produced by extract.
+        """
         return func.json_extract_path_text(frontmatter_column, key)
 
     scope_column = func.upper(extract("scope"))
@@ -61,6 +89,14 @@ def _obsidian_scope_recall_clause(
 def _recall_visibility_conditions(
     include_lifecycle_statuses: Sequence[ContextRecallLifecycleStatus] | None,
 ) -> tuple[ColumnElement[bool], ...]:
+    """Execute recall visibility conditions.
+
+    Args:
+        include_lifecycle_statuses: Whether to include lifecycle statuses.
+
+    Returns:
+        tuple[ColumnElement[bool], ...] result produced by recall visibility conditions.
+    """
     normalized_status = func.coalesce(
         func.nullif(func.lower(func.trim(ObsidianFileORM.status)), ""),
         "active",
@@ -76,4 +112,9 @@ def _recall_visibility_conditions(
 
 
 def _default_recall_visibility_conditions() -> tuple[ColumnElement[bool], ...]:
+    """Execute default recall visibility conditions.
+
+    Returns:
+        tuple[ColumnElement[bool], ...] result produced by default recall visibility conditions.
+    """
     return _recall_visibility_conditions(None)

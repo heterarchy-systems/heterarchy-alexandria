@@ -7,10 +7,10 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from app.obsidian.domain.entities.obsidian_note import ObsidianVaultStatus
-from app.operations.application.readiness.operational_readiness_contracts import (
-    ObsidianDataIntegrityService,
+from app.obsidian.application.service.obsidian_service_ports import (
+    ObsidianDataIntegrityPort,
 )
+from app.obsidian.domain.entities.obsidian_note import ObsidianVaultStatus
 from app.operations.domain.entities.operational_data_integrity import (
     OperationalDataIntegritySnapshot,
     OperationalDataIntegrityWarning,
@@ -54,7 +54,7 @@ class _RawFrontmatterField:
 class OperationalDataIntegrityService:
     """Inspect managed Markdown selected by the Obsidian inventory boundary."""
 
-    def __init__(self, obsidian_service: ObsidianDataIntegrityService) -> None:
+    def __init__(self, obsidian_service: ObsidianDataIntegrityPort) -> None:
         """Create the diagnostic service.
 
         Args:
@@ -129,6 +129,13 @@ def _scan_markdown(
     note_path: str,
     findings: dict[OperationalDataIntegrityWarningCode, _WarningAccumulator],
 ) -> None:
+    """Execute scan markdown.
+
+    Args:
+        markdown: Markdown used by this operation.
+        note_path: Note path used by this operation.
+        findings: Findings used by this operation.
+    """
     fields = _top_level_frontmatter_values(markdown)
     for field_name in sorted(STRING_COLLECTION_FIELDS & fields.keys()):
         raw_field = fields[field_name]
@@ -174,6 +181,14 @@ def _scan_markdown(
 def _top_level_frontmatter_values(
     markdown: str,
 ) -> dict[str, _RawFrontmatterField]:
+    """Execute top level frontmatter values.
+
+    Args:
+        markdown: Markdown used by this operation.
+
+    Returns:
+        dict[str, _RawFrontmatterField] result produced by top level frontmatter values.
+    """
     lines = markdown.splitlines()
     if not lines or lines[0].strip() != "---":
         return {}
@@ -205,6 +220,14 @@ def _top_level_frontmatter_values(
 
 
 def _is_yaml_collection(field: _RawFrontmatterField) -> bool:
+    """Return whether yaml collection.
+
+    Args:
+        field: Field used by this operation.
+
+    Returns:
+        Whether yaml collection.
+    """
     if not field.value:
         return bool(field.list_items) and all(
             _is_string_scalar(item) for item in field.list_items
@@ -220,6 +243,14 @@ def _is_yaml_collection(field: _RawFrontmatterField) -> bool:
 
 
 def _is_legacy_tuple_collection(raw_value: str) -> bool:
+    """Return whether legacy tuple collection.
+
+    Args:
+        raw_value: Raw value used by this operation.
+
+    Returns:
+        Whether legacy tuple collection.
+    """
     candidate = _unquoted(raw_value)
     if not (candidate.startswith("(") and candidate.endswith(")")):
         return False
@@ -233,6 +264,14 @@ def _is_legacy_tuple_collection(raw_value: str) -> bool:
 def _boolean_warning_code(
     raw_value: str,
 ) -> OperationalDataIntegrityWarningCode | None:
+    """Execute boolean warning code.
+
+    Args:
+        raw_value: Raw value used by this operation.
+
+    Returns:
+        OperationalDataIntegrityWarningCode | None result produced by boolean warning code.
+    """
     candidate = _unquoted(raw_value)
     if candidate.casefold() not in {"true", "false"}:
         return OperationalDataIntegrityWarningCode.INVALID_BOOLEAN_VALUE
@@ -242,6 +281,14 @@ def _boolean_warning_code(
 
 
 def _is_string_scalar(raw_value: str) -> bool:
+    """Return whether string scalar.
+
+    Args:
+        raw_value: Raw value used by this operation.
+
+    Returns:
+        Whether string scalar.
+    """
     if not raw_value:
         return False
     if (
@@ -259,6 +306,14 @@ def _is_string_scalar(raw_value: str) -> bool:
 
 
 def _unquoted(raw_value: str) -> str:
+    """Execute unquoted.
+
+    Args:
+        raw_value: Raw value used by this operation.
+
+    Returns:
+        str result produced by unquoted.
+    """
     if (
         len(raw_value) >= 2
         and raw_value[0] in {"'", '"'}
@@ -275,6 +330,12 @@ def _record_index_errors(
     findings: dict[OperationalDataIntegrityWarningCode, _WarningAccumulator],
     vault_status: ObsidianVaultStatus,
 ) -> None:
+    """Record index errors.
+
+    Args:
+        findings: Findings used by this operation.
+        vault_status: Vault status used by this operation.
+    """
     count = max(vault_status.error_notes, len(vault_status.index_errors))
     if count == 0:
         return
@@ -294,6 +355,14 @@ def _record(
     note_path: str | None = None,
     field_name: str | None = None,
 ) -> None:
+    """Execute record.
+
+    Args:
+        findings: Findings used by this operation.
+        code: Code used by this operation.
+        note_path: Note path used by this operation.
+        field_name: Field name used by this operation.
+    """
     finding = findings.setdefault(code, _WarningAccumulator())
     finding.count += 1
     if note_path is not None:
@@ -307,6 +376,16 @@ def _snapshot(
     findings: dict[OperationalDataIntegrityWarningCode, _WarningAccumulator],
     checked: bool = True,
 ) -> OperationalDataIntegritySnapshot:
+    """Execute snapshot.
+
+    Args:
+        scanned_notes: Scanned notes used by this operation.
+        findings: Findings used by this operation.
+        checked: Checked used by this operation.
+
+    Returns:
+        OperationalDataIntegritySnapshot result produced by snapshot.
+    """
     warnings = tuple(
         OperationalDataIntegrityWarning(
             code=code,

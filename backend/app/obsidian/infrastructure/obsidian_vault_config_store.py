@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from typing_extensions import TypedDict
+
 from app.obsidian.infrastructure.markdown.paths import (
     resolve_vault_path,
     safe_relative_path,
@@ -12,7 +14,6 @@ from app.obsidian.infrastructure.markdown.paths import (
 from app.shared.exceptions.obsidian_exceptions import ObsidianValidationError
 from app.shared.serialization.orjson_codec import dumps_pretty_json, loads_json
 from app.shared.types.extra_types import JSONObject, JSONValue
-from typing_extensions import TypedDict
 
 
 class ObsidianVaultConfigPayload(TypedDict, closed=True):
@@ -132,6 +133,14 @@ class ObsidianVaultConfigStore:
 
 
 def _resolve_config_path(config_path: str) -> Path:
+    """Resolve config path.
+
+    Args:
+        config_path: Config path used by this operation.
+
+    Returns:
+        Resolved config path.
+    """
     path = Path(config_path).expanduser()
     if not path.is_absolute():
         path = Path.cwd() / path
@@ -139,11 +148,27 @@ def _resolve_config_path(config_path: str) -> Path:
 
 
 def _normalized_alexandria_root(alexandria_root: str) -> str:
+    """Execute normalized alexandria root.
+
+    Args:
+        alexandria_root: Alexandria root used by this operation.
+
+    Returns:
+        str result produced by normalized alexandria root.
+    """
     root = alexandria_root.strip() or "."
     return str(safe_relative_path(root))
 
 
 def _payload_from_json(value: JSONValue) -> ObsidianVaultConfigPayload:
+    """Execute payload from json.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        ObsidianVaultConfigPayload result produced by payload from json.
+    """
     if not isinstance(value, dict):
         raise ObsidianValidationError("Obsidian vault settings must be a JSON object")
     vault_path = value.get("vault_path")

@@ -40,6 +40,14 @@ class McpToolsResultPayload(McpProtocolPayloadSchema):
     @field_validator("tools", mode="before")
     @classmethod
     def _filter_tool_objects(cls, value: JSONValue) -> JSONValue:
+        """Execute filter tool objects.
+
+        Args:
+            value: Value being processed.
+
+        Returns:
+            JSONValue result produced by filter tool objects.
+        """
         if isinstance(value, list):
             return tuple(item for item in value if isinstance(item, dict))
         return value
@@ -112,6 +120,14 @@ def mcp_smoke_ok(payload: JSONValue) -> bool:
 
 
 def _object_or_empty(payload: JSONValue) -> JSONObject:
+    """Execute object or empty.
+
+    Args:
+        payload: Validated payload for this operation.
+
+    Returns:
+        JSONObject result produced by object or empty.
+    """
     if isinstance(payload, dict):
         return payload
     return {}

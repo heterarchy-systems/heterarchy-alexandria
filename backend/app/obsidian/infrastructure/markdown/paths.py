@@ -4,11 +4,24 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from unicodedata import normalize
 
 from app.shared.exceptions.obsidian_exceptions import ObsidianValidationError
 
 NOTE_SUFFIX = ".md"
 _SAFE_FILENAME_PATTERN = re.compile(r"[^A-Za-z0-9가-힣._ -]+")
+
+
+def canonical_relative_path(relative_path: str | Path) -> str:
+    """Return the OS-independent logical identity for a vault-relative path.
+
+    Args:
+        relative_path: Physical or client-supplied vault-relative path.
+
+    Returns:
+        POSIX-separated Unicode NFC path used by Alexandria read models.
+    """
+    return normalize("NFC", str(relative_path).replace("\\", "/"))
 
 
 def resolve_vault_path(vault_path: str | Path) -> Path:
@@ -94,6 +107,15 @@ def discover_managed_markdown_paths(
 
 
 def _is_visible_managed_path(managed_root: Path, candidate: Path) -> bool:
+    """Return whether visible managed path.
+
+    Args:
+        managed_root: Managed root used by this operation.
+        candidate: Candidate used by this operation.
+
+    Returns:
+        Whether visible managed path.
+    """
     try:
         relative = candidate.relative_to(managed_root)
     except ValueError:
@@ -134,6 +156,15 @@ def validate_discovered_note_path(
 
 
 def _has_symlink_component(root: Path, candidate: Path) -> bool:
+    """Return whether symlink component.
+
+    Args:
+        root: Root used by this operation.
+        candidate: Candidate used by this operation.
+
+    Returns:
+        Whether symlink component.
+    """
     try:
         relative = candidate.relative_to(root)
     except ValueError:

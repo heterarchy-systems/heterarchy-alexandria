@@ -30,7 +30,15 @@ def _initial_graph_state(
     thread_id: str,
     ask: ObsidianLibrarianAsk,
 ) -> ObsidianLibrarianGraphState:
-    """Build the first serializable LangGraph state."""
+    """Build the first serializable LangGraph state.
+
+    Args:
+        thread_id: Identifier for thread.
+        ask: Ask used by this operation.
+
+    Returns:
+        ObsidianLibrarianGraphState result produced by initial graph state.
+    """
     return {
         "thread_id": thread_id,
         "query": ask.query,
@@ -55,14 +63,28 @@ def _initial_graph_state(
 def _result_from_graph_output(
     output: ObsidianLibrarianGraphState,
 ) -> ObsidianLibrarianGraphResult:
-    """Convert raw LangGraph output into the service boundary result."""
+    """Convert raw LangGraph output into the service boundary result.
+
+    Args:
+        output: Output used by this operation.
+
+    Returns:
+        ObsidianLibrarianGraphResult result produced by result from graph output.
+    """
     state = _json_state(output)
     status = _state_optional_string(output, "workflow_status") or "completed"
     return {"state": state, "status": status}
 
 
 def _json_state(output: ObsidianLibrarianGraphState) -> JSONObject:
-    """Drop LangGraph runtime-only keys and return a JSON-compatible state."""
+    """Drop LangGraph runtime-only keys and return a JSON-compatible state.
+
+    Args:
+        output: Output used by this operation.
+
+    Returns:
+        JSONObject result produced by json state.
+    """
     state: JSONObject = {}
     for key, value in output.items():
         if key == "__interrupt__":
@@ -72,7 +94,14 @@ def _json_state(output: ObsidianLibrarianGraphState) -> JSONObject:
 
 
 def _pending_action_ids(state: ObsidianLibrarianGraphState) -> set[str]:
-    """Return the pending action id set from state."""
+    """Return the pending action id set from state.
+
+    Args:
+        state: State used by this operation.
+
+    Returns:
+        set[str] result produced by pending action ids.
+    """
     ids: set[str] = set()
     for item in _state_json_object_list(state, "pending_actions"):
         action_id = item.get("id")
@@ -82,7 +111,14 @@ def _pending_action_ids(state: ObsidianLibrarianGraphState) -> set[str]:
 
 
 def _ask_from_state(state: ObsidianLibrarianGraphState) -> ObsidianLibrarianAsk:
-    """Rebuild an ask command from serializable LangGraph state."""
+    """Rebuild an ask command from serializable LangGraph state.
+
+    Args:
+        state: State used by this operation.
+
+    Returns:
+        ObsidianLibrarianAsk result produced by ask from state.
+    """
     return ObsidianLibrarianAsk(
         query=_state_string(state, "query"),
         active_note_path=_state_optional_string(state, "active_note_path"),
@@ -99,7 +135,14 @@ def _ask_from_state(state: ObsidianLibrarianGraphState) -> ObsidianLibrarianAsk:
 def _workflow_snapshot_from_state(
     state: ObsidianLibrarianGraphState,
 ) -> ObsidianLibrarianWorkflow:
-    """Build a transient workflow entity for post-approval action helpers."""
+    """Build a transient workflow entity for post-approval action helpers.
+
+    Args:
+        state: State used by this operation.
+
+    Returns:
+        ObsidianLibrarianWorkflow result produced by workflow snapshot from state.
+    """
     current = datetime.now(UTC)
     return ObsidianLibrarianWorkflow(
         thread_id=_state_string(state, "thread_id"),

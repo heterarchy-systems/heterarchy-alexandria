@@ -6,8 +6,11 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path
 
-from app.obsidian.application.graph.relations.obsidian_graph_edge_builder import (
-    relation_edges_from_note,
+from app.obsidian.application.graph.relations.native_obsidian_graph_edge_builder import (
+    create_native_obsidian_graph_edge_builder,
+)
+from app.obsidian.application.graph.relations.obsidian_graph_edge_compute_contracts import (
+    ObsidianGraphEdgeComputeProvider,
 )
 from app.obsidian.application.notes.frontmatter.obsidian_context_frontmatter_mapper import (
     context_content_hash,
@@ -16,11 +19,6 @@ from app.obsidian.application.notes.frontmatter.obsidian_context_frontmatter_map
 )
 from app.obsidian.application.notes.frontmatter.obsidian_frontmatter_redaction import (
     frontmatter_contains_secret_field,
-)
-from app.obsidian.application.notes.obsidian_note_templates import (
-    chunks_for_body,
-    sha256_text,
-    title_from_document,
 )
 from app.obsidian.domain.contracts.obsidian_contracts import ObsidianNoteIndex
 from app.obsidian.domain.event_enum.obsidian_enums import AlexandriaNoteType
@@ -32,7 +30,19 @@ from app.obsidian.infrastructure.markdown.frontmatter import (
     frontmatter_json,
     frontmatter_list,
     frontmatter_text,
-    parse_markdown_document,
+)
+from app.obsidian.infrastructure.markdown.native_note_index_compute import (
+    create_native_note_index_compute_provider,
+)
+from app.obsidian.infrastructure.markdown.note_index_compute_contracts import (
+    NoteIndexComputeProvider,
+)
+
+_NOTE_INDEX_COMPUTE_PROVIDER: NoteIndexComputeProvider = (
+    create_native_note_index_compute_provider()
+)
+_GRAPH_EDGE_COMPUTE_PROVIDER: ObsidianGraphEdgeComputeProvider = (
+    create_native_obsidian_graph_edge_builder()
 )
 
 
@@ -56,21 +66,20 @@ def note_index_from_path(
         raise ValueError(
             "FRONTMATTER_SECRET_DETECTED: frontmatter contains a secret-like field"
         )
-    document = parse_markdown_document(text)
-    note_type = _note_type_from_frontmatter(document.frontmatter)
-    note_id = frontmatter_text(document.frontmatter, "id")
+    computed = _NOTE_INDEX_COMPUTE_PROVIDER.compute(text, relative_path)
+    note_type = _note_type_from_frontmatter(computed.frontmatter)
+    note_id = frontmatter_text(computed.frontmatter, "id")
     if note_type is None:
         return None
     if not note_id:
         raise ValueError("FRONTMATTER_PARSE_ERROR: managed note is missing id")
     stat = path.stat()
-    body = document.body.rstrip("\n")
-    title = title_from_document(document.frontmatter, body, path)
-    frontmatter = frontmatter_json(document.frontmatter)
+    body = computed.body
+    frontmatter = frontmatter_json(computed.frontmatter)
     frontmatter["alexandria_type"] = note_type.value
-    project = frontmatter_text(document.frontmatter, "project")
-    status = frontmatter_text(document.frontmatter, "status") or "active"
-    note_content_hash = sha256_text(text)
+    project = frontmatter_text(computed.frontmatter, "project")
+    status = frontmatter_text(computed.frontmatter, "status") or "active"
+    note_content_hash = computed.content_hash
     if note_type is AlexandriaNoteType.CONTEXT:
         identity = context_identity_from_frontmatter(
             frontmatter,
@@ -87,19 +96,19 @@ def note_index_from_path(
         note_id=note_id,
         relative_path=relative_path,
         alexandria_type=note_type,
-        title=title,
+        title=computed.title,
         status=status,
-        tags=tuple(frontmatter_list(document.frontmatter, "tags")),
+        tags=tuple(frontmatter_list(computed.frontmatter, "tags")),
         project=project,
-        source=frontmatter_text(document.frontmatter, "source"),
+        source=frontmatter_text(computed.frontmatter, "source"),
         content_hash=note_content_hash,
         frontmatter=frontmatter,
         body=body,
         size_bytes=stat.st_size,
         modified_at=datetime.fromtimestamp(stat.st_mtime, tz=UTC),
-        chunks=tuple(chunks_for_body(body, title=title)),
+        chunks=computed.chunks,
         edges=tuple(
-            relation_edges_from_note(
+            _GRAPH_EDGE_COMPUTE_PROVIDER.build(
                 note_id=note_id,
                 relative_path=relative_path,
                 alexandria_root=alexandria_root,
@@ -113,6 +122,14 @@ def note_index_from_path(
 def _note_type_from_frontmatter(
     frontmatter: Mapping[str, FrontmatterValue],
 ) -> AlexandriaNoteType | None:
+    """Execute note type from frontmatter.
+
+    Args:
+        frontmatter: Frontmatter used by this operation.
+
+    Returns:
+        AlexandriaNoteType | None result produced by note type from frontmatter.
+    """
     explicit_value = frontmatter_text(frontmatter, "alexandria_type")
     if explicit_value:
         note_type = normalized_alexandria_note_type(explicit_value)

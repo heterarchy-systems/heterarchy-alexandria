@@ -25,6 +25,14 @@ _BLOCKING_CONTRADICTION_PATTERNS = (
 def _missing_ref_reasons(
     source_refs: tuple[MemoryCompactSourceRef, ...],
 ) -> tuple[str, ...]:
+    """Execute missing ref reasons.
+
+    Args:
+        source_refs: Source refs used by this operation.
+
+    Returns:
+        tuple[str, ...] result produced by missing ref reasons.
+    """
     if not source_refs:
         return ("source_refs_missing",)
     reasons: list[str] = []
@@ -45,6 +53,15 @@ def _unlinked_source_refs(
     evidence_summary: str,
     source_refs: tuple[MemoryCompactSourceRef, ...],
 ) -> tuple[str, ...]:
+    """Execute unlinked source refs.
+
+    Args:
+        evidence_summary: Evidence summary used by this operation.
+        source_refs: Source refs used by this operation.
+
+    Returns:
+        tuple[str, ...] result produced by unlinked source refs.
+    """
     normalized_summary = evidence_summary.lower()
     reasons: list[str] = []
     for source_ref in source_refs:
@@ -62,6 +79,15 @@ def _stale_reasons(
     source_refs: tuple[MemoryCompactSourceRef, ...],
     source_observations: tuple[MemoryCompactSourceObservation, ...],
 ) -> tuple[str, ...]:
+    """Execute stale reasons.
+
+    Args:
+        source_refs: Source refs used by this operation.
+        source_observations: Source observations used by this operation.
+
+    Returns:
+        tuple[str, ...] result produced by stale reasons.
+    """
     observations = {
         _observation_key(observation): observation
         for observation in source_observations
@@ -82,6 +108,14 @@ def _stale_reasons(
 
 
 def _contradictions(markdown_body: str) -> tuple[str, ...]:
+    """Execute contradictions.
+
+    Args:
+        markdown_body: Markdown body used by this operation.
+
+    Returns:
+        tuple[str, ...] result produced by contradictions.
+    """
     body = markdown_body.lower()
     return tuple(
         pattern.replace(" ", "_")
@@ -97,6 +131,18 @@ def _recommended_actions(
     stale_reasons: tuple[str, ...],
     contradictions: tuple[str, ...],
 ) -> tuple[str, ...]:
+    """Execute recommended actions.
+
+    Args:
+        verdict: Verdict used by this operation.
+        scores: Scores used by this operation.
+        missing_refs: Missing refs used by this operation.
+        stale_reasons: Stale reasons used by this operation.
+        contradictions: Contradictions used by this operation.
+
+    Returns:
+        tuple[str, ...] result produced by recommended actions.
+    """
     actions: list[str] = []
     if missing_refs:
         actions.append("repair_source_refs")
@@ -127,10 +173,26 @@ def _recommended_actions(
 
 
 def _source_ref_key(source_ref: MemoryCompactSourceRef) -> tuple[str, str | None]:
+    """Execute source ref key.
+
+    Args:
+        source_ref: Source ref used by this operation.
+
+    Returns:
+        tuple[str, str | None] result produced by source ref key.
+    """
     return source_ref.source_id, source_ref.detail_path
 
 
 def _observation_key(
     observation: MemoryCompactSourceObservation,
 ) -> tuple[str, str | None]:
+    """Execute observation key.
+
+    Args:
+        observation: Observation used by this operation.
+
+    Returns:
+        tuple[str, str | None] result produced by observation key.
+    """
     return observation.source_id, observation.detail_path

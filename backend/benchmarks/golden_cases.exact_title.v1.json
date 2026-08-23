@@ -13,21 +13,21 @@
       "expected_titles": [
         "Neo4j 기능 05 Graph-aware Context Retrieval"
       ],
-      "project": "alexandria-hermes"
+      "project": "heterarchy-alexandria"
     },
     {
       "query": "Alexandria Memory Steward Contract",
       "expected_titles": [
         "Alexandria Memory Steward Contract"
       ],
-      "project": "alexandria-hermes"
+      "project": "heterarchy-alexandria"
     },
     {
-      "query": "Alexandria-Hermes Source Index",
+      "query": "heterarchy-alexandria Project Index",
       "expected_titles": [
-        "Alexandria-Hermes Source Index"
+        "heterarchy-alexandria Project Index"
       ],
-      "project": "alexandria-hermes"
+      "project": "heterarchy-alexandria"
     }
   ]
 }

@@ -15,6 +15,11 @@ class ContextMemoryCandidateRecallSource(IMemoryCandidateRecallSource):
     """Adapt the existing Context search service to reconciliation recall."""
 
     def __init__(self, search_service: ContextService) -> None:
+        """Initialize ContextMemoryCandidateRecallSource state and dependencies.
+
+        Args:
+            search_service: Search service dependency.
+        """
         self._search_service = search_service
 
     async def recall(

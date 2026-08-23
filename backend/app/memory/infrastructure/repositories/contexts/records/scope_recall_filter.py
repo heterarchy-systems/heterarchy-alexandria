@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.memory.domain.contracts.context_recall_contracts import ScopeIdentity
-from app.memory.domain.event_enum.context_enums import ContextScope
 from sqlalchemy import and_, bindparam, or_
 from sqlalchemy.sql.elements import ColumnElement
+
+from app.memory.domain.contracts.context_recall_contracts import ScopeIdentity
+from app.memory.domain.event_enum.context_enums import ContextScope
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

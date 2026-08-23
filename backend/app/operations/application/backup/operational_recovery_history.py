@@ -15,6 +15,11 @@ from app.shared.types.extra_types import JSONObject
 
 
 def _active_recovery_run_id() -> str | None:
+    """Execute active recovery run id.
+
+    Returns:
+        str | None result produced by active recovery run id.
+    """
     path = _recovery_dir() / "active-run.json"
     if not path.exists():
         return None
@@ -26,6 +31,11 @@ def _active_recovery_run_id() -> str | None:
 
 
 def _last_successful_recovery_run_id() -> str | None:
+    """Execute last successful recovery run id.
+
+    Returns:
+        str | None result produced by last successful recovery run id.
+    """
     recovery_dir = _recovery_dir()
     if not recovery_dir.exists():
         return None
@@ -50,6 +60,14 @@ def _last_successful_recovery_run_id() -> str | None:
 
 
 def _load_recovery_json(path: Path) -> JSONObject | None:
+    """Load recovery json.
+
+    Args:
+        path: Path used by this operation.
+
+    Returns:
+        Loaded recovery json.
+    """
     try:
         payload = loads_json(path.read_bytes())
     except (OSError, ValueError):

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.memory.domain.contracts.context_contracts import ContextChunkEmbeddingUpdate
 from app.memory.domain.contracts.context_recall_contracts import (
     ContextFtsRecall,
@@ -23,7 +25,6 @@ from app.memory.infrastructure.repositories.contexts.obsidian.obsidian_context_q
     ObsidianContextQueryStore,
 )
 from app.shared.types.extra_types import JSONObject
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class SqlAlchemyObsidianContextSearchSource(IContextSearchSource):

@@ -5,8 +5,9 @@ from __future__ import annotations
 import logging
 import re
 
-from app.shared.types.extra_types import JSONObject, JSONValue
 from pydantic import TypeAdapter, ValidationError
+
+from app.shared.types.extra_types import JSONObject, JSONValue
 
 _JSON_OBJECT_ADAPTER = TypeAdapter(JSONObject)
 _SENSITIVE_ASSIGNMENT_RE = re.compile(
@@ -59,6 +60,14 @@ def redact_sensitive_json_object(value: JSONObject) -> JSONObject:
 
 
 def _redact_json_value(value: JSONValue) -> JSONValue:
+    """Redact json value.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        JSONValue result produced by redact json value.
+    """
     if isinstance(value, str):
         return redact_sensitive_text(value) or ""
     if isinstance(value, dict):

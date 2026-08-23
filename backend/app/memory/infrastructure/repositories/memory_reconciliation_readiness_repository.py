@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.memory.domain.entities.memory_reconciliation_diagnostics import (
     MemoryReconciliationStoreDiagnostics,
 )
@@ -18,8 +21,6 @@ from app.memory.infrastructure.models.reconciliation_models import (
     MemoryReconciliationPlanORM,
     MemoryReconciliationResultORM,
 )
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class SqlAlchemyMemoryReconciliationReadinessRepository(
@@ -32,6 +33,11 @@ class SqlAlchemyMemoryReconciliationReadinessRepository(
     """
 
     def __init__(self, session: AsyncSession) -> None:
+        """Initialize SqlAlchemyMemoryReconciliationReadinessRepository state and dependencies.
+
+        Args:
+            session: Active session used by this operation.
+        """
         self._session = session
 
     async def snapshot(self) -> MemoryReconciliationStoreDiagnostics:
@@ -76,12 +82,22 @@ class SqlAlchemyMemoryReconciliationReadinessRepository(
         )
 
     async def _count_plans(self) -> int:
+        """Execute count plans.
+
+        Returns:
+            int result produced by count plans.
+        """
         value = await self._session.scalar(
             select(func.count()).select_from(MemoryReconciliationPlanORM)
         )
         return int(value or 0)
 
     async def _count_review_plans(self) -> int:
+        """Execute count review plans.
+
+        Returns:
+            int result produced by count review plans.
+        """
         value = await self._session.scalar(
             select(func.count())
             .select_from(MemoryReconciliationPlanORM)
@@ -90,6 +106,11 @@ class SqlAlchemyMemoryReconciliationReadinessRepository(
         return int(value or 0)
 
     async def _count_results(self) -> int:
+        """Execute count results.
+
+        Returns:
+            int result produced by count results.
+        """
         value = await self._session.scalar(
             select(func.count()).select_from(MemoryReconciliationResultORM)
         )
@@ -99,6 +120,14 @@ class SqlAlchemyMemoryReconciliationReadinessRepository(
         self,
         status: MemoryReconciliationStatus,
     ) -> int:
+        """Execute count results by status.
+
+        Args:
+            status: Status value used by this operation.
+
+        Returns:
+            int result produced by count results by status.
+        """
         value = await self._session.scalar(
             select(func.count())
             .select_from(MemoryReconciliationResultORM)
@@ -107,6 +136,14 @@ class SqlAlchemyMemoryReconciliationReadinessRepository(
         return int(value or 0)
 
     async def _count_conflicts(self, status: MemoryConflictStatus) -> int:
+        """Execute count conflicts.
+
+        Args:
+            status: Status value used by this operation.
+
+        Returns:
+            int result produced by count conflicts.
+        """
         value = await self._session.scalar(
             select(func.count())
             .select_from(MemoryConflictSetORM)
@@ -115,12 +152,22 @@ class SqlAlchemyMemoryReconciliationReadinessRepository(
         return int(value or 0)
 
     async def _count_temporal_states(self) -> int:
+        """Execute count temporal states.
+
+        Returns:
+            int result produced by count temporal states.
+        """
         value = await self._session.scalar(
             select(func.count()).select_from(ContextTemporalStateORM)
         )
         return int(value or 0)
 
     async def _count_hard_delete_results(self) -> int:
+        """Execute count hard delete results.
+
+        Returns:
+            int result produced by count hard delete results.
+        """
         value = await self._session.scalar(
             select(func.count())
             .select_from(MemoryReconciliationResultORM)
@@ -129,6 +176,11 @@ class SqlAlchemyMemoryReconciliationReadinessRepository(
         return int(value or 0)
 
     async def _latest_failure(self) -> MemoryReconciliationResultORM | None:
+        """Execute latest failure.
+
+        Returns:
+            MemoryReconciliationResultORM | None result produced by latest failure.
+        """
         return await self._session.scalar(
             select(MemoryReconciliationResultORM)
             .where(

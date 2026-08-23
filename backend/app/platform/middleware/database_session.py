@@ -5,11 +5,12 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
-from app.shared.infrastructure.database import Database
 from fastapi import FastAPI
 from starlette.middleware.base import RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
+
+from app.shared.infrastructure.database import Database
 
 DatabaseResolver = Callable[[], Awaitable[Database]]
 _TRANSACTION_STATE_SCOPE_KEY = "alexandria.database_transaction_state"
@@ -34,6 +35,14 @@ def mark_database_transaction_independent(request: Request) -> None:
 
 
 def _database_transaction_is_independent(request: Request) -> bool:
+    """Execute database transaction is independent.
+
+    Args:
+        request: Validated request for this operation.
+
+    Returns:
+        Whether database transaction is independent.
+    """
     state = request.scope.get(_TRANSACTION_STATE_SCOPE_KEY)
     return isinstance(state, _DatabaseTransactionState) and state.independent
 

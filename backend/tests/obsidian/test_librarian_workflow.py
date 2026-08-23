@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import os
-
 from pathlib import Path
 
 import anyio
 import pytest
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.librarian.domain.contracts.hermes_collaboration_contracts import (
     HermesLibrarianAskCommand,
 )
@@ -50,14 +52,11 @@ from app.obsidian.infrastructure.repositories.obsidian_workflow_repository impor
 from app.shared.exceptions.librarian_exceptions import LibrarianResourceNotFoundError
 from app.shared.exceptions.obsidian_exceptions import ObsidianValidationError
 from app.shared.infrastructure.database import Database
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 _OBSIDIAN_MODELS_LOADED = _obsidian_index_models
 
 
-def _database_url(path: Path) -> str:
-    del path
+def _database_url() -> str:
     return os.environ["DATABASE_URL"]
 
 
@@ -66,9 +65,7 @@ async def _services(
     *,
     delegate_service: ObsidianLibrarianDelegateService | None = None,
 ) -> tuple[Database, AsyncSession, ObsidianService, ObsidianLibrarianWorkflowService]:
-    database = Database(
-        database_url=_database_url(tmp_path / "obsidian.db"), create_schema=True
-    )
+    database = Database(database_url=_database_url(), create_schema=True)
     await database.initialize()
     session = database.session()
     obsidian = ObsidianService(

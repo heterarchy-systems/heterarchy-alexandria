@@ -192,6 +192,17 @@ def _action(
     relation: MemoryRelationType | None,
     reason: str,
 ) -> MemoryReconciliationAction:
+    """Execute action.
+
+    Args:
+        action_type: Action type used by this operation.
+        target_context_id: Identifier for target context.
+        relation: Relation used by this operation.
+        reason: Reason used by this operation.
+
+    Returns:
+        MemoryReconciliationAction result produced by action.
+    """
     return MemoryReconciliationAction(
         action_type=action_type,
         target_context_id=target_context_id,

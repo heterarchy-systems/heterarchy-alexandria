@@ -13,7 +13,7 @@ from app.librarian.domain.types.agent_payload_types import (
 )
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class AgentCreate:
     """Fields required to persist an agent profile."""
 
@@ -34,12 +34,8 @@ class AgentCreate:
 
     def __post_init__(self) -> None:
         """Normalize profile collections to immutable values."""
-        object.__setattr__(self, "capabilities", tuple(self.capabilities))
-        object.__setattr__(
-            self,
-            "librarian_specialties",
-            tuple(self.librarian_specialties),
-        )
+        self.capabilities = tuple(self.capabilities)
+        self.librarian_specialties = tuple(self.librarian_specialties)
 
     def to_record(self) -> AgentCreateRecord:
         """Return persistence fields for SQLAlchemy model construction.

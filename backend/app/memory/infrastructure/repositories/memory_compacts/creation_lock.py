@@ -9,13 +9,14 @@ from contextlib import asynccontextmanager
 from fcntl import LOCK_EX, LOCK_NB, LOCK_UN, flock
 from pathlib import Path
 
+from asyncer import asyncify
+
 from app.memory.infrastructure.repositories.memory_compacts.critical_task import (
     wait_for_critical_task,
 )
 from app.memory.infrastructure.repositories.memory_compacts.obsidian_markdown_path_policy import (
     resolve_base_dir,
 )
-from asyncer import asyncify
 
 _CREATION_LOCK_NAME = ".memory-compact-creation.lock"
 _LOCK_RETRY_DELAY_SECONDS = 0.01
@@ -49,6 +50,11 @@ class MemoryCompactCreationLock:
             await wait_for_critical_task(release_task)
 
     async def _acquire_without_cancellation_leak(self) -> int:
+        """Acquire without cancellation leak.
+
+        Returns:
+            int result produced by acquire without cancellation leak.
+        """
         open_task = asyncio.ensure_future(asyncify(self._open_descriptor)())
         try:
             descriptor = await wait_for_critical_task(open_task)
@@ -72,11 +78,21 @@ class MemoryCompactCreationLock:
             raise
 
     def _open_descriptor(self) -> int:
+        """Open descriptor.
+
+        Returns:
+            int result produced by open descriptor.
+        """
         self._path.parent.mkdir(parents=True, exist_ok=True)
         return os.open(self._path, os.O_CREAT | os.O_RDWR, 0o600)
 
 
 def _release(descriptor: int) -> None:
+    """Execute release.
+
+    Args:
+        descriptor: Descriptor used by this operation.
+    """
     try:
         flock(descriptor, LOCK_UN)
     finally:

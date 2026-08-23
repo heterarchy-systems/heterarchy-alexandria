@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from app.memory.domain.event_enum.context_enums import ContextKind, ContextScope
-from app.memory.infrastructure.models.context_models import ContextORM
 from sqlalchemy import Select, bindparam, cast, select
 from sqlalchemy.dialects.postgresql import JSONB
+
+from app.memory.domain.event_enum.context_enums import ContextKind, ContextScope
+from app.memory.infrastructure.models.context_models import ContextORM
 
 
 def filtered_context_statement(

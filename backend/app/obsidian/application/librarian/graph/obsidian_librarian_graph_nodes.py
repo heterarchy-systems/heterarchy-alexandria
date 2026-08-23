@@ -44,6 +44,14 @@ class ObsidianLibrarianGraphNodes:
         self,
         state: ObsidianLibrarianGraphState,
     ) -> ObsidianLibrarianGraphState:
+        """Collect librarian graph context.
+
+        Args:
+            state: Current workflow state.
+
+        Returns:
+            Graph state populated with collected librarian context.
+        """
         ask = ask_from_state(state)
         response = await self._obsidian_service.ask_librarian(
             ObsidianLibrarianAsk(
@@ -66,6 +74,14 @@ class ObsidianLibrarianGraphNodes:
         self,
         state: ObsidianLibrarianGraphState,
     ) -> ObsidianLibrarianGraphState:
+        """Plan librarian graph actions.
+
+        Args:
+            state: Current workflow state.
+
+        Returns:
+            Graph state populated with planned librarian actions.
+        """
         pending_actions = pending_actions_from_state(state)
         return {
             "pending_actions": pending_actions,
@@ -79,10 +95,26 @@ class ObsidianLibrarianGraphNodes:
         self,
         state: ObsidianLibrarianGraphState,
     ) -> ObsidianLibrarianGraphState:
+        """Execute approved librarian graph actions.
+
+        Args:
+            state: Current workflow state.
+
+        Returns:
+            Graph state after approved librarian actions execute.
+        """
         return await self._action_executor.execute(state)
 
     async def finalize(
         self,
         state: ObsidianLibrarianGraphState,
     ) -> ObsidianLibrarianGraphState:
+        """Finalize the librarian graph workflow state.
+
+        Args:
+            state: Current workflow state.
+
+        Returns:
+            Finalized librarian graph state.
+        """
         return {"workflow_status": "completed"}

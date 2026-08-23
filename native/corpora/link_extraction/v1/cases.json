@@ -1,0 +1,955 @@
+{
+  "schema_version": 1,
+  "feature": "link_extraction",
+  "baseline": "backend/app/obsidian/application/graph/relations/obsidian_graph_edge_builder.py",
+  "cases": [
+    {
+      "case_id": "frontmatter_and_body_baseline",
+      "note_id": "ctx_current",
+      "relative_path": "Alexandria/Contexts/Current.md",
+      "alexandria_root": "Alexandria",
+      "frontmatter": {
+        "source_refs": [
+          {
+            "id": "alexandria_start_here",
+            "path": "START_HERE.md",
+            "relation": "cites"
+          }
+        ],
+        "related": [
+          "Skills/Active/Web Research.md"
+        ]
+      },
+      "body": "Read [[Prompts/System/Research|research prompt]] and [[START_HERE]].",
+      "frontmatter_edges": [
+        {
+          "target_path": "START_HERE.md",
+          "target_note_id": "alexandria_start_here",
+          "relation": "cites",
+          "source_field": "source_refs"
+        },
+        {
+          "target_path": "Skills/Active/Web Research.md",
+          "target_note_id": null,
+          "relation": "related",
+          "source_field": "related"
+        }
+      ],
+      "expected_body_targets": [
+        "Alexandria/Prompts/System/Research.md",
+        "Alexandria/START_HERE.md"
+      ],
+      "expected_edges": [
+        {
+          "edge_id": "955e2b642f6907baefcbf09dd0c1a8dc64d9f8917302a2bf365880798919f836",
+          "source_note_id": "ctx_current",
+          "source_path": "Alexandria/Contexts/Current.md",
+          "target_note_id": "alexandria_start_here",
+          "target_path": "Alexandria/START_HERE.md",
+          "relation": "cites",
+          "confidence": 1.0,
+          "source_kind": "frontmatter",
+          "identity_material": "ctx_current|Alexandria/Contexts/Current.md|alexandria_start_here|Alexandria/START_HERE.md|cites|frontmatter"
+        },
+        {
+          "edge_id": "f1c00e7c612bc5b86c52fecd3a0f29f8e9b957c246824759dcf79e0a01b3af92",
+          "source_note_id": "ctx_current",
+          "source_path": "Alexandria/Contexts/Current.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Skills/Active/Web Research.md",
+          "relation": "related",
+          "confidence": 1.0,
+          "source_kind": "frontmatter",
+          "identity_material": "ctx_current|Alexandria/Contexts/Current.md||Alexandria/Skills/Active/Web Research.md|related|frontmatter"
+        },
+        {
+          "edge_id": "2e04e610790f0d369ae9331669192d39c5aa8039e966e84c482e5b52b11f3e4d",
+          "source_note_id": "ctx_current",
+          "source_path": "Alexandria/Contexts/Current.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Prompts/System/Research.md",
+          "relation": "wikilink",
+          "confidence": 0.5,
+          "source_kind": "wikilink",
+          "identity_material": "ctx_current|Alexandria/Contexts/Current.md||Alexandria/Prompts/System/Research.md|wikilink|wikilink"
+        },
+        {
+          "edge_id": "0a1c8b0db2c23163dc802a2199a3810fa0b2f4a5b2d0d918f143534bd42ea755",
+          "source_note_id": "ctx_current",
+          "source_path": "Alexandria/Contexts/Current.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/START_HERE.md",
+          "relation": "wikilink",
+          "confidence": 0.5,
+          "source_kind": "wikilink",
+          "identity_material": "ctx_current|Alexandria/Contexts/Current.md||Alexandria/START_HERE.md|wikilink|wikilink"
+        }
+      ]
+    },
+    {
+      "case_id": "legacy_inline_json_source_refs",
+      "note_id": "compact-current",
+      "relative_path": "Alexandria/Memory Compacts/Current.md",
+      "alexandria_root": "Alexandria",
+      "frontmatter": {
+        "source_refs": "[{\"id\":\"ref-1\",\"source_type\":\"obsidian_note\",\"source_id\":\"ctx-source\",\"detail_path\":\"Contexts/Source.md\"}]"
+      },
+      "body": "# Compact\n",
+      "frontmatter_edges": [
+        {
+          "target_path": "Contexts/Source.md",
+          "target_note_id": "ctx-source",
+          "relation": "cites",
+          "source_field": "source_refs"
+        }
+      ],
+      "expected_body_targets": [],
+      "expected_edges": [
+        {
+          "edge_id": "010289c8a50ed1d71dadc5dd0efdcfb5d67aea87fee11c5ecf5ff06fa4ae122a",
+          "source_note_id": "compact-current",
+          "source_path": "Alexandria/Memory Compacts/Current.md",
+          "target_note_id": "ctx-source",
+          "target_path": "Alexandria/Contexts/Source.md",
+          "relation": "cites",
+          "confidence": 1.0,
+          "source_kind": "frontmatter",
+          "identity_material": "compact-current|Alexandria/Memory Compacts/Current.md|ctx-source|Alexandria/Contexts/Source.md|cites|frontmatter"
+        }
+      ]
+    },
+    {
+      "case_id": "explicit_empty_source_ref_links",
+      "note_id": "compact-empty",
+      "relative_path": "Memory Compacts/Empty.md",
+      "alexandria_root": ".",
+      "frontmatter": {
+        "source_refs": [
+          {
+            "source_id": "external-run",
+            "detail_path": "operations/readiness/2026-07-31.md"
+          }
+        ],
+        "source_ref_links": []
+      },
+      "body": "# Compact\n",
+      "frontmatter_edges": [],
+      "expected_body_targets": [],
+      "expected_edges": []
+    },
+    {
+      "case_id": "comments_and_code_are_not_links",
+      "note_id": "ctx-comments",
+      "relative_path": "Alexandria/Contexts/Projects/Current.md",
+      "alexandria_root": "Alexandria",
+      "frontmatter": {},
+      "body": "Visible [[Contexts/Source]].\n`inline [[Inline Example]]`\n``double [[Double Tick]]``\n<!-- [[HTML Comment]] -->\n%% [[Obsidian Comment]] %%\n```md\n[[Fenced Example]]\n```\n    [[Indented Example]]\n",
+      "frontmatter_edges": [],
+      "expected_body_targets": [
+        "Alexandria/Contexts/Source.md"
+      ],
+      "expected_edges": [
+        {
+          "edge_id": "db53e168e4e85390b097ff95160c0edc3929761cbe5e18b96663f7040f7f5776",
+          "source_note_id": "ctx-comments",
+          "source_path": "Alexandria/Contexts/Projects/Current.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Contexts/Source.md",
+          "relation": "wikilink",
+          "confidence": 0.5,
+          "source_kind": "wikilink",
+          "identity_material": "ctx-comments|Alexandria/Contexts/Projects/Current.md||Alexandria/Contexts/Source.md|wikilink|wikilink"
+        }
+      ]
+    },
+    {
+      "case_id": "external_identifiers_and_markdown_links",
+      "note_id": "trade-journal",
+      "relative_path": "Contexts/Projects/Trader/Journal.md",
+      "alexandria_root": ".",
+      "frontmatter": {
+        "source_refs": [
+          "evidence:run-123:1",
+          "artifact:report-456",
+          "https://example.invalid/source"
+        ]
+      },
+      "body": "Evidence [[evidence:run-123:1]] and artifact [[artifact:report-456]].\nExternal [[https://example.invalid/note]] and [Markdown](Contexts/NoEdge.md).\nThe real note is [[Contexts/Projects/Trader/Index]].\n",
+      "frontmatter_edges": [
+        {
+          "target_path": "evidence:run-123:1",
+          "target_note_id": null,
+          "relation": "cites",
+          "source_field": "source_refs"
+        },
+        {
+          "target_path": "artifact:report-456",
+          "target_note_id": null,
+          "relation": "cites",
+          "source_field": "source_refs"
+        },
+        {
+          "target_path": "https://example.invalid/source",
+          "target_note_id": null,
+          "relation": "cites",
+          "source_field": "source_refs"
+        }
+      ],
+      "expected_body_targets": [
+        "Contexts/Projects/Trader/Index.md"
+      ],
+      "expected_edges": [
+        {
+          "edge_id": "786eac70d685cbf96e137f361628dc7db8148c1a1139cf9bc4af3e64d86f2398",
+          "source_note_id": "trade-journal",
+          "source_path": "Contexts/Projects/Trader/Journal.md",
+          "target_note_id": null,
+          "target_path": "Contexts/Projects/Trader/Index.md",
+          "relation": "wikilink",
+          "confidence": 0.5,
+          "source_kind": "wikilink",
+          "identity_material": "trade-journal|Contexts/Projects/Trader/Journal.md||Contexts/Projects/Trader/Index.md|wikilink|wikilink"
+        }
+      ]
+    },
+    {
+      "case_id": "root_vault_targets",
+      "note_id": "ctx-root",
+      "relative_path": "Contexts/Current.md",
+      "alexandria_root": ".",
+      "frontmatter": {
+        "source_refs": [
+          {
+            "id": "alexandria_start_here",
+            "path": "START_HERE.md",
+            "relation": "cites"
+          }
+        ]
+      },
+      "body": "Read [[START_HERE]] and [[Skills/한글 문서]].",
+      "frontmatter_edges": [
+        {
+          "target_path": "START_HERE.md",
+          "target_note_id": "alexandria_start_here",
+          "relation": "cites",
+          "source_field": "source_refs"
+        }
+      ],
+      "expected_body_targets": [
+        "START_HERE.md",
+        "Skills/한글 문서.md"
+      ],
+      "expected_edges": [
+        {
+          "edge_id": "d6885c2491cbc630b249bcc1b3bbff7478f9e7bed718b76bf1f6efba9c52128b",
+          "source_note_id": "ctx-root",
+          "source_path": "Contexts/Current.md",
+          "target_note_id": "alexandria_start_here",
+          "target_path": "START_HERE.md",
+          "relation": "cites",
+          "confidence": 1.0,
+          "source_kind": "frontmatter",
+          "identity_material": "ctx-root|Contexts/Current.md|alexandria_start_here|START_HERE.md|cites|frontmatter"
+        },
+        {
+          "edge_id": "0f4b64a880e2845172b4de8edb0ffb2557fb09ffb6f55c169afef8297697a0cd",
+          "source_note_id": "ctx-root",
+          "source_path": "Contexts/Current.md",
+          "target_note_id": null,
+          "target_path": "START_HERE.md",
+          "relation": "wikilink",
+          "confidence": 0.5,
+          "source_kind": "wikilink",
+          "identity_material": "ctx-root|Contexts/Current.md||START_HERE.md|wikilink|wikilink"
+        },
+        {
+          "edge_id": "534f36e9f0306b0ab3e0774761f71004b47502f5d12fde3a6124d7a0b7d79c9c",
+          "source_note_id": "ctx-root",
+          "source_path": "Contexts/Current.md",
+          "target_note_id": null,
+          "target_path": "Skills/한글 문서.md",
+          "relation": "wikilink",
+          "confidence": 0.5,
+          "source_kind": "wikilink",
+          "identity_material": "ctx-root|Contexts/Current.md||Skills/한글 문서.md|wikilink|wikilink"
+        }
+      ]
+    },
+    {
+      "case_id": "alias_heading_embed_unicode",
+      "note_id": "ctx-unicode",
+      "relative_path": "Alexandria/Contexts/유니코드.md",
+      "alexandria_root": "Alexandria",
+      "frontmatter": {},
+      "body": "[[Contexts/관계와 의미#정의|온톨로지 정의]]\n![[Assets/도표 이미지.png|640]]\n[[Path/日本語 Note#節]]\n",
+      "frontmatter_edges": [],
+      "expected_body_targets": [
+        "Alexandria/Contexts/관계와 의미.md",
+        "Alexandria/Assets/도표 이미지.png.md",
+        "Alexandria/Path/日本語 Note.md"
+      ],
+      "expected_edges": [
+        {
+          "edge_id": "41327ddf877077dd41420065f46c33c35719f99997bc057f4acce60db0ca4ce1",
+          "source_note_id": "ctx-unicode",
+          "source_path": "Alexandria/Contexts/유니코드.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Contexts/관계와 의미.md",
+          "relation": "wikilink",
+          "confidence": 0.5,
+          "source_kind": "wikilink",
+          "identity_material": "ctx-unicode|Alexandria/Contexts/유니코드.md||Alexandria/Contexts/관계와 의미.md|wikilink|wikilink"
+        },
+        {
+          "edge_id": "146b4b08b79ba4a4a8d504b77d35e9d6ab8d812c76430dda336ee0cda2280d33",
+          "source_note_id": "ctx-unicode",
+          "source_path": "Alexandria/Contexts/유니코드.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Assets/도표 이미지.png.md",
+          "relation": "wikilink",
+          "confidence": 0.5,
+          "source_kind": "wikilink",
+          "identity_material": "ctx-unicode|Alexandria/Contexts/유니코드.md||Alexandria/Assets/도표 이미지.png.md|wikilink|wikilink"
+        },
+        {
+          "edge_id": "08e0653b8c3315bd3e348708de3fe1623a646c470e0e29b4e0de9374137efb05",
+          "source_note_id": "ctx-unicode",
+          "source_path": "Alexandria/Contexts/유니코드.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Path/日本語 Note.md",
+          "relation": "wikilink",
+          "confidence": 0.5,
+          "source_kind": "wikilink",
+          "identity_material": "ctx-unicode|Alexandria/Contexts/유니코드.md||Alexandria/Path/日本語 Note.md|wikilink|wikilink"
+        }
+      ]
+    },
+    {
+      "case_id": "duplicates_and_self_link",
+      "note_id": "ctx-duplicate",
+      "relative_path": "Alexandria/Contexts/Duplicate.md",
+      "alexandria_root": "Alexandria",
+      "frontmatter": {
+        "related": [
+          "Contexts/Target.md",
+          "Contexts/Target.md",
+          {
+            "path": "Contexts/Target.md",
+            "relation": "related"
+          }
+        ]
+      },
+      "body": "[[Contexts/Target]] [[Contexts/Target|again]] [[Alexandria/Contexts/Duplicate]]",
+      "frontmatter_edges": [
+        {
+          "target_path": "Contexts/Target.md",
+          "target_note_id": null,
+          "relation": "related",
+          "source_field": "related"
+        },
+        {
+          "target_path": "Contexts/Target.md",
+          "target_note_id": null,
+          "relation": "related",
+          "source_field": "related"
+        },
+        {
+          "target_path": "Contexts/Target.md",
+          "target_note_id": null,
+          "relation": "related",
+          "source_field": "related"
+        }
+      ],
+      "expected_body_targets": [
+        "Alexandria/Contexts/Target.md",
+        "Alexandria/Contexts/Target.md",
+        "Alexandria/Contexts/Duplicate.md"
+      ],
+      "expected_edges": [
+        {
+          "edge_id": "771fa152aea2ae2d7db4849d33494b0a432cb66b2e4977340283911aeeec3532",
+          "source_note_id": "ctx-duplicate",
+          "source_path": "Alexandria/Contexts/Duplicate.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Contexts/Target.md",
+          "relation": "related",
+          "confidence": 1.0,
+          "source_kind": "frontmatter",
+          "identity_material": "ctx-duplicate|Alexandria/Contexts/Duplicate.md||Alexandria/Contexts/Target.md|related|frontmatter"
+        },
+        {
+          "edge_id": "5169cbef6a0e1e55fe723fcb2a45add821711fcbe251ac9e2345755fbce3ed22",
+          "source_note_id": "ctx-duplicate",
+          "source_path": "Alexandria/Contexts/Duplicate.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Contexts/Target.md",
+          "relation": "wikilink",
+          "confidence": 0.5,
+          "source_kind": "wikilink",
+          "identity_material": "ctx-duplicate|Alexandria/Contexts/Duplicate.md||Alexandria/Contexts/Target.md|wikilink|wikilink"
+        }
+      ]
+    },
+    {
+      "case_id": "rejected_and_malformed_targets",
+      "note_id": "ctx-rejected",
+      "relative_path": "Alexandria/Contexts/Rejected.md",
+      "alexandria_root": "Alexandria",
+      "frontmatter": {
+        "related": [
+          "../Secrets.md",
+          "/Absolute.md",
+          "#Fragment",
+          "./Contexts/Valid.md"
+        ]
+      },
+      "body": "[[../Traversal]] [[/Absolute]] [[#Fragment]] [[./Contexts/Valid]] [[Unclosed and [broken](Contexts/MarkdownOnly.md)",
+      "frontmatter_edges": [
+        {
+          "target_path": "../Secrets.md",
+          "target_note_id": null,
+          "relation": "related",
+          "source_field": "related"
+        },
+        {
+          "target_path": "/Absolute.md",
+          "target_note_id": null,
+          "relation": "related",
+          "source_field": "related"
+        },
+        {
+          "target_path": "#Fragment",
+          "target_note_id": null,
+          "relation": "related",
+          "source_field": "related"
+        },
+        {
+          "target_path": "./Contexts/Valid.md",
+          "target_note_id": null,
+          "relation": "related",
+          "source_field": "related"
+        }
+      ],
+      "expected_body_targets": [
+        "Alexandria/Contexts/Valid.md"
+      ],
+      "expected_edges": [
+        {
+          "edge_id": "bc9d03145bec98150f1cf5c833cac389934a57647639625be60e5bd6d28a63f0",
+          "source_note_id": "ctx-rejected",
+          "source_path": "Alexandria/Contexts/Rejected.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Contexts/Valid.md",
+          "relation": "related",
+          "confidence": 1.0,
+          "source_kind": "frontmatter",
+          "identity_material": "ctx-rejected|Alexandria/Contexts/Rejected.md||Alexandria/Contexts/Valid.md|related|frontmatter"
+        },
+        {
+          "edge_id": "d4ee23c19dc7139835dd9c89f8bfc2171277b324681b378c9564941ef23893a6",
+          "source_note_id": "ctx-rejected",
+          "source_path": "Alexandria/Contexts/Rejected.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Contexts/Valid.md",
+          "relation": "wikilink",
+          "confidence": 0.5,
+          "source_kind": "wikilink",
+          "identity_material": "ctx-rejected|Alexandria/Contexts/Rejected.md||Alexandria/Contexts/Valid.md|wikilink|wikilink"
+        }
+      ]
+    },
+    {
+      "case_id": "multiline_comments_and_long_fences",
+      "note_id": "ctx-multiline",
+      "relative_path": "Alexandria/Contexts/Multiline.md",
+      "alexandria_root": "Alexandria",
+      "frontmatter": {},
+      "body": "Before [[Contexts/Before]].\r\n<!-- comment starts\r\n[[Contexts/Hidden HTML]]\r\nends -->\r\n%% obsidian starts\r\n[[Contexts/Hidden Obsidian]]\r\n%%\r\n~~~md\r\n[[Contexts/Hidden Fence]]\r\n~~~~\r\nAfter [[Contexts/After]].\r\n",
+      "frontmatter_edges": [],
+      "expected_body_targets": [
+        "Alexandria/Contexts/Before.md",
+        "Alexandria/Contexts/After.md"
+      ],
+      "expected_edges": [
+        {
+          "edge_id": "a10f3ae16659bb60ef36b5cf45d448eeff6040e366a915ee14ba01f6edf1678c",
+          "source_note_id": "ctx-multiline",
+          "source_path": "Alexandria/Contexts/Multiline.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Contexts/Before.md",
+          "relation": "wikilink",
+          "confidence": 0.5,
+          "source_kind": "wikilink",
+          "identity_material": "ctx-multiline|Alexandria/Contexts/Multiline.md||Alexandria/Contexts/Before.md|wikilink|wikilink"
+        },
+        {
+          "edge_id": "f4d254266d70e00a661b163c1d19a605d4f8ea9091e47d11deea54a983e5ae99",
+          "source_note_id": "ctx-multiline",
+          "source_path": "Alexandria/Contexts/Multiline.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Contexts/After.md",
+          "relation": "wikilink",
+          "confidence": 0.5,
+          "source_kind": "wikilink",
+          "identity_material": "ctx-multiline|Alexandria/Contexts/Multiline.md||Alexandria/Contexts/After.md|wikilink|wikilink"
+        }
+      ]
+    },
+    {
+      "case_id": "relation_override_and_frontmatter_order",
+      "note_id": "ctx-relations",
+      "relative_path": "Alexandria/Contexts/Relations.md",
+      "alexandria_root": "Alexandria",
+      "frontmatter": {
+        "derived_from": [
+          {
+            "path": "Contexts/Base.md",
+            "target_note_id": "base"
+          },
+          {
+            "path": "Contexts/Override.md",
+            "relation": "supports"
+          }
+        ],
+        "supports": [
+          "Contexts/Support.md"
+        ],
+        "blocks": [
+          {
+            "target_path": "Contexts/Blocked.md",
+            "id": "blocked"
+          }
+        ],
+        "resolves": [
+          {
+            "path": "Contexts/Resolved.md",
+            "relation": "unknown"
+          }
+        ]
+      },
+      "body": "[[Contexts/Base]] [[Contexts/Support]].",
+      "frontmatter_edges": [
+        {
+          "target_path": "Contexts/Base.md",
+          "target_note_id": "base",
+          "relation": "derived_from",
+          "source_field": "derived_from"
+        },
+        {
+          "target_path": "Contexts/Override.md",
+          "target_note_id": null,
+          "relation": "supports",
+          "source_field": "derived_from"
+        },
+        {
+          "target_path": "Contexts/Support.md",
+          "target_note_id": null,
+          "relation": "supports",
+          "source_field": "supports"
+        },
+        {
+          "target_path": "Contexts/Blocked.md",
+          "target_note_id": "blocked",
+          "relation": "blocks",
+          "source_field": "blocks"
+        },
+        {
+          "target_path": "Contexts/Resolved.md",
+          "target_note_id": null,
+          "relation": "resolves",
+          "source_field": "resolves"
+        }
+      ],
+      "expected_body_targets": [
+        "Alexandria/Contexts/Base.md",
+        "Alexandria/Contexts/Support.md"
+      ],
+      "expected_edges": [
+        {
+          "edge_id": "8492deffaf70dc5d0aca53d74b9f3ec62546dfdb60aca92367062fdf982e83d5",
+          "source_note_id": "ctx-relations",
+          "source_path": "Alexandria/Contexts/Relations.md",
+          "target_note_id": "base",
+          "target_path": "Alexandria/Contexts/Base.md",
+          "relation": "derived_from",
+          "confidence": 1.0,
+          "source_kind": "frontmatter",
+          "identity_material": "ctx-relations|Alexandria/Contexts/Relations.md|base|Alexandria/Contexts/Base.md|derived_from|frontmatter"
+        },
+        {
+          "edge_id": "b8758ea48cf67a3edaeaa90dbcb23954ecfac816c3fe93c68d3435de6ada0eb7",
+          "source_note_id": "ctx-relations",
+          "source_path": "Alexandria/Contexts/Relations.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Contexts/Override.md",
+          "relation": "supports",
+          "confidence": 1.0,
+          "source_kind": "frontmatter",
+          "identity_material": "ctx-relations|Alexandria/Contexts/Relations.md||Alexandria/Contexts/Override.md|supports|frontmatter"
+        },
+        {
+          "edge_id": "5c7bc49faa425e321eb791ed674bf6f08f2413b110d5df8fc9c8eaf097d0b598",
+          "source_note_id": "ctx-relations",
+          "source_path": "Alexandria/Contexts/Relations.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Contexts/Support.md",
+          "relation": "supports",
+          "confidence": 1.0,
+          "source_kind": "frontmatter",
+          "identity_material": "ctx-relations|Alexandria/Contexts/Relations.md||Alexandria/Contexts/Support.md|supports|frontmatter"
+        },
+        {
+          "edge_id": "7f778d6a9bab5b1d0049f2f1622b318176a677fc5e2c10fe127ec437ec1c6e88",
+          "source_note_id": "ctx-relations",
+          "source_path": "Alexandria/Contexts/Relations.md",
+          "target_note_id": "blocked",
+          "target_path": "Alexandria/Contexts/Blocked.md",
+          "relation": "blocks",
+          "confidence": 1.0,
+          "source_kind": "frontmatter",
+          "identity_material": "ctx-relations|Alexandria/Contexts/Relations.md|blocked|Alexandria/Contexts/Blocked.md|blocks|frontmatter"
+        },
+        {
+          "edge_id": "e21e8fd660424509cf9a82ef4278d50f3908a0353d3ea3c0ed1a480aa7ea8386",
+          "source_note_id": "ctx-relations",
+          "source_path": "Alexandria/Contexts/Relations.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Contexts/Resolved.md",
+          "relation": "resolves",
+          "confidence": 1.0,
+          "source_kind": "frontmatter",
+          "identity_material": "ctx-relations|Alexandria/Contexts/Relations.md||Alexandria/Contexts/Resolved.md|resolves|frontmatter"
+        },
+        {
+          "edge_id": "8f41b7d294423a84ea0a2fc00954eb02d625e79156ab8cd8cfb0b14b0c13f1b1",
+          "source_note_id": "ctx-relations",
+          "source_path": "Alexandria/Contexts/Relations.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Contexts/Base.md",
+          "relation": "wikilink",
+          "confidence": 0.5,
+          "source_kind": "wikilink",
+          "identity_material": "ctx-relations|Alexandria/Contexts/Relations.md||Alexandria/Contexts/Base.md|wikilink|wikilink"
+        },
+        {
+          "edge_id": "82f1f9e44bd29c33d225fb7ae919df7ee8a3b796301f6557e67850380d0d6bb1",
+          "source_note_id": "ctx-relations",
+          "source_path": "Alexandria/Contexts/Relations.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Contexts/Support.md",
+          "relation": "wikilink",
+          "confidence": 0.5,
+          "source_kind": "wikilink",
+          "identity_material": "ctx-relations|Alexandria/Contexts/Relations.md||Alexandria/Contexts/Support.md|wikilink|wikilink"
+        }
+      ]
+    },
+    {
+      "case_id": "source_ref_links_precedence",
+      "note_id": "ctx-source-links",
+      "relative_path": "Alexandria/Contexts/Source Links.md",
+      "alexandria_root": "Alexandria",
+      "frontmatter": {
+        "source_ref_links": [
+          {
+            "path": "Contexts/Canonical Source.md",
+            "target_note_id": "canonical"
+          }
+        ],
+        "source_refs": [
+          {
+            "detail_path": "Contexts/Legacy Source.md",
+            "source_id": "legacy"
+          }
+        ]
+      },
+      "body": "[[Contexts/Canonical Source]].",
+      "frontmatter_edges": [
+        {
+          "target_path": "Contexts/Canonical Source.md",
+          "target_note_id": "canonical",
+          "relation": "cites",
+          "source_field": "source_ref_links"
+        }
+      ],
+      "expected_body_targets": [
+        "Alexandria/Contexts/Canonical Source.md"
+      ],
+      "expected_edges": [
+        {
+          "edge_id": "3ef96c690302e11d37fdc89a89a2a751cc91ade88f19d333781f3c8f29dfa633",
+          "source_note_id": "ctx-source-links",
+          "source_path": "Alexandria/Contexts/Source Links.md",
+          "target_note_id": "canonical",
+          "target_path": "Alexandria/Contexts/Canonical Source.md",
+          "relation": "cites",
+          "confidence": 1.0,
+          "source_kind": "frontmatter",
+          "identity_material": "ctx-source-links|Alexandria/Contexts/Source Links.md|canonical|Alexandria/Contexts/Canonical Source.md|cites|frontmatter"
+        },
+        {
+          "edge_id": "0f425d72caf49cab88a4083bc4cd3ee48143881efc8867e49d8230a7b8cc33d1",
+          "source_note_id": "ctx-source-links",
+          "source_path": "Alexandria/Contexts/Source Links.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Contexts/Canonical Source.md",
+          "relation": "wikilink",
+          "confidence": 0.5,
+          "source_kind": "wikilink",
+          "identity_material": "ctx-source-links|Alexandria/Contexts/Source Links.md||Alexandria/Contexts/Canonical Source.md|wikilink|wikilink"
+        }
+      ]
+    },
+    {
+      "case_id": "already_rooted_and_suffix_normalization",
+      "note_id": "ctx-normalization",
+      "relative_path": "Alexandria/Contexts/Normalization.md",
+      "alexandria_root": " /Alexandria/ ",
+      "frontmatter": {
+        "related": [
+          "Alexandria/Contexts/Already.md",
+          "Contexts/WithoutSuffix",
+          "./Skills/WithSuffix.md"
+        ]
+      },
+      "body": "[[Alexandria/Contexts/Already.md]] [[Contexts/WithoutSuffix]] [[./Skills/WithSuffix.md]]",
+      "frontmatter_edges": [
+        {
+          "target_path": "Alexandria/Contexts/Already.md",
+          "target_note_id": null,
+          "relation": "related",
+          "source_field": "related"
+        },
+        {
+          "target_path": "Contexts/WithoutSuffix",
+          "target_note_id": null,
+          "relation": "related",
+          "source_field": "related"
+        },
+        {
+          "target_path": "./Skills/WithSuffix.md",
+          "target_note_id": null,
+          "relation": "related",
+          "source_field": "related"
+        }
+      ],
+      "expected_body_targets": [
+        "Alexandria/Contexts/Already.md",
+        "Alexandria/Contexts/WithoutSuffix.md",
+        "Alexandria/Skills/WithSuffix.md"
+      ],
+      "expected_edges": [
+        {
+          "edge_id": "7abf84d9dccf3faad9e133ab0b78bdc096e84c8911da9027f01d703d9c8a2543",
+          "source_note_id": "ctx-normalization",
+          "source_path": "Alexandria/Contexts/Normalization.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Contexts/Already.md",
+          "relation": "related",
+          "confidence": 1.0,
+          "source_kind": "frontmatter",
+          "identity_material": "ctx-normalization|Alexandria/Contexts/Normalization.md||Alexandria/Contexts/Already.md|related|frontmatter"
+        },
+        {
+          "edge_id": "5c622aa698bda9cd3687540669cf5b14326b44d4f156faca11ea994708aa3485",
+          "source_note_id": "ctx-normalization",
+          "source_path": "Alexandria/Contexts/Normalization.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Contexts/WithoutSuffix.md",
+          "relation": "related",
+          "confidence": 1.0,
+          "source_kind": "frontmatter",
+          "identity_material": "ctx-normalization|Alexandria/Contexts/Normalization.md||Alexandria/Contexts/WithoutSuffix.md|related|frontmatter"
+        },
+        {
+          "edge_id": "59e93b067b7e94e915d6beb9f9dd248a214509e0ee2aa9a44e40c281ca38a81c",
+          "source_note_id": "ctx-normalization",
+          "source_path": "Alexandria/Contexts/Normalization.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Skills/WithSuffix.md",
+          "relation": "related",
+          "confidence": 1.0,
+          "source_kind": "frontmatter",
+          "identity_material": "ctx-normalization|Alexandria/Contexts/Normalization.md||Alexandria/Skills/WithSuffix.md|related|frontmatter"
+        },
+        {
+          "edge_id": "6c471d6abb32c49ed39ec2b7ca0c38758252b1803e7c274d29508a84e05ece78",
+          "source_note_id": "ctx-normalization",
+          "source_path": "Alexandria/Contexts/Normalization.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Contexts/Already.md",
+          "relation": "wikilink",
+          "confidence": 0.5,
+          "source_kind": "wikilink",
+          "identity_material": "ctx-normalization|Alexandria/Contexts/Normalization.md||Alexandria/Contexts/Already.md|wikilink|wikilink"
+        },
+        {
+          "edge_id": "5d3d73af18394b30db18e46244127906d38f5ac21ec0b8c8126c7ca09d24557f",
+          "source_note_id": "ctx-normalization",
+          "source_path": "Alexandria/Contexts/Normalization.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Contexts/WithoutSuffix.md",
+          "relation": "wikilink",
+          "confidence": 0.5,
+          "source_kind": "wikilink",
+          "identity_material": "ctx-normalization|Alexandria/Contexts/Normalization.md||Alexandria/Contexts/WithoutSuffix.md|wikilink|wikilink"
+        },
+        {
+          "edge_id": "dadbb0ce0145462f1007a7685d0faac9a39ccfad2f7c7d2ee1cab7ec771c8ea9",
+          "source_note_id": "ctx-normalization",
+          "source_path": "Alexandria/Contexts/Normalization.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Skills/WithSuffix.md",
+          "relation": "wikilink",
+          "confidence": 0.5,
+          "source_kind": "wikilink",
+          "identity_material": "ctx-normalization|Alexandria/Contexts/Normalization.md||Alexandria/Skills/WithSuffix.md|wikilink|wikilink"
+        }
+      ]
+    },
+    {
+      "case_id": "wikilink_regex_edge_forms",
+      "note_id": "ctx-regex",
+      "relative_path": "Alexandria/Contexts/Regex.md",
+      "alexandria_root": "Alexandria",
+      "frontmatter": {},
+      "body": "[[Valid]] [[Valid#Heading]] [[Valid|Alias]] [[Valid#Heading|Alias]]\n[[]] [[#OnlyHeading]] [[Pipe|]] [[Line\nBreak]] [[A]B]]\n",
+      "frontmatter_edges": [],
+      "expected_body_targets": [
+        "Alexandria/Valid.md",
+        "Alexandria/Valid.md",
+        "Alexandria/Valid.md",
+        "Alexandria/Valid.md",
+        "Alexandria/Line\nBreak.md"
+      ],
+      "expected_edges": [
+        {
+          "edge_id": "ce2f062ee9e5dddb8cb9e678bf536bdef2bba5de0fbd93726b10aa5397a0eea0",
+          "source_note_id": "ctx-regex",
+          "source_path": "Alexandria/Contexts/Regex.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Valid.md",
+          "relation": "wikilink",
+          "confidence": 0.5,
+          "source_kind": "wikilink",
+          "identity_material": "ctx-regex|Alexandria/Contexts/Regex.md||Alexandria/Valid.md|wikilink|wikilink"
+        },
+        {
+          "edge_id": "2e04f1b84e94aacf32660a1ff8842dcd7dfc648f84d4af4fe07276e962a5248f",
+          "source_note_id": "ctx-regex",
+          "source_path": "Alexandria/Contexts/Regex.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Line\nBreak.md",
+          "relation": "wikilink",
+          "confidence": 0.5,
+          "source_kind": "wikilink",
+          "identity_material": "ctx-regex|Alexandria/Contexts/Regex.md||Alexandria/Line\nBreak.md|wikilink|wikilink"
+        }
+      ]
+    },
+    {
+      "case_id": "frontmatter_string_and_python_literal_forms",
+      "note_id": "ctx-dynamic",
+      "relative_path": "Alexandria/Contexts/Dynamic.md",
+      "alexandria_root": "Alexandria",
+      "frontmatter": {
+        "related": "['Contexts/A.md', {'path': 'Contexts/B.md', 'relation': 'extends'}]",
+        "supports": "{\"path\":\"Contexts/C.md\",\"id\":\"c-id\"}"
+      },
+      "body": "[[Contexts/A]] [[Contexts/B]] [[Contexts/C]].",
+      "frontmatter_edges": [
+        {
+          "target_path": "Contexts/A.md",
+          "target_note_id": null,
+          "relation": "related",
+          "source_field": "related"
+        },
+        {
+          "target_path": "Contexts/B.md",
+          "target_note_id": null,
+          "relation": "extends",
+          "source_field": "related"
+        },
+        {
+          "target_path": "Contexts/C.md",
+          "target_note_id": "c-id",
+          "relation": "supports",
+          "source_field": "supports"
+        }
+      ],
+      "expected_body_targets": [
+        "Alexandria/Contexts/A.md",
+        "Alexandria/Contexts/B.md",
+        "Alexandria/Contexts/C.md"
+      ],
+      "expected_edges": [
+        {
+          "edge_id": "648572f79e9d127d825501f0cd68eba5ff3c7a6f3cb063b51ab57dea68ce89b8",
+          "source_note_id": "ctx-dynamic",
+          "source_path": "Alexandria/Contexts/Dynamic.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Contexts/A.md",
+          "relation": "related",
+          "confidence": 1.0,
+          "source_kind": "frontmatter",
+          "identity_material": "ctx-dynamic|Alexandria/Contexts/Dynamic.md||Alexandria/Contexts/A.md|related|frontmatter"
+        },
+        {
+          "edge_id": "3c4f2bbfbf7e1a2b02ef92d574d3c45b4fac83ab49c3553d35a151dd33be8a89",
+          "source_note_id": "ctx-dynamic",
+          "source_path": "Alexandria/Contexts/Dynamic.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Contexts/B.md",
+          "relation": "extends",
+          "confidence": 1.0,
+          "source_kind": "frontmatter",
+          "identity_material": "ctx-dynamic|Alexandria/Contexts/Dynamic.md||Alexandria/Contexts/B.md|extends|frontmatter"
+        },
+        {
+          "edge_id": "cc2dc888fe63a8a551bc1f91bfdf48639e3cf5263362f32ec304159dd5cb50d3",
+          "source_note_id": "ctx-dynamic",
+          "source_path": "Alexandria/Contexts/Dynamic.md",
+          "target_note_id": "c-id",
+          "target_path": "Alexandria/Contexts/C.md",
+          "relation": "supports",
+          "confidence": 1.0,
+          "source_kind": "frontmatter",
+          "identity_material": "ctx-dynamic|Alexandria/Contexts/Dynamic.md|c-id|Alexandria/Contexts/C.md|supports|frontmatter"
+        },
+        {
+          "edge_id": "b67e56f87ceda87c1289d92e2d1aced29018ce0db09b414bf180b6e839a7a8a1",
+          "source_note_id": "ctx-dynamic",
+          "source_path": "Alexandria/Contexts/Dynamic.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Contexts/A.md",
+          "relation": "wikilink",
+          "confidence": 0.5,
+          "source_kind": "wikilink",
+          "identity_material": "ctx-dynamic|Alexandria/Contexts/Dynamic.md||Alexandria/Contexts/A.md|wikilink|wikilink"
+        },
+        {
+          "edge_id": "215c5ae1e3ee0510218bb88a58310812e22ba312844fb678f697a0436d4e417f",
+          "source_note_id": "ctx-dynamic",
+          "source_path": "Alexandria/Contexts/Dynamic.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Contexts/B.md",
+          "relation": "wikilink",
+          "confidence": 0.5,
+          "source_kind": "wikilink",
+          "identity_material": "ctx-dynamic|Alexandria/Contexts/Dynamic.md||Alexandria/Contexts/B.md|wikilink|wikilink"
+        },
+        {
+          "edge_id": "83b4b1dc626d36cc0cd522f0653576a688bd764b2f76e658d764898232c974fd",
+          "source_note_id": "ctx-dynamic",
+          "source_path": "Alexandria/Contexts/Dynamic.md",
+          "target_note_id": null,
+          "target_path": "Alexandria/Contexts/C.md",
+          "relation": "wikilink",
+          "confidence": 0.5,
+          "source_kind": "wikilink",
+          "identity_material": "ctx-dynamic|Alexandria/Contexts/Dynamic.md||Alexandria/Contexts/C.md|wikilink|wikilink"
+        }
+      ]
+    }
+  ]
+}

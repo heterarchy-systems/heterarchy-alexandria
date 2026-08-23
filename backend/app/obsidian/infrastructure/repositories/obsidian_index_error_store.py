@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from app.obsidian.application.notes.obsidian_note_templates import sha256_text
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.obsidian.domain.entities.obsidian_note import (
     ObsidianIndexError,
 )
@@ -17,9 +19,8 @@ from app.obsidian.infrastructure.repositories.obsidian_index_row_cleanup import 
     discard_obsidian_note_index,
     get_obsidian_file_by_path,
 )
+from app.shared.compute.native_text_hashing import hash_text
 from app.shared.types.types_convert_utils import aware_utc_datetime
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ObsidianIndexErrorStore:
@@ -40,7 +41,7 @@ class ObsidianIndexErrorStore:
             error: Structured note indexing failure.
         """
         path_model = await get_obsidian_file_by_path(self._session, error.note_path)
-        note_id = f"index-error:{sha256_text(error.note_path)[:32]}"
+        note_id = f"index-error:{hash_text(error.note_path)[:32]}"
         model = await self._session.get(ObsidianFileORM, note_id)
         if path_model is not None and path_model.note_id != note_id:
             await discard_obsidian_note_index(self._session, path_model.note_id)
@@ -56,7 +57,7 @@ class ObsidianIndexErrorStore:
         model.tags = []
         model.project = None
         model.source = "reindex"
-        model.content_hash = sha256_text(error.note_path)
+        model.content_hash = hash_text(error.note_path)
         model.frontmatter_json = {"index_error_code": error.error_code.value}
         if error.context_id is not None:
             model.frontmatter_json["id"] = error.context_id
@@ -90,6 +91,14 @@ class ObsidianIndexErrorStore:
 
 
 def _index_error_from_model(model: ObsidianFileORM) -> ObsidianIndexError:
+    """Execute index error from model.
+
+    Args:
+        model: Model used by this operation.
+
+    Returns:
+        ObsidianIndexError result produced by index error from model.
+    """
     error_text = model.error_message or "Unknown index error"
     stored_error_code = model.frontmatter_json.get("index_error_code")
     if isinstance(stored_error_code, str):

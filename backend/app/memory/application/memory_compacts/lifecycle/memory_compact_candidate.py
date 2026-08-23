@@ -124,6 +124,11 @@ def with_review_metadata(
 
 
 def _validate_create(payload: MemoryCompactCreate) -> None:
+    """Validate create.
+
+    Args:
+        payload: Validated payload for this operation.
+    """
     if payload.covered_to < payload.covered_from:
         raise MemoryCompactValidationError("covered_to must be after covered_from")
     if not payload.markdown_body.strip():
@@ -154,6 +159,14 @@ def _validate_create(payload: MemoryCompactCreate) -> None:
 def _deduplicate_source_refs(
     source_refs: tuple[MemoryCompactSourceRefCreate, ...],
 ) -> tuple[MemoryCompactSourceRefCreate, ...]:
+    """Execute deduplicate source refs.
+
+    Args:
+        source_refs: Source refs used by this operation.
+
+    Returns:
+        tuple[MemoryCompactSourceRefCreate, ...] result produced by deduplicate source refs.
+    """
     deduplicated: list[MemoryCompactSourceRefCreate] = []
     seen: set[tuple[str, str, str]] = set()
     for source_ref in source_refs:

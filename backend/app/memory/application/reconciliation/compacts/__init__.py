@@ -1,1 +1,0 @@
-"""Compacts package."""

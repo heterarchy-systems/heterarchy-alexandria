@@ -84,6 +84,14 @@ def redact_secret_text(content: str) -> SecretRedactionResult:
 
 
 def _redact_text_preserving_urls(content: str) -> tuple[str, int]:
+    """Redact text preserving urls.
+
+    Args:
+        content: Content used by this operation.
+
+    Returns:
+        tuple[str, int] result produced by redact text preserving urls.
+    """
     redacted_parts: list[str] = []
     redaction_count = 0
     previous_end = 0
@@ -105,6 +113,14 @@ def _redact_text_preserving_urls(content: str) -> tuple[str, int]:
 
 
 def _redact_non_url_text_preserving_wikilinks(content: str) -> tuple[str, int]:
+    """Redact non url text preserving wikilinks.
+
+    Args:
+        content: Content used by this operation.
+
+    Returns:
+        tuple[str, int] result produced by redact non url text preserving wikilinks.
+    """
     redacted_parts: list[str] = []
     redaction_count = 0
     previous_end = 0
@@ -123,6 +139,14 @@ def _redact_non_url_text_preserving_wikilinks(content: str) -> tuple[str, int]:
 
 
 def _redact_wikilink(inner: str) -> tuple[str, int]:
+    """Redact wikilink.
+
+    Args:
+        inner: Inner used by this operation.
+
+    Returns:
+        tuple[str, int] result produced by redact wikilink.
+    """
     target, separator, label = inner.partition("|")
     redacted_target, target_count = _redact_wikilink_target(target)
     if not separator:
@@ -136,6 +160,14 @@ def _redact_wikilink(inner: str) -> tuple[str, int]:
 
 
 def _redact_wikilink_target(target: str) -> tuple[str, int]:
+    """Redact wikilink target.
+
+    Args:
+        target: Target used by this operation.
+
+    Returns:
+        tuple[str, int] result produced by redact wikilink target.
+    """
     if not _is_internal_wikilink_path(target):
         return _redact_non_url_text(target)
 
@@ -149,6 +181,14 @@ def _redact_wikilink_target(target: str) -> tuple[str, int]:
 
 
 def _is_internal_wikilink_path(target: str) -> bool:
+    """Return whether internal wikilink path.
+
+    Args:
+        target: Target used by this operation.
+
+    Returns:
+        Whether internal wikilink path.
+    """
     candidate = target.strip()
     if (
         not candidate
@@ -165,6 +205,14 @@ def _is_internal_wikilink_path(target: str) -> bool:
 
 
 def _redact_non_url_text(content: str) -> tuple[str, int]:
+    """Redact non url text.
+
+    Args:
+        content: Content used by this operation.
+
+    Returns:
+        tuple[str, int] result produced by redact non url text.
+    """
     redacted, authorization_count = AUTHORIZATION_HEADER_PATTERN.subn(
         _redacted_authorization_header,
         content,
@@ -184,6 +232,14 @@ def _redact_non_url_text(content: str) -> tuple[str, int]:
 
 
 def _redacted_authorization_header(match: re.Match[str]) -> str:
+    """Execute redacted authorization header.
+
+    Args:
+        match: Match used by this operation.
+
+    Returns:
+        str result produced by redacted authorization header.
+    """
     value = match.group(2).strip()
     scheme, separator, _credential = value.partition(" ")
     if separator and scheme.casefold() in {"basic", "bearer", "digest"}:
@@ -192,6 +248,14 @@ def _redacted_authorization_header(match: re.Match[str]) -> str:
 
 
 def _split_url_trailing_text(url: str) -> tuple[str, str]:
+    """Split url trailing text.
+
+    Args:
+        url: Url used by this operation.
+
+    Returns:
+        tuple[str, str] result produced by split url trailing text.
+    """
     trailing_start = len(url)
     while trailing_start > 0:
         character = url[trailing_start - 1]
@@ -209,6 +273,14 @@ def _split_url_trailing_text(url: str) -> tuple[str, str]:
 
 
 def _redact_url_query_credentials(url: str) -> tuple[str, int]:
+    """Redact url query credentials.
+
+    Args:
+        url: Url used by this operation.
+
+    Returns:
+        tuple[str, int] result produced by redact url query credentials.
+    """
     url_without_fragment, fragment_separator, fragment = url.partition("#")
     url_path, query_separator, query = url_without_fragment.partition("?")
     redacted_query, query_redaction_count = _redact_url_parameter_values(query)
@@ -223,6 +295,14 @@ def _redact_url_query_credentials(url: str) -> tuple[str, int]:
 
 
 def _redact_url_parameter_values(parameters: str) -> tuple[str, int]:
+    """Redact url parameter values.
+
+    Args:
+        parameters: Parameters used by this operation.
+
+    Returns:
+        tuple[str, int] result produced by redact url parameter values.
+    """
     parameter_parts = parameters.split("&")
     redaction_count = 0
     for index, parameter_part in enumerate(parameter_parts):

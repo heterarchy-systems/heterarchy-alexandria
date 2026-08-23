@@ -188,6 +188,11 @@ class MaintenanceGateway:
     """Call maintenance backend functions with shared client state."""
 
     def __init__(self, client: AlexandriaApiClient) -> None:
+        """Initialize MaintenanceGateway state and dependencies.
+
+        Args:
+            client: Client used by this operation.
+        """
         self._client = client
 
     async def readiness(self, options: MemoryStewardReadinessOptions) -> JSONValue:

@@ -57,6 +57,14 @@ def skill_acquisition_artifact_from_provider_text(
 
 
 def _artifact_payload(summary: str) -> dict[str, JSONValue]:
+    """Execute artifact payload.
+
+    Args:
+        summary: Summary used by this operation.
+
+    Returns:
+        dict[str, JSONValue] result produced by artifact payload.
+    """
     if not summary.strip():
         raise LibrarianSkillAcquisitionArtifactError(
             "Provider returned an empty response"
@@ -78,6 +86,14 @@ def _artifact_payload(summary: str) -> dict[str, JSONValue]:
 def _evidence_items(
     payload: dict[str, JSONValue],
 ) -> list[SkillAcquisitionEvidenceItem]:
+    """Execute evidence items.
+
+    Args:
+        payload: Validated payload for this operation.
+
+    Returns:
+        list[SkillAcquisitionEvidenceItem] result produced by evidence items.
+    """
     value = payload.get("evidence_items")
     if value is None:
         return []
@@ -104,6 +120,15 @@ def _evidence_items(
 
 
 def _string_list(payload: dict[str, JSONValue], key: str) -> list[str]:
+    """Execute string list.
+
+    Args:
+        payload: Validated payload for this operation.
+        key: Key used by this operation.
+
+    Returns:
+        list[str] result produced by string list.
+    """
     value = payload.get(key)
     if value is None:
         return []
@@ -122,6 +147,15 @@ def _string_list(payload: dict[str, JSONValue], key: str) -> list[str]:
 
 
 def _required_text(payload: dict[str, JSONValue], key: str) -> str:
+    """Execute required text.
+
+    Args:
+        payload: Validated payload for this operation.
+        key: Key used by this operation.
+
+    Returns:
+        str result produced by required text.
+    """
     value = payload.get(key)
     if not isinstance(value, str):
         raise LibrarianSkillAcquisitionArtifactError(f"{key} is required")
@@ -136,6 +170,16 @@ def _optional_text(
     key: str,
     strip: bool = True,
 ) -> str | None:
+    """Execute optional text.
+
+    Args:
+        payload: Validated payload for this operation.
+        key: Key used by this operation.
+        strip: Strip used by this operation.
+
+    Returns:
+        str | None result produced by optional text.
+    """
     value = payload.get(key)
     if value is None:
         return None
@@ -148,6 +192,14 @@ def _optional_text(
 
 
 def _coerce_bool(value: JSONValue | None) -> bool:
+    """Execute coerce bool.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        Whether coerce bool.
+    """
     if value is None:
         return False
     if not isinstance(value, bool):
@@ -156,6 +208,14 @@ def _coerce_bool(value: JSONValue | None) -> bool:
 
 
 def _risk_level(value: JSONValue | None) -> RiskLevel:
+    """Execute risk level.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        RiskLevel result produced by risk level.
+    """
     if value is None:
         return RiskLevel.LOW
     if not isinstance(value, str):
@@ -171,6 +231,14 @@ def _risk_level(value: JSONValue | None) -> RiskLevel:
 
 
 def _item_status(value: JSONValue | None) -> ItemStatus:
+    """Execute item status.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        ItemStatus result produced by item status.
+    """
     if value is None:
         return ItemStatus.DRAFT
     if not isinstance(value, str):
@@ -186,6 +254,14 @@ def _item_status(value: JSONValue | None) -> ItemStatus:
 
 
 def _strip_markdown_fences(value: str) -> str:
+    """Execute strip markdown fences.
+
+    Args:
+        value: Value being processed.
+
+    Returns:
+        str result produced by strip markdown fences.
+    """
     stripped = value.strip()
     match = _JSON_BLOCK.search(stripped)
     if match is not None:

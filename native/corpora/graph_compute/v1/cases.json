@@ -1,0 +1,1799 @@
+{
+  "schema_version": 1,
+  "feature": "graph_compute",
+  "projection_baseline": "backend/app/obsidian/application/graph/projection/obsidian_graph_projection_source_builder.py",
+  "algorithm_contract": "Rust Compute 06 Graph Projection and Algorithms Plan 2026-08-22",
+  "cases": [
+    {
+      "case_id": "live_projection_resolution_and_batches",
+      "batch_size": 2,
+      "source_notes": [
+        {
+          "note_id": "a",
+          "relative_path": "Contexts/A.md",
+          "alexandria_type": "context",
+          "title": "A",
+          "status": "active",
+          "project": "graph",
+          "aliases": [
+            "Alpha",
+            "Straße"
+          ],
+          "index_status": "indexed"
+        },
+        {
+          "note_id": "b",
+          "relative_path": "Contexts/B.md",
+          "alexandria_type": "context",
+          "title": "B",
+          "status": "active",
+          "project": null,
+          "aliases": [],
+          "index_status": "indexed"
+        },
+        {
+          "note_id": "c",
+          "relative_path": "Contexts/C.md",
+          "alexandria_type": "context",
+          "title": "C",
+          "status": "active",
+          "project": null,
+          "aliases": [],
+          "index_status": "indexed"
+        },
+        {
+          "note_id": "stale",
+          "relative_path": "Contexts/Stale.md",
+          "alexandria_type": "context",
+          "title": "Stale",
+          "status": "active",
+          "project": null,
+          "aliases": [],
+          "index_status": "stale"
+        },
+        {
+          "note_id": "error",
+          "relative_path": "Contexts/Error.md",
+          "alexandria_type": "context",
+          "title": "Error",
+          "status": "active",
+          "project": null,
+          "aliases": [],
+          "index_status": "error"
+        }
+      ],
+      "source_edges": [
+        {
+          "edge_id": "e1",
+          "source_note_id": "a",
+          "source_path": "stale/source.md",
+          "target_note_id": "b",
+          "target_path": "unused",
+          "relation": "cites",
+          "confidence": 1.0,
+          "source_kind": "frontmatter"
+        },
+        {
+          "edge_id": "e2",
+          "source_note_id": "b",
+          "source_path": "Contexts/B.md",
+          "target_note_id": null,
+          "target_path": "Contexts/C.md",
+          "relation": "supports",
+          "confidence": 0.75,
+          "source_kind": "frontmatter"
+        },
+        {
+          "edge_id": "e3",
+          "source_note_id": "c",
+          "source_path": "Contexts/C.md",
+          "target_note_id": null,
+          "target_path": "Alpha",
+          "relation": "related",
+          "confidence": 0.5,
+          "source_kind": "wikilink"
+        },
+        {
+          "edge_id": "e4",
+          "source_note_id": "a",
+          "source_path": "Contexts/A.md",
+          "target_note_id": null,
+          "target_path": "STRASSE",
+          "relation": "supports",
+          "confidence": 1.0,
+          "source_kind": "frontmatter"
+        },
+        {
+          "edge_id": "e5",
+          "source_note_id": "stale",
+          "source_path": "Contexts/Stale.md",
+          "target_note_id": "a",
+          "target_path": "Contexts/A.md",
+          "relation": "related",
+          "confidence": 1.0,
+          "source_kind": "frontmatter"
+        },
+        {
+          "edge_id": "e6",
+          "source_note_id": "a",
+          "source_path": "Contexts/A.md",
+          "target_note_id": null,
+          "target_path": "Contexts/Missing.md",
+          "relation": "blocks",
+          "confidence": 1.0,
+          "source_kind": "frontmatter"
+        }
+      ],
+      "previous_projection": {
+        "nodes": [
+          {
+            "note_id": "a",
+            "relative_path": "Contexts/A.md",
+            "alexandria_type": "context",
+            "title": "Old A",
+            "status": "active",
+            "project": "graph"
+          },
+          {
+            "note_id": "removed",
+            "relative_path": "Contexts/Removed.md",
+            "alexandria_type": "context",
+            "title": "Removed",
+            "status": "active",
+            "project": null
+          }
+        ],
+        "edges": [
+          {
+            "edge_id": "e1",
+            "source_note_id": "a",
+            "source_path": "Contexts/A.md",
+            "target_note_id": "b",
+            "target_path": "Contexts/B.md",
+            "relation": "related",
+            "confidence": 1.0,
+            "source_kind": "frontmatter"
+          },
+          {
+            "edge_id": "removed-edge",
+            "source_note_id": "removed",
+            "source_path": "Contexts/Removed.md",
+            "target_note_id": "a",
+            "target_path": "Contexts/A.md",
+            "relation": "related",
+            "confidence": 1.0,
+            "source_kind": "frontmatter"
+          }
+        ]
+      },
+      "traversal_requests": [
+        {
+          "request_id": "out-a",
+          "start_note_id": "a",
+          "direction": "outgoing",
+          "relations": [],
+          "max_depth": 3,
+          "max_results": 10
+        },
+        {
+          "request_id": "incoming-a",
+          "start_note_id": "a",
+          "direction": "incoming",
+          "relations": [],
+          "max_depth": 3,
+          "max_results": 10
+        },
+        {
+          "request_id": "supports-only",
+          "start_note_id": "a",
+          "direction": "both",
+          "relations": [
+            "supports"
+          ],
+          "max_depth": 3,
+          "max_results": 10
+        },
+        {
+          "request_id": "missing-start",
+          "start_note_id": "missing",
+          "direction": "outgoing",
+          "relations": [],
+          "max_depth": 3,
+          "max_results": 10
+        }
+      ],
+      "lineage_requests": [
+        {
+          "request_id": "lineage-a",
+          "note_id": "a",
+          "max_depth": 8,
+          "max_results": 100
+        }
+      ],
+      "expected": {
+        "projection": {
+          "nodes": [
+            {
+              "note_id": "a",
+              "relative_path": "Contexts/A.md",
+              "alexandria_type": "context",
+              "title": "A",
+              "status": "active",
+              "project": "graph"
+            },
+            {
+              "note_id": "b",
+              "relative_path": "Contexts/B.md",
+              "alexandria_type": "context",
+              "title": "B",
+              "status": "active",
+              "project": null
+            },
+            {
+              "note_id": "c",
+              "relative_path": "Contexts/C.md",
+              "alexandria_type": "context",
+              "title": "C",
+              "status": "active",
+              "project": null
+            }
+          ],
+          "edges": [
+            {
+              "edge_id": "e1",
+              "source_note_id": "a",
+              "source_path": "Contexts/A.md",
+              "target_note_id": "b",
+              "target_path": "Contexts/B.md",
+              "relation": "cites",
+              "confidence": 1.0,
+              "source_kind": "frontmatter"
+            },
+            {
+              "edge_id": "e2",
+              "source_note_id": "b",
+              "source_path": "Contexts/B.md",
+              "target_note_id": "c",
+              "target_path": "Contexts/C.md",
+              "relation": "supports",
+              "confidence": 0.75,
+              "source_kind": "frontmatter"
+            },
+            {
+              "edge_id": "e3",
+              "source_note_id": "c",
+              "source_path": "Contexts/C.md",
+              "target_note_id": "a",
+              "target_path": "Contexts/A.md",
+              "relation": "related",
+              "confidence": 0.5,
+              "source_kind": "wikilink"
+            },
+            {
+              "edge_id": "e4",
+              "source_note_id": "a",
+              "source_path": "Contexts/A.md",
+              "target_note_id": "a",
+              "target_path": "Contexts/A.md",
+              "relation": "supports",
+              "confidence": 1.0,
+              "source_kind": "frontmatter"
+            }
+          ]
+        },
+        "batches": [
+          {
+            "batch_index": 0,
+            "projection": {
+              "nodes": [
+                {
+                  "note_id": "a",
+                  "relative_path": "Contexts/A.md",
+                  "alexandria_type": "context",
+                  "title": "A",
+                  "status": "active",
+                  "project": "graph"
+                },
+                {
+                  "note_id": "b",
+                  "relative_path": "Contexts/B.md",
+                  "alexandria_type": "context",
+                  "title": "B",
+                  "status": "active",
+                  "project": null
+                }
+              ],
+              "edges": [
+                {
+                  "edge_id": "e1",
+                  "source_note_id": "a",
+                  "source_path": "Contexts/A.md",
+                  "target_note_id": "b",
+                  "target_path": "Contexts/B.md",
+                  "relation": "cites",
+                  "confidence": 1.0,
+                  "source_kind": "frontmatter"
+                },
+                {
+                  "edge_id": "e2",
+                  "source_note_id": "b",
+                  "source_path": "Contexts/B.md",
+                  "target_note_id": "c",
+                  "target_path": "Contexts/C.md",
+                  "relation": "supports",
+                  "confidence": 0.75,
+                  "source_kind": "frontmatter"
+                }
+              ]
+            }
+          },
+          {
+            "batch_index": 1,
+            "projection": {
+              "nodes": [
+                {
+                  "note_id": "c",
+                  "relative_path": "Contexts/C.md",
+                  "alexandria_type": "context",
+                  "title": "C",
+                  "status": "active",
+                  "project": null
+                }
+              ],
+              "edges": [
+                {
+                  "edge_id": "e3",
+                  "source_note_id": "c",
+                  "source_path": "Contexts/C.md",
+                  "target_note_id": "a",
+                  "target_path": "Contexts/A.md",
+                  "relation": "related",
+                  "confidence": 0.5,
+                  "source_kind": "wikilink"
+                },
+                {
+                  "edge_id": "e4",
+                  "source_note_id": "a",
+                  "source_path": "Contexts/A.md",
+                  "target_note_id": "a",
+                  "target_path": "Contexts/A.md",
+                  "relation": "supports",
+                  "confidence": 1.0,
+                  "source_kind": "frontmatter"
+                }
+              ]
+            }
+          }
+        ],
+        "issues": [
+          {
+            "code": "index_error",
+            "relative_path": "Contexts/Error.md",
+            "note_id": "error",
+            "edge_id": null,
+            "detail": "indexed note is in error state"
+          },
+          {
+            "code": "missing_target_note",
+            "relative_path": "Contexts/Missing.md",
+            "note_id": "a",
+            "edge_id": "e6",
+            "detail": "edge target is absent from the healthy Obsidian index"
+          }
+        ],
+        "metrics": {
+          "scanned": 11,
+          "indexed": 7,
+          "updated": 0,
+          "skipped": 4,
+          "errors": 2
+        },
+        "structural_diagnostics": {
+          "duplicate_note_ids": [],
+          "duplicate_edge_ids": [],
+          "ambiguous_link_names": []
+        },
+        "analysis": {
+          "adjacency": [
+            {
+              "note_id": "a",
+              "outgoing": [
+                "a",
+                "b"
+              ],
+              "incoming": [
+                "a",
+                "c"
+              ]
+            },
+            {
+              "note_id": "b",
+              "outgoing": [
+                "c"
+              ],
+              "incoming": [
+                "a"
+              ]
+            },
+            {
+              "note_id": "c",
+              "outgoing": [
+                "a"
+              ],
+              "incoming": [
+                "b"
+              ]
+            }
+          ],
+          "orphan_note_ids": [],
+          "cycles": [
+            {
+              "note_ids": [
+                "a",
+                "b",
+                "c"
+              ],
+              "self_loop": false
+            }
+          ],
+          "traversals": [
+            {
+              "request_id": "out-a",
+              "start_note_id": "a",
+              "start_found": true,
+              "visits": [
+                {
+                  "note_id": "a",
+                  "depth": 0
+                },
+                {
+                  "note_id": "b",
+                  "depth": 1
+                },
+                {
+                  "note_id": "c",
+                  "depth": 2
+                }
+              ],
+              "truncated": false
+            },
+            {
+              "request_id": "incoming-a",
+              "start_note_id": "a",
+              "start_found": true,
+              "visits": [
+                {
+                  "note_id": "a",
+                  "depth": 0
+                },
+                {
+                  "note_id": "c",
+                  "depth": 1
+                },
+                {
+                  "note_id": "b",
+                  "depth": 2
+                }
+              ],
+              "truncated": false
+            },
+            {
+              "request_id": "supports-only",
+              "start_note_id": "a",
+              "start_found": true,
+              "visits": [
+                {
+                  "note_id": "a",
+                  "depth": 0
+                }
+              ],
+              "truncated": false
+            },
+            {
+              "request_id": "missing-start",
+              "start_note_id": "missing",
+              "start_found": false,
+              "visits": [],
+              "truncated": false
+            }
+          ],
+          "lineages": [
+            {
+              "request_id": "lineage-a",
+              "note_id": "a",
+              "note_found": true,
+              "supersedes": [],
+              "superseded_by": [],
+              "truncated": false
+            }
+          ],
+          "diff": {
+            "added_node_ids": [
+              "b",
+              "c"
+            ],
+            "removed_node_ids": [
+              "removed"
+            ],
+            "updated_node_ids": [
+              "a"
+            ],
+            "added_edge_ids": [
+              "e2",
+              "e3",
+              "e4"
+            ],
+            "removed_edge_ids": [
+              "removed-edge"
+            ],
+            "updated_edge_ids": [
+              "e1"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "case_id": "ambiguous_missing_and_full_link_name",
+      "batch_size": 4,
+      "source_notes": [
+        {
+          "note_id": "x",
+          "relative_path": "Contexts/X.md",
+          "alexandria_type": "context",
+          "title": "Shared",
+          "status": "active",
+          "project": null,
+          "aliases": [],
+          "index_status": "indexed"
+        },
+        {
+          "note_id": "y",
+          "relative_path": "Projects/Y.md",
+          "alexandria_type": "context",
+          "title": "Shared",
+          "status": "active",
+          "project": null,
+          "aliases": [],
+          "index_status": "indexed"
+        },
+        {
+          "note_id": "z",
+          "relative_path": "Contexts/Z.md",
+          "alexandria_type": "context",
+          "title": "Zed",
+          "status": "active",
+          "project": null,
+          "aliases": [
+            "Projects/Named Target"
+          ],
+          "index_status": "indexed"
+        },
+        {
+          "note_id": "source",
+          "relative_path": "Contexts/Source.md",
+          "alexandria_type": "context",
+          "title": "Source",
+          "status": "active",
+          "project": null,
+          "aliases": [],
+          "index_status": "indexed"
+        },
+        {
+          "note_id": "bad",
+          "relative_path": "Contexts/Bad.md",
+          "alexandria_type": "context",
+          "title": "Bad",
+          "status": "active",
+          "project": null,
+          "aliases": [],
+          "index_status": "error"
+        }
+      ],
+      "source_edges": [
+        {
+          "edge_id": "a-ambiguous",
+          "source_note_id": "source",
+          "source_path": "Contexts/Source.md",
+          "target_note_id": null,
+          "target_path": "Shared",
+          "relation": "related",
+          "confidence": 1.0,
+          "source_kind": "frontmatter"
+        },
+        {
+          "edge_id": "b-missing",
+          "source_note_id": "source",
+          "source_path": "Contexts/Source.md",
+          "target_note_id": null,
+          "target_path": "Never Exists",
+          "relation": "related",
+          "confidence": 1.0,
+          "source_kind": "frontmatter"
+        },
+        {
+          "edge_id": "c-full-name",
+          "source_note_id": "source",
+          "source_path": "Contexts/Source.md",
+          "target_note_id": null,
+          "target_path": "Projects/Named Target",
+          "relation": "cites",
+          "confidence": 1.0,
+          "source_kind": "frontmatter"
+        },
+        {
+          "edge_id": "d-path-fallback",
+          "source_note_id": "source",
+          "source_path": "Contexts/Source.md",
+          "target_note_id": "unknown",
+          "target_path": "Contexts/X.md",
+          "relation": "supports",
+          "confidence": 1.0,
+          "source_kind": "frontmatter"
+        }
+      ],
+      "previous_projection": null,
+      "traversal_requests": [
+        {
+          "request_id": "both-source",
+          "start_note_id": "source",
+          "direction": "both",
+          "relations": [],
+          "max_depth": 2,
+          "max_results": 3
+        }
+      ],
+      "lineage_requests": [
+        {
+          "request_id": "lineage-missing",
+          "note_id": "missing",
+          "max_depth": 8,
+          "max_results": 100
+        }
+      ],
+      "expected": {
+        "projection": {
+          "nodes": [
+            {
+              "note_id": "source",
+              "relative_path": "Contexts/Source.md",
+              "alexandria_type": "context",
+              "title": "Source",
+              "status": "active",
+              "project": null
+            },
+            {
+              "note_id": "x",
+              "relative_path": "Contexts/X.md",
+              "alexandria_type": "context",
+              "title": "Shared",
+              "status": "active",
+              "project": null
+            },
+            {
+              "note_id": "y",
+              "relative_path": "Projects/Y.md",
+              "alexandria_type": "context",
+              "title": "Shared",
+              "status": "active",
+              "project": null
+            },
+            {
+              "note_id": "z",
+              "relative_path": "Contexts/Z.md",
+              "alexandria_type": "context",
+              "title": "Zed",
+              "status": "active",
+              "project": null
+            }
+          ],
+          "edges": [
+            {
+              "edge_id": "d-path-fallback",
+              "source_note_id": "source",
+              "source_path": "Contexts/Source.md",
+              "target_note_id": "x",
+              "target_path": "Contexts/X.md",
+              "relation": "supports",
+              "confidence": 1.0,
+              "source_kind": "frontmatter"
+            }
+          ]
+        },
+        "batches": [
+          {
+            "batch_index": 0,
+            "projection": {
+              "nodes": [
+                {
+                  "note_id": "source",
+                  "relative_path": "Contexts/Source.md",
+                  "alexandria_type": "context",
+                  "title": "Source",
+                  "status": "active",
+                  "project": null
+                },
+                {
+                  "note_id": "x",
+                  "relative_path": "Contexts/X.md",
+                  "alexandria_type": "context",
+                  "title": "Shared",
+                  "status": "active",
+                  "project": null
+                },
+                {
+                  "note_id": "y",
+                  "relative_path": "Projects/Y.md",
+                  "alexandria_type": "context",
+                  "title": "Shared",
+                  "status": "active",
+                  "project": null
+                },
+                {
+                  "note_id": "z",
+                  "relative_path": "Contexts/Z.md",
+                  "alexandria_type": "context",
+                  "title": "Zed",
+                  "status": "active",
+                  "project": null
+                }
+              ],
+              "edges": [
+                {
+                  "edge_id": "d-path-fallback",
+                  "source_note_id": "source",
+                  "source_path": "Contexts/Source.md",
+                  "target_note_id": "x",
+                  "target_path": "Contexts/X.md",
+                  "relation": "supports",
+                  "confidence": 1.0,
+                  "source_kind": "frontmatter"
+                }
+              ]
+            }
+          }
+        ],
+        "issues": [
+          {
+            "code": "ambiguous_target_note",
+            "relative_path": "Shared",
+            "note_id": "source",
+            "edge_id": "a-ambiguous",
+            "detail": "edge target matches multiple healthy Obsidian notes"
+          },
+          {
+            "code": "index_error",
+            "relative_path": "Contexts/Bad.md",
+            "note_id": "bad",
+            "edge_id": null,
+            "detail": "indexed note is in error state"
+          },
+          {
+            "code": "missing_target_note",
+            "relative_path": "Never Exists",
+            "note_id": "source",
+            "edge_id": "b-missing",
+            "detail": "edge target is absent from the healthy Obsidian index"
+          },
+          {
+            "code": "missing_target_note",
+            "relative_path": "Projects/Named Target",
+            "note_id": "source",
+            "edge_id": "c-full-name",
+            "detail": "edge target is absent from the healthy Obsidian index"
+          }
+        ],
+        "metrics": {
+          "scanned": 9,
+          "indexed": 5,
+          "updated": 0,
+          "skipped": 4,
+          "errors": 4
+        },
+        "structural_diagnostics": {
+          "duplicate_note_ids": [],
+          "duplicate_edge_ids": [],
+          "ambiguous_link_names": [
+            {
+              "normalized_name": "shared",
+              "candidate_paths": [
+                "Contexts/X.md",
+                "Projects/Y.md"
+              ]
+            }
+          ]
+        },
+        "analysis": {
+          "adjacency": [
+            {
+              "note_id": "source",
+              "outgoing": [
+                "x"
+              ],
+              "incoming": []
+            },
+            {
+              "note_id": "x",
+              "outgoing": [],
+              "incoming": [
+                "source"
+              ]
+            },
+            {
+              "note_id": "y",
+              "outgoing": [],
+              "incoming": []
+            },
+            {
+              "note_id": "z",
+              "outgoing": [],
+              "incoming": []
+            }
+          ],
+          "orphan_note_ids": [
+            "y",
+            "z"
+          ],
+          "cycles": [],
+          "traversals": [
+            {
+              "request_id": "both-source",
+              "start_note_id": "source",
+              "start_found": true,
+              "visits": [
+                {
+                  "note_id": "source",
+                  "depth": 0
+                },
+                {
+                  "note_id": "x",
+                  "depth": 1
+                }
+              ],
+              "truncated": false
+            }
+          ],
+          "lineages": [
+            {
+              "request_id": "lineage-missing",
+              "note_id": "missing",
+              "note_found": false,
+              "supersedes": [],
+              "superseded_by": [],
+              "truncated": false
+            }
+          ],
+          "diff": {
+            "added_node_ids": [
+              "source",
+              "x",
+              "y",
+              "z"
+            ],
+            "removed_node_ids": [],
+            "updated_node_ids": [],
+            "added_edge_ids": [
+              "d-path-fallback"
+            ],
+            "removed_edge_ids": [],
+            "updated_edge_ids": []
+          }
+        }
+      }
+    },
+    {
+      "case_id": "cycles_orphans_self_loop_and_lineage",
+      "batch_size": 3,
+      "source_notes": [
+        {
+          "note_id": "a",
+          "relative_path": "Contexts/a.md",
+          "alexandria_type": "context",
+          "title": "a",
+          "status": "active",
+          "project": null,
+          "aliases": [],
+          "index_status": "indexed"
+        },
+        {
+          "note_id": "b",
+          "relative_path": "Contexts/b.md",
+          "alexandria_type": "context",
+          "title": "b",
+          "status": "active",
+          "project": null,
+          "aliases": [],
+          "index_status": "indexed"
+        },
+        {
+          "note_id": "c",
+          "relative_path": "Contexts/c.md",
+          "alexandria_type": "context",
+          "title": "c",
+          "status": "active",
+          "project": null,
+          "aliases": [],
+          "index_status": "indexed"
+        },
+        {
+          "note_id": "self",
+          "relative_path": "Contexts/self.md",
+          "alexandria_type": "context",
+          "title": "self",
+          "status": "active",
+          "project": null,
+          "aliases": [],
+          "index_status": "indexed"
+        },
+        {
+          "note_id": "orphan",
+          "relative_path": "Contexts/orphan.md",
+          "alexandria_type": "context",
+          "title": "orphan",
+          "status": "active",
+          "project": null,
+          "aliases": [],
+          "index_status": "indexed"
+        },
+        {
+          "note_id": "tail",
+          "relative_path": "Contexts/tail.md",
+          "alexandria_type": "context",
+          "title": "tail",
+          "status": "active",
+          "project": null,
+          "aliases": [],
+          "index_status": "indexed"
+        }
+      ],
+      "source_edges": [
+        {
+          "edge_id": "e1",
+          "source_note_id": "a",
+          "source_path": "Contexts/a.md",
+          "target_note_id": "b",
+          "target_path": "Contexts/b.md",
+          "relation": "supersedes",
+          "confidence": 1.0,
+          "source_kind": "frontmatter"
+        },
+        {
+          "edge_id": "e2",
+          "source_note_id": "b",
+          "source_path": "Contexts/b.md",
+          "target_note_id": "c",
+          "target_path": "Contexts/c.md",
+          "relation": "supersedes",
+          "confidence": 1.0,
+          "source_kind": "frontmatter"
+        },
+        {
+          "edge_id": "e3",
+          "source_note_id": "c",
+          "source_path": "Contexts/c.md",
+          "target_note_id": "a",
+          "target_path": "Contexts/a.md",
+          "relation": "related",
+          "confidence": 1.0,
+          "source_kind": "frontmatter"
+        },
+        {
+          "edge_id": "e4",
+          "source_note_id": "self",
+          "source_path": "Contexts/self.md",
+          "target_note_id": "self",
+          "target_path": "Contexts/self.md",
+          "relation": "related",
+          "confidence": 1.0,
+          "source_kind": "frontmatter"
+        },
+        {
+          "edge_id": "e5",
+          "source_note_id": "c",
+          "source_path": "Contexts/c.md",
+          "target_note_id": "tail",
+          "target_path": "Contexts/tail.md",
+          "relation": "supersedes",
+          "confidence": 1.0,
+          "source_kind": "frontmatter"
+        }
+      ],
+      "previous_projection": null,
+      "traversal_requests": [
+        {
+          "request_id": "cycle-a",
+          "start_note_id": "a",
+          "direction": "outgoing",
+          "relations": [],
+          "max_depth": 10,
+          "max_results": 10
+        },
+        {
+          "request_id": "truncated-a",
+          "start_note_id": "a",
+          "direction": "outgoing",
+          "relations": [],
+          "max_depth": 1,
+          "max_results": 2
+        },
+        {
+          "request_id": "both-c",
+          "start_note_id": "c",
+          "direction": "both",
+          "relations": [],
+          "max_depth": 2,
+          "max_results": 10
+        }
+      ],
+      "lineage_requests": [
+        {
+          "request_id": "lineage-b",
+          "note_id": "b",
+          "max_depth": 10,
+          "max_results": 10
+        },
+        {
+          "request_id": "lineage-c-one",
+          "note_id": "c",
+          "max_depth": 1,
+          "max_results": 1
+        }
+      ],
+      "expected": {
+        "projection": {
+          "nodes": [
+            {
+              "note_id": "a",
+              "relative_path": "Contexts/a.md",
+              "alexandria_type": "context",
+              "title": "a",
+              "status": "active",
+              "project": null
+            },
+            {
+              "note_id": "b",
+              "relative_path": "Contexts/b.md",
+              "alexandria_type": "context",
+              "title": "b",
+              "status": "active",
+              "project": null
+            },
+            {
+              "note_id": "c",
+              "relative_path": "Contexts/c.md",
+              "alexandria_type": "context",
+              "title": "c",
+              "status": "active",
+              "project": null
+            },
+            {
+              "note_id": "orphan",
+              "relative_path": "Contexts/orphan.md",
+              "alexandria_type": "context",
+              "title": "orphan",
+              "status": "active",
+              "project": null
+            },
+            {
+              "note_id": "self",
+              "relative_path": "Contexts/self.md",
+              "alexandria_type": "context",
+              "title": "self",
+              "status": "active",
+              "project": null
+            },
+            {
+              "note_id": "tail",
+              "relative_path": "Contexts/tail.md",
+              "alexandria_type": "context",
+              "title": "tail",
+              "status": "active",
+              "project": null
+            }
+          ],
+          "edges": [
+            {
+              "edge_id": "e1",
+              "source_note_id": "a",
+              "source_path": "Contexts/a.md",
+              "target_note_id": "b",
+              "target_path": "Contexts/b.md",
+              "relation": "supersedes",
+              "confidence": 1.0,
+              "source_kind": "frontmatter"
+            },
+            {
+              "edge_id": "e2",
+              "source_note_id": "b",
+              "source_path": "Contexts/b.md",
+              "target_note_id": "c",
+              "target_path": "Contexts/c.md",
+              "relation": "supersedes",
+              "confidence": 1.0,
+              "source_kind": "frontmatter"
+            },
+            {
+              "edge_id": "e3",
+              "source_note_id": "c",
+              "source_path": "Contexts/c.md",
+              "target_note_id": "a",
+              "target_path": "Contexts/a.md",
+              "relation": "related",
+              "confidence": 1.0,
+              "source_kind": "frontmatter"
+            },
+            {
+              "edge_id": "e4",
+              "source_note_id": "self",
+              "source_path": "Contexts/self.md",
+              "target_note_id": "self",
+              "target_path": "Contexts/self.md",
+              "relation": "related",
+              "confidence": 1.0,
+              "source_kind": "frontmatter"
+            },
+            {
+              "edge_id": "e5",
+              "source_note_id": "c",
+              "source_path": "Contexts/c.md",
+              "target_note_id": "tail",
+              "target_path": "Contexts/tail.md",
+              "relation": "supersedes",
+              "confidence": 1.0,
+              "source_kind": "frontmatter"
+            }
+          ]
+        },
+        "batches": [
+          {
+            "batch_index": 0,
+            "projection": {
+              "nodes": [
+                {
+                  "note_id": "a",
+                  "relative_path": "Contexts/a.md",
+                  "alexandria_type": "context",
+                  "title": "a",
+                  "status": "active",
+                  "project": null
+                },
+                {
+                  "note_id": "b",
+                  "relative_path": "Contexts/b.md",
+                  "alexandria_type": "context",
+                  "title": "b",
+                  "status": "active",
+                  "project": null
+                },
+                {
+                  "note_id": "c",
+                  "relative_path": "Contexts/c.md",
+                  "alexandria_type": "context",
+                  "title": "c",
+                  "status": "active",
+                  "project": null
+                }
+              ],
+              "edges": [
+                {
+                  "edge_id": "e1",
+                  "source_note_id": "a",
+                  "source_path": "Contexts/a.md",
+                  "target_note_id": "b",
+                  "target_path": "Contexts/b.md",
+                  "relation": "supersedes",
+                  "confidence": 1.0,
+                  "source_kind": "frontmatter"
+                },
+                {
+                  "edge_id": "e2",
+                  "source_note_id": "b",
+                  "source_path": "Contexts/b.md",
+                  "target_note_id": "c",
+                  "target_path": "Contexts/c.md",
+                  "relation": "supersedes",
+                  "confidence": 1.0,
+                  "source_kind": "frontmatter"
+                },
+                {
+                  "edge_id": "e3",
+                  "source_note_id": "c",
+                  "source_path": "Contexts/c.md",
+                  "target_note_id": "a",
+                  "target_path": "Contexts/a.md",
+                  "relation": "related",
+                  "confidence": 1.0,
+                  "source_kind": "frontmatter"
+                }
+              ]
+            }
+          },
+          {
+            "batch_index": 1,
+            "projection": {
+              "nodes": [
+                {
+                  "note_id": "orphan",
+                  "relative_path": "Contexts/orphan.md",
+                  "alexandria_type": "context",
+                  "title": "orphan",
+                  "status": "active",
+                  "project": null
+                },
+                {
+                  "note_id": "self",
+                  "relative_path": "Contexts/self.md",
+                  "alexandria_type": "context",
+                  "title": "self",
+                  "status": "active",
+                  "project": null
+                },
+                {
+                  "note_id": "tail",
+                  "relative_path": "Contexts/tail.md",
+                  "alexandria_type": "context",
+                  "title": "tail",
+                  "status": "active",
+                  "project": null
+                }
+              ],
+              "edges": [
+                {
+                  "edge_id": "e4",
+                  "source_note_id": "self",
+                  "source_path": "Contexts/self.md",
+                  "target_note_id": "self",
+                  "target_path": "Contexts/self.md",
+                  "relation": "related",
+                  "confidence": 1.0,
+                  "source_kind": "frontmatter"
+                },
+                {
+                  "edge_id": "e5",
+                  "source_note_id": "c",
+                  "source_path": "Contexts/c.md",
+                  "target_note_id": "tail",
+                  "target_path": "Contexts/tail.md",
+                  "relation": "supersedes",
+                  "confidence": 1.0,
+                  "source_kind": "frontmatter"
+                }
+              ]
+            }
+          }
+        ],
+        "issues": [],
+        "metrics": {
+          "scanned": 11,
+          "indexed": 11,
+          "updated": 0,
+          "skipped": 0,
+          "errors": 0
+        },
+        "structural_diagnostics": {
+          "duplicate_note_ids": [],
+          "duplicate_edge_ids": [],
+          "ambiguous_link_names": []
+        },
+        "analysis": {
+          "adjacency": [
+            {
+              "note_id": "a",
+              "outgoing": [
+                "b"
+              ],
+              "incoming": [
+                "c"
+              ]
+            },
+            {
+              "note_id": "b",
+              "outgoing": [
+                "c"
+              ],
+              "incoming": [
+                "a"
+              ]
+            },
+            {
+              "note_id": "c",
+              "outgoing": [
+                "a",
+                "tail"
+              ],
+              "incoming": [
+                "b"
+              ]
+            },
+            {
+              "note_id": "orphan",
+              "outgoing": [],
+              "incoming": []
+            },
+            {
+              "note_id": "self",
+              "outgoing": [
+                "self"
+              ],
+              "incoming": [
+                "self"
+              ]
+            },
+            {
+              "note_id": "tail",
+              "outgoing": [],
+              "incoming": [
+                "c"
+              ]
+            }
+          ],
+          "orphan_note_ids": [
+            "orphan"
+          ],
+          "cycles": [
+            {
+              "note_ids": [
+                "a",
+                "b",
+                "c"
+              ],
+              "self_loop": false
+            },
+            {
+              "note_ids": [
+                "self"
+              ],
+              "self_loop": true
+            }
+          ],
+          "traversals": [
+            {
+              "request_id": "cycle-a",
+              "start_note_id": "a",
+              "start_found": true,
+              "visits": [
+                {
+                  "note_id": "a",
+                  "depth": 0
+                },
+                {
+                  "note_id": "b",
+                  "depth": 1
+                },
+                {
+                  "note_id": "c",
+                  "depth": 2
+                },
+                {
+                  "note_id": "tail",
+                  "depth": 3
+                }
+              ],
+              "truncated": false
+            },
+            {
+              "request_id": "truncated-a",
+              "start_note_id": "a",
+              "start_found": true,
+              "visits": [
+                {
+                  "note_id": "a",
+                  "depth": 0
+                },
+                {
+                  "note_id": "b",
+                  "depth": 1
+                }
+              ],
+              "truncated": true
+            },
+            {
+              "request_id": "both-c",
+              "start_note_id": "c",
+              "start_found": true,
+              "visits": [
+                {
+                  "note_id": "c",
+                  "depth": 0
+                },
+                {
+                  "note_id": "a",
+                  "depth": 1
+                },
+                {
+                  "note_id": "b",
+                  "depth": 1
+                },
+                {
+                  "note_id": "tail",
+                  "depth": 1
+                }
+              ],
+              "truncated": false
+            }
+          ],
+          "lineages": [
+            {
+              "request_id": "lineage-b",
+              "note_id": "b",
+              "note_found": true,
+              "supersedes": [
+                {
+                  "note_id": "c",
+                  "depth": 1
+                },
+                {
+                  "note_id": "tail",
+                  "depth": 2
+                }
+              ],
+              "superseded_by": [
+                {
+                  "note_id": "a",
+                  "depth": 1
+                }
+              ],
+              "truncated": false
+            },
+            {
+              "request_id": "lineage-c-one",
+              "note_id": "c",
+              "note_found": true,
+              "supersedes": [
+                {
+                  "note_id": "tail",
+                  "depth": 1
+                }
+              ],
+              "superseded_by": [
+                {
+                  "note_id": "b",
+                  "depth": 1
+                }
+              ],
+              "truncated": true
+            }
+          ],
+          "diff": {
+            "added_node_ids": [
+              "a",
+              "b",
+              "c",
+              "orphan",
+              "self",
+              "tail"
+            ],
+            "removed_node_ids": [],
+            "updated_node_ids": [],
+            "added_edge_ids": [
+              "e1",
+              "e2",
+              "e3",
+              "e4",
+              "e5"
+            ],
+            "removed_edge_ids": [],
+            "updated_edge_ids": []
+          }
+        }
+      }
+    },
+    {
+      "case_id": "unicode_casefold_and_relation_filter",
+      "batch_size": 10,
+      "source_notes": [
+        {
+          "note_id": "unicode",
+          "relative_path": "Contexts/유니코드.md",
+          "alexandria_type": "context",
+          "title": "İSTANBUL",
+          "status": "active",
+          "project": null,
+          "aliases": [
+            "MASSE",
+            "Σίσυφος"
+          ],
+          "index_status": "indexed"
+        },
+        {
+          "note_id": "source",
+          "relative_path": "Contexts/Source Unicode.md",
+          "alexandria_type": "context",
+          "title": "Source Unicode",
+          "status": "active",
+          "project": null,
+          "aliases": [],
+          "index_status": "indexed"
+        },
+        {
+          "note_id": "other",
+          "relative_path": "Contexts/Other.md",
+          "alexandria_type": "context",
+          "title": "Other",
+          "status": "active",
+          "project": null,
+          "aliases": [],
+          "index_status": "indexed"
+        }
+      ],
+      "source_edges": [
+        {
+          "edge_id": "u1",
+          "source_note_id": "source",
+          "source_path": "Contexts/Source Unicode.md",
+          "target_note_id": null,
+          "target_path": "masse",
+          "relation": "cites",
+          "confidence": 1.0,
+          "source_kind": "frontmatter"
+        },
+        {
+          "edge_id": "u2",
+          "source_note_id": "source",
+          "source_path": "Contexts/Source Unicode.md",
+          "target_note_id": null,
+          "target_path": "σίσυφοσ",
+          "relation": "supports",
+          "confidence": 1.0,
+          "source_kind": "frontmatter"
+        },
+        {
+          "edge_id": "u3",
+          "source_note_id": "unicode",
+          "source_path": "Contexts/유니코드.md",
+          "target_note_id": "other",
+          "target_path": "Contexts/Other.md",
+          "relation": "blocks",
+          "confidence": 1.0,
+          "source_kind": "frontmatter"
+        }
+      ],
+      "previous_projection": null,
+      "traversal_requests": [
+        {
+          "request_id": "cites-source",
+          "start_note_id": "source",
+          "direction": "outgoing",
+          "relations": [
+            "cites"
+          ],
+          "max_depth": 3,
+          "max_results": 10
+        },
+        {
+          "request_id": "all-source",
+          "start_note_id": "source",
+          "direction": "outgoing",
+          "relations": [],
+          "max_depth": 3,
+          "max_results": 10
+        }
+      ],
+      "lineage_requests": [],
+      "expected": {
+        "projection": {
+          "nodes": [
+            {
+              "note_id": "other",
+              "relative_path": "Contexts/Other.md",
+              "alexandria_type": "context",
+              "title": "Other",
+              "status": "active",
+              "project": null
+            },
+            {
+              "note_id": "source",
+              "relative_path": "Contexts/Source Unicode.md",
+              "alexandria_type": "context",
+              "title": "Source Unicode",
+              "status": "active",
+              "project": null
+            },
+            {
+              "note_id": "unicode",
+              "relative_path": "Contexts/유니코드.md",
+              "alexandria_type": "context",
+              "title": "İSTANBUL",
+              "status": "active",
+              "project": null
+            }
+          ],
+          "edges": [
+            {
+              "edge_id": "u1",
+              "source_note_id": "source",
+              "source_path": "Contexts/Source Unicode.md",
+              "target_note_id": "unicode",
+              "target_path": "Contexts/유니코드.md",
+              "relation": "cites",
+              "confidence": 1.0,
+              "source_kind": "frontmatter"
+            },
+            {
+              "edge_id": "u2",
+              "source_note_id": "source",
+              "source_path": "Contexts/Source Unicode.md",
+              "target_note_id": "unicode",
+              "target_path": "Contexts/유니코드.md",
+              "relation": "supports",
+              "confidence": 1.0,
+              "source_kind": "frontmatter"
+            },
+            {
+              "edge_id": "u3",
+              "source_note_id": "unicode",
+              "source_path": "Contexts/유니코드.md",
+              "target_note_id": "other",
+              "target_path": "Contexts/Other.md",
+              "relation": "blocks",
+              "confidence": 1.0,
+              "source_kind": "frontmatter"
+            }
+          ]
+        },
+        "batches": [
+          {
+            "batch_index": 0,
+            "projection": {
+              "nodes": [
+                {
+                  "note_id": "other",
+                  "relative_path": "Contexts/Other.md",
+                  "alexandria_type": "context",
+                  "title": "Other",
+                  "status": "active",
+                  "project": null
+                },
+                {
+                  "note_id": "source",
+                  "relative_path": "Contexts/Source Unicode.md",
+                  "alexandria_type": "context",
+                  "title": "Source Unicode",
+                  "status": "active",
+                  "project": null
+                },
+                {
+                  "note_id": "unicode",
+                  "relative_path": "Contexts/유니코드.md",
+                  "alexandria_type": "context",
+                  "title": "İSTANBUL",
+                  "status": "active",
+                  "project": null
+                }
+              ],
+              "edges": [
+                {
+                  "edge_id": "u1",
+                  "source_note_id": "source",
+                  "source_path": "Contexts/Source Unicode.md",
+                  "target_note_id": "unicode",
+                  "target_path": "Contexts/유니코드.md",
+                  "relation": "cites",
+                  "confidence": 1.0,
+                  "source_kind": "frontmatter"
+                },
+                {
+                  "edge_id": "u2",
+                  "source_note_id": "source",
+                  "source_path": "Contexts/Source Unicode.md",
+                  "target_note_id": "unicode",
+                  "target_path": "Contexts/유니코드.md",
+                  "relation": "supports",
+                  "confidence": 1.0,
+                  "source_kind": "frontmatter"
+                },
+                {
+                  "edge_id": "u3",
+                  "source_note_id": "unicode",
+                  "source_path": "Contexts/유니코드.md",
+                  "target_note_id": "other",
+                  "target_path": "Contexts/Other.md",
+                  "relation": "blocks",
+                  "confidence": 1.0,
+                  "source_kind": "frontmatter"
+                }
+              ]
+            }
+          }
+        ],
+        "issues": [],
+        "metrics": {
+          "scanned": 6,
+          "indexed": 6,
+          "updated": 0,
+          "skipped": 0,
+          "errors": 0
+        },
+        "structural_diagnostics": {
+          "duplicate_note_ids": [],
+          "duplicate_edge_ids": [],
+          "ambiguous_link_names": []
+        },
+        "analysis": {
+          "adjacency": [
+            {
+              "note_id": "other",
+              "outgoing": [],
+              "incoming": [
+                "unicode"
+              ]
+            },
+            {
+              "note_id": "source",
+              "outgoing": [
+                "unicode"
+              ],
+              "incoming": []
+            },
+            {
+              "note_id": "unicode",
+              "outgoing": [
+                "other"
+              ],
+              "incoming": [
+                "source"
+              ]
+            }
+          ],
+          "orphan_note_ids": [],
+          "cycles": [],
+          "traversals": [
+            {
+              "request_id": "cites-source",
+              "start_note_id": "source",
+              "start_found": true,
+              "visits": [
+                {
+                  "note_id": "source",
+                  "depth": 0
+                },
+                {
+                  "note_id": "unicode",
+                  "depth": 1
+                }
+              ],
+              "truncated": false
+            },
+            {
+              "request_id": "all-source",
+              "start_note_id": "source",
+              "start_found": true,
+              "visits": [
+                {
+                  "note_id": "source",
+                  "depth": 0
+                },
+                {
+                  "note_id": "unicode",
+                  "depth": 1
+                },
+                {
+                  "note_id": "other",
+                  "depth": 2
+                }
+              ],
+              "truncated": false
+            }
+          ],
+          "lineages": [],
+          "diff": {
+            "added_node_ids": [
+              "other",
+              "source",
+              "unicode"
+            ],
+            "removed_node_ids": [],
+            "updated_node_ids": [],
+            "added_edge_ids": [
+              "u1",
+              "u2",
+              "u3"
+            ],
+            "removed_edge_ids": [],
+            "updated_edge_ids": []
+          }
+        }
+      }
+    }
+  ]
+}

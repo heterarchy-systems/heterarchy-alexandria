@@ -2,8 +2,8 @@ services:
   alexandria-app-base:
     image: heterarchy-alexandria-app:local
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     env_file:
       - ./.env
       - ./runtime-performance.env
@@ -14,11 +14,6 @@ services:
       SERVICE_OBSIDIAN_VAULT_PATH: /vault
     init: true
     volumes:
-      - ./backend/pyproject.toml:/app/pyproject.toml:ro
-      - ./backend/uv.lock:/app/uv.lock:ro
-      - ./backend/alembic.ini:/app/alembic.ini:ro
-      - ./backend/app:/app/app:ro
-      - ./backend/migrations:/app/migrations:ro
       - ./backend/data:/app/data
       - embedding-model-cache:/app/cache/embeddings
       - ${ALEXANDRIA_HOST_OBSIDIAN_VAULT_PATH}:/vault

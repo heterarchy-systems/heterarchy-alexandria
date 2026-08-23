@@ -18,7 +18,7 @@ from app.obsidian.application.notes.lifecycle.obsidian_context_identity import (
     ObsidianContextIdentity,
     ObsidianContextProvenance,
 )
-from app.obsidian.application.notes.obsidian_note_templates import sha256_text
+from app.shared.compute.native_text_hashing import hash_text
 from app.shared.types.extra_types import JSONObject
 
 
@@ -200,7 +200,7 @@ def context_content_hash(content: str) -> str:
     Returns:
         Lowercase SHA-256 hexadecimal digest of normalized body content.
     """
-    return sha256_text(content.strip("\n"))
+    return hash_text(content.strip("\n"))
 
 
 def validate_scope_identity(identity: ObsidianContextIdentity) -> None:
@@ -223,6 +223,15 @@ def _provenance_value[Value](
     flat_value: Value,
     nested_value: Value | None,
 ) -> Value:
+    """Execute provenance value.
+
+    Args:
+        flat_value: Flat value used by this operation.
+        nested_value: Nested value used by this operation.
+
+    Returns:
+        Value result produced by provenance value.
+    """
     if flat_value not in (None, ()) or nested_value is None:
         return flat_value
     return nested_value

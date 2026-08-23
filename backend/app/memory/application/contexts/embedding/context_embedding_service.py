@@ -22,6 +22,9 @@ from app.memory.domain.entities.context_read_models import (
     ContextSearchMatch,
     RagDependencyHealth,
 )
+from app.memory.domain.repositories.contexts.context_retrieval_kernel_provider import (
+    IContextRetrievalKernelProvider,
+)
 from app.memory.domain.repositories.contexts.context_search_source import (
     IContextSearchSource,
 )
@@ -35,6 +38,7 @@ class ContextEmbeddingService:
         provider: EmbeddingProvider | None,
         vector_retrieval_enabled: bool,
         search_sources: list[IContextSearchSource],
+        retrieval_kernel_provider: IContextRetrievalKernelProvider,
         batch_transaction: ContextEmbeddingBatchTransaction | None = None,
     ) -> None:
         """Create focused embedding collaborators.
@@ -43,6 +47,7 @@ class ContextEmbeddingService:
             provider: Optional local embedding provider.
             vector_retrieval_enabled: Whether vector retrieval is wired.
             search_sources: Configured Context retrieval and index sources.
+            retrieval_kernel_provider: Single authoritative retrieval-ranking provider.
             batch_transaction: Optional production transaction boundary per batch.
         """
         self._health_service = ContextEmbeddingHealthService(
@@ -59,6 +64,7 @@ class ContextEmbeddingService:
         self._vector_recall_service = ContextVectorRecallService(
             provider=provider,
             search_sources=search_sources,
+            retrieval_kernel_provider=retrieval_kernel_provider,
         )
 
     def health(self) -> RagDependencyHealth:

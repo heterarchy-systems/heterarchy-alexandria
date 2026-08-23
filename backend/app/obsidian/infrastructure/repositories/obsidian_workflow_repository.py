@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import cast
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.obsidian.domain.entities.obsidian_note import ObsidianLibrarianWorkflow
 from app.obsidian.domain.event_enum.obsidian_enums import (
     ObsidianLibrarianWorkflowStatus,
@@ -15,13 +17,17 @@ from app.obsidian.infrastructure.models.obsidian_index_models import (
     ObsidianLibrarianWorkflowORM,
 )
 from app.shared.types.extra_types import JSONObject
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class SqlAlchemyObsidianWorkflowRepository(IObsidianWorkflowRepository):
     """Persist Obsidian librarian workflow checkpoints through SQLAlchemy."""
 
     def __init__(self, session: AsyncSession) -> None:
+        """Initialize SqlAlchemyObsidianWorkflowRepository state and dependencies.
+
+        Args:
+            session: Active session used by this operation.
+        """
         self._session = session
 
     async def upsert_workflow(self, workflow: ObsidianLibrarianWorkflow) -> None:
@@ -64,6 +70,14 @@ class SqlAlchemyObsidianWorkflowRepository(IObsidianWorkflowRepository):
 def _workflow_from_model(
     model: ObsidianLibrarianWorkflowORM,
 ) -> ObsidianLibrarianWorkflow:
+    """Execute workflow from model.
+
+    Args:
+        model: Model used by this operation.
+
+    Returns:
+        ObsidianLibrarianWorkflow result produced by workflow from model.
+    """
     return ObsidianLibrarianWorkflow(
         thread_id=model.thread_id,
         status=ObsidianLibrarianWorkflowStatus(model.status),

@@ -41,6 +41,13 @@ class McpToolSmokeChecker:
         mcp_url: str | None,
         required_tools: Sequence[str],
     ) -> None:
+        """Initialize McpToolSmokeChecker state and dependencies.
+
+        Args:
+            settings: Settings used by this operation.
+            mcp_url: Mcp url used by this operation.
+            required_tools: Required tools used by this operation.
+        """
         self._settings = settings
         self._endpoint = mcp_url or f"{settings.base_url.rstrip('/')}/mcp/"
         self._required_tools = tuple(required_tools)
@@ -107,6 +114,11 @@ class McpToolSmokeChecker:
         return result.model_dump(mode="json")
 
     def _headers(self) -> dict[str, str]:
+        """Execute headers.
+
+        Returns:
+            dict[str, str] result produced by headers.
+        """
         headers = {
             "Accept": "application/json, text/event-stream",
             "Content-Type": "application/json",
@@ -118,6 +130,15 @@ class McpToolSmokeChecker:
         headers: dict[str, str],
         session_id: str | None,
     ) -> dict[str, str]:
+        """Execute session headers.
+
+        Args:
+            headers: Headers used by this operation.
+            session_id: Identifier for session.
+
+        Returns:
+            dict[str, str] result produced by session headers.
+        """
         list_headers = dict(headers)
         if session_id:
             list_headers["mcp-session-id"] = session_id
@@ -128,7 +149,14 @@ class McpToolSmokeChecker:
 def _serve(
     transport: TransportOption = McpTransport.STDIO,
 ) -> int:
-    """Serve Alexandria MCP using the selected transport."""
+    """Serve Alexandria MCP using the selected transport.
+
+    Args:
+        transport: Transport used by this operation.
+
+    Returns:
+        int result produced by serve.
+    """
     return server_runtime.main(["--transport", transport.value])
 
 
@@ -137,10 +165,23 @@ def _smoke_tools_command(
     mcp_url: McpUrlOption = None,
     required_tool: RequiredToolOption = None,
 ) -> int:
-    """Check that required live MCP tools are exposed."""
+    """Check that required live MCP tools are exposed.
+
+    Args:
+        mcp_url: Mcp url used by this operation.
+        required_tool: Required tool used by this operation.
+
+    Returns:
+        int result produced by smoke tools command.
+    """
     required_tools = required_tool or list(DEFAULT_REQUIRED_MCP_TOOLS)
 
     async def operation() -> JSONValue:
+        """Execute operation.
+
+        Returns:
+            JSONValue result produced by operation.
+        """
         return await _mcp_smoke_tools(
             settings=AlexandriaApiSettings.from_env(),
             mcp_url=mcp_url,
@@ -160,6 +201,16 @@ async def _mcp_smoke_tools(
     mcp_url: str | None,
     required_tools: Sequence[str],
 ) -> JSONValue:
+    """Execute mcp smoke tools.
+
+    Args:
+        settings: Settings used by this operation.
+        mcp_url: Mcp url used by this operation.
+        required_tools: Required tools used by this operation.
+
+    Returns:
+        JSONValue result produced by mcp smoke tools.
+    """
     checker = McpToolSmokeChecker(
         settings=settings,
         mcp_url=mcp_url,

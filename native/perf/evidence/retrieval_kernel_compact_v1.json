@@ -1,0 +1,53 @@
+{
+  "environment": {
+    "machine": "arm64",
+    "peak_rss_bytes": 183975936,
+    "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+    "python_version": "3.14.7"
+  },
+  "feature": "retrieval_kernel",
+  "generated_at": "2026-08-23T14:13:01.939504+00:00",
+  "interpretation": [
+    "Native compact timings include Python extraction of IDs/scores, PyO3 conversion, Rust ranking, and reconstruction of existing ContextSearchMatch DTOs.",
+    "Heavyweight Context/Chunk objects never cross the native boundary.",
+    "The compact functions reuse the same Rust ranking algorithm used by the strict JSON compatibility adapter.",
+    "The retired Python ranking implementation is not retained as a performance or correctness oracle after cutover."
+  ],
+  "quality_evidence": {
+    "frozen_pre_cutover_compatibility_corpus": "native/corpora/retrieval_kernel/v1/cases.json",
+    "real_ffi_compatibility_gate": "run_by_cargo_xtask_test"
+  },
+  "result_limit": 50,
+  "scenarios": [
+    {
+      "best_match_result_count": 48,
+      "candidates_per_lane": 50,
+      "compact_ffi_best_match_median_milliseconds": 0.011023,
+      "compact_ffi_fusion_median_milliseconds": 0.063375,
+      "fusion_result_count": 50
+    },
+    {
+      "best_match_result_count": 50,
+      "candidates_per_lane": 1000,
+      "compact_ffi_best_match_median_milliseconds": 0.175768,
+      "compact_ffi_fusion_median_milliseconds": 0.409658,
+      "fusion_result_count": 50
+    },
+    {
+      "best_match_result_count": 50,
+      "candidates_per_lane": 10000,
+      "compact_ffi_best_match_median_milliseconds": 1.805666,
+      "compact_ffi_fusion_median_milliseconds": 4.184104,
+      "fusion_result_count": 50
+    },
+    {
+      "best_match_result_count": 50,
+      "candidates_per_lane": 50000,
+      "compact_ffi_best_match_median_milliseconds": 9.950458,
+      "compact_ffi_fusion_median_milliseconds": 25.755334,
+      "fusion_result_count": 50
+    }
+  ],
+  "schema_version": 1,
+  "scope": "compact_tuple_index_ffi_with_python_materialization"
+}

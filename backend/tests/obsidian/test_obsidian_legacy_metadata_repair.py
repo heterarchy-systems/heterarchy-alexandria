@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import os
-
 from pathlib import Path
 
 import anyio
 import pytest
+
 from app.obsidian.application.service.notes.obsidian_legacy_metadata_repair_service import (
     ObsidianLegacyMetadataRepairService,
 )
@@ -28,8 +28,7 @@ from app.shared.infrastructure.database import Database
 _OBSIDIAN_MODELS_LOADED = _obsidian_index_models
 
 
-def _database_url(path: Path) -> str:
-    del path
+def _database_url() -> str:
     return os.environ["DATABASE_URL"]
 
 
@@ -65,7 +64,7 @@ def test_legacy_metadata_repair_is_dry_run_hash_locked_and_body_preserving(
         )
         note_path.write_text(original, encoding="utf-8")
         database = Database(
-            database_url=_database_url(tmp_path / "legacy-repair.db"),
+            database_url=_database_url(),
             create_schema=True,
         )
         await database.initialize()
@@ -191,7 +190,7 @@ def test_legacy_metadata_repair_reports_unsafe_repr_for_manual_review(
             encoding="utf-8",
         )
         database = Database(
-            database_url=_database_url(tmp_path / "manual-review.db"),
+            database_url=_database_url(),
             create_schema=True,
         )
         await database.initialize()

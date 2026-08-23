@@ -57,6 +57,15 @@ def _graph_link_refs(
     refs: list[JSONObject],
     active_note_path: str,
 ) -> list[JSONObject]:
+    """Execute graph link refs.
+
+    Args:
+        refs: Refs used by this operation.
+        active_note_path: Active note path used by this operation.
+
+    Returns:
+        list[JSONObject] result produced by graph link refs.
+    """
     applied: list[JSONObject] = []
     for ref in refs:
         path = _string_ref(ref, "path")
@@ -77,6 +86,15 @@ def _merged_relation_refs(
     existing: list[JSONObject],
     additions: list[JSONObject],
 ) -> list[JSONObject]:
+    """Execute merged relation refs.
+
+    Args:
+        existing: Existing used by this operation.
+        additions: Additions used by this operation.
+
+    Returns:
+        list[JSONObject] result produced by merged relation refs.
+    """
     merged: list[JSONObject] = []
     seen: set[tuple[str, str | None, str]] = set()
     for ref in [*existing, *additions]:
@@ -97,5 +115,14 @@ def _merged_relation_refs(
 
 
 def _string_ref(ref: JSONObject, key: str) -> str | None:
+    """Execute string ref.
+
+    Args:
+        ref: Ref used by this operation.
+        key: Key used by this operation.
+
+    Returns:
+        str | None result produced by string ref.
+    """
     value = ref.get(key)
     return value.strip() if isinstance(value, str) and value.strip() else None

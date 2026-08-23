@@ -134,11 +134,30 @@ def _scope_path(
     alexandria_root: str,
     scope_path: str | None,
 ) -> Path:
+    """Execute scope path.
+
+    Args:
+        vault_path: Vault path used by this operation.
+        alexandria_root: Alexandria root used by this operation.
+        scope_path: Scope path used by this operation.
+
+    Returns:
+        Path result produced by scope path.
+    """
     scope = alexandria_root if scope_path is None else scope_path
     return resolve_note_path(vault_path, scope)
 
 
 def _markdown_paths(scope: Path, managed_root: Path) -> list[Path]:
+    """Execute markdown paths.
+
+    Args:
+        scope: Scope used by this operation.
+        managed_root: Managed root used by this operation.
+
+    Returns:
+        list[Path] result produced by markdown paths.
+    """
     return discover_managed_markdown_paths(scope, managed_root=managed_root)
 
 
@@ -146,6 +165,15 @@ def _inventory_item_matches(
     item: ObsidianVaultInventoryItem,
     needle: str,
 ) -> bool:
+    """Execute inventory item matches.
+
+    Args:
+        item: Item being processed.
+        needle: Needle used by this operation.
+
+    Returns:
+        Whether inventory item matches.
+    """
     haystack = "\n".join(
         [
             item.note_id,

@@ -8,6 +8,12 @@ from pathlib import Path
 
 import anyio
 import pytest
+from dependency_injector import providers
+from fastapi.testclient import TestClient
+from pytest import MonkeyPatch
+from sqlalchemy import event, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.librarian.domain.contracts.hermes_collaboration_contracts import (
     HermesLibrarianAskCommand,
 )
@@ -86,17 +92,11 @@ from app.shared.exceptions.obsidian_exceptions import (
 )
 from app.shared.infrastructure.database import Database
 from app.shared.serialization.orjson_codec import loads_json
-from dependency_injector import providers
-from fastapi.testclient import TestClient
-from pytest import MonkeyPatch
-from sqlalchemy import event, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 _OBSIDIAN_MODELS_LOADED = _obsidian_index_models
 
 
-def _database_url(path: Path) -> str:
-    del path
+def _database_url() -> str:
     return os.environ["DATABASE_URL"]
 
 
@@ -106,9 +106,7 @@ async def _service(
     coordinator: IndexMaintenanceCoordinator | None = None,
     alexandria_root: str = "Alexandria",
 ) -> tuple[Database, AsyncSession, ObsidianService]:
-    database = Database(
-        database_url=_database_url(tmp_path / "obsidian.db"), create_schema=True
-    )
+    database = Database(database_url=_database_url(), create_schema=True)
     await database.initialize()
     session = database.session()
     service = ObsidianService(
@@ -295,7 +293,7 @@ def test_obsidian_init_creates_frontmatter_start_note(tmp_path: Path) -> None:
 
 
 def test_obsidian_reindex_searches_frontmatter_notes(tmp_path: Path) -> None:
-    """Reindex should classify official notes and search them through SQLite FTS."""
+    """Reindex should classify official notes and search them through PostgreSQL FTS."""
 
     async def scenario() -> None:
         database, session, service = await _service(tmp_path)
@@ -314,7 +312,7 @@ def test_obsidian_reindex_searches_frontmatter_notes(tmp_path: Path) -> None:
                 "source: human\n"
                 "project: heterarchy-alexandria\n"
                 "---\n\n"
-                "# Obsidian Storage\n\nSQLite is a rebuildable search cache.\n",
+                "# Obsidian Storage\n\nPostgreSQL is a rebuildable search cache.\n",
                 encoding="utf-8",
             )
             result = await service.reindex()
@@ -596,9 +594,7 @@ def test_obsidian_reindex_triggers_embedding_reindex_when_hook_is_configured(
     """Reindex should trigger embedding backfill after vault index rebuild."""
 
     async def scenario() -> tuple[bool, int]:
-        database = Database(
-            database_url=_database_url(tmp_path / "obsidian.db"), create_schema=True
-        )
+        database = Database(database_url=_database_url(), create_schema=True)
         await database.initialize()
         session = database.session()
         try:
@@ -724,7 +720,7 @@ def test_obsidian_reindex_reads_existing_embeddings_before_file_row_flush(
             alexandria_type=AlexandriaNoteType.CONTEXT,
             title=title,
             status="active",
-            tags=["sqlite"],
+            tags=["postgresql"],
             project="heterarchy-alexandria",
             source="test",
             content_hash=content_hash,
@@ -744,9 +740,7 @@ def test_obsidian_reindex_reads_existing_embeddings_before_file_row_flush(
         )
 
     async def scenario() -> list[str]:
-        database = Database(
-            database_url=_database_url(tmp_path / "obsidian.db"), create_schema=True
-        )
+        database = Database(database_url=_database_url(), create_schema=True)
         await database.initialize()
         session = database.session()
         statements: list[str] = []
@@ -884,12 +878,10 @@ def test_obsidian_reindex_continues_after_one_index_write_failure(
     tmp_path: Path,
     monkeypatch: MonkeyPatch,
 ) -> None:
-    """One SQLite write failure must not hide later valid canonical notes."""
+    """One PostgreSQL write failure must not hide later valid canonical notes."""
 
     async def scenario() -> tuple[int, list[str], str]:
-        database = Database(
-            database_url=_database_url(tmp_path / "obsidian.db"), create_schema=True
-        )
+        database = Database(database_url=_database_url(), create_schema=True)
         await database.initialize()
         session = database.session()
         repository = SqlAlchemyObsidianIndexRepository(session=session)
@@ -1330,9 +1322,7 @@ def test_obsidian_vault_settings_update_redirects_future_writes(
     """Runtime vault settings should persist and move future note writes."""
 
     async def scenario() -> tuple[str, str, bool, bool, str | None]:
-        database = Database(
-            database_url=_database_url(tmp_path / "obsidian.db"), create_schema=True
-        )
+        database = Database(database_url=_database_url(), create_schema=True)
         await database.initialize()
         session = database.session()
         config_path = tmp_path / "vault-config.json"
@@ -1390,10 +1380,10 @@ def test_obsidian_vault_settings_update_redirects_future_writes(
     assert persisted_path == status_path
 
 
-def test_obsidian_roundtrips_memory_skill_prompt_after_sqlite_rebuild(
+def test_obsidian_roundtrips_memory_skill_prompt_after_postgres_rebuild(
     tmp_path: Path,
 ) -> None:
-    """Canonical artifact notes should survive SQLite cache deletion/rebuild."""
+    """Canonical artifact notes should survive PostgreSQL index deletion and rebuild."""
 
     async def scenario() -> None:
         vault_path = tmp_path / "vault"
@@ -1412,11 +1402,11 @@ def test_obsidian_roundtrips_memory_skill_prompt_after_sqlite_rebuild(
                     "## Durable Decisions\n"
                     "- Obsidian remains canonical memory.\n\n"
                     "## Current State\n"
-                    "- Obsidian canonical memory survives SQLite rebuild.\n\n"
+                    "- Obsidian canonical memory survives PostgreSQL index rebuild.\n\n"
                     "## Risks and Blockers\n"
                     "- None recorded.\n\n"
                     "## Next Actions\n"
-                    "- Rebuild SQLite cache as needed.\n\n"
+                    "- Rebuild the PostgreSQL index as needed.\n\n"
                     "## Coverage\n"
                     "- covered_from: 2026-05-25T00:00:00+00:00\n"
                     "- covered_to: 2026-05-26T00:00:00+00:00\n"
@@ -1437,7 +1427,7 @@ def test_obsidian_roundtrips_memory_skill_prompt_after_sqlite_rebuild(
         )
 
         first_database = Database(
-            database_url=_database_url(tmp_path / "first.db"),
+            database_url=_database_url(),
             create_schema=True,
         )
         await first_database.initialize()
@@ -1489,7 +1479,7 @@ def test_obsidian_roundtrips_memory_skill_prompt_after_sqlite_rebuild(
             await first_database.shutdown()
 
         rebuild_database = Database(
-            database_url=_database_url(tmp_path / "rebuilt.db"),
+            database_url=_database_url(),
             create_schema=True,
         )
         await rebuild_database.initialize()
@@ -1851,7 +1841,7 @@ def test_explicit_create_requires_its_exact_selector(
 
 
 def test_obsidian_read_rejects_indexed_note_missing_frontmatter(tmp_path: Path) -> None:
-    """Read should not hide source Markdown corruption behind SQLite cache data."""
+    """Read should not hide source Markdown corruption behind PostgreSQL index data."""
 
     async def scenario() -> None:
         database, session, service = await _service(tmp_path)
@@ -1926,9 +1916,7 @@ def test_obsidian_librarian_ask_delegates_with_auto_provider(
     """Delegate requests should use the configured delegate service without caller ids."""
 
     async def scenario() -> tuple[str, str | None, str | None, bool, str | None]:
-        database = Database(
-            database_url=_database_url(tmp_path / "obsidian.db"), create_schema=True
-        )
+        database = Database(database_url=_database_url(), create_schema=True)
         await database.initialize()
         session = database.session()
         delegate = _RecordingDelegateService()
@@ -2014,9 +2002,7 @@ def test_obsidian_librarian_ask_includes_selection_in_delegate_brief(
     """Selection should remain explicit context for provider-backed delegation."""
 
     async def scenario() -> tuple[str, str, str]:
-        database = Database(
-            database_url=_database_url(tmp_path / "obsidian.db"), create_schema=True
-        )
+        database = Database(database_url=_database_url(), create_schema=True)
         await database.initialize()
         session = database.session()
         delegate = _RecordingDelegateService()
@@ -2996,7 +2982,7 @@ def test_obsidian_librarian_job_routes_run_vault_move_and_expose_report(
 
     async def prepare() -> tuple[Database, ObsidianLibrarianJobService, str]:
         database = Database(
-            database_url=_database_url(tmp_path / "obsidian-job-api.db"),
+            database_url=_database_url(),
             create_schema=True,
         )
         await database.initialize()

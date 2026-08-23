@@ -9,7 +9,7 @@ from app.librarian.domain.types.librarian_brief_payload_types import SourceRefPa
 from app.shared.exceptions.librarian_exceptions import LibrarianValidationError
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)
 class SourceRef:
     """Reference to evidence that can be fetched only when selected.
 
@@ -33,7 +33,7 @@ class SourceRef:
             normalized_source_type = SourceRefType(self.source_type)
         except (TypeError, ValueError) as exc:
             raise LibrarianValidationError("source_type is invalid") from exc
-        object.__setattr__(self, "source_type", normalized_source_type)
+        self.source_type = normalized_source_type
         if not self.source_id.strip():
             raise LibrarianValidationError("source_id is required")
         if not self.title.strip():

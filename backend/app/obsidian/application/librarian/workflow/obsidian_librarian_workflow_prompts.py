@@ -74,10 +74,26 @@ def delegate_brief(
 
 
 def _selection_status_from_response(response: JSONObject) -> str:
+    """Execute selection status from response.
+
+    Args:
+        response: Response value being processed.
+
+    Returns:
+        str result produced by selection status from response.
+    """
     return "ingested" if _selection_excerpt_from_response(response) else "none"
 
 
 def _selection_line_from_response(response: JSONObject) -> str:
+    """Execute selection line from response.
+
+    Args:
+        response: Response value being processed.
+
+    Returns:
+        str result produced by selection line from response.
+    """
     selection = _selection_excerpt_from_response(response)
     if selection is None:
         return "Selection: none"
@@ -85,6 +101,14 @@ def _selection_line_from_response(response: JSONObject) -> str:
 
 
 def _selection_block_from_response(response: JSONObject) -> str:
+    """Execute selection block from response.
+
+    Args:
+        response: Response value being processed.
+
+    Returns:
+        str result produced by selection block from response.
+    """
     selection = _selection_excerpt_from_response(response)
     if selection is None:
         return "## Selection\nnone"
@@ -92,6 +116,14 @@ def _selection_block_from_response(response: JSONObject) -> str:
 
 
 def _selection_excerpt_from_response(response: JSONObject) -> str | None:
+    """Execute selection excerpt from response.
+
+    Args:
+        response: Response value being processed.
+
+    Returns:
+        str | None result produced by selection excerpt from response.
+    """
     context = response.get("input_context")
     if not isinstance(context, dict):
         return None

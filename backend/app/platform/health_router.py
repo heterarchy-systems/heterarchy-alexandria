@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 
+from fastapi import FastAPI, status
+from fastapi.responses import Response
+
 from app.platform.lifecycle.state import LifecycleState
 from app.platform.schemas.health_schema import (
     HeartbeatHealthPayload,
@@ -15,8 +18,6 @@ from app.platform.schemas.health_schema import (
 from app.shared.serialization.model_codec import dumps_model
 from app.shared.utils.http_helpers.readiness import status_code_from_ready
 from app.shared.utils.http_helpers.response_headers import json_response
-from fastapi import FastAPI, status
-from fastapi.responses import Response
 
 DependencyHealthRefresher = Callable[[], Awaitable[None]]
 

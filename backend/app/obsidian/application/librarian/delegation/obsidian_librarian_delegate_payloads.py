@@ -10,7 +10,15 @@ def _delegate_status(
     payload: JSONObject | None,
     response: JSONObject,
 ) -> str:
-    """Normalize delegate execution status for the workflow state."""
+    """Normalize delegate execution status for the workflow state.
+
+    Args:
+        payload: Validated payload for this operation.
+        response: Response value being processed.
+
+    Returns:
+        str result produced by delegate status.
+    """
     if payload is None:
         status_value = response.get("delegate_status")
         return status_value if isinstance(status_value, str) else "local_only"
@@ -24,7 +32,15 @@ def _delegate_unavailable_payload(
     workflow: ObsidianLibrarianWorkflow,
     reason: str,
 ) -> JSONObject:
-    """Return a guidance-only delegate result when requested OAuth setup is missing."""
+    """Return a guidance-only delegate result when requested OAuth setup is missing.
+
+    Args:
+        workflow: Workflow used by this operation.
+        reason: Reason used by this operation.
+
+    Returns:
+        JSONObject result produced by delegate unavailable payload.
+    """
     return {
         "job_id": f"{workflow.thread_id}:delegate-unavailable",
         "status": "GUIDANCE_ONLY",
@@ -51,7 +67,12 @@ def _append_delegate_summary(
     response: JSONObject,
     delegate_payload: JSONObject | None,
 ) -> None:
-    """Append delegate summaries to the local answer markdown in-place."""
+    """Append delegate summaries to the local answer markdown in-place.
+
+    Args:
+        response: Response value being processed.
+        delegate_payload: Delegate payload used by this operation.
+    """
     if delegate_payload is None:
         return
     summaries: list[str] = []

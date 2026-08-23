@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from typing_extensions import TypedDict
+
 from app.connections.domain.event_enum.provider_enums import AuthType, ProviderType
 from app.shared.types.extra_types import JSONObject
-from typing_extensions import TypedDict
 
 
 class LibrarianProviderPayload(TypedDict, closed=True):

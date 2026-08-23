@@ -28,6 +28,12 @@ class McpHttpAuthGate:
         auth_mode: McpAuthMode,
         verifier: OAuthBearerTokenVerifier | None = None,
     ) -> None:
+        """Initialize McpHttpAuthGate state and dependencies.
+
+        Args:
+            auth_mode: Auth mode used by this operation.
+            verifier: Verifier used by this operation.
+        """
         self._auth_mode = auth_mode
         self._verifier = verifier
 
@@ -58,6 +64,15 @@ class McpHttpAuthGate:
         scope: Scope,
         error_code: OAuthBearerErrorCode,
     ) -> McpHttpAuthResult:
+        """Execute deny.
+
+        Args:
+            scope: Scope used by this operation.
+            error_code: Error code used by this operation.
+
+        Returns:
+            McpHttpAuthResult result produced by deny.
+        """
         return McpHttpAuthResult(
             allowed=False,
             status_code=HTTPStatus.UNAUTHORIZED,
@@ -67,6 +82,14 @@ class McpHttpAuthGate:
 
 
 def _bearer_token(scope: Scope) -> str | None:
+    """Execute bearer token.
+
+    Args:
+        scope: Scope used by this operation.
+
+    Returns:
+        str | None result produced by bearer token.
+    """
     headers = dict(scope.get("headers", []))
     raw_authorization = headers.get(b"authorization")
     if raw_authorization is None:
@@ -83,6 +106,15 @@ def _bearer_token(scope: Scope) -> str | None:
 
 
 def _www_authenticate(scope: Scope, error_code: OAuthBearerErrorCode) -> str:
+    """Execute www authenticate.
+
+    Args:
+        scope: Scope used by this operation.
+        error_code: Error code used by this operation.
+
+    Returns:
+        str result produced by www authenticate.
+    """
     metadata_url = f"{_request_origin(scope)}{MCP_OAUTH_PROTECTED_RESOURCE_PATH}"
     return (
         f'Bearer resource_metadata="{metadata_url}", '
@@ -92,6 +124,14 @@ def _www_authenticate(scope: Scope, error_code: OAuthBearerErrorCode) -> str:
 
 
 def _request_origin(scope: Scope) -> str:
+    """Execute request origin.
+
+    Args:
+        scope: Scope used by this operation.
+
+    Returns:
+        str result produced by request origin.
+    """
     headers = dict(scope.get("headers", []))
     forwarded_proto = _header_text(headers, b"x-forwarded-proto")
     forwarded_host = _header_text(headers, b"x-forwarded-host")
@@ -101,6 +141,15 @@ def _request_origin(scope: Scope) -> str:
 
 
 def _header_text(headers: dict[bytes, bytes], key: bytes) -> str | None:
+    """Execute header text.
+
+    Args:
+        headers: Headers used by this operation.
+        key: Key used by this operation.
+
+    Returns:
+        str | None result produced by header text.
+    """
     value = headers.get(key)
     if value is None:
         return None

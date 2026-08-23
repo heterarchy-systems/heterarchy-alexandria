@@ -83,6 +83,15 @@ def _enrich_match(
     match: ContextSearchMatch,
     edges: list[ObsidianGraphContextEvidence],
 ) -> ContextSearchMatch:
+    """Execute enrich match.
+
+    Args:
+        match: Match used by this operation.
+        edges: Edges used by this operation.
+
+    Returns:
+        ContextSearchMatch result produced by enrich match.
+    """
     context_id = canonical_context_id(match.context)
     evidence_items: list[ContextGraphEvidence] = []
     for edge in edges:
@@ -111,6 +120,15 @@ def _graph_evidence(
     context_id: str,
     edge: ObsidianGraphContextEvidence,
 ) -> ContextGraphEvidence | None:
+    """Execute graph evidence.
+
+    Args:
+        context_id: Identifier for context.
+        edge: Edge used by this operation.
+
+    Returns:
+        ContextGraphEvidence | None result produced by graph evidence.
+    """
     direction = _direction(context_id=context_id, edge=edge)
     if direction is None:
         return None
@@ -133,6 +151,15 @@ def _direction(
     context_id: str,
     edge: ObsidianGraphContextEvidence,
 ) -> ContextGraphDirection | None:
+    """Execute direction.
+
+    Args:
+        context_id: Identifier for context.
+        edge: Edge used by this operation.
+
+    Returns:
+        ContextGraphDirection | None result produced by direction.
+    """
     if edge.source_note_id == context_id:
         return ContextGraphDirection.OUTGOING
     if edge.target_note_id == context_id:

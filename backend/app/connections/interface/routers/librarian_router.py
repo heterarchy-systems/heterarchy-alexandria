@@ -2,6 +2,9 @@
 
 from typing import Annotated
 
+from dependency_injector.wiring import Provide, inject
+from fastapi import APIRouter, Depends, HTTPException, status
+
 from app.connections.application.librarian_service import LibrarianService
 from app.connections.interface.schemas.librarian.provider_schema import (
     LibrarianProviderCreateRequest,
@@ -18,8 +21,6 @@ from app.shared.exceptions.route_exceptions import (
     CONNECTIONS_ROUTE_EXCEPTION_MAPPING,
 )
 from app.shared.type_validation.strict_json_body import model_validate_json_body
-from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, HTTPException, status
 
 router = APIRouter(
     prefix="/settings/connections",
@@ -52,6 +53,8 @@ async def create_librarian_provider(
         request [LibrarianProviderCreateRequest]: Value supplied to create_librarian_provider.
         service [LibrarianService]: Value supplied to create_librarian_provider.
 
+        request: Validated request for this operation.
+        service: Application service used by this operation.
     Returns:
         LibrarianProviderResponse: Value produced by create_librarian_provider.
     """
@@ -88,6 +91,7 @@ async def list_librarian_providers(
     Args:
         service [LibrarianService]: Value supplied to list_librarian_providers.
 
+        service: Application service used by this operation.
     Returns:
         LibrarianProviderResponseList: Value produced by list_librarian_providers.
     """
@@ -118,6 +122,8 @@ async def get_librarian_provider(
         provider_id [str]: Value supplied to get_librarian_provider.
         service [LibrarianService]: Value supplied to get_librarian_provider.
 
+        provider_id: Identifier for provider.
+        service: Application service used by this operation.
     Returns:
         LibrarianProviderResponse: Value produced by get_librarian_provider.
     """
@@ -153,6 +159,9 @@ async def patch_librarian_provider(
         request [LibrarianProviderPatchRequest]: Value supplied to patch_librarian_provider.
         service [LibrarianService]: Value supplied to patch_librarian_provider.
 
+        provider_id: Identifier for provider.
+        request: Validated request for this operation.
+        service: Application service used by this operation.
     Returns:
         LibrarianProviderResponse: Value produced by patch_librarian_provider.
     """
@@ -190,6 +199,8 @@ async def delete_librarian_provider(
     Args:
         provider_id [str]: Value supplied to delete_librarian_provider.
         service [LibrarianService]: Value supplied to delete_librarian_provider.
+        provider_id: Identifier for provider.
+        service: Application service used by this operation.
     """
     await service.delete_provider(provider_id)
 
@@ -221,6 +232,9 @@ async def test_librarian_provider(
         request [LibrarianProviderTestRequest]: Value supplied to test_librarian_provider.
         service [LibrarianService]: Value supplied to test_librarian_provider.
 
+        provider_id: Identifier for provider.
+        request: Validated request for this operation.
+        service: Application service used by this operation.
     Returns:
         LibrarianProviderTestResponse: Value produced by test_librarian_provider.
     """

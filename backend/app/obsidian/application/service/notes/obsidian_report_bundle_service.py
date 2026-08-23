@@ -58,6 +58,15 @@ class ObsidianReportBundleService:
         vault_config_store: ObsidianVaultConfigStore,
         index_maintenance_coordinator: IndexMaintenanceCoordinator,
     ) -> None:
+        """Initialize ObsidianReportBundleService state and dependencies.
+
+        Args:
+            obsidian_service: Obsidian service dependency.
+            vault_reindex_service: Vault reindex service dependency.
+            graph_service: Graph service dependency.
+            vault_config_store: Vault config store used by this operation.
+            index_maintenance_coordinator: Index maintenance coordinator used by this operation.
+        """
         self._obsidian_service = obsidian_service
         self._vault_reindex_service = vault_reindex_service
         self._graph_service = graph_service
@@ -90,6 +99,14 @@ class ObsidianReportBundleService:
         self,
         request: ObsidianReportBundleRequest,
     ) -> ObsidianReportBundleResult:
+        """Execute upsert serialized.
+
+        Args:
+            request: Validated request for this operation.
+
+        Returns:
+            ObsidianReportBundleResult result produced by upsert serialized.
+        """
         key = request.idempotency_key.strip()
         if not key:
             raise ObsidianValidationError("idempotency_key is required")

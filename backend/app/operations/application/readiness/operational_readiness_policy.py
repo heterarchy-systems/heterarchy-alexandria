@@ -24,6 +24,14 @@ from app.operations.domain.event_enum.operational_readiness_enums import (
 
 
 def _vault_snapshot(status: ObsidianVaultStatus) -> OperationalVaultSnapshot:
+    """Execute vault snapshot.
+
+    Args:
+        status: Status value used by this operation.
+
+    Returns:
+        OperationalVaultSnapshot result produced by vault snapshot.
+    """
     return OperationalVaultSnapshot(
         exists=status.vault_exists,
         readable=status.vault_exists and status.alexandria_root_exists,
@@ -37,6 +45,14 @@ def _vault_snapshot(status: ObsidianVaultStatus) -> OperationalVaultSnapshot:
 
 
 def _rag_snapshot(health: RagDependencyHealth) -> OperationalRagSnapshot:
+    """Execute rag snapshot.
+
+    Args:
+        health: Health used by this operation.
+
+    Returns:
+        OperationalRagSnapshot result produced by rag snapshot.
+    """
     return OperationalRagSnapshot(
         fts=health.fts,
         vector=health.vector,
@@ -55,6 +71,16 @@ def _reconciliation_snapshot(
     configured: bool,
     reachable: bool = True,
 ) -> OperationalReconciliationSnapshot:
+    """Execute reconciliation snapshot.
+
+    Args:
+        diagnostics: Diagnostics used by this operation.
+        configured: Configured used by this operation.
+        reachable: Reachable used by this operation.
+
+    Returns:
+        OperationalReconciliationSnapshot result produced by reconciliation snapshot.
+    """
     if diagnostics is None:
         return OperationalReconciliationSnapshot(
             configured=configured,
@@ -100,6 +126,17 @@ def _warnings(
     rag: OperationalRagSnapshot,
     reconciliation: OperationalReconciliationSnapshot,
 ) -> list[str]:
+    """Execute warnings.
+
+    Args:
+        database: Database used by this operation.
+        vault: Vault used by this operation.
+        rag: Rag used by this operation.
+        reconciliation: Reconciliation used by this operation.
+
+    Returns:
+        list[str] result produced by warnings.
+    """
     warnings: list[str] = []
     if not database.reachable:
         warnings.append("database_unreachable")
@@ -155,6 +192,14 @@ def _warnings(
 
 
 def _blockers(warnings: list[str]) -> list[str]:
+    """Execute blockers.
+
+    Args:
+        warnings: Warnings used by this operation.
+
+    Returns:
+        list[str] result produced by blockers.
+    """
     blocking_codes = {
         "database_unreachable",
         "database_integrity_not_healthy",
@@ -181,6 +226,18 @@ def _status(
     warnings: list[str],
     active_recovery_run_id: str | None,
 ) -> OperationalReadinessStatus:
+    """Execute status.
+
+    Args:
+        database: Database used by this operation.
+        vault: Vault used by this operation.
+        rag: Rag used by this operation.
+        warnings: Warnings used by this operation.
+        active_recovery_run_id: Identifier for active recovery run.
+
+    Returns:
+        OperationalReadinessStatus result produced by status.
+    """
     if active_recovery_run_id is not None:
         return OperationalReadinessStatus.RECOVERING
     blockers = _blockers(warnings)
@@ -204,6 +261,15 @@ def _next_actions(
     warnings: list[str],
     index_errors: tuple[ObsidianIndexError, ...] = (),
 ) -> list[str]:
+    """Execute next actions.
+
+    Args:
+        warnings: Warnings used by this operation.
+        index_errors: Index errors used by this operation.
+
+    Returns:
+        list[str] result produced by next actions.
+    """
     actions: list[str] = []
     warning_set = set(warnings)
     if {"vault_not_found", "alexandria_root_not_found"} & warning_set:
@@ -247,6 +313,14 @@ def _next_actions(
 def _index_error_actions(
     index_errors: tuple[ObsidianIndexError, ...],
 ) -> list[str]:
+    """Execute index error actions.
+
+    Args:
+        index_errors: Index errors used by this operation.
+
+    Returns:
+        list[str] result produced by index error actions.
+    """
     if not index_errors:
         return ["inspect_obsidian_index_errors"]
     codes = {error.error_code for error in index_errors}
