@@ -8,6 +8,7 @@ from app.memory.domain.event_enum.context_enums import (
     ContextImportance,
     ContextKind,
     ContextRecallLifecycleStatus,
+    ContextScope,
     ContextSourceType,
     ContextStorageStatus,
 )
@@ -18,10 +19,14 @@ from app.obsidian.application.notes.frontmatter.obsidian_context_frontmatter_map
 )
 from app.obsidian.application.notes.lifecycle.obsidian_context_identity import (
     ObsidianContextIdentity,
+    ObsidianContextProvenance,
 )
 from app.obsidian.domain.entities.obsidian_note import ObsidianNote
-from app.obsidian.domain.event_enum.obsidian_enums import AlexandriaNoteType
-from app.shared.types.extra_types import JSONObject, JSONValue
+from app.obsidian.domain.event_enum.obsidian_enums import (
+    AlexandriaNoteType,
+    ObsidianContextLifecycleStatus,
+)
+from app.shared.types.extra_types import JSONValue
 from app.shared.types.types_convert_utils import aware_utc_datetime
 
 OBSIDIAN_CONTEXT_ID_PREFIX = "obsidian:"
@@ -37,22 +42,13 @@ def context_record_from_obsidian_note(note: ObsidianNote) -> ContextRecord:
     Returns:
         Memory Context read model with canonical identity metadata.
     """
-    identity = context_identity_from_frontmatter(
-        _identity_frontmatter(note),
-        project=note.project,
-        status=note.status,
-        generated_content_hash=context_content_hash(note.body),
-    )
+    identity = _identity_from_note(note)
     is_archived = (
         identity.status.value == ContextRecallLifecycleStatus.ARCHIVED.value.lower()
     )
     return ContextRecord(
         id=f"{OBSIDIAN_CONTEXT_ID_PREFIX}{note.note_id}",
-        kind=(
-            identity.context_kind
-            if note.alexandria_type is AlexandriaNoteType.CONTEXT
-            else _kind_from_note(note)
-        ),
+        kind=identity.context_kind,
         title=note.title,
         summary=_summary_from_note(note),
         content=note.body,
@@ -91,26 +87,148 @@ def context_record_from_obsidian_note(note: ObsidianNote) -> ContextRecord:
     )
 
 
-def _identity_frontmatter(note: ObsidianNote) -> JSONObject:
-    """Return frontmatter safe for the shared Memory identity boundary.
+def _identity_from_note(note: ObsidianNote) -> ObsidianContextIdentity:
+    """Return the Context identity used by one Obsidian recall projection.
 
-    Canonical Context notes own ``ContextKind`` and content-hash integrity and remain
-    strictly validated. Other managed note types may define note-type-specific kind
-    or hash semantics, so their generalized Context projection derives those fields
-    at this adapter boundary.
+    Canonical Context notes remain fail-closed against the complete Context
+    frontmatter contract. Other managed note types own different lifecycle, scope,
+    kind, and content-hash semantics, so recall derives a minimal Context projection
+    instead of reinterpreting foreign frontmatter as a Context contract.
 
     Args:
         note: Note used by this operation.
 
     Returns:
-        Frontmatter normalized for generalized Context identity parsing.
+        Validated canonical Context identity or a derived generalized projection.
     """
     if note.alexandria_type is AlexandriaNoteType.CONTEXT:
-        return note.frontmatter
-    frontmatter = dict(note.frontmatter)
-    frontmatter.pop("context_kind", None)
-    frontmatter.pop("content_hash", None)
-    return frontmatter
+        return context_identity_from_frontmatter(
+            note.frontmatter,
+            project=note.project,
+            status=note.status,
+            generated_content_hash=context_content_hash(note.body),
+        )
+
+    project = _normalized_project(note.project)
+    workspace_id = _projection_text(note.frontmatter.get("workspace_id"))
+    agent_id = _projection_text(note.frontmatter.get("agent_id"))
+    user_id = _projection_text(note.frontmatter.get("user_id"))
+    session_id = _projection_text(note.frontmatter.get("session_id"))
+    scope = _projection_scope(
+        note,
+        project=project,
+        agent_id=agent_id,
+        user_id=user_id,
+        session_id=session_id,
+    )
+    visibility = _projection_context_scope(note.frontmatter.get("visibility")) or scope
+    return ObsidianContextIdentity(
+        scope=scope,
+        project=project,
+        workspace_id=workspace_id,
+        agent_id=agent_id,
+        user_id=user_id,
+        session_id=session_id,
+        visibility=visibility,
+        status=ObsidianContextLifecycleStatus.ACTIVE,
+        provenance=ObsidianContextProvenance(
+            source_actor_id=None,
+            source_actor_type=None,
+            source_run_id=None,
+            external_run_id=None,
+            artifact_refs=(),
+            evidence_refs=(),
+            confidence=None,
+        ),
+        content_hash=context_content_hash(note.body),
+        version=1,
+        supersedes_context_id=None,
+        superseded_by_context_id=None,
+        context_kind=_kind_from_note(note),
+        created_at=None,
+        updated_at=None,
+    )
+
+
+def _normalized_project(project: str | None) -> str | None:
+    """Return a normalized project identity for generalized recall projection.
+
+    Args:
+        project: Indexed project value owned by the source note type.
+
+    Returns:
+        Trimmed non-empty project identity when present.
+    """
+    if project is None:
+        return None
+    normalized = project.strip()
+    return normalized or None
+
+
+def _projection_scope(
+    note: ObsidianNote,
+    project: str | None,
+    agent_id: str | None,
+    user_id: str | None,
+    session_id: str | None,
+) -> ContextScope:
+    """Resolve a safe recall scope without applying the Context write contract.
+
+    Args:
+        note: Source note owning the foreign scope vocabulary.
+        project: Normalized indexed project identity.
+        agent_id: Optional normalized agent identity.
+        user_id: Optional normalized user identity.
+        session_id: Optional normalized session identity.
+
+    Returns:
+        A valid Context recall scope preserving compatible source scope semantics.
+    """
+    requested = _projection_context_scope(note.frontmatter.get("scope"))
+    if requested is ContextScope.GLOBAL:
+        return requested
+    if requested is ContextScope.PROJECT and project is not None:
+        return ContextScope.PROJECT
+    if requested is ContextScope.AGENT and agent_id is not None:
+        return ContextScope.AGENT
+    if requested is ContextScope.SESSION and session_id is not None:
+        return ContextScope.SESSION
+    if requested is ContextScope.USER and user_id is not None:
+        return ContextScope.USER
+    return ContextScope.PROJECT if project is not None else ContextScope.GLOBAL
+
+
+def _projection_context_scope(value: JSONValue | None) -> ContextScope | None:
+    """Parse one Context-compatible scope while tolerating foreign vocabularies.
+
+    Args:
+        value: Source frontmatter scope or visibility value.
+
+    Returns:
+        Matching Context scope when recognized; otherwise None.
+    """
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip().upper().replace("-", "_").replace(" ", "_")
+    try:
+        return ContextScope(normalized)
+    except ValueError:
+        return None
+
+
+def _projection_text(value: JSONValue | None) -> str | None:
+    """Normalize one optional foreign identity scalar for recall projection.
+
+    Args:
+        value: Source frontmatter scalar.
+
+    Returns:
+        Trimmed non-empty text when present.
+    """
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip()
+    return normalized or None
 
 
 def _context_metadata(
@@ -143,6 +261,8 @@ def _context_metadata(
     )
     if note.source is not None:
         metadata["source"] = note.source
+    if note.alexandria_type is not AlexandriaNoteType.CONTEXT:
+        metadata["source_status"] = note.status
     return metadata
 
 

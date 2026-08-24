@@ -44,6 +44,7 @@ class ContextMetadataPayload(TypedDict, extra_items=JSONValue):
     supersedes_context_id: NotRequired[str | None]
     superseded_by_context_id: NotRequired[str | None]
     source: NotRequired[str]
+    source_status: NotRequired[str]
 
 
 class ContextProvenancePayload(TypedDict, closed=True):
