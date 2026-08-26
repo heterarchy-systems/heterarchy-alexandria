@@ -9,6 +9,7 @@ from app.memory.domain.event_enum.context_enums import (
     ContextKind,
     ContextScope,
     ContextStorageStatus,
+    MemoryFunction,
 )
 from app.memory.domain.types.context_payload_types import (
     ContextLintNormalizedPayload,
@@ -39,6 +40,7 @@ class ContextLintInput:
     content: str
     summary: str | None
     project: str | None
+    memory_function: MemoryFunction | None = None
     scope: ContextScope = ContextScope.PROJECT
     workspace_id: str | None = None
     agent_id: str | None = None
@@ -127,6 +129,7 @@ def lint_context(payload: ContextLintInput) -> ContextLintResult:
 
     normalized: ContextLintNormalizedPayload = {
         "kind": payload.kind,
+        "memory_function": payload.memory_function,
         "title": title,
         "summary": summary,
         "project": payload.project,

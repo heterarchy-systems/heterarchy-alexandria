@@ -3,7 +3,9 @@
 //! Python remains authoritative for transport, persistence, lifecycle, and external effects.
 
 pub mod bulk_embedding;
+pub mod context_reindex_manifest;
 pub mod document_analysis;
+pub mod document_integrity;
 pub mod graph_compute;
 pub mod hash_fingerprint;
 pub mod markdown_chunking;

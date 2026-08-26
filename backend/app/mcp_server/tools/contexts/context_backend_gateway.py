@@ -32,6 +32,8 @@ async def alexandria_search(
         del payload["include_scopes"]
     if payload.get("include_lifecycle_statuses") == []:
         del payload["include_lifecycle_statuses"]
+    if payload.get("prefer_memory_functions") == []:
+        del payload["prefer_memory_functions"]
     response = await client.post("/memory/contexts/retrieval/search", payload)
     return response
 

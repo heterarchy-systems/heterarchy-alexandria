@@ -15,7 +15,7 @@ from app.memory.domain.event_enum.context_enums import (
     ContextGraphDirection,
     ContextGraphSignalType,
 )
-from app.memory.domain.repositories.contexts.context_graph_signal_provider import (
+from app.memory.domain.repositories.contexts.graph.context_graph_signal_provider import (
     ContextGraphEnrichmentResult,
     IContextGraphSignalProvider,
 )

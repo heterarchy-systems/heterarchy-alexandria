@@ -12,6 +12,7 @@ from app.memory.domain.event_enum.context_enums import (
     ContextKind,
     ContextRecallLifecycleStatus,
     ContextScope,
+    MemoryFunction,
     RagHealthState,
     RagStrategy,
 )
@@ -71,8 +72,19 @@ class ContextSearchRequest(StrictSchemaModel):
         list[ContextRecallLifecycleStatus],
         described_field("Include lifecycle statuses for this context search request."),
     ] = schema_list_default()
+    prefer_memory_functions: Annotated[
+        list[MemoryFunction],
+        described_field(
+            "Soft functional-memory preference in caller-provided priority order."
+        ),
+    ] = schema_list_default()
 
-    @field_validator("include_scopes", "include_lifecycle_statuses", mode="before")
+    @field_validator(
+        "include_scopes",
+        "include_lifecycle_statuses",
+        "prefer_memory_functions",
+        mode="before",
+    )
     @classmethod
     def default_include_scopes(cls, value: JSONValue) -> JSONValue:
         """Normalize legacy null scope filters to an empty list.
@@ -170,6 +182,12 @@ class ContextSearchMatchResponse(StrictSchemaModel):
     vector_score: Annotated[
         float | None,
         described_field("Vector score for this context search match response."),
+    ]
+    graph_score: Annotated[
+        float | None,
+        described_field(
+            "Graph-aware title relevance score when AUTO graph retrieval reranks this match."
+        ),
     ]
     why_retrieved: Annotated[
         str, described_field("Why retrieved for this context search match response.")

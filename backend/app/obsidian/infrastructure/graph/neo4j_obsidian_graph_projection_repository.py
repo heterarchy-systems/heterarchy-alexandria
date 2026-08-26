@@ -19,6 +19,7 @@ from app.obsidian.infrastructure.graph.neo4j_graph_projection_operations import 
     _activate_projection,
     _delete_projection_run,
     _ensure_constraints,
+    _read_active_projection_run_id,
     _read_context_evidence,
     _read_projection_state,
     _read_related_notes,
@@ -42,6 +43,8 @@ class Neo4jObsidianGraphProjectionRepository(IObsidianGraphProjectionRepository)
         """
         self._driver = driver
         self._database = database
+        self._snapshot_cache_run_id: str | None = None
+        self._snapshot_cache: ObsidianGraphProjection | None = None
 
     async def verify_connectivity(self) -> None:
         """Perform the explicit opt-in driver connectivity probe."""
@@ -104,6 +107,8 @@ class Neo4jObsidianGraphProjectionRepository(IObsidianGraphProjectionRepository)
                 projection_version,
                 issue_counts,
             )
+        self._snapshot_cache_run_id = None
+        self._snapshot_cache = None
 
     async def abort_rebuild(self, run_id: str) -> None:
         """Delete nodes staged by a failed run.
@@ -125,6 +130,33 @@ class Neo4jObsidianGraphProjectionRepository(IObsidianGraphProjectionRepository)
         if not isinstance(result, ObsidianGraphProjectionState):
             raise TypeError("Neo4j projection read returned an invalid result")
         return result
+
+    async def snapshot(self) -> ObsidianGraphProjection:
+        """Return the active projection while avoiding repeated full graph hydration.
+
+        A cheap active-run metadata read validates the application-lifetime cache on every
+        request, so projection rebuilds performed by another process are observed without
+        re-reading all Neo4j nodes and edges when the active run is unchanged.
+
+        Returns:
+            Current immutable active graph projection.
+        """
+        async with self._driver.session(database=self._database) as session:
+            run_id = await session.execute_read(_read_active_projection_run_id)
+        if run_id is None:
+            self._snapshot_cache_run_id = None
+            self._snapshot_cache = None
+            return ObsidianGraphProjection()
+        if self._snapshot_cache_run_id == run_id and self._snapshot_cache is not None:
+            return self._snapshot_cache
+        state = await self.state()
+        if not state.initialized or state.run_id is None:
+            self._snapshot_cache_run_id = None
+            self._snapshot_cache = None
+            return ObsidianGraphProjection()
+        self._snapshot_cache_run_id = state.run_id
+        self._snapshot_cache = state.projection
+        return state.projection
 
     async def related_notes(
         self,

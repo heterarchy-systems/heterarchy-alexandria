@@ -47,6 +47,9 @@ from app.obsidian.domain.entities.obsidian_note import (
     ObsidianVaultStatus,
 )
 from app.obsidian.domain.event_enum.obsidian_enums import AlexandriaNoteType
+from app.obsidian.infrastructure.markdown.native_context_reindex_manifest import (
+    create_native_context_reindex_manifest_validator,
+)
 from app.obsidian.infrastructure.models import (
     obsidian_index_models as _obsidian_index_models,
 )
@@ -142,6 +145,7 @@ def test_context_rag_search_includes_obsidian_vault_fts_source(
                 repository=SqlAlchemyObsidianIndexRepository(session=session),
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
+                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             saved = await obsidian_service.save_note(
                 ObsidianSaveNote(
@@ -197,6 +201,7 @@ def test_obsidian_fts_exact_title_outranks_body_frequency(tmp_path: Path) -> Non
                 repository=SqlAlchemyObsidianIndexRepository(session=session),
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
+                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             await obsidian_service.save_note(
                 ObsidianSaveNote(
@@ -252,6 +257,7 @@ def test_obsidian_fts_bulk_hydrates_ranked_candidates(tmp_path: Path) -> None:
                     repository=SqlAlchemyObsidianIndexRepository(session=write_session),
                     vault_path=str(tmp_path / "vault"),
                     alexandria_root="Alexandria",
+                    context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
                 )
                 for index in range(6):
                     await obsidian_service.save_note(
@@ -333,6 +339,7 @@ def test_obsidian_vector_bulk_hydrates_ranked_candidates(tmp_path: Path) -> None
                     repository=SqlAlchemyObsidianIndexRepository(session=write_session),
                     vault_path=str(tmp_path / "vault"),
                     alexandria_root="Alexandria",
+                    context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
                 )
                 provider = KeywordEmbeddingProvider()
                 for index in range(6):
@@ -424,6 +431,7 @@ def test_obsidian_embedding_input_includes_title_heading_and_content(
                 repository=SqlAlchemyObsidianIndexRepository(session=session),
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
+                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             await obsidian_service.save_note(
                 ObsidianSaveNote(
@@ -479,6 +487,7 @@ def test_context_rag_excludes_librarian_ops_and_superseded_notes_by_default(
                 repository=SqlAlchemyObsidianIndexRepository(session=session),
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
+                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             await obsidian_service.save_note(
                 ObsidianSaveNote(
@@ -565,6 +574,7 @@ def test_obsidian_context_scope_identity_round_trip_filters_recall(
                 repository=SqlAlchemyObsidianIndexRepository(session=session),
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
+                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             fixtures = [
                 ObsidianSaveNote(
@@ -797,6 +807,7 @@ def test_obsidian_scope_filter_runs_before_candidate_limit(
                 repository=SqlAlchemyObsidianIndexRepository(session=session),
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
+                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             for index in range(12):
                 await obsidian_service.save_note(
@@ -836,7 +847,7 @@ def test_obsidian_scope_filter_runs_before_candidate_limit(
             )
             await service.reindex_embeddings(limit=100, force=True)
             results: dict[RagStrategy, list[str]] = {}
-            for strategy in RagStrategy:
+            for strategy in RagStrategy.fixed():
                 pack = await service.search(
                     query="scope-candidate-token",
                     strategy=strategy,
@@ -868,6 +879,7 @@ def test_obsidian_context_scope_identity_validation_blocks_invalid_save_and_rein
                 repository=SqlAlchemyObsidianIndexRepository(session=session),
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
+                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             invalid_agent_path = (
                 tmp_path
@@ -1015,6 +1027,7 @@ def test_obsidian_reindex_persists_structured_error_and_clears_it_after_repair(
                 repository=SqlAlchemyObsidianIndexRepository(session=session),
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
+                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             note_path = (
                 tmp_path
@@ -1094,6 +1107,7 @@ def test_obsidian_index_error_does_not_overwrite_valid_duplicate_context_id(
                 repository=SqlAlchemyObsidianIndexRepository(session=session),
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
+                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             valid = await service.save_note(
                 ObsidianSaveNote(
@@ -1161,6 +1175,7 @@ def test_obsidian_reindex_reports_two_valid_paths_with_the_same_context_id(
                 repository=SqlAlchemyObsidianIndexRepository(session=session),
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
+                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             root = tmp_path / "vault" / "Alexandria" / "Contexts" / "Projects"
             root.mkdir(parents=True, exist_ok=True)
@@ -1214,6 +1229,7 @@ def test_obsidian_context_update_cannot_duplicate_another_context(
                 repository=SqlAlchemyObsidianIndexRepository(session=session),
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
+                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             await service.save_note(
                 ObsidianSaveNote(
@@ -1269,6 +1285,7 @@ def test_obsidian_context_duplicate_and_supersede_lifecycle(
                 repository=SqlAlchemyObsidianIndexRepository(session=session),
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
+                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             old = await service.save_note(
                 ObsidianSaveNote(
@@ -1363,6 +1380,7 @@ def test_explicit_supersede_excludes_old_context_from_default_recall(
                 repository=SqlAlchemyObsidianIndexRepository(session=session),
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
+                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             await obsidian_service.save_note(
                 ObsidianSaveNote(
@@ -1425,6 +1443,7 @@ def test_obsidian_context_supersede_rejects_self_and_missing_target(
                 repository=SqlAlchemyObsidianIndexRepository(session=session),
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
+                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             errors: list[str] = []
             titles = ("Self Supersede", "Missing Supersede")
@@ -1487,6 +1506,7 @@ def test_obsidian_context_rejects_conflicting_replacement_before_writing(
                 repository=SqlAlchemyObsidianIndexRepository(session=session),
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
+                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             await service.save_note(
                 ObsidianSaveNote(
@@ -1556,6 +1576,7 @@ def test_obsidian_context_supersede_exact_retry_is_idempotent(tmp_path: Path) ->
                 repository=SqlAlchemyObsidianIndexRepository(session=session),
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
+                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             await service.save_note(
                 ObsidianSaveNote(
@@ -1604,6 +1625,7 @@ def test_context_rag_returns_one_best_chunk_per_obsidian_note(
                 repository=SqlAlchemyObsidianIndexRepository(session=session),
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
+                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             await obsidian_service.save_note(
                 ObsidianSaveNote(
@@ -1665,6 +1687,7 @@ def test_context_embedding_reindex_backfills_obsidian_chunks_for_vector_search(
                 repository=SqlAlchemyObsidianIndexRepository(session=session),
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
+                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             await obsidian_service.save_note(
                 ObsidianSaveNote(
@@ -1738,6 +1761,7 @@ def test_context_rag_status_detects_obsidian_embedding_fingerprint_mismatch(
                 repository=SqlAlchemyObsidianIndexRepository(session=session),
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
+                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             await obsidian_service.save_note(
                 ObsidianSaveNote(
@@ -1827,6 +1851,7 @@ def test_context_soft_rebuild_reports_and_prioritizes_stale_obsidian_source(
                 repository=SqlAlchemyObsidianIndexRepository(session=session),
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
+                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             await obsidian_service.save_note(
                 ObsidianSaveNote(
@@ -1930,6 +1955,7 @@ def test_context_service_get_and_archive_source_qualified_obsidian_context(
                 repository=index_repository,
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
+                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             await obsidian_service.save_note(
                 ObsidianSaveNote(

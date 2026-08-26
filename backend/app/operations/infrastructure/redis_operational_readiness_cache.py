@@ -16,7 +16,7 @@ from app.operations.domain.entities.operational_readiness import (
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_READINESS_CACHE_KEY = "alexandria:operations:readiness:v1"
+DEFAULT_READINESS_CACHE_KEY = "alexandria:operations:readiness:v2"
 _SNAPSHOT_ADAPTER = TypeAdapter(OperationalReadinessSnapshot)
 
 

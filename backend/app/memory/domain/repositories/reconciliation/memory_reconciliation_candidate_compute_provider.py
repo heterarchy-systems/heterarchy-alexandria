@@ -14,6 +14,15 @@ from app.memory.domain.contracts.memory_reconciliation_candidate_compute_contrac
 class IMemoryReconciliationCandidateComputeProvider(ABC):
     """Discover candidate evidence without owning final relation policy."""
 
+    @property
+    @abstractmethod
+    def authority(self) -> str:
+        """Return the deterministic candidate-compute authority identifier.
+
+        Returns:
+            Stable identifier for the active candidate-compute authority.
+        """
+
     @abstractmethod
     def discover(
         self,

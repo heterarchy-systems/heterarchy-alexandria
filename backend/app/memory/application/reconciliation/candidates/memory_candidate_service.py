@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from dataclasses import replace
 
 from app.memory.domain.contracts.context_recall_contracts import (
@@ -17,6 +16,7 @@ from app.memory.domain.entities.memory_reconciliation import (
     MemoryCandidate,
     MemorySourceReference,
 )
+from app.shared.compute.native_text_hashing import hash_text
 from app.shared.exceptions.memory_context_exceptions import MemoryContextValidationError
 from app.shared.infrastructure.identifiers import new_uuid
 from app.shared.types.types_convert_utils import now_utc
@@ -88,8 +88,10 @@ class MemoryCandidateService:
             requested_lifecycle=(
                 payload.requested_lifecycle.strip().lower() or "active"
             ),
-            content_hash=hashlib.sha256(body.encode("utf-8")).hexdigest(),
+            content_hash=hash_text(body),
             source_identity=_optional_text(payload.source_identity),
+            graph_neighbors=_normalized_identity_hints(payload.graph_neighbors),
+            lineage_ancestors=_normalized_identity_hints(payload.lineage_ancestors),
         )
 
 
@@ -202,3 +204,15 @@ def _optional_text(value: str | None) -> str | None:
         return None
     normalized = value.strip()
     return normalized or None
+
+
+def _normalized_identity_hints(values: tuple[str, ...]) -> tuple[str, ...]:
+    """Normalize trusted structural identifiers deterministically.
+
+    Args:
+        values: Internal structural identifiers supplied by a trusted application path.
+
+    Returns:
+        Sorted unique non-empty identifiers.
+    """
+    return tuple(sorted({value.strip() for value in values if value.strip()}))

@@ -5,6 +5,9 @@ from __future__ import annotations
 from dataclasses import replace
 from datetime import UTC, datetime
 
+from fastapi.testclient import TestClient
+from tests.shared.provider_overrides import override_library_provider
+
 from app.main import app
 from app.memory.application.reconciliation.candidates.memory_candidate_service import (
     MemoryCandidateService,
@@ -27,8 +30,6 @@ from app.memory.domain.event_enum.reconciliation_enums import (
     MemoryConflictStatus,
     MemoryReconciliationStatus,
 )
-from fastapi.testclient import TestClient
-from tests.shared.provider_overrides import override_library_provider
 
 NOW = datetime(2026, 7, 25, tzinfo=UTC)
 
@@ -114,15 +115,17 @@ class FakeApplyService:
 
     def __init__(self, result: MemoryReconciliationResult) -> None:
         self.result = result
-        self.calls: list[tuple[str, bool]] = []
+        self.calls: list[tuple[str, bool, bool, str | None]] = []
 
     async def apply(
         self,
         plan_id: str,
         *,
         retry_failed: bool = False,
+        review_approved: bool = False,
+        reviewer: str | None = None,
     ) -> MemoryReconciliationResult:
-        self.calls.append((plan_id, retry_failed))
+        self.calls.append((plan_id, retry_failed, review_approved, reviewer))
         return self.result
 
 
@@ -260,7 +263,11 @@ def test_reconciliation_http_preview_apply_and_query_contracts() -> None:
         )
         apply_response = client.post(
             f"/memory/reconciliation/plans/{plan.plan_id}/apply",
-            json={"retry_failed": True},
+            json={
+                "retry_failed": True,
+                "review_approved": True,
+                "reviewer": "memory-steward",
+            },
         )
         result_response = client.get(
             f"/memory/reconciliation/results/{result.reconciliation_id}"
@@ -277,7 +284,7 @@ def test_reconciliation_http_preview_apply_and_query_contracts() -> None:
     assert review_queue_response.json()["items"][0]["requires_review"] is True
     assert apply_response.status_code == 200
     assert apply_response.json()["hard_delete_performed"] is False
-    assert apply_service.calls == [(plan.plan_id, True)]
+    assert apply_service.calls == [(plan.plan_id, True, True, "memory-steward")]
     assert result_response.status_code == 200
     assert result_response.json()["reconciliation_id"] == "result-api"
 

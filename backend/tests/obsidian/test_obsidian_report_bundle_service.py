@@ -46,6 +46,9 @@ from app.obsidian.infrastructure.graph.native_obsidian_graph_projection_compute_
 from app.obsidian.infrastructure.graph.sqlalchemy_obsidian_graph_projection_source import (
     SqlAlchemyObsidianGraphProjectionSource,
 )
+from app.obsidian.infrastructure.markdown.native_context_reindex_manifest import (
+    create_native_context_reindex_manifest_validator,
+)
 from app.obsidian.infrastructure.models import (
     obsidian_index_models as _obsidian_index_models,
 )
@@ -115,6 +118,9 @@ def test_report_bundle_is_idempotent_and_verifies_expected_owner_edges(
                 repository=repository,
                 vault_config_store=store,
                 index_maintenance_coordinator=coordinator,
+                context_reindex_manifest_validator=(
+                    create_native_context_reindex_manifest_validator()
+                ),
             )
             graph_repository = _FailingActivationGraphRepository()
             graph_rebuild = ObsidianGraphProjectionRebuildService(

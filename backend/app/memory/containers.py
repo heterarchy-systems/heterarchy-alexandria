@@ -27,6 +27,9 @@ from app.memory.application.reconciliation.candidates.memory_candidate_recall_se
 from app.memory.application.reconciliation.candidates.memory_candidate_service import (
     MemoryCandidateService,
 )
+from app.memory.application.reconciliation.candidates.memory_evolution_candidate_evidence_service import (
+    MemoryEvolutionCandidateEvidenceService,
+)
 from app.memory.application.reconciliation.candidates.memory_relation_classifier import (
     MemoryRelationClassifier,
 )
@@ -72,6 +75,9 @@ from app.memory.infrastructure.context_embedding_batch_transaction import (
 from app.memory.infrastructure.providers.native_extension_loader import (
     create_native_context_retrieval_kernel_provider,
 )
+from app.memory.infrastructure.providers.native_memory_reconciliation_candidate_compute_provider import (
+    create_native_memory_reconciliation_candidate_compute_provider,
+)
 from app.memory.infrastructure.repositories.context_repository import (
     SqlAlchemyContextRepository,
 )
@@ -88,6 +94,9 @@ from app.memory.infrastructure.repositories.memory_reconciliation_repository imp
     SqlAlchemyMemoryReconciliationRepository,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
+from app.obsidian.infrastructure.markdown.native_context_reindex_manifest import (
+    create_native_context_reindex_manifest_validator,
+)
 from app.obsidian.infrastructure.obsidian_vault_config_store import (
     ObsidianVaultConfigStore,
 )
@@ -108,6 +117,7 @@ class MemoryContainer(containers.DeclarativeContainer):
     librarian_provider_repo = providers.Dependency()
     provider_secret_repo = providers.Dependency()
     graph_signal_provider = providers.Dependency(default=None)
+    graph_candidate_expansion_provider = providers.Dependency(default=None)
     index_maintenance_coordinator = providers.Dependency(
         instance_of=IndexMaintenanceCoordinator
     )
@@ -129,6 +139,9 @@ class MemoryContainer(containers.DeclarativeContainer):
     retrieval_kernel_provider = providers.Singleton(
         create_native_context_retrieval_kernel_provider
     )
+    context_reindex_manifest_validator = providers.Singleton(
+        create_native_context_reindex_manifest_validator,
+    )
     context_embedding_batch_transaction = providers.Factory(
         SqlAlchemyContextEmbeddingBatchTransaction,
         session=db_session,
@@ -147,6 +160,7 @@ class MemoryContainer(containers.DeclarativeContainer):
         ObsidianService,
         repository=obsidian_index_repo,
         vault_config_store=obsidian_vault_config_store,
+        context_reindex_manifest_validator=context_reindex_manifest_validator,
     )
     canonical_context_gateway = providers.Factory(
         ObsidianCanonicalContextGateway,
@@ -165,6 +179,7 @@ class MemoryContainer(containers.DeclarativeContainer):
         extra_search_sources=providers.List(obsidian_context_search_source),
         canonical_context_repository=canonical_context_gateway,
         graph_signal_provider=graph_signal_provider,
+        graph_candidate_expansion_provider=graph_candidate_expansion_provider,
         retrieval_kernel_provider=retrieval_kernel_provider,
         index_maintenance_coordinator=index_maintenance_coordinator,
         embedding_batch_transaction=context_embedding_batch_transaction,
@@ -187,6 +202,14 @@ class MemoryContainer(containers.DeclarativeContainer):
         session=db_session,
     )
     reconciliation_candidate_service = providers.Factory(MemoryCandidateService)
+    reconciliation_candidate_compute_provider = providers.Singleton(
+        create_native_memory_reconciliation_candidate_compute_provider
+    )
+    reconciliation_candidate_evidence_service = providers.Factory(
+        MemoryEvolutionCandidateEvidenceService,
+        provider=reconciliation_candidate_compute_provider,
+        embedding_provider=embedding_provider,
+    )
     reconciliation_recall_source = providers.Factory(
         ContextMemoryCandidateRecallSource,
         search_service=context_service,
@@ -216,6 +239,7 @@ class MemoryContainer(containers.DeclarativeContainer):
         MemoryReconciliationPreviewService,
         candidate_service=reconciliation_candidate_service,
         recall_service=reconciliation_recall_service,
+        candidate_evidence_service=reconciliation_candidate_evidence_service,
         classifier=reconciliation_classifier,
         plan_service=reconciliation_plan_service,
         repository=reconciliation_repo,

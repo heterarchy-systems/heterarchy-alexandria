@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import hashlib
-
 from pydantic import TypeAdapter, ValidationError
 
 from app.memory.domain.entities.context_read_models import (
+    ContextGraphEvidence,
+    ContextRecord,
     ContextSearchMatch,
 )
 from app.memory.domain.entities.memory_reconciliation import (
@@ -23,6 +23,7 @@ from app.memory.domain.repositories.reconciliation.memory_reconciliation_tempora
     IMemoryReconciliationTemporalRepository,
 )
 from app.memory.domain.types.context_payload_types import ContextMetadataPayload
+from app.shared.compute.native_text_hashing import hash_text
 from app.shared.types.extra_types import JSONValue
 
 _CLAIMS_ADAPTER = TypeAdapter(tuple[CanonicalClaim, ...])
@@ -67,6 +68,8 @@ class MemoryCandidateRecallService:
         recalled: list[MemoryRecallCandidate] = []
         seen_context_ids: set[str] = set()
         for match in pack.matches:
+            if not _matches_candidate_identity(match.context, candidate):
+                continue
             context_id = match.context.id
             if context_id in seen_context_ids:
                 continue
@@ -80,6 +83,37 @@ class MemoryCandidateRecallService:
                 )
             )
         return tuple(recalled)
+
+
+def _matches_candidate_identity(
+    context: ContextRecord,
+    candidate: MemoryCandidate,
+) -> bool:
+    """Return whether a recalled Context belongs to the proposal's identity boundary.
+
+    This is defense-in-depth behind the scoped Context search adapter. It prevents
+    cross-project or cross-owner memory from reaching reconciliation semantics if an
+    upstream adapter, test double, or future retrieval lane returns an invalid match.
+
+    Args:
+        context: Recalled Context read model.
+        candidate: Memory proposal owning the reconciliation scope identity.
+
+    Returns:
+        Whether the Context is compatible with the proposal's exact recall identity.
+    """
+    if context.scope is not candidate.scope:
+        return False
+    identities = (
+        (candidate.project, context.project),
+        (candidate.workspace_id, context.workspace_id),
+        (candidate.agent_id, context.agent_id),
+        (candidate.user_id, context.user_id),
+        (candidate.session_id, context.session_id),
+    )
+    return all(
+        expected is None or actual == expected for expected, actual in identities
+    )
 
 
 def recall_candidate_from_match(
@@ -100,9 +134,8 @@ def recall_candidate_from_match(
     temporal = temporal_state
     context = match.context
     metadata = context.context_metadata
-    content_hash = (
-        _metadata_text(metadata, "content_hash")
-        or hashlib.sha256(context.content.encode("utf-8")).hexdigest()
+    content_hash = _metadata_text(metadata, "content_hash") or hash_text(
+        context.content
     )
     reasons = [match.why_retrieved]
     if content_hash == candidate_hash:
@@ -138,7 +171,33 @@ def recall_candidate_from_match(
         valid_to=None if temporal is None else temporal.valid_to,
         source_refs=(source_ref,),
         recall_reasons=tuple(reasons),
+        graph_neighbors=_graph_neighbors(context.id, match.graph_evidence),
+        lineage_ancestors=(
+            () if temporal is None else tuple(sorted(set(temporal.supersedes)))
+        ),
     )
+
+
+def _graph_neighbors(
+    context_id: str, evidence: tuple[ContextGraphEvidence, ...]
+) -> tuple[str, ...]:
+    """Return deterministic counterpart Context ids from trusted graph evidence.
+
+    Args:
+        context_id: Recalled Context owning the graph evidence.
+        evidence: Score-preserving graph evidence attached by the graph lane.
+
+    Returns:
+        Sorted unique neighboring Context identifiers.
+    """
+    neighbors: set[str] = set()
+    for item in evidence:
+        if item.source_context_id == context_id:
+            neighbors.add(item.target_context_id)
+        elif item.target_context_id == context_id:
+            neighbors.add(item.source_context_id)
+    neighbors.discard(context_id)
+    return tuple(sorted(neighbors))
 
 
 def _candidate_query(candidate: MemoryCandidate) -> str:

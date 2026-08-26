@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Annotated
 
 from app.memory.domain.entities.memory_reconciliation import (
+    MemoryEvolutionCandidateEvidence,
     MemoryReconciliationPlan,
     MemoryReconciliationResult,
 )
@@ -43,6 +44,116 @@ class MemoryReconciliationActionResponse(StrictSchemaModel):
     reason: Annotated[
         str, described_field("Reason for this memory reconciliation action response.")
     ]
+
+
+class MemoryEvolutionCandidatePairEvidenceResponse(StrictSchemaModel):
+    """One bounded deterministic candidate pair emitted by Rust compute."""
+
+    left_id: Annotated[str, described_field("Left candidate item identifier.")]
+    right_id: Annotated[str, described_field("Right candidate item identifier.")]
+    exact_content_hash: Annotated[
+        bool,
+        described_field("Whether both items have the same non-empty content hash."),
+    ]
+    vector_similarity: Annotated[
+        float | None, described_field("Optional vector cosine similarity evidence.")
+    ]
+    temporal_overlap: Annotated[
+        bool, described_field("Whether the item validity intervals overlap.")
+    ]
+    graph_similarity: Annotated[
+        float, described_field("Graph-neighborhood Jaccard similarity evidence.")
+    ]
+    lineage: Annotated[str, described_field("Deterministic lineage relation evidence.")]
+    candidate_score: Annotated[
+        float, described_field("Deterministic candidate evidence score.")
+    ]
+    reasons: Annotated[
+        list[str],
+        described_field("Bounded deterministic reasons for the candidate pair."),
+    ]
+
+
+class MemoryEvolutionCandidateMetricsResponse(StrictSchemaModel):
+    """Bounded-work counters from Rust reconciliation candidate discovery."""
+
+    input_items: Annotated[int, described_field("Candidate compute input items.", ge=0)]
+    comparison_pairs: Annotated[
+        int, described_field("Candidate pairs compared by deterministic compute.", ge=0)
+    ]
+    qualifying_pairs: Annotated[
+        int, described_field("Pairs qualifying before per-item truncation.", ge=0)
+    ]
+    retained_pairs: Annotated[
+        int, described_field("Pairs retained after bounded top-k truncation.", ge=0)
+    ]
+    exact_duplicate_groups: Annotated[
+        int, described_field("Exact content-hash duplicate groups.", ge=0)
+    ]
+
+
+class MemoryEvolutionCandidateEvidenceResponse(StrictSchemaModel):
+    """Operator-auditable Rust evidence that never assigns final memory semantics."""
+
+    compute_authority: Annotated[
+        str, described_field("Deterministic candidate-compute authority identifier.")
+    ]
+    candidate_item_id: Annotated[
+        str,
+        described_field("Source memory proposal identifier used by candidate compute."),
+    ]
+    compared_context_ids: Annotated[
+        list[str],
+        described_field("Stored Context identifiers supplied to candidate compute."),
+    ]
+    candidate_pairs: Annotated[
+        list[MemoryEvolutionCandidatePairEvidenceResponse],
+        described_field("Source-related deterministic candidate evidence pairs."),
+    ]
+    metrics: Annotated[
+        MemoryEvolutionCandidateMetricsResponse,
+        described_field("Bounded-work metrics for this candidate compute execution."),
+    ]
+
+    @classmethod
+    def from_entity(
+        cls, value: MemoryEvolutionCandidateEvidence
+    ) -> MemoryEvolutionCandidateEvidenceResponse:
+        """Map one internal proposal-evidence record to its bounded API contract.
+
+        Args:
+            value: Persisted deterministic candidate evidence.
+
+        Returns:
+            Strict response without Context bodies or embedding vectors.
+        """
+        metrics = value.metrics
+        return cls(
+            compute_authority=value.compute_authority,
+            candidate_item_id=value.candidate_item_id,
+            compared_context_ids=list(value.compared_context_ids),
+            candidate_pairs=[
+                MemoryEvolutionCandidatePairEvidenceResponse(
+                    left_id=pair.left_id,
+                    right_id=pair.right_id,
+                    exact_content_hash=pair.exact_content_hash,
+                    vector_similarity=pair.vector_similarity,
+                    temporal_overlap=pair.temporal_overlap,
+                    graph_similarity=pair.graph_similarity,
+                    lineage=pair.lineage,
+                    candidate_score=pair.candidate_score,
+                    reasons=list(pair.reasons),
+                )
+                for pair in value.candidate_pairs
+            ],
+            metrics=MemoryEvolutionCandidateMetricsResponse(
+                input_items=metrics.input_items,
+                comparison_pairs=metrics.comparison_pairs,
+                qualifying_pairs=metrics.qualifying_pairs,
+                retained_pairs=metrics.retained_pairs,
+                exact_duplicate_groups=metrics.exact_duplicate_groups,
+            ),
+        )
 
 
 class MemoryReconciliationPlanResponse(StrictSchemaModel):
@@ -98,6 +209,12 @@ class MemoryReconciliationPlanResponse(StrictSchemaModel):
         MemoryReconciliationStatus,
         described_field("Status for this memory reconciliation plan response."),
     ]
+    candidate_evidence: Annotated[
+        MemoryEvolutionCandidateEvidenceResponse | None,
+        described_field(
+            "Optional deterministic candidate evidence retained for audit."
+        ),
+    ]
     created_at: Annotated[
         AwareTimestamp,
         described_field(
@@ -140,6 +257,13 @@ class MemoryReconciliationPlanResponse(StrictSchemaModel):
             requires_review=value.requires_review,
             idempotency_key=value.idempotency_key,
             status=value.status,
+            candidate_evidence=(
+                None
+                if value.candidate_evidence is None
+                else MemoryEvolutionCandidateEvidenceResponse.from_entity(
+                    value.candidate_evidence
+                )
+            ),
             created_at=value.created_at,
         )
 
@@ -249,6 +373,16 @@ class MemoryReconciliationResultResponse(StrictSchemaModel):
         MemoryReconciliationFailureCode | None,
         described_field("Failure code for this memory reconciliation result response."),
     ]
+    reviewed_by: Annotated[
+        str | None,
+        described_field(
+            "Memory Steward identity that approved review-required mutation."
+        ),
+    ]
+    reviewed_at: Annotated[
+        AwareTimestamp | None,
+        described_field("Timestamp when review approval was consumed for mutation."),
+    ]
     completed_at: Annotated[
         AwareTimestamp | None,
         described_field("Completed at for this memory reconciliation result response."),
@@ -284,5 +418,7 @@ class MemoryReconciliationResultResponse(StrictSchemaModel):
             warnings=list(value.warnings),
             hard_delete_performed=value.hard_delete_performed,
             failure_code=value.failure_code,
+            reviewed_by=value.reviewed_by,
+            reviewed_at=value.reviewed_at,
             completed_at=value.completed_at,
         )

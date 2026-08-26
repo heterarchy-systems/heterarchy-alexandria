@@ -40,6 +40,8 @@ class MemoryCandidateCreate:
     requested_lifecycle: str = "active"
     candidate_id: str | None = None
     source_identity: str | None = None
+    graph_neighbors: tuple[str, ...] = ()
+    lineage_ancestors: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

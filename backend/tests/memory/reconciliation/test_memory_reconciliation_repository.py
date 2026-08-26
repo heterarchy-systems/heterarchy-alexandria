@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import os
-
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
 import anyio
+
 from app.memory.domain.entities.memory_reconciliation import (
     CanonicalClaim,
     MemoryCandidate,
@@ -193,6 +193,19 @@ def test_reconciliation_repository_round_trips_all_audit_records(
                 assert duplicate_plan.plan_id == plan.plan_id
                 assert saved_review_plan == review_plan
                 assert await repository.list_review_plans() == [review_plan]
+                review_result = MemoryReconciliationResult(
+                    reconciliation_id="33333333-3333-3333-3333-333333333334",
+                    plan_id=review_plan.plan_id,
+                    status=MemoryReconciliationStatus.APPLIED,
+                    hard_delete_performed=False,
+                    reviewed_by="memory-steward",
+                    reviewed_at=NOW,
+                    completed_at=NOW,
+                )
+                saved_review_result = await repository.save_result(review_result)
+                await session.commit()
+                assert saved_review_result == review_result
+                assert await repository.list_review_plans() == []
                 assert await repository.get_plan(plan.plan_id) == plan
                 assert saved_result == result
                 assert await repository.get_result(result.reconciliation_id) == result

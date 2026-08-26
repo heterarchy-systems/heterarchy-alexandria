@@ -9,8 +9,14 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.memory.application.contexts.records.context_service_ports import (
     ContextReadinessPort,
 )
+from app.memory.application.integration.context_projection_integrity_service import (
+    ContextProjectionIntegrityService,
+)
 from app.memory.application.reconciliation.runtime.memory_reconciliation_readiness_ports import (
     MemoryReconciliationReadinessPort,
+)
+from app.memory.domain.entities.context_projection_integrity import (
+    unchecked_context_projection_integrity_snapshot,
 )
 from app.obsidian.application.service.obsidian_service_ports import (
     ObsidianDataIntegrityPort,
@@ -38,11 +44,23 @@ from app.operations.application.readiness.operational_readiness_policy import (
     _vault_snapshot,
     _warnings,
 )
+from app.operations.application.readiness.operational_retrieval_canary_service import (
+    OperationalRetrievalCanaryService,
+)
+from app.operations.application.readiness.operational_runtime_provenance_service import (
+    OperationalRuntimeProvenanceService,
+)
 from app.operations.domain.entities.operational_data_integrity import (
     unchecked_data_integrity_snapshot,
 )
 from app.operations.domain.entities.operational_readiness import (
     OperationalReadinessSnapshot,
+)
+from app.operations.domain.entities.operational_retrieval_canary import (
+    unchecked_retrieval_canary_snapshot,
+)
+from app.operations.domain.entities.operational_runtime_provenance import (
+    unchecked_runtime_provenance_snapshot,
 )
 from app.operations.domain.event_enum.operational_readiness_enums import (
     OperationalReadinessStatus,
@@ -69,6 +87,9 @@ class OperationalReadinessService:
         reconciliation_service: MemoryReconciliationReadinessPort | None = None,
         readiness_cache: OperationalReadinessCache | None = None,
         ignore_active_recovery_run_id: str | None = None,
+        runtime_provenance_service: OperationalRuntimeProvenanceService | None = None,
+        retrieval_canary_service: OperationalRetrievalCanaryService | None = None,
+        projection_integrity_service: ContextProjectionIntegrityService | None = None,
     ) -> None:
         """Create service.
 
@@ -80,6 +101,9 @@ class OperationalReadinessService:
             readiness_cache: Optional fail-open short-lived snapshot cache.
             ignore_active_recovery_run_id: Active run id to ignore for internal
                 verification.
+            runtime_provenance_service: Optional runtime build identity probe.
+            retrieval_canary_service: Optional bounded real-search readiness probe.
+            projection_integrity_service: Optional persisted full projection integrity reader.
         """
         self._database = database
         self._database_probe = OperationalDatabaseProbe(database)
@@ -88,6 +112,9 @@ class OperationalReadinessService:
         self._reconciliation_service = reconciliation_service
         self._readiness_cache = readiness_cache
         self._ignore_active_recovery_run_id = ignore_active_recovery_run_id
+        self._runtime_provenance_service = runtime_provenance_service
+        self._retrieval_canary_service = retrieval_canary_service
+        self._projection_integrity_service = projection_integrity_service
 
     async def snapshot(self) -> OperationalReadinessSnapshot:
         """Return current read-only operational readiness.
@@ -139,6 +166,21 @@ class OperationalReadinessService:
         rag_health = await self._context_service.rag_health_with_index_status()
         vault = _vault_snapshot(vault_status)
         rag = _rag_snapshot(rag_health)
+        runtime = (
+            self._runtime_provenance_service.snapshot()
+            if self._runtime_provenance_service is not None
+            else unchecked_runtime_provenance_snapshot()
+        )
+        retrieval_canary = (
+            await self._retrieval_canary_service.snapshot()
+            if self._retrieval_canary_service is not None
+            else unchecked_retrieval_canary_snapshot()
+        )
+        projection_integrity = (
+            await self._projection_integrity_service.snapshot()
+            if self._projection_integrity_service is not None
+            else unchecked_context_projection_integrity_snapshot()
+        )
         if self._reconciliation_service is None:
             reconciliation = _reconciliation_snapshot(None, configured=False)
         else:
@@ -162,6 +204,9 @@ class OperationalReadinessService:
             database=database,
             vault=vault,
             rag=rag,
+            runtime=runtime,
+            retrieval_canary=retrieval_canary,
+            projection_integrity=projection_integrity,
             reconciliation=reconciliation,
         )
         if active_recovery_run_id is not None:
@@ -192,5 +237,8 @@ class OperationalReadinessService:
                 _next_actions(warnings, index_errors=vault_status.index_errors)
             ),
             data_integrity=data_integrity,
+            runtime=runtime,
+            retrieval_canary=retrieval_canary,
+            projection_integrity=projection_integrity,
         )
         return snapshot

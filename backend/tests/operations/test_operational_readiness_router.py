@@ -11,6 +11,7 @@ import pytest
 from app.main import app as default_app, create_app
 from app.memory.domain.entities.context_read_models import (
     ContextEmbeddingSourceStatus,
+    ContextPack,
     RagDependencyHealth,
 )
 from app.memory.domain.entities.memory_reconciliation_diagnostics import (
@@ -20,6 +21,9 @@ from app.memory.domain.event_enum.context_enums import RagHealthState, RagStrate
 from app.obsidian.domain.entities.obsidian_note import ObsidianVaultStatus
 from app.operations.application.readiness.operational_readiness_cache import (
     NoopOperationalReadinessCache,
+)
+from app.operations.application.readiness.operational_readiness_service import (
+    OperationalReadinessService,
 )
 from app.operations.interface.routers.operational_readiness_router import (
     operational_capabilities,
@@ -62,6 +66,34 @@ class _FakeContextService:
                     stored_fingerprints=[],
                 )
             ],
+        )
+
+    async def readiness_canary(
+        self,
+        query: str,
+        strategy: RagStrategy,
+        limit: int,
+    ) -> ContextPack:
+        """Return one deterministic successful Context Pack canary result.
+
+        Args:
+            query: Canary query text.
+            strategy: Required retrieval strategy.
+            limit: Multi-result candidate limit.
+
+        Returns:
+            Deterministic Context Pack preserving the requested strategy.
+        """
+        if limit < 3:
+            raise AssertionError("readiness canary must exercise multiple candidates")
+        return ContextPack(
+            query=query,
+            strategy=strategy,
+            effective_strategy=strategy,
+            warnings=(),
+            recall_scopes=(),
+            matches=(),
+            context_pack="# Alexandria Context Pack\n",
         )
 
 
@@ -138,13 +170,14 @@ def test_operational_readiness_route_returns_snapshot_payload(tmp_path: Path) ->
         )
         await database.initialize()
         try:
-            response = await operational_readiness(
+            service = OperationalReadinessService(
                 database=database,
                 context_service=_FakeContextService(),
                 obsidian_service=_FakeObsidianService(tmp_path),
                 reconciliation_service=None,
                 readiness_cache=NoopOperationalReadinessCache(),
             )
+            response = await operational_readiness(service=service)
             return response.model_dump(mode="json")
         finally:
             await database.shutdown()
@@ -191,13 +224,14 @@ def test_operational_capabilities_keep_core_ready_without_embeddings(
         )
         await database.initialize()
         try:
-            response = await operational_capabilities(
+            service = OperationalReadinessService(
                 database=database,
                 context_service=_FakeContextService(),
                 obsidian_service=_FakeObsidianService(tmp_path),
                 reconciliation_service=None,
                 readiness_cache=NoopOperationalReadinessCache(),
             )
+            response = await operational_capabilities(service=service)
             return response.model_dump(mode="json")
         finally:
             await database.shutdown()

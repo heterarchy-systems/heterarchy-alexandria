@@ -734,7 +734,7 @@ def test_context_recall_filters_each_requested_scope_by_its_own_identity(
             await session.commit()
 
             results: dict[RagStrategy, set[str]] = {}
-            for strategy in RagStrategy:
+            for strategy in RagStrategy.fixed():
                 pack = await service.search(
                     query="scope-boundary-token",
                     strategy=strategy,
@@ -805,7 +805,7 @@ def test_concurrent_agents_preserve_scope_isolation_across_all_strategies(
 
             async with anyio.create_task_group() as task_group:
                 for agent_id in expected:
-                    for strategy in RagStrategy:
+                    for strategy in RagStrategy.fixed():
                         task_group.start_soon(recall, agent_id, strategy)
         return results
 
@@ -1562,7 +1562,7 @@ def test_context_recall_isolates_legacy_and_named_workspaces(tmp_path: Path) -> 
             await session.commit()
 
             results: dict[tuple[RagStrategy, str | None], set[str]] = {}
-            for strategy in RagStrategy:
+            for strategy in RagStrategy.fixed():
                 for workspace_id in contexts:
                     pack = await service.search(
                         query="workspace-boundary-token",

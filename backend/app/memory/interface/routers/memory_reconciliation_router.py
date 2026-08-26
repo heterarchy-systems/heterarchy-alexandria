@@ -258,7 +258,12 @@ async def apply_memory_reconciliation(
     Returns:
         MemoryReconciliationResultResponse: Operation result.
     """
-    result = await service.apply(plan_id, retry_failed=request.retry_failed)
+    result = await service.apply(
+        plan_id,
+        retry_failed=request.retry_failed,
+        review_approved=request.review_approved,
+        reviewer=request.reviewer,
+    )
     return MemoryReconciliationResultResponse.from_entity(result)
 
 

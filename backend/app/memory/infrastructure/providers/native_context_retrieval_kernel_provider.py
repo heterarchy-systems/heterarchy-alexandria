@@ -7,6 +7,8 @@ from typing import Protocol
 
 from app.memory.domain.entities.context_read_models import ContextSearchMatch
 from app.memory.domain.repositories.contexts.context_retrieval_kernel_provider import (
+    ContextRetrievalFusionTrace,
+    ContextRetrievalMergeTraceResult,
     IContextRetrievalKernelProvider,
 )
 
@@ -16,6 +18,8 @@ _FUSED_RETRIEVAL_REASON = (
 )
 
 type NativeFusionRow = tuple[str, int, int | None, int | None, float]
+type NativeFusionTraceRow = tuple[int, int, int, int, int, int, int, int, int, int, int]
+type NativeFusionTraceResult = tuple[list[NativeFusionRow], NativeFusionTraceRow]
 type NativeBestRow = tuple[int, float]
 
 
@@ -55,6 +59,23 @@ class NativeRetrievalKernelModule(Protocol):
 
         Returns:
             Compact native fusion rows referencing source lane indices.
+        """
+
+    def retrieval_merge_hybrid_indices_with_trace(
+        self,
+        fts_context_ids: list[str],
+        vector_context_ids: list[str],
+        limit: int,
+    ) -> NativeFusionTraceResult:
+        """Return compact fusion rows and deterministic fusion diagnostics.
+
+        Args:
+            fts_context_ids: Ordered FTS Context identities.
+            vector_context_ids: Ordered vector Context identities.
+            limit: Maximum final result count.
+
+        Returns:
+            Compact native fusion rows and trace counters.
         """
 
     def retrieval_rank_best_indices(
@@ -142,6 +163,47 @@ class NativeContextRetrievalKernelProvider(IContextRetrievalKernelProvider):
             for row in rows
         ]
 
+    def merge_with_trace(
+        self,
+        fts_matches: list[ContextSearchMatch],
+        vector_matches: list[ContextSearchMatch],
+        limit: int,
+    ) -> ContextRetrievalMergeTraceResult:
+        """Return Rust-ranked hybrid matches and native fusion diagnostics.
+
+        Args:
+            fts_matches: Already-filtered FTS lane in source rank order.
+            vector_matches: Already-filtered vector lane in source rank order.
+            limit: Maximum final result count.
+
+        Returns:
+            Hybrid-ranked matches paired with strict native fusion diagnostics.
+
+        Raises:
+            ValueError: If native output violates the compact trace boundary contract.
+        """
+        rows, trace_row = self.native_module.retrieval_merge_hybrid_indices_with_trace(
+            [match.context.id for match in fts_matches],
+            [match.context.id for match in vector_matches],
+            limit,
+        )
+        matches = tuple(
+            _materialize_fusion_row(
+                row,
+                fts_matches=fts_matches,
+                vector_matches=vector_matches,
+            )
+            for row in rows
+        )
+        trace = _decode_fusion_trace(
+            trace_row,
+            fts_input_count=len(fts_matches),
+            vector_input_count=len(vector_matches),
+            returned_count=len(matches),
+            limit=limit,
+        )
+        return ContextRetrievalMergeTraceResult(matches=matches, trace=trace)
+
     def rank_best(
         self,
         matches: list[ContextSearchMatch],
@@ -178,6 +240,107 @@ class NativeContextRetrievalKernelProvider(IContextRetrievalKernelProvider):
                 )
             ranked.append(match)
         return ranked
+
+
+def _decode_fusion_trace(
+    row: NativeFusionTraceRow,
+    fts_input_count: int,
+    vector_input_count: int,
+    returned_count: int,
+    limit: int,
+) -> ContextRetrievalFusionTrace:
+    """Decode and validate the compact native fusion trace tuple.
+
+    Args:
+        row: Native trace counters in the stable compact field order.
+        fts_input_count: Python-observed FTS candidate count.
+        vector_input_count: Python-observed vector candidate count.
+        returned_count: Number of materialized native fusion rows.
+        limit: Requested final result count.
+
+    Returns:
+        Strict typed fusion trace.
+
+    Raises:
+        ValueError: If native trace counters violate boundary invariants.
+    """
+    if len(row) != 11:
+        raise ValueError(
+            "NATIVE_RETRIEVAL_KERNEL_OUTPUT_ERROR: invalid fusion trace width"
+        )
+    values = tuple(_non_negative_int(value, field_name="fusion trace") for value in row)
+    (
+        native_fts_input,
+        native_vector_input,
+        fts_unique,
+        vector_unique,
+        fts_duplicates,
+        vector_duplicates,
+        fused_candidates,
+        cross_lane,
+        native_returned,
+        representative_fts,
+        representative_vector,
+    ) = values
+    if native_fts_input != fts_input_count or native_vector_input != vector_input_count:
+        raise ValueError(
+            "NATIVE_RETRIEVAL_KERNEL_OUTPUT_ERROR: fusion trace input count drift"
+        )
+    if fts_unique + fts_duplicates != native_fts_input:
+        raise ValueError(
+            "NATIVE_RETRIEVAL_KERNEL_OUTPUT_ERROR: invalid FTS trace counts"
+        )
+    if vector_unique + vector_duplicates != native_vector_input:
+        raise ValueError(
+            "NATIVE_RETRIEVAL_KERNEL_OUTPUT_ERROR: invalid vector trace counts"
+        )
+    if fused_candidates > fts_unique + vector_unique or cross_lane > min(
+        fts_unique, vector_unique
+    ):
+        raise ValueError(
+            "NATIVE_RETRIEVAL_KERNEL_OUTPUT_ERROR: invalid fusion trace cardinality"
+        )
+    if native_returned != returned_count or native_returned > limit:
+        raise ValueError(
+            "NATIVE_RETRIEVAL_KERNEL_OUTPUT_ERROR: fusion trace returned count drift"
+        )
+    if representative_fts + representative_vector != native_returned:
+        raise ValueError(
+            "NATIVE_RETRIEVAL_KERNEL_OUTPUT_ERROR: invalid representative trace counts"
+        )
+    return ContextRetrievalFusionTrace(
+        fts_input_count=native_fts_input,
+        vector_input_count=native_vector_input,
+        fts_unique_count=fts_unique,
+        vector_unique_count=vector_unique,
+        fts_duplicate_count=fts_duplicates,
+        vector_duplicate_count=vector_duplicates,
+        fused_candidate_count=fused_candidates,
+        cross_lane_count=cross_lane,
+        returned_count=native_returned,
+        representative_fts_count=representative_fts,
+        representative_vector_count=representative_vector,
+    )
+
+
+def _non_negative_int(value: int, field_name: str) -> int:
+    """Validate one strict non-negative integer from the native trace boundary.
+
+    Args:
+        value: Native integer value to validate.
+        field_name: Diagnostic field label used in validation failures.
+
+    Returns:
+        Validated non-negative integer.
+
+    Raises:
+        ValueError: If the value is boolean, non-integer, or negative.
+    """
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ValueError(
+            f"NATIVE_RETRIEVAL_KERNEL_OUTPUT_ERROR: invalid non-negative {field_name}"
+        )
+    return value
 
 
 def _materialize_fusion_row(

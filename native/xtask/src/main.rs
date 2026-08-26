@@ -11,7 +11,7 @@ const EXPECTED_MEMBERS: [&str; 3] = [
     "crates/heterarchy-alexandria-py",
     "xtask",
 ];
-const EXPECTED_FEATURES: [&str; 8] = [
+const EXPECTED_FEATURES: [&str; 9] = [
     "document_analysis",
     "chunking",
     "link_extraction",
@@ -20,6 +20,7 @@ const EXPECTED_FEATURES: [&str; 8] = [
     "embedding_compute",
     "retrieval_kernel",
     "reconciliation_candidates",
+    "context_reindex_manifest",
 ];
 const REQUIRED_HARNESS_FILES: [&str; 13] = [
     ".agents/rust_dev_harness/PROJECT_PROFILE.md",
@@ -783,6 +784,8 @@ fn require_ffi_parity_artifacts(repository_root: &Path) -> TaskResult<()> {
         "native/tests/hash_fingerprint_ffi_parity.py",
         "native/corpora/graph_compute/v1/cases.json",
         "native/tests/graph_compute_ffi_parity.py",
+        "native/tests/graph_traversal_ffi_parity.py",
+        "native/tests/graph_candidate_selection_ffi_parity.py",
         "native/corpora/bulk_embedding/v1/cases.json",
         "native/corpora/bulk_embedding/v1/python_fastembed_numerical_baseline.json",
         "native/tests/bulk_embedding_ffi_parity.py",
@@ -790,6 +793,10 @@ fn require_ffi_parity_artifacts(repository_root: &Path) -> TaskResult<()> {
         "native/tests/retrieval_kernel_ffi_parity.py",
         "native/corpora/reconciliation_candidates/v1/cases.json",
         "native/tests/reconciliation_candidates_ffi_parity.py",
+        "native/golden/context_reindex_manifest.v1.json",
+        "native/tests/context_reindex_manifest_ffi_parity.py",
+        "native/golden/raw_data_integrity_cases.json",
+        "native/tests/raw_data_integrity_ffi_parity.py",
     ] {
         require_non_empty_file(repository_root, relative_path)?;
     }
@@ -841,9 +848,13 @@ fn run_ffi_parity_scripts(repository_root: &Path, library: &Path) -> TaskResult<
         "../native/tests/reference_extraction_ffi_parity.py",
         "../native/tests/hash_fingerprint_ffi_parity.py",
         "../native/tests/graph_compute_ffi_parity.py",
+        "../native/tests/graph_traversal_ffi_parity.py",
+        "../native/tests/graph_candidate_selection_ffi_parity.py",
         "../native/tests/bulk_embedding_ffi_parity.py",
         "../native/tests/retrieval_kernel_ffi_parity.py",
         "../native/tests/reconciliation_candidates_ffi_parity.py",
+        "../native/tests/context_reindex_manifest_ffi_parity.py",
+        "../native/tests/raw_data_integrity_ffi_parity.py",
     ] {
         run_command_in_directory_with_environment(
             &repository_root.join("backend"),

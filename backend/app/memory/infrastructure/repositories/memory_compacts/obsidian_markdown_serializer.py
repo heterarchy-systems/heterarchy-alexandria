@@ -71,6 +71,14 @@ def serialize_compact(compact: MemoryCompact) -> str:
         "reviewed_at": _isoformat(compact.reviewed_at)
         if compact.reviewed_at is not None
         else None,
+        "source_set_hash": compact.source_set_hash,
+        "compaction_policy_version": compact.compaction_policy_version,
+        "generation_revision": str(compact.generation_revision)
+        if compact.generation_revision is not None
+        else None,
+        "generated_at": _isoformat(compact.generated_at)
+        if compact.generated_at is not None
+        else None,
         "source_refs": dumps_json(cast(JSONValue, source_refs)).decode("utf-8"),
         "source_ref_links": source_ref_links,
     }

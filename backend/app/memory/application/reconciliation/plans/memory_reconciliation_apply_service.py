@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from time import perf_counter
 
 from app.memory.application.reconciliation.plans.memory_reconciliation_apply_policy import (
@@ -36,7 +37,10 @@ from app.memory.domain.repositories.contexts.memory_canonical_mutation_gateway i
 from app.memory.domain.repositories.reconciliation.memory_reconciliation_use_case_repositories import (
     IMemoryReconciliationApplyRepository,
 )
-from app.shared.exceptions.memory_context_exceptions import MemoryContextNotFoundError
+from app.shared.exceptions.memory_context_exceptions import (
+    MemoryContextNotFoundError,
+    MemoryContextValidationError,
+)
 from app.shared.types.types_convert_utils import now_utc
 
 
@@ -62,12 +66,16 @@ class MemoryReconciliationApplyService:
         self,
         plan_id: str,
         retry_failed: bool = False,
+        review_approved: bool = False,
+        reviewer: str | None = None,
     ) -> MemoryReconciliationResult:
         """Apply one plan once, or retry an explicitly failed/partial execution.
 
         Args:
             plan_id: Plan id.
             retry_failed: Retry failed.
+            review_approved: Explicit approval for a review-required plan.
+            reviewer: Memory Steward identity recorded with approved mutations.
 
         Returns:
             MemoryReconciliationResult: Operation result.
@@ -89,8 +97,13 @@ class MemoryReconciliationApplyService:
                 reused=True,
             )
             return existing
+        reviewed_by = _validated_reviewer(
+            plan,
+            review_approved=review_approved,
+            reviewer=reviewer,
+        )
         try:
-            result = await self._apply_plan(plan)
+            result = await self._apply_plan(plan, reviewed_by=reviewed_by)
         except Exception as error:
             log_reconciliation_apply_exception(
                 plan,
@@ -109,11 +122,13 @@ class MemoryReconciliationApplyService:
     async def _apply_plan(
         self,
         plan: MemoryReconciliationPlan,
+        reviewed_by: str | None,
     ) -> MemoryReconciliationResult:
         """Apply plan.
 
         Args:
             plan: Plan used by this operation.
+            reviewed_by: Approved Memory Steward identity, when review was required.
 
         Returns:
             MemoryReconciliationResult result produced by apply plan.
@@ -125,6 +140,7 @@ class MemoryReconciliationApplyService:
         created_conflict_set_ids: list[str] = []
         review_queue_item_ids: list[str] = []
         warnings = list(plan.warnings)
+        reviewed_at = now_utc() if reviewed_by is not None else None
         canonical_changed = False
         failure_code = MemoryReconciliationFailureCode.POLICY_BLOCKED
         try:
@@ -215,6 +231,8 @@ class MemoryReconciliationApplyService:
                 created_conflict_set_ids=created_conflict_set_ids,
                 review_queue_item_ids=review_queue_item_ids,
                 warnings=warnings,
+                reviewed_by=reviewed_by,
+                reviewed_at=reviewed_at,
             )
         except Exception as exc:
             status = (
@@ -240,9 +258,45 @@ class MemoryReconciliationApplyService:
                     if status is MemoryReconciliationStatus.PARTIAL_APPLY
                     else failure_code
                 ),
+                reviewed_by=reviewed_by,
+                reviewed_at=reviewed_at,
                 completed_at=now_utc(),
             )
         return await self._repository.save_result(result)
+
+
+def _validated_reviewer(
+    plan: MemoryReconciliationPlan,
+    review_approved: bool,
+    reviewer: str | None,
+) -> str | None:
+    """Return audited reviewer identity or block unsafe review-required mutation.
+
+    Args:
+        plan: Persisted reconciliation proposal.
+        review_approved: Whether the caller explicitly approved review-required mutation.
+        reviewer: Memory Steward identity attached to the approval.
+
+    Returns:
+        Normalized reviewer for review-required plans, otherwise None.
+
+    Raises:
+        MemoryContextValidationError: If required approval or reviewer identity is absent.
+    """
+    if not plan.requires_review:
+        return None
+    if not review_approved:
+        raise MemoryContextValidationError(
+            "RECONCILIATION_REVIEW_APPROVAL_REQUIRED: explicit Memory Steward "
+            "approval is required before canonical mutation"
+        )
+    normalized = "" if reviewer is None else reviewer.strip()
+    if not normalized or len(normalized) > 255:
+        raise MemoryContextValidationError(
+            "RECONCILIATION_REVIEWER_REQUIRED: approved review requires a bounded "
+            "Memory Steward identity"
+        )
+    return normalized
 
 
 def _successful_result(
@@ -254,6 +308,8 @@ def _successful_result(
     created_conflict_set_ids: list[str],
     review_queue_item_ids: list[str],
     warnings: list[str],
+    reviewed_by: str | None,
+    reviewed_at: datetime | None,
 ) -> MemoryReconciliationResult:
     """Execute successful result.
 
@@ -266,6 +322,8 @@ def _successful_result(
         created_conflict_set_ids: Identifiers for created conflict set.
         review_queue_item_ids: Identifiers for review queue item.
         warnings: Warnings used by this operation.
+        reviewed_by: Approved Memory Steward identity.
+        reviewed_at: Timestamp when explicit review approval was consumed.
 
     Returns:
         MemoryReconciliationResult result produced by successful result.
@@ -287,5 +345,7 @@ def _successful_result(
         review_queue_item_ids=tuple(review_queue_item_ids),
         warnings=tuple(warnings),
         hard_delete_performed=False,
+        reviewed_by=reviewed_by,
+        reviewed_at=reviewed_at,
         completed_at=now_utc(),
     )

@@ -9,8 +9,8 @@ from typing import Protocol
 
 from app.obsidian.application.notes.lifecycle.obsidian_context_reindex_manifest import (
     ContextReindexCandidate,
+    ContextReindexManifestValidator,
     supersedes_context_id,
-    validate_context_reindex_manifest,
 )
 from app.obsidian.application.notes.obsidian_note_indexer import note_index_from_path
 from app.obsidian.application.notes.obsidian_note_templates import (
@@ -115,6 +115,7 @@ class ObsidianVaultLifecycleService:
     def __init__(
         self,
         repository: IObsidianIndexRepository,
+        context_reindex_manifest_validator: ContextReindexManifestValidator,
         vault_config_store: ObsidianVaultConfigStore,
         save_note: ObsidianLifecycleSaveHook,
         read_note_by_path: ObsidianLifecycleReadHook,
@@ -127,6 +128,7 @@ class ObsidianVaultLifecycleService:
 
         Args:
             repository: Rebuildable PostgreSQL index repository.
+            context_reindex_manifest_validator: Cross-note manifest validation authority.
             vault_config_store: Runtime vault location provider.
             save_note: Canonical note save callback.
             read_note_by_path: Canonical note read callback.
@@ -136,6 +138,7 @@ class ObsidianVaultLifecycleService:
             index_maintenance_coordinator: Index maintenance coordinator used by this operation.
         """
         self._repository = repository
+        self._context_reindex_manifest_validator = context_reindex_manifest_validator
         self._vault_config_store = vault_config_store
         self._save_note = save_note
         self._read_note_by_path = read_note_by_path
@@ -307,7 +310,7 @@ class ObsidianVaultLifecycleService:
                     exc,
                     diagnostics,
                 )
-        manifest = validate_context_reindex_manifest(candidates)
+        manifest = self._context_reindex_manifest_validator.validate(candidates)
         for issue in manifest.issues:
             await self._record_reindex_error(
                 issue.relative_path,

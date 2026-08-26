@@ -216,3 +216,36 @@ contains = "discover_baseline"
 [[features.reconciliation_candidates.legacy_python_markers]]
 path = "native/tests/reconciliation_candidates_perf.py"
 contains = "python_baseline_milliseconds"
+
+[features.context_reindex_manifest]
+authority = "rust"
+python_retirement = "complete"
+legacy_inventory_complete = true
+golden_corpora = [
+    "native/golden/context_reindex_manifest.v1.json",
+]
+forbidden_python_imports_when_rust = []
+
+[[features.context_reindex_manifest.legacy_python_markers]]
+path = "backend/app/obsidian/application/notes/lifecycle/obsidian_context_reindex_manifest.py"
+contains = "def validate_context_reindex_manifest("
+
+[[features.context_reindex_manifest.legacy_python_markers]]
+path = "backend/app/obsidian/application/notes/lifecycle/obsidian_context_reindex_manifest.py"
+contains = "def _invalid_supersede_reasons("
+
+[[features.context_reindex_manifest.legacy_python_markers]]
+path = "backend/app/obsidian/application/notes/lifecycle/obsidian_context_reindex_manifest.py"
+contains = "def _propagate_invalid_targets("
+
+[[features.context_reindex_manifest.legacy_python_markers]]
+path = "backend/app/obsidian/application/notes/lifecycle/obsidian_context_reindex_manifest.py"
+contains = "def _context_identity_signature("
+
+[[features.context_reindex_manifest.legacy_python_markers]]
+path = "backend/app/obsidian/application/notes/lifecycle/obsidian_context_reindex_manifest.py"
+contains = "def _superseded_by_context_id("
+
+[[features.context_reindex_manifest.legacy_python_markers]]
+path = "backend/app/obsidian/application/notes/lifecycle/obsidian_context_reindex_manifest.py"
+contains = "def _cyclic_supersede_ids("

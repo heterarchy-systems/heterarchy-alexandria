@@ -16,6 +16,7 @@ from app.memory.domain.event_enum.context_enums import (
     ContextScope,
     ContextSourceType,
     ContextStorageStatus,
+    MemoryFunction,
 )
 from app.memory.domain.types.context_payload_types import ContextMetadataPayload
 from app.memory.infrastructure.models.context_models import (
@@ -39,6 +40,26 @@ def _json_object(value: dict[str, JSONValue]) -> ContextMetadataPayload:
     metadata = ContextMetadataPayload()
     metadata.update(value.items())
     return metadata
+
+
+def _memory_function(metadata: dict[str, JSONValue]) -> MemoryFunction | None:
+    """Decode optional durable MemoryFunction metadata from one stored row.
+
+    Args:
+        metadata: Persisted Context metadata JSON object.
+
+    Returns:
+        Typed memory function when present.
+
+    Raises:
+        ValueError: If persisted memory-function metadata is not a valid enum string.
+    """
+    raw_value = metadata.get("memory_function")
+    if raw_value is None:
+        return None
+    if not isinstance(raw_value, str):
+        raise ValueError("invalid persisted memory_function metadata")
+    return MemoryFunction(raw_value)
 
 
 def map_context_row(row: ContextORM) -> ContextRecord:
@@ -86,6 +107,7 @@ def map_context_row(row: ContextORM) -> ContextRecord:
         else None,
         access_count=row.access_count,
         is_archived=row.is_archived,
+        memory_function=_memory_function(row.context_metadata),
     )
     return context
 

@@ -239,6 +239,8 @@ def frontmatter_validation_message(error: ValidationError) -> str:
         return "INVALID_SCOPE: Context frontmatter scope is invalid"
     if "content_hash" in invalid_fields or "version" in invalid_fields:
         return "INVALID_CONTENT_INTEGRITY: Context hash or version is invalid"
+    if "memory_function" in invalid_fields:
+        return "INVALID_MEMORY_FUNCTION: Context memory function is invalid"
     provenance_fields = {
         "provenance",
         "source_actor_id",

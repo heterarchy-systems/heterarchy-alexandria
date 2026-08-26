@@ -16,6 +16,7 @@ from app.memory.domain.event_enum.context_enums import (
     ContextScope,
     ContextSourceType,
     ContextStorageStatus,
+    MemoryFunction,
 )
 from app.shared.schemas.common_schemas import (
     StrictRootSchemaModel,
@@ -98,6 +99,10 @@ class ContextResponse(StrictSchemaModel):
         str, described_field("Canonical context identifier for this context response.")
     ]
     kind: Annotated[ContextKind, described_field("Kind for this context response.")]
+    memory_function: Annotated[
+        MemoryFunction | None,
+        described_field("Functional memory role for this context response."),
+    ]
     title: Annotated[str, described_field("Title for this context response.")]
     summary: Annotated[str, described_field("Summary for this context response.")]
     content: Annotated[str, described_field("Content for this context response.")]

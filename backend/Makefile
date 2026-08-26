@@ -19,6 +19,9 @@ guardrails:
 benchmark_check:
 	uv run --no-editable pytest -q --confcutdir=tests/benchmark_tools tests/benchmark_tools
 	uv run --no-editable python -m benchmarks.context_rag_api_benchmark --help >/dev/null
+	uv run --no-editable python -m benchmarks.graph_ablation_suite --help >/dev/null
+	uv run --no-editable python -m benchmarks.graph_production_closure_suite --help >/dev/null
+	uv run --no-editable python -m benchmarks.memory_evaluation_suite --help >/dev/null
 	uv run --no-editable python -m benchmarks.mcp_readonly_benchmark --help >/dev/null
 
 test:

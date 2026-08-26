@@ -5,6 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from app.memory.domain.contracts.memory_reconciliation_candidate_compute_contracts import (
+    ReconciliationCandidateComputeMetrics,
+    ReconciliationCandidateEvidence,
+)
 from app.memory.domain.entities.context_read_models import ContextSearchMatch
 from app.memory.domain.event_enum.context_enums import ContextScope, RagStrategy
 from app.memory.domain.event_enum.reconciliation_enums import (
@@ -79,6 +83,8 @@ class MemoryCandidate:
     user_id: str | None = None
     session_id: str | None = None
     source_identity: str | None = None
+    graph_neighbors: tuple[str, ...] = ()
+    lineage_ancestors: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -139,6 +145,17 @@ class MemoryReconciliationAction:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class MemoryEvolutionCandidateEvidence:
+    """Rust-computed proposal evidence retained without assigning final semantics."""
+
+    compute_authority: str
+    candidate_item_id: str
+    compared_context_ids: tuple[str, ...]
+    candidate_pairs: tuple[ReconciliationCandidateEvidence, ...]
+    metrics: ReconciliationCandidateComputeMetrics
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class MemoryReconciliationPlan:
     """Complete, non-mutating plan produced before reconciliation apply."""
 
@@ -153,6 +170,7 @@ class MemoryReconciliationPlan:
     idempotency_key: str
     status: MemoryReconciliationStatus
     created_at: datetime
+    candidate_evidence: MemoryEvolutionCandidateEvidence | None = None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -190,6 +208,8 @@ class MemoryReconciliationResult:
     warnings: tuple[str, ...] = ()
     hard_delete_performed: bool = False
     failure_code: MemoryReconciliationFailureCode | None = None
+    reviewed_by: str | None = None
+    reviewed_at: datetime | None = None
     completed_at: datetime | None = None
 
 
@@ -215,6 +235,8 @@ class MemoryRecallCandidate:
     session_id: str | None = None
     source_refs: tuple[MemorySourceReference, ...] = ()
     recall_reasons: tuple[str, ...] = field(default_factory=tuple)
+    graph_neighbors: tuple[str, ...] = ()
+    lineage_ancestors: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

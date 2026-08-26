@@ -9,6 +9,7 @@ from app.memory.application.contexts.linting.context_lint import (
 from app.memory.domain.event_enum.context_enums import (
     ContextKind,
     ContextStorageStatus,
+    MemoryFunction,
 )
 from app.shared.utils.secret_redaction import BLOCKED_SECRET_PLACEHOLDER
 
@@ -96,3 +97,34 @@ abc
     assert "high-risk secret content cannot be saved raw" in result.errors
     assert result.redacted_content == BLOCKED_SECRET_PLACEHOLDER
     assert "BEGIN PRIVATE KEY" not in result.redacted_content
+
+
+def test_context_lint_preserves_optional_memory_function() -> None:
+    """MemoryFunction remains optional while explicit roles survive normalization."""
+    legacy = lint_context(
+        ContextLintInput(
+            kind=ContextKind.MEMORY,
+            title="Legacy memory",
+            summary="Legacy memory.",
+            content="## Summary\nLegacy memory.\n\n## Restore Prompt\nOpen it.",
+            project="heterarchy-alexandria",
+        )
+    )
+    procedural = lint_context(
+        ContextLintInput(
+            kind=ContextKind.DECISION,
+            memory_function=MemoryFunction.PROCEDURAL,
+            title="Procedure decision",
+            summary="Procedure decision.",
+            content=(
+                "## Summary\nProcedure decision.\n\n"
+                "## Key Decisions\nUse the procedure.\n\n"
+                "## Evidence\nValidated."
+            ),
+            project="heterarchy-alexandria",
+        )
+    )
+
+    assert legacy.normalized["memory_function"] is None
+    assert procedural.normalized["kind"] is ContextKind.DECISION
+    assert procedural.normalized["memory_function"] is MemoryFunction.PROCEDURAL

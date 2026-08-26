@@ -12,6 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.obsidian.domain.contracts.obsidian_contracts import ObsidianSaveNote
 from app.obsidian.domain.event_enum.obsidian_enums import AlexandriaNoteType
+from app.obsidian.infrastructure.markdown.native_context_reindex_manifest import (
+    create_native_context_reindex_manifest_validator,
+)
 from app.obsidian.infrastructure.models import (
     obsidian_index_models as _obsidian_index_models,
 )
@@ -39,6 +42,7 @@ async def _services(
         repository=repository,
         vault_path=str(tmp_path / "vault"),
         alexandria_root="Alexandria",
+        context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
     )
     return database, session, obsidian
 
@@ -280,6 +284,7 @@ def test_postgres_edge_source_cache_persists_and_replaces_stale_source_edges(
                 repository=repository,
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
+                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             await reopened_obsidian.save_note(
                 ObsidianSaveNote(

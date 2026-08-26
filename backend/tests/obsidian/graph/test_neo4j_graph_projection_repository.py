@@ -429,3 +429,109 @@ def test_adapter_limits_context_evidence_to_recalled_ids() -> None:
     assert query == READ_CONTEXT_EVIDENCE
     assert parameters["note_ids"] == ["note-a", "note-b"]
     assert "$note_ids" in query
+
+
+def test_adapter_snapshot_reuses_full_projection_while_active_run_is_unchanged() -> (
+    None
+):
+    """Repeated snapshots should validate run identity without reloading all graph rows."""
+    driver = _FakeDriver(
+        reads={
+            READ_PROJECTION_METADATA: [
+                {
+                    "run_id": "run-cache",
+                    "projection_version": 1,
+                    "issue_total": 0,
+                    "issue_counts_json": "{}",
+                }
+            ],
+            READ_NODES: [
+                {
+                    "note_id": "note-a",
+                    "relative_path": "Alexandria/Contexts/note-a.md",
+                    "alexandria_type": "context",
+                    "title": "Note A",
+                    "status": "active",
+                    "project": "heterarchy-alexandria",
+                }
+            ],
+            READ_EDGES: [],
+        }
+    )
+    repository = Neo4jObsidianGraphProjectionRepository(
+        driver=cast(Neo4jProjectionDriver, driver),
+        database="neo4j",
+    )
+
+    async def scenario() -> tuple[ObsidianGraphProjection, ObsidianGraphProjection]:
+        first = await repository.snapshot()
+        second = await repository.snapshot()
+        return first, second
+
+    first, second = anyio.run(scenario)
+    calls = [query for _, session in driver.sessions for query, _ in session.tx.calls]
+    assert first == second
+    assert calls.count(READ_NODES) == 1
+    assert calls.count(READ_EDGES) == 1
+    assert calls.count(READ_PROJECTION_METADATA) == 3
+
+
+def test_adapter_snapshot_refreshes_when_active_run_changes() -> None:
+    """A rebuild in another process must invalidate the local projection snapshot cache."""
+    driver = _FakeDriver(
+        reads={
+            READ_PROJECTION_METADATA: [
+                {
+                    "run_id": "run-one",
+                    "projection_version": 1,
+                    "issue_total": 0,
+                    "issue_counts_json": "{}",
+                }
+            ],
+            READ_NODES: [
+                {
+                    "note_id": "note-a",
+                    "relative_path": "Alexandria/Contexts/note-a.md",
+                    "alexandria_type": "context",
+                    "title": "Before",
+                    "status": "active",
+                    "project": "heterarchy-alexandria",
+                }
+            ],
+            READ_EDGES: [],
+        }
+    )
+    repository = Neo4jObsidianGraphProjectionRepository(
+        driver=cast(Neo4jProjectionDriver, driver),
+        database="neo4j",
+    )
+
+    async def scenario() -> tuple[ObsidianGraphProjection, ObsidianGraphProjection]:
+        first = await repository.snapshot()
+        driver._reads[READ_PROJECTION_METADATA] = [
+            {
+                "run_id": "run-two",
+                "projection_version": 1,
+                "issue_total": 0,
+                "issue_counts_json": "{}",
+            }
+        ]
+        driver._reads[READ_NODES] = [
+            {
+                "note_id": "note-a",
+                "relative_path": "Alexandria/Contexts/note-a.md",
+                "alexandria_type": "context",
+                "title": "After",
+                "status": "active",
+                "project": "heterarchy-alexandria",
+            }
+        ]
+        second = await repository.snapshot()
+        return first, second
+
+    first, second = anyio.run(scenario)
+    calls = [query for _, session in driver.sessions for query, _ in session.tx.calls]
+    assert first.nodes[0].title == "Before"
+    assert second.nodes[0].title == "After"
+    assert calls.count(READ_NODES) == 2
+    assert calls.count(READ_EDGES) == 2

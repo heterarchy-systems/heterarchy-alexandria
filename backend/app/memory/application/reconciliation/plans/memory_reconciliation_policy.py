@@ -154,6 +154,12 @@ def actions_for_decision(
                 relation,
                 "Close the previous Context validity interval without deleting it",
             ),
+            _action(
+                MemoryReconciliationActionType.QUEUE_REVIEW,
+                target,
+                relation,
+                "Require explicit Memory Steward approval before supersession",
+            ),
         )
     if relation is MemoryRelationType.UNKNOWN:
         return (

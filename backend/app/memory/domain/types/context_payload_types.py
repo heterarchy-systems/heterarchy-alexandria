@@ -19,6 +19,7 @@ from app.memory.domain.event_enum.context_enums import (
     ContextScope,
     ContextSourceType,
     ContextStorageStatus,
+    MemoryFunction,
     RagHealthState,
     RagStrategy,
 )
@@ -38,6 +39,7 @@ class ContextMetadataPayload(TypedDict, extra_items=JSONValue):
     index_status: NotRequired[str]
     wikilink: NotRequired[str]
     lifecycle_status: NotRequired[str]
+    memory_function: NotRequired[str]
     content_hash: NotRequired[str]
     version: NotRequired[int]
     provenance: NotRequired[dict[str, JSONValue]]
@@ -45,6 +47,10 @@ class ContextMetadataPayload(TypedDict, extra_items=JSONValue):
     superseded_by_context_id: NotRequired[str | None]
     source: NotRequired[str]
     source_status: NotRequired[str]
+    recorded_at: NotRequired[str]
+    observed_at: NotRequired[str]
+    valid_from: NotRequired[str]
+    valid_to: NotRequired[str]
 
 
 class ContextProvenancePayload(TypedDict, closed=True):
@@ -73,6 +79,7 @@ class ContextLintNormalizedPayload(TypedDict, closed=True):
     """Normalized lint fields after boundary validation."""
 
     kind: ContextKind
+    memory_function: MemoryFunction | None
     title: str
     summary: str
     project: str | None
@@ -101,6 +108,7 @@ class ContextPayload(TypedDict, closed=True):
     id: str
     canonical_context_id: str
     kind: ContextKind
+    memory_function: MemoryFunction | None
     title: str
     summary: str
     content: str
@@ -180,6 +188,7 @@ class ContextSearchMatchPayload(TypedDict, closed=True):
     score: float
     fts_score: float | None
     vector_score: float | None
+    graph_score: float | None
     why_retrieved: str
     canonical_context_id: str
     lifecycle_status: ContextRecallLifecycleStatus

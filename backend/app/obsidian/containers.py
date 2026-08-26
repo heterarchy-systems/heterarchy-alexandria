@@ -11,6 +11,12 @@ from app.memory.application.contexts.embedding.context_embedding_recovery_servic
     ContextEmbeddingRecoveryService,
 )
 from app.memory.application.contexts.records.context_service import ContextService
+from app.memory.application.integration.context_projection_integrity_service import (
+    ContextProjectionIntegrityService,
+)
+from app.memory.infrastructure.repositories.projection_integrity.projection_integrity_store import (
+    ContextProjectionIntegrityStore,
+)
 from app.obsidian.application.graph.diagnostics.obsidian_graph_note_diagnostics_service import (
     ObsidianGraphNoteDiagnosticsService,
 )
@@ -43,6 +49,9 @@ from app.obsidian.infrastructure.graph.native_obsidian_graph_projection_compute_
 from app.obsidian.infrastructure.graph.sqlalchemy_obsidian_graph_projection_source import (
     SqlAlchemyObsidianGraphProjectionSource,
 )
+from app.obsidian.infrastructure.markdown.native_context_reindex_manifest import (
+    create_native_context_reindex_manifest_validator,
+)
 from app.obsidian.infrastructure.obsidian_vault_config_store import (
     ObsidianVaultConfigStore,
 )
@@ -63,6 +72,7 @@ def _build_context_reindex_hook(
     enabled: bool,
     context_service: ContextService | None,
     recovery_service: ContextEmbeddingRecoveryService | None,
+    projection_integrity_service: ContextProjectionIntegrityService,
 ) -> Callable[[], Awaitable[None]] | None:
     """Build an async hook that backfills context embeddings after vault reindex.
 
@@ -70,16 +80,17 @@ def _build_context_reindex_hook(
         enabled: Whether the capability is enabled.
         context_service: Context service dependency.
         recovery_service: Recovery service dependency.
+        projection_integrity_service: Full indexed-note Context projection scanner.
 
     Returns:
         Constructed context reindex hook.
     """
-    if not enabled or context_service is None or recovery_service is None:
-        return None
 
     async def _hook() -> None:
         """Execute hook."""
-        await recovery_service.recover(context_service)
+        await projection_integrity_service.refresh()
+        if enabled and context_service is not None and recovery_service is not None:
+            await recovery_service.recover(context_service)
 
     return _hook
 
@@ -106,12 +117,25 @@ class ObsidianContainer(containers.DeclarativeContainer):
     index_repo = providers.Factory(
         SqlAlchemyObsidianIndexRepository, session=db_session
     )
+    context_projection_integrity_store = providers.Factory(
+        ContextProjectionIntegrityStore,
+        session=db_session,
+    )
+    context_projection_integrity_service = providers.Factory(
+        ContextProjectionIntegrityService,
+        source=index_repo,
+        repository=context_projection_integrity_store,
+        max_age_seconds=app_config.provided.projection_integrity_max_age_seconds,
+    )
     graph_projection_source = providers.Factory(
         SqlAlchemyObsidianGraphProjectionSource,
         session=db_session,
     )
     graph_projection_compute_provider = providers.Singleton(
         create_native_obsidian_graph_projection_compute_provider,
+    )
+    context_reindex_manifest_validator = providers.Singleton(
+        create_native_context_reindex_manifest_validator,
     )
     graph_projection_source_builder = providers.Factory(
         ObsidianGraphProjectionSourceBuilder,
@@ -143,12 +167,14 @@ class ObsidianContainer(containers.DeclarativeContainer):
         ObsidianService,
         repository=index_repo,
         vault_config_store=vault_config_store,
+        context_reindex_manifest_validator=context_reindex_manifest_validator,
         delegate_service=librarian_delegate_service,
         context_reindex_hook=providers.Factory(
             _build_context_reindex_hook,
             enabled=app_config.provided.rag_embedding_recovery_on_vault_reindex,
             context_service=memory_context_service,
             recovery_service=memory_embedding_recovery_service,
+            projection_integrity_service=context_projection_integrity_service,
         ),
         index_maintenance_coordinator=index_maintenance_coordinator,
     )
@@ -179,6 +205,7 @@ class ObsidianContainer(containers.DeclarativeContainer):
         ObsidianLibrarianJobService,
         database=database,
         vault_config_store=vault_config_store,
+        context_reindex_manifest_validator=context_reindex_manifest_validator,
         delegate_service=librarian_delegate_service,
     )
     workflow_repo = providers.Factory(

@@ -233,6 +233,41 @@ class ObsidianIndexQueryStore:
             counts.get(ObsidianIndexStatus.ERROR.value, 0),
         )
 
+    async def list_indexed_notes(self) -> tuple[ObsidianNote, ...]:
+        """Return all indexed managed notes in deterministic path and id order.
+
+        Returns:
+            Immutable indexed-note sequence suitable for one integrity scan.
+        """
+        rows = await self._session.execute(
+            select(ObsidianFileORM)
+            .where(ObsidianFileORM.index_status == ObsidianIndexStatus.INDEXED.value)
+            .order_by(ObsidianFileORM.relative_path, ObsidianFileORM.note_id)
+        )
+        return tuple(note_from_model(model) for model in rows.scalars().all())
+
+    async def projection_source_revision(self) -> str:
+        """Return a cheap revision token for the current indexed-note source set.
+
+        Returns:
+            Deterministic revision token derived without hydrating note bodies.
+        """
+        row = (
+            await self._session.execute(
+                select(
+                    func.count(ObsidianFileORM.note_id),
+                    func.max(ObsidianFileORM.indexed_at),
+                ).where(
+                    ObsidianFileORM.index_status == ObsidianIndexStatus.INDEXED.value
+                )
+            )
+        ).one()
+        count, latest_indexed_at = row
+        timestamp = (
+            "none" if latest_indexed_at is None else latest_indexed_at.isoformat()
+        )
+        return f"obsidian-index:{int(count)}:{timestamp}"
+
 
 async def _recent_notes(
     session: AsyncSession,

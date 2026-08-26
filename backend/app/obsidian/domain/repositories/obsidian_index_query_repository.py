@@ -71,3 +71,19 @@ class IObsidianIndexQueryRepository(ABC):
         Returns:
             Tuple of indexed, stale, and error note counts.
         """
+
+    @abstractmethod
+    async def list_indexed_notes(self) -> tuple[ObsidianNote, ...]:
+        """Return all currently indexed managed notes in deterministic order.
+
+        Returns:
+            Immutable sequence of indexed notes ordered for repeatable scans.
+        """
+
+    @abstractmethod
+    async def projection_source_revision(self) -> str:
+        """Return a cheap revision token for the current indexed-note source.
+
+        Returns:
+            Deterministic revision token derived from indexed projection inputs.
+        """

@@ -9,6 +9,8 @@ from pathlib import Path
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 COMPOSE_PATH = REPOSITORY_ROOT / "docker-compose.yml"
 ENV_COMPOSE_PATH = REPOSITORY_ROOT / "env-compose.yml"
+DOCKERFILE_PATH = REPOSITORY_ROOT / "backend" / "Dockerfile"
+ROOT_MAKEFILE_PATH = REPOSITORY_ROOT / "Makefile"
 PERFORMANCE_ENV_PATH = REPOSITORY_ROOT / "runtime-performance.env"
 NEO4J_START_PATH = REPOSITORY_ROOT / "scripts" / "neo4j-start.sh"
 REDIS_START_PATH = REPOSITORY_ROOT / "scripts" / "redis-start.sh"
@@ -38,6 +40,34 @@ def test_app_processes_extend_one_shared_env_compose_contract() -> None:
     assert "  embedding-model-cache:\n" in compose
     assert "fastembed-cache" not in compose
     assert "fastembed-cache" not in shared
+
+
+def test_runtime_image_build_requires_and_bakes_one_source_revision() -> None:
+    """Local images should fail closed without provenance and share one revision identity."""
+    dockerfile = _read(DOCKERFILE_PATH)
+    makefile = _read(ROOT_MAKEFILE_PATH)
+
+    warm_build = dockerfile.index("RUN cargo build")
+    seal_arg = dockerfile.index("ARG ALEXANDRIA_BUILD_REVISION", warm_build)
+    seal_build = dockerfile.index('RUN case "${ALEXANDRIA_BUILD_REVISION}"', seal_arg)
+
+    assert warm_build < seal_arg < seal_build
+    assert "ALEXANDRIA_BUILD_REVISION must identify the built source tree" in dockerfile
+    assert "SERVICE_RUNTIME_REVISION=${ALEXANDRIA_BUILD_REVISION}" in dockerfile
+    assert (
+        "SERVICE_RUNTIME_EXPECTED_REVISION=${ALEXANDRIA_BUILD_REVISION}" in dockerfile
+    )
+    assert (
+        'ALEXANDRIA_BUILD_REVISION="${ALEXANDRIA_BUILD_REVISION}" cargo build'
+        in dockerfile
+    )
+    assert "runtime_revision:" in makefile
+    assert "runtime_rebuild:" in makefile
+    assert (
+        "docker compose build alexandria-backend alexandria-maintenance-worker"
+        in makefile
+    )
+    assert "docker compose up -d --no-build --force-recreate" in makefile
 
 
 def test_compose_execs_uvicorn_and_isolates_maintenance_work() -> None:

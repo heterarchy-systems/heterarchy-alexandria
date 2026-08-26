@@ -3,8 +3,8 @@ use std::collections::{HashMap, HashSet};
 use super::{
     BestRetrievalCandidate, CandidateRepresentative, FusedRetrievalCandidate,
     HYBRID_CANDIDATE_MULTIPLIER, MAX_HYBRID_CANDIDATE_LIMIT, RECIPROCAL_RANK_FUSION_CONSTANT,
-    RetrievalCandidate, RetrievalKernelError, RetrievalLane, RetrievalScoreInput,
-    VECTOR_RECIPROCAL_RANK_WEIGHT, validate_lane_count,
+    RetrievalCandidate, RetrievalFusionTrace, RetrievalKernelError, RetrievalLane,
+    RetrievalScoreInput, VECTOR_RECIPROCAL_RANK_WEIGHT, validate_lane_count,
 };
 
 const FUSED_RETRIEVAL_REASON: &str = "Context ranked across lexical and semantic vector evidence using best-lane reciprocal-rank fusion.";
@@ -108,7 +108,34 @@ where
     for context_id in vector_context_ids.iter().map(AsRef::as_ref) {
         super::validate_context_id(context_id)?;
     }
-    merge_hybrid_indexed(fts_context_ids, vector_context_ids, limit)
+    Ok(merge_hybrid_indexed(fts_context_ids, vector_context_ids, limit, false)?.results)
+}
+
+/// Merge compact identities and return deterministic fusion diagnostics.
+///
+/// # Errors
+///
+/// Returns a typed error when a lane is oversized or contains an invalid context identity.
+pub fn merge_hybrid_indices_with_trace<FtsIdentity, VectorIdentity>(
+    fts_context_ids: &[FtsIdentity],
+    vector_context_ids: &[VectorIdentity],
+    limit: usize,
+) -> Result<(Vec<FusedRetrievalIndex>, RetrievalFusionTrace), RetrievalKernelError>
+where
+    FtsIdentity: AsRef<str>,
+    VectorIdentity: AsRef<str>,
+{
+    for context_id in fts_context_ids.iter().map(AsRef::as_ref) {
+        super::validate_context_id(context_id)?;
+    }
+    for context_id in vector_context_ids.iter().map(AsRef::as_ref) {
+        super::validate_context_id(context_id)?;
+    }
+    let merged = merge_hybrid_indexed(fts_context_ids, vector_context_ids, limit, true)?;
+    let trace = merged.trace.ok_or_else(|| {
+        RetrievalKernelError::invalid_input("retrieval fusion trace was not collected")
+    })?;
+    Ok((merged.results, trace))
 }
 
 /// Rank compact context/score inputs and return source indices for low-copy adapter mapping.
@@ -192,7 +219,7 @@ pub fn merge_hybrid_candidates(
     vector_candidates: &[RetrievalCandidate],
     limit: usize,
 ) -> Result<Vec<FusedRetrievalCandidate>, RetrievalKernelError> {
-    let compact = merge_hybrid_indexed(fts_candidates, vector_candidates, limit)?;
+    let compact = merge_hybrid_indexed(fts_candidates, vector_candidates, limit, false)?.results;
     compact
         .into_iter()
         .map(|item| materialize_fused(item, fts_candidates, vector_candidates))
@@ -225,7 +252,8 @@ fn merge_hybrid_indexed<'a, Fts, Vector>(
     fts_candidates: &'a [Fts],
     vector_candidates: &'a [Vector],
     limit: usize,
-) -> Result<Vec<FusedRetrievalIndex>, RetrievalKernelError>
+    collect_trace: bool,
+) -> Result<HybridMergeOutput, RetrievalKernelError>
 where
     Fts: IdentityInput,
     Vector: IdentityInput,
@@ -233,24 +261,36 @@ where
     validate_lane_count(RetrievalLane::Fts, fts_candidates.len())?;
     validate_lane_count(RetrievalLane::Vector, vector_candidates.len())?;
     if limit == 0 {
-        return Ok(Vec::new());
+        return Ok(HybridMergeOutput {
+            results: Vec::new(),
+            trace: collect_trace.then(|| zero_limit_trace(fts_candidates, vector_candidates)),
+        });
     }
 
     let mut evidence_by_context = HashMap::<&str, FusionIndexEvidence>::new();
     let mut next_first_seen = 0_usize;
-    merge_lane_indices(
+    let fts_unique_count = merge_lane_indices(
         &mut evidence_by_context,
         &mut next_first_seen,
         RetrievalLane::Fts,
         fts_candidates,
     );
-    merge_lane_indices(
+    let vector_unique_count = merge_lane_indices(
         &mut evidence_by_context,
         &mut next_first_seen,
         RetrievalLane::Vector,
         vector_candidates,
     );
 
+    let fused_candidate_count = evidence_by_context.len();
+    let cross_lane_count = if collect_trace {
+        evidence_by_context
+            .values()
+            .filter(|evidence| evidence.fts_index.is_some() && evidence.vector_index.is_some())
+            .count()
+    } else {
+        0
+    };
     let mut ranked = evidence_by_context.into_values().collect::<Vec<_>>();
     ranked.sort_by(|left, right| {
         right
@@ -259,10 +299,38 @@ where
             .then_with(|| left.first_seen.cmp(&right.first_seen))
     });
     ranked.truncate(limit);
-    Ok(ranked
+    let representative_fts_count = if collect_trace {
+        ranked
+            .iter()
+            .filter(|evidence| evidence.representative.lane == RetrievalLane::Fts)
+            .count()
+    } else {
+        0
+    };
+    let representative_vector_count = if collect_trace {
+        ranked.len().saturating_sub(representative_fts_count)
+    } else {
+        0
+    };
+    let returned_count = ranked.len();
+    let results = ranked
         .into_iter()
         .map(FusionIndexEvidence::into_result)
-        .collect())
+        .collect();
+    let trace = collect_trace.then_some(RetrievalFusionTrace {
+        fts_input_count: fts_candidates.len(),
+        vector_input_count: vector_candidates.len(),
+        fts_unique_count,
+        vector_unique_count,
+        fts_duplicate_count: fts_candidates.len().saturating_sub(fts_unique_count),
+        vector_duplicate_count: vector_candidates.len().saturating_sub(vector_unique_count),
+        fused_candidate_count,
+        cross_lane_count,
+        returned_count,
+        representative_fts_count,
+        representative_vector_count,
+    });
+    Ok(HybridMergeOutput { results, trace })
 }
 
 fn rank_best_indexed<Candidate>(
@@ -314,7 +382,8 @@ fn merge_lane_indices<'a, Candidate>(
     next_first_seen: &mut usize,
     lane: RetrievalLane,
     candidates: &'a [Candidate],
-) where
+) -> usize
+where
     Candidate: IdentityInput,
 {
     let mut seen_context_ids = HashSet::<&str>::new();
@@ -347,6 +416,38 @@ fn merge_lane_indices<'a, Candidate>(
             RetrievalLane::Fts => evidence.fts_index = Some(lane_index),
             RetrievalLane::Vector => evidence.vector_index = Some(lane_index),
         }
+    }
+    seen_context_ids.len()
+}
+
+fn zero_limit_trace<Fts, Vector>(
+    fts_candidates: &[Fts],
+    vector_candidates: &[Vector],
+) -> RetrievalFusionTrace
+where
+    Fts: IdentityInput,
+    Vector: IdentityInput,
+{
+    let fts_ids = fts_candidates
+        .iter()
+        .map(IdentityInput::context_id)
+        .collect::<HashSet<_>>();
+    let vector_ids = vector_candidates
+        .iter()
+        .map(IdentityInput::context_id)
+        .collect::<HashSet<_>>();
+    RetrievalFusionTrace {
+        fts_input_count: fts_candidates.len(),
+        vector_input_count: vector_candidates.len(),
+        fts_unique_count: fts_ids.len(),
+        vector_unique_count: vector_ids.len(),
+        fts_duplicate_count: fts_candidates.len().saturating_sub(fts_ids.len()),
+        vector_duplicate_count: vector_candidates.len().saturating_sub(vector_ids.len()),
+        fused_candidate_count: fts_ids.union(&vector_ids).count(),
+        cross_lane_count: fts_ids.intersection(&vector_ids).count(),
+        returned_count: 0,
+        representative_fts_count: 0,
+        representative_vector_count: 0,
     }
 }
 
@@ -391,6 +492,11 @@ fn reciprocal_rank_contribution(lane: RetrievalLane, rank: usize) -> f64 {
         RetrievalLane::Fts => contribution,
         RetrievalLane::Vector => contribution * VECTOR_RECIPROCAL_RANK_WEIGHT,
     }
+}
+
+struct HybridMergeOutput {
+    results: Vec<FusedRetrievalIndex>,
+    trace: Option<RetrievalFusionTrace>,
 }
 
 struct FusionIndexEvidence {

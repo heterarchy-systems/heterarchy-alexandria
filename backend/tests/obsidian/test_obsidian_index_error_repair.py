@@ -11,6 +11,9 @@ from app.obsidian.application.notes.frontmatter.obsidian_context_frontmatter_map
     context_content_hash,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
+from app.obsidian.infrastructure.markdown.native_context_reindex_manifest import (
+    create_native_context_reindex_manifest_validator,
+)
 from app.obsidian.infrastructure.models import (
     obsidian_index_models as _obsidian_index_models,
 )
@@ -108,6 +111,7 @@ def test_legacy_index_error_repair_is_hash_locked_and_backup_first(
             repository=SqlAlchemyObsidianIndexRepository(session=session),
             vault_path=str(vault),
             alexandria_root="Alexandria",
+            context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
         )
         try:
             initial = await service.reindex()

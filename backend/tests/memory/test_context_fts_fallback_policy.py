@@ -6,11 +6,18 @@ from dataclasses import dataclass
 from typing import cast
 
 import anyio
+from tests.memory.context_retrieval_kernel_test_provider import (
+    TestContextRetrievalKernelProvider,
+)
+
 from app.memory.application.contexts.embedding.context_embedding_service import (
     ContextEmbeddingService,
 )
 from app.memory.application.contexts.records.context_search_service import (
     ContextSearchService,
+)
+from app.memory.application.retrieval.context_retrieval_lane_executor import (
+    ContextRetrievalLaneExecutor,
 )
 from app.memory.domain.contracts.context_recall_contracts import (
     ContextFtsRecall,
@@ -21,9 +28,6 @@ from app.memory.domain.entities.context_read_models import ContextSearchMatch
 from app.memory.domain.event_enum.context_enums import ContextScope, RagStrategy
 from app.memory.domain.repositories.contexts.context_search_source import (
     IContextSearchSource,
-)
-from tests.memory.context_retrieval_kernel_test_provider import (
-    TestContextRetrievalKernelProvider,
 )
 
 
@@ -87,6 +91,14 @@ def _service(source: _RecordingFtsSource) -> ContextSearchService:
     )
 
 
+def _lane_executor(source: _RecordingFtsSource) -> ContextRetrievalLaneExecutor:
+    return ContextRetrievalLaneExecutor(
+        search_sources=[cast(IContextSearchSource, source)],
+        embedding_service=cast(ContextEmbeddingService, object()),
+        retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
+    )
+
+
 def test_fts_only_search_skips_vector_health_probe() -> None:
     """Lexical-only recall should not pay for vector fingerprint health checks."""
     source = _RecordingFtsSource({})
@@ -96,12 +108,14 @@ def test_fts_only_search_skips_vector_health_probe() -> None:
         retrieval_kernel_provider=TestContextRetrievalKernelProvider(),
     )
 
-    pack = anyio.run(
-        service.search,
-        "exact lexical query",
-        RagStrategy.FTS_ONLY,
-        5,
-    )
+    async def scenario():
+        return await service.search(
+            query="exact lexical query",
+            strategy=RagStrategy.FTS_ONLY,
+            limit=5,
+        )
+
+    pack = anyio.run(scenario)
 
     assert pack.matches == ()
 
@@ -111,7 +125,15 @@ def test_fts_original_match_stops_before_broader_fallbacks() -> None:
     query = "검색 품질 개선을 위해서 뭐가 있을까요?"
     source = _RecordingFtsSource({query: [_match("original")]})
 
-    matches = anyio.run(_service(source)._search_fts_sources, _recall(query))
+    matches = anyio.run(
+        _lane_executor(source).retrieve,
+        query,
+        RagStrategy.FTS_ONLY,
+        5,
+        _recall(query).recall_filter,
+        None,
+        None,
+    )
 
     assert [match.context.id for match in matches] == ["original"]
     assert source.queries == [query]
@@ -123,7 +145,15 @@ def test_fts_empty_original_uses_first_nonempty_focused_fallback() -> None:
     focused = "검색 품질"
     source = _RecordingFtsSource({focused: [_match("focused")]})
 
-    matches = anyio.run(_service(source)._search_fts_sources, _recall(query))
+    matches = anyio.run(
+        _lane_executor(source).retrieve,
+        query,
+        RagStrategy.FTS_ONLY,
+        5,
+        _recall(query).recall_filter,
+        None,
+        None,
+    )
 
     assert [match.context.id for match in matches] == ["focused"]
     assert source.queries == [query, "검색 품질 개선을", focused]

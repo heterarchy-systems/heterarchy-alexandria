@@ -20,6 +20,14 @@ class ObsidianGraphDirection(StrEnum):
     INCOMING = "incoming"
 
 
+class ObsidianGraphTraversalDirection(StrEnum):
+    """Direction for one bounded active-projection traversal request."""
+
+    OUTGOING = "outgoing"
+    INCOMING = "incoming"
+    BOTH = "both"
+
+
 class ObsidianGraphContextSignalType(StrEnum):
     """Provider-owned semantic classification for Context graph evidence."""
 

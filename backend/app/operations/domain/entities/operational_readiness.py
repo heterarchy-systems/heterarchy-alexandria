@@ -5,11 +5,23 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from app.memory.domain.entities.context_projection_integrity import (
+    ContextProjectionIntegritySnapshot,
+    unchecked_context_projection_integrity_snapshot,
+)
 from app.memory.domain.entities.context_read_models import ContextEmbeddingSourceStatus
 from app.memory.domain.event_enum.context_enums import RagHealthState, RagStrategy
 from app.operations.domain.entities.operational_data_integrity import (
     OperationalDataIntegritySnapshot,
     unchecked_data_integrity_snapshot,
+)
+from app.operations.domain.entities.operational_retrieval_canary import (
+    OperationalRetrievalCanarySnapshot,
+    unchecked_retrieval_canary_snapshot,
+)
+from app.operations.domain.entities.operational_runtime_provenance import (
+    OperationalRuntimeProvenanceSnapshot,
+    unchecked_runtime_provenance_snapshot,
 )
 from app.operations.domain.event_enum.operational_readiness_enums import (
     OperationalReadinessStatus,
@@ -99,6 +111,15 @@ class OperationalReadinessSnapshot:
     next_actions: tuple[str, ...]
     data_integrity: OperationalDataIntegritySnapshot = field(
         default_factory=unchecked_data_integrity_snapshot
+    )
+    runtime: OperationalRuntimeProvenanceSnapshot = field(
+        default_factory=unchecked_runtime_provenance_snapshot
+    )
+    retrieval_canary: OperationalRetrievalCanarySnapshot = field(
+        default_factory=unchecked_retrieval_canary_snapshot
+    )
+    projection_integrity: ContextProjectionIntegritySnapshot = field(
+        default_factory=unchecked_context_projection_integrity_snapshot
     )
 
     def __post_init__(self) -> None:

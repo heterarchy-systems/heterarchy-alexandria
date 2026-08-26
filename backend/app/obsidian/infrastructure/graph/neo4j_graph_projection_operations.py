@@ -180,6 +180,27 @@ async def _read_projection_state(
     )
 
 
+async def _read_active_projection_run_id(
+    transaction: Neo4jProjectionTransaction,
+) -> str | None:
+    """Read only the active projection run identity for snapshot cache validation.
+
+    Args:
+        transaction: Transaction boundary used by this operation.
+
+    Returns:
+        Active projection run id, or None when no projection has been initialized.
+    """
+    metadata_result = await transaction.run(
+        READ_PROJECTION_METADATA,
+        projection_name=PROJECTION_NAME,
+    )
+    metadata_rows = await metadata_result.data()
+    await metadata_result.consume()
+    metadata: Neo4jProjectionRawRow = metadata_rows[0] if metadata_rows else {}
+    return _optional_text(metadata, "run_id")
+
+
 async def _read_related_notes(
     transaction: Neo4jProjectionTransaction,
     note_id: str,

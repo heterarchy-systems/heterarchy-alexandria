@@ -84,6 +84,7 @@ def context_record_from_obsidian_note(note: ObsidianNote) -> ContextRecord:
         archived_at=aware_utc_datetime(note.indexed_at) if is_archived else None,
         access_count=0,
         is_archived=is_archived,
+        memory_function=identity.memory_function,
     )
 
 
@@ -145,6 +146,7 @@ def _identity_from_note(note: ObsidianNote) -> ObsidianContextIdentity:
         supersedes_context_id=None,
         superseded_by_context_id=None,
         context_kind=_kind_from_note(note),
+        memory_function=None,
         created_at=None,
         updated_at=None,
     )
@@ -259,6 +261,17 @@ def _context_metadata(
         supersedes_context_id=identity.supersedes_context_id,
         superseded_by_context_id=identity.superseded_by_context_id,
     )
+    if identity.memory_function is not None:
+        metadata["memory_function"] = identity.memory_function.value
+    temporal_values = (
+        ("recorded_at", identity.recorded_at),
+        ("observed_at", identity.observed_at),
+        ("valid_from", identity.valid_from),
+        ("valid_to", identity.valid_to),
+    )
+    for field_name, timestamp in temporal_values:
+        if timestamp is not None:
+            metadata[field_name] = timestamp.isoformat()
     if note.source is not None:
         metadata["source"] = note.source
     if note.alexandria_type is not AlexandriaNoteType.CONTEXT:

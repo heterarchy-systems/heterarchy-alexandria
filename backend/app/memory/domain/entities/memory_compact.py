@@ -44,3 +44,45 @@ class MemoryCompact:
     reviewed_at: datetime | None = None
     metadata_warnings: tuple[str, ...] = ()
     deduplicated: bool = False
+    source_set_hash: str | None = None
+    compaction_policy_version: str | None = None
+    generation_revision: int | None = None
+    generated_at: datetime | None = None
+
+    @property
+    def source_count(self) -> int:
+        """Return the number of durable source references covered by this compact.
+
+        Returns:
+            Source reference count derived from canonical source refs.
+        """
+        return len(self.source_refs)
+
+    @property
+    def expansion_refs(self) -> tuple[str, ...]:
+        """Return stable source expansion paths without persisting duplicate metadata.
+
+        Returns:
+            Distinct non-empty source detail paths in source-reference order.
+        """
+        return tuple(
+            dict.fromkeys(
+                source_ref.detail_path.strip()
+                for source_ref in self.source_refs
+                if source_ref.detail_path.strip()
+            )
+        )
+
+    @property
+    def provenance_complete(self) -> bool:
+        """Return whether this compact carries the complete v2 provenance seal.
+
+        Returns:
+            True when all durable Compact 2.0 provenance fields are populated.
+        """
+        return (
+            bool(self.source_set_hash)
+            and bool(self.compaction_policy_version)
+            and self.generation_revision is not None
+            and self.generated_at is not None
+        )

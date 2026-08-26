@@ -257,3 +257,30 @@ class MemoryReconciliationApplyRequest(StrictSchemaModel):
         bool,
         described_field("Retry failed for this memory reconciliation apply request."),
     ] = False
+    review_approved: Annotated[
+        bool,
+        described_field(
+            "Explicit Memory Steward approval for a review-required reconciliation plan."
+        ),
+    ] = False
+    reviewer: Annotated[
+        str | None,
+        StringConstraints(strict=True, max_length=255),
+        described_field("Memory Steward identity recorded with explicit approval."),
+    ] = None
+
+    @field_validator("reviewer")
+    @classmethod
+    def normalize_reviewer(cls, value: str | None) -> str | None:
+        """Normalize an optional Memory Steward audit identity.
+
+        Args:
+            value: Raw reviewer identity.
+
+        Returns:
+            Trimmed non-empty reviewer identity when supplied.
+        """
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized or None

@@ -51,6 +51,43 @@ class AppConfigFields(BaseSettings):
     app_version: Annotated[str, described_field("App version for this app config.")] = (
         "0.1.0"
     )
+    runtime_revision: Annotated[
+        str | None,
+        described_field("Source revision baked into the running application image."),
+    ] = None
+    runtime_expected_revision: Annotated[
+        str | None,
+        described_field(
+            "Deployment revision expected by the runtime environment for drift detection."
+        ),
+    ] = None
+    runtime_build_timestamp: Annotated[
+        str | None,
+        described_field("Build timestamp baked into the running application image."),
+    ] = None
+    readiness_canary_query: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1, max_length=500),
+        described_field(
+            "Bounded query used by operational retrieval readiness canaries."
+        ),
+    ] = "Alexandria readiness canary"
+    readiness_canary_limit: Annotated[
+        int,
+        described_field(
+            "Result limit used by operational retrieval readiness canaries.",
+            ge=3,
+            le=10,
+        ),
+    ] = 3
+    projection_integrity_max_age_seconds: Annotated[
+        int,
+        described_field(
+            "Maximum accepted age of the persisted full projection integrity scan.",
+            ge=60,
+            le=604800,
+        ),
+    ] = 86400
     app_log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     secret_encryption_key: Annotated[
         str | None, described_field("Secret encryption key for this app config.")

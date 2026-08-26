@@ -8,6 +8,10 @@ from pathlib import Path
 from app.obsidian.application.librarian.delegation.obsidian_librarian_delegation import (
     ObsidianLibrarianDelegateService,
 )
+from app.obsidian.application.notes.lifecycle.obsidian_context_reindex_manifest import (
+    UNCONFIGURED_CONTEXT_REINDEX_MANIFEST_VALIDATOR,
+    ContextReindexManifestValidator,
+)
 from app.obsidian.application.service.librarian.obsidian_librarian_conversation_service import (
     ObsidianLibrarianConversationService,
 )
@@ -86,6 +90,9 @@ class ObsidianService(
         delegate_service: ObsidianLibrarianDelegateService | None = None,
         context_reindex_hook: Callable[[], Awaitable[None]] | None = None,
         index_maintenance_coordinator: IndexMaintenanceCoordinator | None = None,
+        context_reindex_manifest_validator: ContextReindexManifestValidator = (
+            UNCONFIGURED_CONTEXT_REINDEX_MANIFEST_VALIDATOR
+        ),
     ) -> None:
         """Initialize service dependencies.
 
@@ -97,6 +104,7 @@ class ObsidianService(
             delegate_service: Optional provider-backed librarian delegate service.
             context_reindex_hook: Callback invoked for context reindex.
             index_maintenance_coordinator: Index maintenance coordinator used by this operation.
+            context_reindex_manifest_validator: Cross-note manifest validation authority.
         """
         self._repository = repository
         if vault_config_store is None:
@@ -118,6 +126,7 @@ class ObsidianService(
         )
         self._vault_lifecycle_service = ObsidianVaultLifecycleService(
             repository=self._repository,
+            context_reindex_manifest_validator=context_reindex_manifest_validator,
             vault_config_store=self._vault_config_store,
             save_note=self.save_note,
             read_note_by_path=self.read_note_by_path,

@@ -1,0 +1,341 @@
+{
+  "cases": [
+    {
+      "case_id": "exact-01",
+      "expected_graph_enabled": false,
+      "expected_intent": "EXACT_OR_TITLE",
+      "expected_memory_functions": [],
+      "expected_strategy": "FTS_ONLY",
+      "expected_temporal_current_preference": false,
+      "query": "Alexandria Memory Steward Contract"
+    },
+    {
+      "case_id": "exact-02",
+      "expected_graph_enabled": false,
+      "expected_intent": "EXACT_OR_TITLE",
+      "expected_memory_functions": [],
+      "expected_strategy": "FTS_ONLY",
+      "expected_temporal_current_preference": false,
+      "query": "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20"
+    },
+    {
+      "case_id": "exact-03",
+      "expected_graph_enabled": false,
+      "expected_intent": "EXACT_OR_TITLE",
+      "expected_memory_functions": [],
+      "expected_strategy": "FTS_ONLY",
+      "expected_temporal_current_preference": false,
+      "query": "heterarchy-alexandria Rust Compute Migration Plan Index 2026-08-22"
+    },
+    {
+      "case_id": "exact-04",
+      "expected_graph_enabled": false,
+      "expected_intent": "EXACT_OR_TITLE",
+      "expected_memory_functions": [],
+      "expected_strategy": "FTS_ONLY",
+      "expected_temporal_current_preference": false,
+      "query": "heterarchy-alexandria PostgreSQL FTS Ranking and Query Plan Optimization 2026-08-21"
+    },
+    {
+      "case_id": "exact-05",
+      "expected_graph_enabled": false,
+      "expected_intent": "EXACT_OR_TITLE",
+      "expected_memory_functions": [],
+      "expected_strategy": "FTS_ONLY",
+      "expected_temporal_current_preference": false,
+      "query": "Engineering Harness"
+    },
+    {
+      "case_id": "semantic-01",
+      "expected_graph_enabled": false,
+      "expected_intent": "SEMANTIC_PARAPHRASE",
+      "expected_memory_functions": [],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": false,
+      "query": "왜 embedding fingerprint가 mismatch되면 vector recall을 막아야 하나?"
+    },
+    {
+      "case_id": "semantic-02",
+      "expected_graph_enabled": false,
+      "expected_intent": "SEMANTIC_PARAPHRASE",
+      "expected_memory_functions": [],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": false,
+      "query": "Context Pack이 왜 필요한지 설명해줘?"
+    },
+    {
+      "case_id": "semantic-03",
+      "expected_graph_enabled": false,
+      "expected_intent": "SEMANTIC_PARAPHRASE",
+      "expected_memory_functions": [],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": false,
+      "query": "FTS와 vector retrieval 차이를 알려줘"
+    },
+    {
+      "case_id": "semantic-04",
+      "expected_graph_enabled": false,
+      "expected_intent": "SEMANTIC_PARAPHRASE",
+      "expected_memory_functions": [],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": false,
+      "query": "How does strict Pydantic validation protect request boundaries?"
+    },
+    {
+      "case_id": "semantic-05",
+      "expected_graph_enabled": false,
+      "expected_intent": "SEMANTIC_PARAPHRASE",
+      "expected_memory_functions": [],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": false,
+      "query": "Find the document that explains retrieval score preservation"
+    },
+    {
+      "case_id": "temporal-01",
+      "expected_graph_enabled": false,
+      "expected_intent": "TEMPORAL_CURRENT_STATE",
+      "expected_memory_functions": [],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": true,
+      "query": "현재 상태에서 Rust compute migration은 어디까지 끝났나?"
+    },
+    {
+      "case_id": "temporal-02",
+      "expected_graph_enabled": false,
+      "expected_intent": "TEMPORAL_CURRENT_STATE",
+      "expected_memory_functions": [],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": true,
+      "query": "가장 최신 retrieval runtime 상태를 알려줘"
+    },
+    {
+      "case_id": "temporal-03",
+      "expected_graph_enabled": false,
+      "expected_intent": "TEMPORAL_CURRENT_STATE",
+      "expected_memory_functions": [],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": true,
+      "query": "지금 embedding index는 healthy한가?"
+    },
+    {
+      "case_id": "temporal-04",
+      "expected_graph_enabled": false,
+      "expected_intent": "TEMPORAL_CURRENT_STATE",
+      "expected_memory_functions": [],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": true,
+      "query": "What is the latest runtime seal status?"
+    },
+    {
+      "case_id": "temporal-05",
+      "expected_graph_enabled": false,
+      "expected_intent": "TEMPORAL_CURRENT_STATE",
+      "expected_memory_functions": [],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": true,
+      "query": "최종 승인된 Memory OS migration 상태는?"
+    },
+    {
+      "case_id": "experiential-01",
+      "expected_graph_enabled": false,
+      "expected_intent": "EXPERIENTIAL",
+      "expected_memory_functions": [
+        "EXPERIENTIAL"
+      ],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": false,
+      "query": "예전에 FTS latency가 급증했던 원인이 뭐였지?"
+    },
+    {
+      "case_id": "experiential-02",
+      "expected_graph_enabled": false,
+      "expected_intent": "EXPERIENTIAL",
+      "expected_memory_functions": [
+        "EXPERIENTIAL"
+      ],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": false,
+      "query": "비슷한 장애를 전에 어떻게 해결했지?"
+    },
+    {
+      "case_id": "experiential-03",
+      "expected_graph_enabled": false,
+      "expected_intent": "EXPERIENTIAL",
+      "expected_memory_functions": [
+        "EXPERIENTIAL"
+      ],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": false,
+      "query": "vector cold init 문제와 해결 경험 기록 찾아줘"
+    },
+    {
+      "case_id": "experiential-04",
+      "expected_graph_enabled": false,
+      "expected_intent": "EXPERIENTIAL",
+      "expected_memory_functions": [
+        "EXPERIENTIAL"
+      ],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": false,
+      "query": "What lessons learned came from retrieval benchmark failures?"
+    },
+    {
+      "case_id": "experiential-05",
+      "expected_graph_enabled": false,
+      "expected_intent": "EXPERIENTIAL",
+      "expected_memory_functions": [
+        "EXPERIENTIAL"
+      ],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": false,
+      "query": "Find the root cause from the previous issue with exact-title ranking"
+    },
+    {
+      "case_id": "procedural-01",
+      "expected_graph_enabled": false,
+      "expected_intent": "PROCEDURAL",
+      "expected_memory_functions": [
+        "PROCEDURAL"
+      ],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": false,
+      "query": "reindex를 어떤 순서로 해야 하나?"
+    },
+    {
+      "case_id": "procedural-02",
+      "expected_graph_enabled": false,
+      "expected_intent": "PROCEDURAL",
+      "expected_memory_functions": [
+        "PROCEDURAL"
+      ],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": false,
+      "query": "Rust harness setup 절차 알려줘"
+    },
+    {
+      "case_id": "procedural-03",
+      "expected_graph_enabled": false,
+      "expected_intent": "PROCEDURAL",
+      "expected_memory_functions": [
+        "PROCEDURAL"
+      ],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": false,
+      "query": "How to reproduce the FTS benchmark?"
+    },
+    {
+      "case_id": "procedural-04",
+      "expected_graph_enabled": false,
+      "expected_intent": "PROCEDURAL",
+      "expected_memory_functions": [
+        "PROCEDURAL"
+      ],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": false,
+      "query": "배포 전에 어떤 작업을 세팅해야 하지?"
+    },
+    {
+      "case_id": "procedural-05",
+      "expected_graph_enabled": false,
+      "expected_intent": "PROCEDURAL",
+      "expected_memory_functions": [
+        "PROCEDURAL"
+      ],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": false,
+      "query": "Which steps should Memory Steward follow for compact promotion?"
+    },
+    {
+      "case_id": "graph-01",
+      "expected_graph_enabled": true,
+      "expected_intent": "GRAPH_ORIENTED",
+      "expected_memory_functions": [],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": false,
+      "query": "이 note와 연결된 기억을 graph로 보여줘"
+    },
+    {
+      "case_id": "graph-02",
+      "expected_graph_enabled": true,
+      "expected_intent": "GRAPH_ORIENTED",
+      "expected_memory_functions": [],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": false,
+      "query": "Rust plan과 runtime seal 사이 lineage를 찾아줘"
+    },
+    {
+      "case_id": "graph-03",
+      "expected_graph_enabled": true,
+      "expected_intent": "GRAPH_ORIENTED",
+      "expected_memory_functions": [],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": false,
+      "query": "Which notes are related to this decision?"
+    },
+    {
+      "case_id": "graph-04",
+      "expected_graph_enabled": true,
+      "expected_intent": "GRAPH_ORIENTED",
+      "expected_memory_functions": [],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": false,
+      "query": "이 계약과 구현 기록 사이 관계 evidence를 보여줘"
+    },
+    {
+      "case_id": "graph-05",
+      "expected_graph_enabled": true,
+      "expected_intent": "GRAPH_ORIENTED",
+      "expected_memory_functions": [],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": false,
+      "query": "Show the dependency graph for retrieval and embedding components"
+    },
+    {
+      "case_id": "mixed-01",
+      "expected_graph_enabled": false,
+      "expected_intent": "MIXED",
+      "expected_memory_functions": [],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": false,
+      "query": "retrieval quality evidence across memory lifecycle storage architecture and benchmark outcomes"
+    },
+    {
+      "case_id": "mixed-02",
+      "expected_graph_enabled": false,
+      "expected_intent": "MIXED",
+      "expected_memory_functions": [],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": false,
+      "query": "Alexandria storage architecture evidence from Rust Python Postgres Neo4j Redis operations"
+    },
+    {
+      "case_id": "mixed-03",
+      "expected_graph_enabled": false,
+      "expected_intent": "MIXED",
+      "expected_memory_functions": [],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": false,
+      "query": "메모리 품질 평가 결과와 저장소 구조 및 운영 증거 전체 요약 모음"
+    },
+    {
+      "case_id": "mixed-04",
+      "expected_graph_enabled": false,
+      "expected_intent": "MIXED",
+      "expected_memory_functions": [],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": false,
+      "query": "agent memory architecture benchmark evidence runtime provenance storage policy reconciliation overview"
+    },
+    {
+      "case_id": "mixed-05",
+      "expected_graph_enabled": false,
+      "expected_intent": "MIXED",
+      "expected_memory_functions": [],
+      "expected_strategy": "HYBRID",
+      "expected_temporal_current_preference": false,
+      "query": "Python Rust boundary storage policy retrieval evidence evaluation architecture reference collection"
+    }
+  ],
+  "planner_profile": "adaptive-retrieval-v1",
+  "schema_version": 1
+}

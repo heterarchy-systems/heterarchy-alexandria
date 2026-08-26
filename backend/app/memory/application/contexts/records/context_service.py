@@ -5,6 +5,9 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import datetime
 
+from app.memory.application.contexts.diagnostics.context_search_trace import (
+    ContextSearchExplainResult,
+)
 from app.memory.application.contexts.embedding.context_embedding_reindex_service import (
     ContextEmbeddingBatchTransaction,
 )
@@ -29,6 +32,7 @@ from app.memory.application.contexts.records.context_service_lint_mixin import (
 from app.memory.application.contexts.records.context_service_ports import (
     ContextListPort,
     ContextRecoveryPort,
+    ContextRetrievalCanaryPort,
     ContextTemporalSearchPort,
 )
 from app.memory.application.contexts.records.context_soft_rebuild_service import (
@@ -53,13 +57,11 @@ from app.memory.domain.event_enum.context_enums import (
     ContextKind,
     ContextRecallLifecycleStatus,
     ContextScope,
+    MemoryFunction,
     RagStrategy,
 )
 from app.memory.domain.repositories.contexts.canonical_context_repository import (
     ICanonicalContextRepository,
-)
-from app.memory.domain.repositories.contexts.context_graph_signal_provider import (
-    IContextGraphSignalProvider,
 )
 from app.memory.domain.repositories.contexts.context_repository import (
     IContextRepository,
@@ -70,6 +72,12 @@ from app.memory.domain.repositories.contexts.context_retrieval_kernel_provider i
 from app.memory.domain.repositories.contexts.context_search_source import (
     IContextSearchSource,
 )
+from app.memory.domain.repositories.contexts.graph.context_graph_candidate_expansion_provider import (
+    IContextGraphCandidateExpansionProvider,
+)
+from app.memory.domain.repositories.contexts.graph.context_graph_signal_provider import (
+    IContextGraphSignalProvider,
+)
 from app.shared.application.index_maintenance_coordinator import (
     IndexMaintenanceCoordinator,
 )
@@ -79,6 +87,7 @@ class ContextService(
     ContextServiceLintMixin,
     ContextRecoveryPort,
     ContextListPort,
+    ContextRetrievalCanaryPort,
     ContextTemporalSearchPort,
 ):
     """Stable Context application facade over focused use-case services.
@@ -98,6 +107,8 @@ class ContextService(
         extra_search_sources: Sequence[IContextSearchSource] | None = None,
         canonical_context_repository: ICanonicalContextRepository | None = None,
         graph_signal_provider: IContextGraphSignalProvider | None = None,
+        graph_candidate_expansion_provider: IContextGraphCandidateExpansionProvider
+        | None = None,
         index_maintenance_coordinator: IndexMaintenanceCoordinator | None = None,
         embedding_batch_transaction: ContextEmbeddingBatchTransaction | None = None,
     ) -> None:
@@ -111,6 +122,7 @@ class ContextService(
             extra_search_sources: Optional additional Context RAG sources.
             canonical_context_repository: Optional canonical Markdown context adapter.
             graph_signal_provider: Optional score-preserving graph evidence provider.
+            graph_candidate_expansion_provider: Optional AUTO-only multi-hop graph expansion provider.
             embedding_batch_transaction: Optional transaction boundary per reindex batch.
             index_maintenance_coordinator: Index maintenance coordinator used by this operation.
         """
@@ -132,6 +144,7 @@ class ContextService(
             embedding_service=self._embedding_service,
             retrieval_kernel_provider=retrieval_kernel_provider,
             graph_signal_provider=graph_signal_provider,
+            graph_candidate_expansion_provider=graph_candidate_expansion_provider,
         )
         self._soft_rebuild_service = ContextSoftRebuildService(
             embedding_service=self._embedding_service,
@@ -352,6 +365,7 @@ class ContextService(
         user_id: str | None = None,
         session_id: str | None = None,
         include_lifecycle_statuses: list[ContextRecallLifecycleStatus] | None = None,
+        prefer_memory_functions: list[MemoryFunction] | None = None,
     ) -> ContextPack:
         """Return a Context pack for one query.
 
@@ -367,6 +381,7 @@ class ContextService(
             user_id: Optional user filter.
             session_id: Optional session filter.
             include_lifecycle_statuses: Optional administrative lifecycle filter.
+            prefer_memory_functions: Optional soft functional-memory preference.
 
         Returns:
             Context pack containing retrieved matches and warnings.
@@ -383,7 +398,75 @@ class ContextService(
             user_id=user_id,
             session_id=session_id,
             include_lifecycle_statuses=include_lifecycle_statuses,
+            prefer_memory_functions=prefer_memory_functions,
         )
+
+    async def explain_search(
+        self,
+        query: str,
+        strategy: RagStrategy = RagStrategy.HYBRID,
+        limit: int = 5,
+        project: str | None = None,
+        kind: ContextKind | None = None,
+        include_scopes: list[ContextScope] | None = None,
+        workspace_id: str | None = None,
+        agent_id: str | None = None,
+        user_id: str | None = None,
+        session_id: str | None = None,
+        include_lifecycle_statuses: list[ContextRecallLifecycleStatus] | None = None,
+        prefer_memory_functions: list[MemoryFunction] | None = None,
+    ) -> ContextSearchExplainResult:
+        """Run Context recall with bounded operator-only execution diagnostics.
+
+        Args:
+            query: Search query text.
+            strategy: Requested retrieval strategy.
+            limit: Maximum matches.
+            project: Optional project filter.
+            kind: Optional Context kind filter.
+            include_scopes: Optional recall scope filters.
+            workspace_id: Optional workspace filter.
+            agent_id: Optional agent filter.
+            user_id: Optional user filter.
+            session_id: Optional session filter.
+            include_lifecycle_statuses: Optional administrative lifecycle filter.
+            prefer_memory_functions: Optional soft functional-memory preference.
+
+        Returns:
+            Normal Context pack paired with bounded retrieval execution diagnostics.
+        """
+        return await self._search_service.explain_search(
+            query=query,
+            strategy=strategy,
+            limit=limit,
+            project=project,
+            kind=kind,
+            include_scopes=include_scopes,
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            user_id=user_id,
+            session_id=session_id,
+            include_lifecycle_statuses=include_lifecycle_statuses,
+            prefer_memory_functions=prefer_memory_functions,
+        )
+
+    async def readiness_canary(
+        self,
+        query: str,
+        strategy: RagStrategy,
+        limit: int,
+    ) -> ContextPack:
+        """Execute a bounded readiness probe through the normal search path.
+
+        Args:
+            query: Bounded readiness query text.
+            strategy: Retrieval lane that must execute without fallback.
+            limit: Maximum matches requested by the canary.
+
+        Returns:
+            Context pack produced by the normal search path.
+        """
+        return await self.search(query=query, strategy=strategy, limit=limit)
 
     async def reindex_embeddings(
         self,

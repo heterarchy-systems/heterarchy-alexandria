@@ -13,6 +13,7 @@ from app.obsidian.domain.event_enum.obsidian_graph_enums import (
     ObsidianGraphContextSignalType,
     ObsidianGraphDirection,
     ObsidianGraphProjectionIssueCode,
+    ObsidianGraphTraversalDirection,
 )
 
 
@@ -147,6 +148,79 @@ class ObsidianGraphRelatedNote:
     source_kind: ObsidianEdgeSourceKind
     direction: ObsidianGraphDirection
     score: float
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ObsidianGraphTraversalRequest:
+    """One bounded traversal request over the already-active graph projection."""
+
+    request_id: str
+    start_note_id: str
+    direction: ObsidianGraphTraversalDirection
+    relations: tuple[str, ...]
+    max_depth: int
+    max_results: int
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ObsidianGraphTraversalVisit:
+    """One graph node discovered at a minimum stable hop distance."""
+
+    note_id: str
+    depth: int
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ObsidianGraphTraversalResult:
+    """Bounded deterministic traversal result for one requested seed note."""
+
+    request_id: str
+    start_note_id: str
+    start_found: bool
+    visits: tuple[ObsidianGraphTraversalVisit, ...]
+    truncated: bool
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ObsidianGraphCandidatePathHop:
+    """One Rust-owned shortest-path edge supporting a selected graph candidate."""
+
+    edge_id: str
+    source_note_id: str
+    target_note_id: str
+    relation: str
+    direction: ObsidianGraphTraversalDirection
+    depth: int
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ObsidianGraphSelectedCandidate:
+    """One relevance-bounded note selected from graph traversal evidence."""
+
+    note_id: str
+    min_depth: int
+    seed_support: int
+    shared_title_trigrams: int
+    title_trigram_union: int
+    path_hops: tuple[ObsidianGraphCandidatePathHop, ...]
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ObsidianGraphTitleRelevance:
+    """Query/title relevance evidence for one existing projected Context."""
+
+    note_id: str
+    shared_title_trigrams: int
+    title_trigram_union: int
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ObsidianGraphCandidateSelectionResult:
+    """Deterministic traversal trace plus bounded selected graph candidates."""
+
+    traversals: tuple[ObsidianGraphTraversalResult, ...]
+    candidates: tuple[ObsidianGraphSelectedCandidate, ...]
+    primary_title_relevance: tuple[ObsidianGraphTitleRelevance, ...]
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

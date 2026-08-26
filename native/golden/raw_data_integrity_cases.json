@@ -1,0 +1,245 @@
+{
+  "schema_version": 1,
+  "collection_fields": [
+    "artifact_refs",
+    "conflict_set_ids",
+    "evidence_refs",
+    "evidence_urls",
+    "linked_note_ids",
+    "redaction_warnings",
+    "required_tools",
+    "supersedes",
+    "tags",
+    "when_not_to_use",
+    "when_to_use"
+  ],
+  "boolean_fields": [
+    "activate_requested",
+    "is_current",
+    "requires_human_review",
+    "safe_to_publish",
+    "source_of_truth"
+  ],
+  "cases": [
+    {
+      "name": "valid_no_frontmatter",
+      "markdown": "# 제목\n본문\n",
+      "expected": []
+    },
+    {
+      "name": "valid_inline_collection",
+      "markdown": "---\ntags: [alpha, beta]\n---\nBody\n",
+      "expected": []
+    },
+    {
+      "name": "valid_empty_inline_list",
+      "markdown": "---\ntags: []\n---\nBody\n",
+      "expected": []
+    },
+    {
+      "name": "valid_block_list",
+      "markdown": "---\ntags:\n  - alpha\n  - '2'\n---\nBody\n",
+      "expected": []
+    },
+    {
+      "name": "valid_boolean",
+      "markdown": "---\nsource_of_truth: true\nsafe_to_publish: false\n---\nBody\n",
+      "expected": []
+    },
+    {
+      "name": "legacy_tuple_quoted",
+      "markdown": "---\ntags: \"('alpha', 'beta')\"\n---\nBody\n",
+      "expected": [
+        {
+          "code": "LEGACY_TUPLE_COLLECTION",
+          "count": 1,
+          "fields": [
+            "tags"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "legacy_tuple_plain",
+      "markdown": "---\ntags: ('alpha', 'beta')\n---\nBody\n",
+      "expected": [
+        {
+          "code": "LEGACY_TUPLE_COLLECTION",
+          "count": 1,
+          "fields": [
+            "tags"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "empty_collection_scalar",
+      "markdown": "---\nlinked_note_ids:\n---\nBody\n",
+      "expected": [
+        {
+          "code": "EMPTY_COLLECTION_SCALAR",
+          "count": 1,
+          "fields": [
+            "linked_note_ids"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "invalid_collection_plain_scalar",
+      "markdown": "---\nartifact_refs: scalar-ref\n---\nBody\n",
+      "expected": [
+        {
+          "code": "INVALID_COLLECTION_TYPE",
+          "count": 1,
+          "fields": [
+            "artifact_refs"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "invalid_collection_numeric_inline",
+      "markdown": "---\nconflict_set_ids: [C-1, 2]\n---\nBody\n",
+      "expected": [
+        {
+          "code": "INVALID_COLLECTION_TYPE",
+          "count": 1,
+          "fields": [
+            "conflict_set_ids"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "invalid_collection_block_numeric",
+      "markdown": "---\nevidence_refs:\n  - E-1\n  - 2\n---\nBody\n",
+      "expected": [
+        {
+          "code": "INVALID_COLLECTION_TYPE",
+          "count": 1,
+          "fields": [
+            "evidence_refs"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "string_boolean_double",
+      "markdown": "---\nsource_of_truth: \"true\"\n---\nBody\n",
+      "expected": [
+        {
+          "code": "STRING_BOOLEAN",
+          "count": 1,
+          "fields": [
+            "source_of_truth"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "string_boolean_single",
+      "markdown": "---\nsafe_to_publish: 'false'\n---\nBody\n",
+      "expected": [
+        {
+          "code": "STRING_BOOLEAN",
+          "count": 1,
+          "fields": [
+            "safe_to_publish"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "invalid_boolean",
+      "markdown": "---\nrequires_human_review: maybe\n---\nBody\n",
+      "expected": [
+        {
+          "code": "INVALID_BOOLEAN_VALUE",
+          "count": 1,
+          "fields": [
+            "requires_human_review"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "unrecoverable_redacted_url",
+      "markdown": "---\nsource: https://<REDACTED_LONG_VALUE>\n---\nBody\n",
+      "expected": [
+        {
+          "code": "UNRECOVERABLE_REDACTED_URL",
+          "count": 1,
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "crlf_legacy_tuple",
+      "markdown": "---\r\ntags: \"('alpha', 'beta')\"\r\n---\r\n본문\r\n",
+      "expected": [
+        {
+          "code": "LEGACY_TUPLE_COLLECTION",
+          "count": 1,
+          "fields": [
+            "tags"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "multilingual_valid",
+      "markdown": "---\ntags: [한국어, 日本語, العربية]\nsource_of_truth: true\n---\n본문\n",
+      "expected": []
+    },
+    {
+      "name": "mixed_multiple",
+      "markdown": "---\ntags: \"('alpha', 'beta')\"\nartifact_refs: scalar-ref\nevidence_refs:\nlinked_note_ids:\nconflict_set_ids: [C-1, 2]\nsource_of_truth: \"true\"\nrequires_human_review: maybe\nsource: https://<REDACTED_LONG_VALUE>\n---\nBody\n",
+      "expected": [
+        {
+          "code": "LEGACY_TUPLE_COLLECTION",
+          "count": 1,
+          "fields": [
+            "tags"
+          ]
+        },
+        {
+          "code": "EMPTY_COLLECTION_SCALAR",
+          "count": 2,
+          "fields": [
+            "evidence_refs",
+            "linked_note_ids"
+          ]
+        },
+        {
+          "code": "INVALID_COLLECTION_TYPE",
+          "count": 2,
+          "fields": [
+            "artifact_refs",
+            "conflict_set_ids"
+          ]
+        },
+        {
+          "code": "STRING_BOOLEAN",
+          "count": 1,
+          "fields": [
+            "source_of_truth"
+          ]
+        },
+        {
+          "code": "INVALID_BOOLEAN_VALUE",
+          "count": 1,
+          "fields": [
+            "requires_human_review"
+          ]
+        },
+        {
+          "code": "UNRECOVERABLE_REDACTED_URL",
+          "count": 1,
+          "fields": []
+        }
+      ]
+    }
+  ],
+  "unrecoverable_redacted_url_pattern": "https?://<REDACTED_LONG_VALUE>"
+}

@@ -16,6 +16,7 @@ from app.memory.domain.event_enum.context_enums import (
     ContextScope,
     ContextSourceType,
     ContextStorageStatus,
+    MemoryFunction,
     RagHealthState,
     RagStrategy,
 )
@@ -56,6 +57,7 @@ class ContextRecord:
     archived_at: datetime | None
     access_count: int
     is_archived: bool
+    memory_function: MemoryFunction | None = None
 
     def __post_init__(self) -> None:
         """Normalize mutable collection inputs to immutable read-model values."""
@@ -115,6 +117,7 @@ class ContextSearchMatch:
     fts_score: float | None
     vector_score: float | None
     why_retrieved: str
+    graph_score: float | None = None
     graph_evidence: tuple[ContextGraphEvidence, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:

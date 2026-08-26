@@ -1,13 +1,13 @@
-"""Validate Context identity and supersede relations before reindex writes."""
+"""Typed contracts for Context reindex manifest validation."""
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 
 from app.obsidian.domain.contracts.obsidian_contracts import ObsidianNoteIndex
 from app.obsidian.domain.event_enum.obsidian_enums import AlexandriaNoteType
-from app.obsidian.infrastructure.markdown.paths import canonical_relative_path
 from app.shared.types.extra_types import JSONObject
 
 
@@ -36,90 +36,51 @@ class ContextReindexManifest:
     issues: tuple[ContextReindexManifestIssue, ...]
 
 
-def validate_context_reindex_manifest(
-    candidates: list[ContextReindexCandidate],
-) -> ContextReindexManifest:
-    """Reject duplicate identities and invalid supersede graphs before writes.
+class ContextReindexManifestValidator(ABC):
+    """Validate one complete normalized reindex candidate batch."""
 
-    Args:
-        candidates: Parsed notes from one complete vault scan.
+    @abstractmethod
+    def validate(
+        self,
+        candidates: list[ContextReindexCandidate],
+    ) -> ContextReindexManifest:
+        """Return accepted candidates and deterministic manifest issues.
 
-    Returns:
-        Valid candidates and structured rejection details.
-    """
-    valid_candidates: list[ContextReindexCandidate] = []
-    issues: list[ContextReindexManifestIssue] = []
-    note_paths_by_id: dict[str, str] = {}
-    context_paths_by_signature: dict[tuple[str | None, ...], str] = {}
-    canonical_path_counts: dict[str, int] = {}
-    for candidate in candidates:
-        relative_path = canonical_relative_path(candidate.payload.relative_path)
-        canonical_path_counts[relative_path] = (
-            canonical_path_counts.get(relative_path, 0) + 1
-        )
-    colliding_paths = {
-        relative_path
-        for relative_path, count in canonical_path_counts.items()
-        if count > 1
-    }
-    for candidate in candidates:
-        payload = candidate.payload
-        canonical_path = canonical_relative_path(payload.relative_path)
-        if canonical_path in colliding_paths:
-            issues.append(
-                _issue(
-                    candidate,
-                    "DUPLICATE_CANONICAL_PATH: multiple physical notes normalize "
-                    f"to {canonical_path}",
-                )
-            )
-            continue
-        existing_path = note_paths_by_id.get(payload.note_id)
-        if existing_path is not None:
-            issues.append(
-                _issue(
-                    candidate,
-                    "DUPLICATE_CONTEXT_ID: "
-                    f"{payload.note_id} is also declared by {existing_path}",
-                )
-            )
-            continue
-        note_paths_by_id[payload.note_id] = payload.relative_path
-        signature = _context_identity_signature(payload)
-        if signature is not None:
-            duplicate_path = context_paths_by_signature.get(signature)
-            if duplicate_path is not None:
-                issues.append(
-                    _issue(
-                        candidate,
-                        "DUPLICATE_CONTEXT_CONTENT: canonical scope identity and "
-                        f"content hash also belong to {duplicate_path}",
-                    )
-                )
-                continue
-            context_paths_by_signature[signature] = payload.relative_path
-        valid_candidates.append(candidate)
+        Args:
+            candidates: Parsed notes from one complete vault scan.
 
-    context_candidates_by_id = {
-        candidate.payload.note_id: candidate
-        for candidate in valid_candidates
-        if candidate.payload.alexandria_type is AlexandriaNoteType.CONTEXT
-    }
-    invalid_reasons = _invalid_supersede_reasons(context_candidates_by_id)
-    if not invalid_reasons:
-        return ContextReindexManifest(
-            candidates=tuple(valid_candidates),
-            issues=tuple(issues),
+        Returns:
+            Validated candidates and structured rejection details.
+        """
+
+
+class UnconfiguredContextReindexManifestValidator(ContextReindexManifestValidator):
+    """Fail closed when direct service construction omits the production validator."""
+
+    def validate(
+        self,
+        candidates: list[ContextReindexCandidate],
+    ) -> ContextReindexManifest:
+        """Reject reindex execution when the native validator was not composed.
+
+        Args:
+            candidates: Parsed notes that cannot safely be validated here.
+
+        Returns:
+            Never returns because missing native authority is fatal.
+
+        Raises:
+            RuntimeError: Always, because reindex compute must have one configured authority.
+        """
+        del candidates
+        raise RuntimeError(
+            "CONTEXT_REINDEX_MANIFEST_VALIDATOR_UNAVAILABLE: native validator is not configured"
         )
 
-    accepted: list[ContextReindexCandidate] = []
-    for candidate in valid_candidates:
-        reason = invalid_reasons.get(candidate.payload.note_id)
-        if reason is None:
-            accepted.append(candidate)
-            continue
-        issues.append(_issue(candidate, f"INVALID_SUPERSEDE: {reason}"))
-    return ContextReindexManifest(candidates=tuple(accepted), issues=tuple(issues))
+
+UNCONFIGURED_CONTEXT_REINDEX_MANIFEST_VALIDATOR = (
+    UnconfiguredContextReindexManifestValidator()
+)
 
 
 def supersedes_context_id(payload: ObsidianNoteIndex) -> str | None:
@@ -136,186 +97,28 @@ def supersedes_context_id(payload: ObsidianNoteIndex) -> str | None:
     return _json_text(payload.frontmatter, "supersedes_context_id")
 
 
-def _invalid_supersede_reasons(
-    candidates_by_id: dict[str, ContextReindexCandidate],
-) -> dict[str, str]:
-    """Execute invalid supersede reasons.
+def manifest_frontmatter_text(payload: ObsidianNoteIndex, key: str) -> str | None:
+    """Return one string-only manifest field from normalized frontmatter.
 
     Args:
-        candidates_by_id: Identifier for candidates by.
+        payload: Parsed managed note index payload.
+        key: Frontmatter field used by the native manifest wire.
 
     Returns:
-        dict[str, str] result produced by invalid supersede reasons.
+        String value when present with the expected type, otherwise None.
     """
-    invalid_reasons: dict[str, str] = {}
-    replacements_by_target: dict[str, str] = {}
-    for context_id, candidate in candidates_by_id.items():
-        target = supersedes_context_id(candidate.payload)
-        if target is not None:
-            if target not in candidates_by_id:
-                invalid_reasons[context_id] = (
-                    f"superseded Context is absent or invalid: {target}"
-                )
-                continue
-            prior_replacement = replacements_by_target.get(target)
-            if prior_replacement is not None:
-                invalid_reasons[context_id] = (
-                    f"Context already has another replacement: {prior_replacement}"
-                )
-                continue
-            target_backlink = _superseded_by_context_id(
-                candidates_by_id[target].payload
-            )
-            if target_backlink not in (None, context_id):
-                invalid_reasons[context_id] = (
-                    "superseded Context backlink conflicts with replacement: "
-                    f"{target_backlink}"
-                )
-                continue
-            replacements_by_target[target] = context_id
-        replacement = _superseded_by_context_id(candidate.payload)
-        if replacement is None:
-            continue
-        replacement_candidate = candidates_by_id.get(replacement)
-        if replacement_candidate is None:
-            invalid_reasons[context_id] = (
-                f"replacement Context is absent or invalid: {replacement}"
-            )
-            continue
-        if supersedes_context_id(replacement_candidate.payload) != context_id:
-            invalid_reasons[context_id] = (
-                "replacement Context does not contain the reciprocal supersedes "
-                f"reference: {replacement}"
-            )
-
-    for context_id in _cyclic_supersede_ids(candidates_by_id):
-        invalid_reasons[context_id] = "supersede relationship contains a cycle"
-    _propagate_invalid_targets(candidates_by_id, invalid_reasons)
-    return invalid_reasons
-
-
-def _propagate_invalid_targets(
-    candidates_by_id: dict[str, ContextReindexCandidate],
-    invalid_reasons: dict[str, str],
-) -> None:
-    """Execute propagate invalid targets.
-
-    Args:
-        candidates_by_id: Identifier for candidates by.
-        invalid_reasons: Invalid reasons used by this operation.
-    """
-    while True:
-        newly_invalid: dict[str, str] = {}
-        for context_id, candidate in candidates_by_id.items():
-            if context_id in invalid_reasons:
-                continue
-            target = supersedes_context_id(candidate.payload)
-            if target is not None and target in invalid_reasons:
-                newly_invalid[context_id] = (
-                    f"superseded Context is absent or invalid: {target}"
-                )
-        if not newly_invalid:
-            return
-        invalid_reasons.update(newly_invalid)
-
-
-def _context_identity_signature(
-    payload: ObsidianNoteIndex,
-) -> tuple[str | None, ...] | None:
-    """Execute context identity signature.
-
-    Args:
-        payload: Validated payload for this operation.
-
-    Returns:
-        tuple[str | None, ...] | None result produced by context identity signature.
-    """
-    if payload.alexandria_type is not AlexandriaNoteType.CONTEXT:
-        return None
-    frontmatter = payload.frontmatter
-    return (
-        _json_text(frontmatter, "scope"),
-        _json_text(frontmatter, "project"),
-        _json_text(frontmatter, "workspace_id"),
-        _json_text(frontmatter, "agent_id"),
-        _json_text(frontmatter, "user_id"),
-        _json_text(frontmatter, "session_id"),
-        _json_text(frontmatter, "content_hash"),
-    )
-
-
-def _superseded_by_context_id(payload: ObsidianNoteIndex) -> str | None:
-    """Execute superseded by context id.
-
-    Args:
-        payload: Validated payload for this operation.
-
-    Returns:
-        str | None result produced by superseded by context id.
-    """
-    if payload.alexandria_type is not AlexandriaNoteType.CONTEXT:
-        return None
-    return _json_text(payload.frontmatter, "superseded_by_context_id")
-
-
-def _cyclic_supersede_ids(
-    candidates_by_id: dict[str, ContextReindexCandidate],
-) -> set[str]:
-    """Execute cyclic supersede ids.
-
-    Args:
-        candidates_by_id: Identifier for candidates by.
-
-    Returns:
-        set[str] result produced by cyclic supersede ids.
-    """
-    cyclic_ids: set[str] = set()
-    for start_id in candidates_by_id:
-        path: list[str] = []
-        positions: dict[str, int] = {}
-        current_id: str | None = start_id
-        while current_id is not None and current_id in candidates_by_id:
-            cycle_start = positions.get(current_id)
-            if cycle_start is not None:
-                cyclic_ids.update(path[cycle_start:])
-                break
-            if current_id in cyclic_ids:
-                break
-            positions[current_id] = len(path)
-            path.append(current_id)
-            current_id = supersedes_context_id(candidates_by_id[current_id].payload)
-    return cyclic_ids
-
-
-def _issue(
-    candidate: ContextReindexCandidate,
-    message: str,
-) -> ContextReindexManifestIssue:
-    """Execute issue.
-
-    Args:
-        candidate: Candidate used by this operation.
-        message: Message used by this operation.
-
-    Returns:
-        ContextReindexManifestIssue result produced by issue.
-    """
-    return ContextReindexManifestIssue(
-        relative_path=candidate.payload.relative_path,
-        context_id=candidate.payload.note_id,
-        message=message,
-    )
+    return _json_text(payload.frontmatter, key)
 
 
 def _json_text(frontmatter: JSONObject, key: str) -> str | None:
-    """Execute json text.
+    """Return one frontmatter value only when it is a string.
 
     Args:
-        frontmatter: Frontmatter used by this operation.
-        key: Key used by this operation.
+        frontmatter: Normalized frontmatter object.
+        key: Field to read.
 
     Returns:
-        str | None result produced by json text.
+        String field value, otherwise None.
     """
     value = frontmatter.get(key)
     return value if isinstance(value, str) else None

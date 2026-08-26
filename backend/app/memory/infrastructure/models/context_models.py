@@ -212,3 +212,36 @@ class ContextAccessEventORM(Base):
             name="ck_context_access_events_access_method",
         ),
     )
+
+
+class ContextProjectionIntegritySnapshotORM(Base):
+    """Latest rebuildable Obsidian-to-Context projection integrity snapshot."""
+
+    __tablename__ = "context_projection_integrity_snapshot"
+
+    singleton_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    source_revision: Mapped[str] = mapped_column(String(255), nullable=False)
+    scanned_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    valid_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    invalid_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    failure_counts: Mapped[dict[str, int]] = mapped_column(
+        JSON,
+        nullable=False,
+        default=dict,
+    )
+    checked_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
+
+    __table_args__ = (
+        CheckConstraint(
+            "singleton_id = 1",
+            name="ck_context_projection_integrity_singleton",
+        ),
+        CheckConstraint(
+            "scanned_count >= 0 AND valid_count >= 0 AND invalid_count >= 0",
+            name="ck_context_projection_integrity_non_negative_counts",
+        ),
+        CheckConstraint(
+            "valid_count + invalid_count = scanned_count",
+            name="ck_context_projection_integrity_count_balance",
+        ),
+    )

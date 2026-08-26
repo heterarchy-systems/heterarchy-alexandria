@@ -6,8 +6,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.memory.domain.entities.memory_reconciliation import MemoryReconciliationPlan
+from app.memory.domain.event_enum.reconciliation_enums import MemoryReconciliationStatus
 from app.memory.infrastructure.models.reconciliation_models import (
     MemoryReconciliationPlanORM,
+    MemoryReconciliationResultORM,
 )
 from app.memory.infrastructure.repositories.reconciliation.reconciliation_mapping import (
     plan_from_row,
@@ -100,9 +102,21 @@ class ReconciliationPlanStore:
         Returns:
             list[MemoryReconciliationPlan]: Operation result.
         """
+        applied_result_exists = (
+            select(MemoryReconciliationResultORM.id)
+            .where(
+                MemoryReconciliationResultORM.plan_id == MemoryReconciliationPlanORM.id,
+                MemoryReconciliationResultORM.status
+                == MemoryReconciliationStatus.APPLIED.value,
+            )
+            .exists()
+        )
         rows = await self._session.scalars(
             select(MemoryReconciliationPlanORM)
-            .where(MemoryReconciliationPlanORM.requires_review.is_(True))
+            .where(
+                MemoryReconciliationPlanORM.requires_review.is_(True),
+                ~applied_result_exists,
+            )
             .order_by(MemoryReconciliationPlanORM.created_at.desc())
             .limit(limit)
         )

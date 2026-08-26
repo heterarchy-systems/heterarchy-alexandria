@@ -6,16 +6,8 @@ from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, status
 
 from app.container import ApplicationContainer
-from app.memory.application.contexts.records.context_service import ContextService
-from app.memory.application.reconciliation.runtime.memory_reconciliation_readiness_service import (
-    MemoryReconciliationReadinessService,
-)
-from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.operations.application.readiness.operational_capability_policy import (
     capability_snapshot,
-)
-from app.operations.application.readiness.operational_readiness_cache import (
-    OperationalReadinessCache,
 )
 from app.operations.application.readiness.operational_readiness_service import (
     OperationalReadinessService,
@@ -26,7 +18,6 @@ from app.operations.interface.schemas.operations.operational_capability_schema i
 from app.operations.interface.schemas.operations.operational_readiness_detail_schema import (
     OperationalReadinessSnapshotResponse,
 )
-from app.shared.infrastructure.database import Database
 
 router = APIRouter(prefix="/operations", tags=["operations"])
 
@@ -43,44 +34,19 @@ router = APIRouter(prefix="/operations", tags=["operations"])
 )
 @inject
 async def operational_readiness(
-    database: Annotated[Database, Depends(Provide[ApplicationContainer.database])],
-    context_service: Annotated[
-        ContextService, Depends(Provide[ApplicationContainer.memory.context_service])
-    ],
-    obsidian_service: Annotated[
-        ObsidianService,
-        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
-    ],
-    readiness_cache: Annotated[
-        OperationalReadinessCache,
-        Depends(Provide[ApplicationContainer.operational_readiness_cache]),
-    ],
-    reconciliation_service: Annotated[
-        MemoryReconciliationReadinessService | None,
-        Depends(
-            Provide[ApplicationContainer.memory.memory_reconciliation_readiness_service]
-        ),
+    service: Annotated[
+        OperationalReadinessService,
+        Depends(Provide[ApplicationContainer.operational_readiness_service]),
     ],
 ) -> OperationalReadinessSnapshotResponse:
-    """Return operational readiness snapshot.
+    """Return the current operational readiness snapshot.
 
     Args:
-        database: Shared database coordinator.
-        context_service: Context/RAG service.
-        obsidian_service: Obsidian vault service.
-        reconciliation_service: Memory reconciliation diagnostics service.
+        service: Request-scoped operational readiness application service.
 
-        readiness_cache: Readiness cache used by this operation.
     Returns:
         Read-only operational readiness response.
     """
-    service = OperationalReadinessService(
-        database=database,
-        context_service=context_service,
-        obsidian_service=obsidian_service,
-        reconciliation_service=reconciliation_service,
-        readiness_cache=readiness_cache,
-    )
     snapshot = await service.snapshot()
     return OperationalReadinessSnapshotResponse.from_entity(snapshot)
 
@@ -97,44 +63,19 @@ async def operational_readiness(
 )
 @inject
 async def operational_capabilities(
-    database: Annotated[Database, Depends(Provide[ApplicationContainer.database])],
-    context_service: Annotated[
-        ContextService, Depends(Provide[ApplicationContainer.memory.context_service])
-    ],
-    obsidian_service: Annotated[
-        ObsidianService,
-        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
-    ],
-    readiness_cache: Annotated[
-        OperationalReadinessCache,
-        Depends(Provide[ApplicationContainer.operational_readiness_cache]),
-    ],
-    reconciliation_service: Annotated[
-        MemoryReconciliationReadinessService | None,
-        Depends(
-            Provide[ApplicationContainer.memory.memory_reconciliation_readiness_service]
-        ),
+    service: Annotated[
+        OperationalReadinessService,
+        Depends(Provide[ApplicationContainer.operational_readiness_service]),
     ],
 ) -> OperationalCapabilitySnapshotResponse:
     """Return independently classified core, semantic, and Librarian states.
 
     Args:
-        database: Shared database coordinator.
-        context_service: Context and RAG health boundary.
-        obsidian_service: Canonical Vault health boundary.
-        reconciliation_service: Optional reconciliation diagnostics boundary.
+        service: Request-scoped operational readiness application service.
 
-        readiness_cache: Readiness cache used by this operation.
     Returns:
         Independent capability readiness response.
     """
-    service = OperationalReadinessService(
-        database=database,
-        context_service=context_service,
-        obsidian_service=obsidian_service,
-        reconciliation_service=reconciliation_service,
-        readiness_cache=readiness_cache,
-    )
     readiness = await service.snapshot()
     return OperationalCapabilitySnapshotResponse.from_entity(
         capability_snapshot(readiness)

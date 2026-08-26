@@ -3,21 +3,22 @@
 from __future__ import annotations
 
 import os
-
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
 import anyio
+import pytest
+
+from app.memory.application.reconciliation.candidates.memory_relation_classifier import (
+    MemoryRelationClassifier,
+)
 from app.memory.application.reconciliation.plans.memory_reconciliation_apply_service import (
     MemoryReconciliationApplyService,
 )
 from app.memory.application.reconciliation.plans.memory_reconciliation_plan_service import (
     MemoryReconciliationPlanService,
-)
-from app.memory.application.reconciliation.candidates.memory_relation_classifier import (
-    MemoryRelationClassifier,
 )
 from app.memory.domain.entities.memory_reconciliation import (
     CanonicalClaim,
@@ -37,6 +38,7 @@ from app.memory.domain.repositories.contexts.memory_canonical_mutation_gateway i
 from app.memory.infrastructure.repositories.memory_reconciliation_repository import (
     SqlAlchemyMemoryReconciliationRepository,
 )
+from app.shared.exceptions.memory_context_exceptions import MemoryContextValidationError
 from app.shared.infrastructure.database import Database
 
 EARLIER = datetime(2026, 7, 1, tzinfo=UTC)
@@ -233,12 +235,27 @@ def test_supersede_plan_links_contexts_and_closes_old_validity(tmp_path: Path) -
             await repository.save_plan(plan)
             gateway = RecordingCanonicalGateway()
 
-            result = await MemoryReconciliationApplyService(
+            service = MemoryReconciliationApplyService(
                 repository=repository,
                 canonical_gateway=gateway,
-            ).apply(plan.plan_id)
+            )
+            with pytest.raises(
+                MemoryContextValidationError,
+                match="RECONCILIATION_REVIEW_APPROVAL_REQUIRED",
+            ):
+                await service.apply(plan.plan_id)
+            assert gateway.created == []
+            assert gateway.superseded == []
+
+            result = await service.apply(
+                plan.plan_id,
+                review_approved=True,
+                reviewer="memory-steward",
+            )
 
             assert result.status is MemoryReconciliationStatus.APPLIED
+            assert result.reviewed_by == "memory-steward"
+            assert result.reviewed_at is not None
             assert result.superseded_context_ids == ("obsidian:context-old",)
             assert gateway.superseded == [
                 ("obsidian:context-old", "obsidian:candidate-new")
@@ -274,12 +291,26 @@ def test_contradiction_plan_preserves_both_and_creates_open_conflict(
             await repository.save_plan(plan)
             gateway = RecordingCanonicalGateway()
 
-            result = await MemoryReconciliationApplyService(
+            service = MemoryReconciliationApplyService(
                 repository=repository,
                 canonical_gateway=gateway,
-            ).apply(plan.plan_id)
+            )
+            with pytest.raises(
+                MemoryContextValidationError,
+                match="RECONCILIATION_REVIEW_APPROVAL_REQUIRED",
+            ):
+                await service.apply(plan.plan_id)
+            assert gateway.created == []
+
+            result = await service.apply(
+                plan.plan_id,
+                review_approved=True,
+                reviewer="memory-steward",
+            )
 
             assert result.status is MemoryReconciliationStatus.APPLIED
+            assert result.reviewed_by == "memory-steward"
+            assert result.reviewed_at is not None
             assert result.hard_delete_performed is False
             assert len(result.created_conflict_set_ids) == 1
             assert result.review_queue_item_ids == (f"memory-review:{plan.plan_id}",)

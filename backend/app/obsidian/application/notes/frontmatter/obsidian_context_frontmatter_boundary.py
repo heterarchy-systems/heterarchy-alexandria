@@ -18,6 +18,7 @@ from app.memory.domain.event_enum.context_enums import (
     ContextKind,
     ContextScope,
     ContextSourceType,
+    MemoryFunction,
 )
 from app.obsidian.application.notes.frontmatter.obsidian_context_frontmatter_values import (
     frontmatter_validation_message,
@@ -233,6 +234,10 @@ class ContextFrontmatterBoundary(StrictSchemaModel):
         ContextKind | None,
         described_field("Context kind for this context frontmatter boundary."),
     ] = None
+    memory_function: Annotated[
+        MemoryFunction | None,
+        described_field("Memory function for this context frontmatter boundary."),
+    ] = None
     kind: Annotated[
         str | None, described_field("Kind for this context frontmatter boundary.")
     ] = None
@@ -297,6 +302,7 @@ class ContextFrontmatterBoundary(StrictSchemaModel):
         "source_actor_type",
         "confidence",
         "context_kind",
+        "memory_function",
         "kind",
         mode="before",
     )

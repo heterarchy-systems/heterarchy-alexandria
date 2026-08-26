@@ -19,6 +19,14 @@ class ContextKind(StrEnum):
     MEMORY = "MEMORY"
 
 
+class MemoryFunction(StrEnum):
+    """Functional role a durable memory serves during recall."""
+
+    FACTUAL = "FACTUAL"
+    EXPERIENTIAL = "EXPERIENTIAL"
+    PROCEDURAL = "PROCEDURAL"
+
+
 class ContextSourceType(StrEnum):
     """Source category for a captured context."""
 
@@ -189,9 +197,38 @@ class ContextAccessMethod(StrEnum):
 class RagStrategy(StrEnum):
     """Context retrieval strategies exposed by RAG search."""
 
+    AUTO = "AUTO"
     FTS_ONLY = "FTS_ONLY"
     VECTOR_ONLY = "VECTOR_ONLY"
     HYBRID = "HYBRID"
+
+    @classmethod
+    def fixed(cls) -> tuple[RagStrategy, ...]:
+        """Return only directly executable fixed retrieval lanes.
+
+        Returns:
+            Stable fixed-lane order used by benchmarks and readiness tests.
+        """
+        return (cls.FTS_ONLY, cls.VECTOR_ONLY, cls.HYBRID)
+
+
+class ContextRetrievalIntent(StrEnum):
+    """Deterministic query intents emitted by the adaptive retrieval planner."""
+
+    EXACT_OR_TITLE = "EXACT_OR_TITLE"
+    SEMANTIC_PARAPHRASE = "SEMANTIC_PARAPHRASE"
+    TEMPORAL_CURRENT_STATE = "TEMPORAL_CURRENT_STATE"
+    EXPERIENTIAL = "EXPERIENTIAL"
+    PROCEDURAL = "PROCEDURAL"
+    GRAPH_ORIENTED = "GRAPH_ORIENTED"
+    MIXED = "MIXED"
+
+
+class ContextRetrievalFusionProfile(StrEnum):
+    """Versioned fusion profiles selected by Python retrieval policy."""
+
+    NONE = "NONE"
+    RECIPROCAL_RANK_V1 = "RECIPROCAL_RANK_V1"
 
 
 class ContextGraphSignalType(StrEnum):
@@ -210,6 +247,7 @@ class ContextGraphDirection(StrEnum):
 
     OUTGOING = "outgoing"
     INCOMING = "incoming"
+    BOTH = "both"
 
 
 class RagHealthState(StrEnum):

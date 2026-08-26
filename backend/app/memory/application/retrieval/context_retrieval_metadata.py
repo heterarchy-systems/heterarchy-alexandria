@@ -177,6 +177,8 @@ def retrieval_strategy(match: ContextSearchMatch) -> RagStrategy:
     Returns:
         Effective retrieval strategy for the match.
     """
+    if match.graph_score is not None:
+        return RagStrategy.AUTO
     if match.fts_score is not None and match.vector_score is not None:
         return RagStrategy.HYBRID
     if match.vector_score is not None:

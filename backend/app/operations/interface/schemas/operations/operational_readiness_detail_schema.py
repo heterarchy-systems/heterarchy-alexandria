@@ -21,6 +21,11 @@ from app.operations.domain.event_enum.operational_readiness_enums import (
     OperationalOverallStatus,
     OperationalReadinessStatus,
 )
+from app.operations.interface.schemas.operations.operational_memory_path_schema import (
+    ContextProjectionIntegritySnapshotResponse,
+    OperationalRetrievalCanarySnapshotResponse,
+    OperationalRuntimeProvenanceResponse,
+)
 from app.operations.interface.schemas.operations.operational_readiness_schema import (
     OperationalDatabaseSnapshotResponse,
     OperationalRagSnapshotResponse,
@@ -152,6 +157,22 @@ class OperationalReadinessSnapshotResponse(StrictSchemaModel):
             "Reconciliation for this operational readiness snapshot response."
         ),
     ]
+    runtime: Annotated[
+        OperationalRuntimeProvenanceResponse,
+        described_field("Runtime provenance for this operational readiness response."),
+    ]
+    retrieval_canary: Annotated[
+        OperationalRetrievalCanarySnapshotResponse,
+        described_field(
+            "Real retrieval path canaries for this operational readiness response."
+        ),
+    ]
+    projection_integrity: Annotated[
+        ContextProjectionIntegritySnapshotResponse,
+        described_field(
+            "Persisted full Obsidian-to-Context projection integrity state."
+        ),
+    ]
     active_recovery_run_id: Annotated[
         str | None,
         described_field(
@@ -209,6 +230,13 @@ class OperationalReadinessSnapshotResponse(StrictSchemaModel):
             rag=OperationalRagSnapshotResponse.from_entity(snapshot.rag),
             reconciliation=OperationalReconciliationSnapshotResponse.from_entity(
                 snapshot.reconciliation
+            ),
+            runtime=OperationalRuntimeProvenanceResponse.from_entity(snapshot.runtime),
+            retrieval_canary=OperationalRetrievalCanarySnapshotResponse.from_entity(
+                snapshot.retrieval_canary
+            ),
+            projection_integrity=ContextProjectionIntegritySnapshotResponse.from_entity(
+                snapshot.projection_integrity
             ),
             active_recovery_run_id=snapshot.active_recovery_run_id,
             last_successful_recovery_run_id=snapshot.last_successful_recovery_run_id,

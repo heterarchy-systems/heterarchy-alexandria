@@ -8,6 +8,8 @@ from inspect import iscoroutinefunction
 import anyio
 import httpx
 import pytest
+from fastapi.testclient import TestClient
+
 from app.main import app as default_app, create_app
 from app.mcp_server.backend_api_client import (
     AlexandriaApiClient,
@@ -74,6 +76,7 @@ from app.mcp_server.tools.skills.skill_backend_gateway import (
 )
 from app.memory.domain.event_enum.context_enums import (
     ContextRecallLifecycleStatus,
+    MemoryFunction,
     RagStrategy,
 )
 from app.memory.domain.event_enum.memory_compact_enums import (
@@ -85,7 +88,6 @@ from app.memory.interface.schemas.context.context_retrieval_schema import (
 from app.platform.config.app_config import AppConfig
 from app.shared.serialization.orjson_codec import dumps_json, loads_json
 from app.shared.types.extra_types import JSONValue
-from fastapi.testclient import TestClient
 
 RecordedCall = httpx.Request
 _ROUTER_PACKAGES = [
@@ -328,6 +330,29 @@ def test_mcp_search_forwards_explicit_lifecycle_statuses() -> None:
         "strategy": "HYBRID",
         "limit": 5,
         "include_lifecycle_statuses": ["SUPERSEDED", "ARCHIVED"],
+    }
+
+
+def test_mcp_search_forwards_explicit_memory_function_preference() -> None:
+    """Explicit functional-memory preference should cross MCP without becoming a filter."""
+    client, calls = _client()
+
+    _run_json(
+        alexandria_search(
+            client,
+            ContextSearchRequest(
+                query="how did we fix this before",
+                prefer_memory_functions=[MemoryFunction.EXPERIENTIAL],
+            ),
+        )
+    )
+
+    request_body = loads_json(calls[0].content or b"{}")
+    assert request_body == {
+        "query": "how did we fix this before",
+        "strategy": "HYBRID",
+        "limit": 5,
+        "prefer_memory_functions": ["EXPERIENTIAL"],
     }
 
 

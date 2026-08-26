@@ -7,10 +7,12 @@ from pathlib import Path
 
 from app.obsidian.application.notes.lifecycle.obsidian_context_reindex_manifest import (
     ContextReindexCandidate,
-    validate_context_reindex_manifest,
 )
 from app.obsidian.domain.contracts.obsidian_contracts import ObsidianNoteIndex
 from app.obsidian.domain.event_enum.obsidian_enums import AlexandriaNoteType
+from app.obsidian.infrastructure.markdown.native_context_reindex_manifest import (
+    create_native_context_reindex_manifest_validator,
+)
 from app.obsidian.infrastructure.markdown.paths import canonical_relative_path
 
 
@@ -69,7 +71,7 @@ def test_canonical_relative_path_preserves_case_sensitive_identity() -> None:
 
 def test_manifest_rejects_multiple_physical_paths_for_one_canonical_identity() -> None:
     """Reject NFC/NFD physical duplicates instead of selecting a silent winner."""
-    manifest = validate_context_reindex_manifest(
+    manifest = create_native_context_reindex_manifest_validator().validate(
         [
             _candidate(
                 physical_path="Contexts/기능/Café.md",

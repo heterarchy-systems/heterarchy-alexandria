@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
+
 from app.memory.domain.entities.context_read_models import (
     ContextChunkRecord,
     ContextRecord,
@@ -23,6 +24,7 @@ from app.memory.infrastructure.providers.native_context_retrieval_kernel_provide
     NativeBestRow,
     NativeContextRetrievalKernelProvider,
     NativeFusionRow,
+    NativeFusionTraceResult,
 )
 
 _NOW = datetime(2026, 8, 22, tzinfo=UTC)
@@ -34,11 +36,17 @@ class _FakeNativeModule:
         fusion_rows: list[NativeFusionRow] | None = None,
         best_rows: list[NativeBestRow] | None = None,
         candidate_limit: int = 30,
+        fusion_trace_result: NativeFusionTraceResult | None = None,
     ) -> None:
         self.fusion_rows = list(fusion_rows or [])
         self.best_rows = list(best_rows or [])
         self.candidate_limit = candidate_limit
+        self.fusion_trace_result = fusion_trace_result or (
+            [],
+            (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+        )
         self.fusion_calls: list[tuple[list[str], list[str], int]] = []
+        self.fusion_trace_calls: list[tuple[list[str], list[str], int]] = []
         self.best_calls: list[tuple[list[tuple[str, float]], int]] = []
         self.candidate_limit_calls: list[int] = []
 
@@ -57,6 +65,16 @@ class _FakeNativeModule:
     ) -> list[NativeFusionRow]:
         self.fusion_calls.append((fts_context_ids, vector_context_ids, limit))
         return list(self.fusion_rows)
+
+    def retrieval_merge_hybrid_indices_with_trace(
+        self,
+        fts_context_ids: list[str],
+        vector_context_ids: list[str],
+        limit: int,
+    ) -> NativeFusionTraceResult:
+        self.fusion_trace_calls.append((fts_context_ids, vector_context_ids, limit))
+        rows, trace = self.fusion_trace_result
+        return list(rows), trace
 
     def retrieval_rank_best_indices(
         self,
@@ -161,6 +179,71 @@ def test_native_adapter_maps_compact_fusion_rows_without_heavy_dto_crossing() ->
     assert actual[1].fts_score == fts[0].fts_score
     assert actual[1].vector_score == vector[1].vector_score
     assert "best-lane reciprocal-rank fusion" in actual[1].why_retrieved
+
+
+def test_native_adapter_maps_trace_rows_and_validates_native_counters() -> None:
+    fts = [
+        _match("dual", 1, score=0.8, fts_score=0.8, vector_score=None),
+        _match("lexical", 2, score=0.7, fts_score=0.7, vector_score=None),
+    ]
+    vector = [
+        _match("semantic", 3, score=0.99, fts_score=None, vector_score=0.99),
+        _match("dual", 4, score=0.95, fts_score=None, vector_score=0.95),
+    ]
+    native = _FakeNativeModule(
+        fusion_trace_result=(
+            [
+                ("vector", 0, None, 0, 0.01655737704918033),
+                ("vector", 1, 0, 1, 0.01629032258064516),
+            ],
+            (2, 2, 2, 2, 0, 0, 3, 1, 2, 0, 2),
+        )
+    )
+
+    result = NativeContextRetrievalKernelProvider(native).merge_with_trace(
+        fts, vector, limit=2
+    )
+
+    assert [match.context.id for match in result.matches] == ["semantic", "dual"]
+    assert result.trace.fused_candidate_count == 3
+    assert result.trace.cross_lane_count == 1
+    assert result.trace.returned_count == 2
+    assert native.fusion_trace_calls == [(["dual", "lexical"], ["semantic", "dual"], 2)]
+
+
+@pytest.mark.parametrize(
+    "trace_row",
+    [
+        (1, 2, 1, 2, 0, 0, 3, 0, 1, 0, 1),
+        (2, 2, 2, 2, 0, 0, 5, 0, 1, 0, 1),
+        (2, 2, 2, 2, 0, 0, 3, 3, 1, 0, 1),
+        (2, 2, 2, 2, 0, 0, 3, 1, 2, 0, 2),
+    ],
+)
+def test_native_adapter_fails_closed_on_invalid_trace_output(
+    trace_row: tuple[int, int, int, int, int, int, int, int, int, int, int],
+) -> None:
+    fts = [
+        _match("a", 1, score=0.8, fts_score=0.8, vector_score=None),
+        _match("b", 2, score=0.7, fts_score=0.7, vector_score=None),
+    ]
+    vector = [
+        _match("c", 3, score=0.9, fts_score=None, vector_score=0.9),
+        _match("a", 4, score=0.85, fts_score=None, vector_score=0.85),
+    ]
+    native = _FakeNativeModule(
+        fusion_trace_result=(
+            [
+                ("vector", 0, None, 0, 0.01655737704918033),
+            ],
+            trace_row,
+        )
+    )
+
+    with pytest.raises(ValueError, match="NATIVE_RETRIEVAL_KERNEL_OUTPUT_ERROR"):
+        NativeContextRetrievalKernelProvider(native).merge_with_trace(
+            fts, vector, limit=1
+        )
 
 
 def test_native_adapter_maps_best_per_context_indices() -> None:

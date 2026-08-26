@@ -7,7 +7,11 @@ from app.memory.application.contexts.linting.context_lint import (
     ContextLintResult,
     lint_context,
 )
-from app.memory.domain.event_enum.context_enums import ContextKind, ContextScope
+from app.memory.domain.event_enum.context_enums import (
+    ContextKind,
+    ContextScope,
+    MemoryFunction,
+)
 from app.shared.types.types_convert_utils import enum_value
 
 
@@ -21,6 +25,7 @@ class ContextLintService:
         content: str,
         summary: str | None,
         project: str | None,
+        memory_function: MemoryFunction | None = None,
         scope: ContextScope = ContextScope.PROJECT,
         workspace_id: str | None = None,
         agent_id: str | None = None,
@@ -34,6 +39,7 @@ class ContextLintService:
 
         Args:
             kind: Context entry kind.
+            memory_function: Optional functional role for this memory.
             title: Human-readable title.
             content: Markdown content.
             summary: Optional summary supplied by the caller.
@@ -53,6 +59,11 @@ class ContextLintService:
         return lint_context(
             ContextLintInput(
                 kind=enum_value(kind, ContextKind, "kind"),
+                memory_function=(
+                    None
+                    if memory_function is None
+                    else enum_value(memory_function, MemoryFunction, "memory_function")
+                ),
                 title=title,
                 content=content,
                 summary=summary,

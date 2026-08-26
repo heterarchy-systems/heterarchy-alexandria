@@ -6,7 +6,11 @@ from app.memory.application.contexts.linting.context_lint import ContextLintResu
 from app.memory.application.contexts.linting.context_lint_service import (
     ContextLintService,
 )
-from app.memory.domain.event_enum.context_enums import ContextKind, ContextScope
+from app.memory.domain.event_enum.context_enums import (
+    ContextKind,
+    ContextScope,
+    MemoryFunction,
+)
 
 
 class ContextServiceLintMixin:
@@ -21,6 +25,7 @@ class ContextServiceLintMixin:
         content: str,
         summary: str | None,
         project: str | None,
+        memory_function: MemoryFunction | None = None,
         scope: ContextScope = ContextScope.PROJECT,
         workspace_id: str | None = None,
         agent_id: str | None = None,
@@ -34,6 +39,7 @@ class ContextServiceLintMixin:
 
         Args:
             kind: Context entry kind.
+            memory_function: Optional functional role for this memory.
             title: Human-readable title.
             content: Markdown content.
             summary: Optional summary supplied by the caller.
@@ -52,6 +58,7 @@ class ContextServiceLintMixin:
         """
         return self._lint_service.lint(
             kind=kind,
+            memory_function=memory_function,
             title=title,
             content=content,
             summary=summary,

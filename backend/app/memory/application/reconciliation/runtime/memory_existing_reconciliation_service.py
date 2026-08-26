@@ -395,6 +395,7 @@ def _candidate_payload(
         requested_lifecycle="archived" if context.is_archived else "active",
         candidate_id=f"existing:{context.id}",
         source_identity=_metadata_text(metadata, "source"),
+        lineage_ancestors=tuple(sorted(set(temporal.supersedes))),
     )
 
 

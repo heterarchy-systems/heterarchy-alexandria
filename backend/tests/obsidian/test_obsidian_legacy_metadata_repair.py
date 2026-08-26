@@ -13,6 +13,9 @@ from app.obsidian.application.service.notes.obsidian_legacy_metadata_repair_serv
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.obsidian.domain.entities.obsidian_note import ObsidianReindexResult
+from app.obsidian.infrastructure.markdown.native_context_reindex_manifest import (
+    create_native_context_reindex_manifest_validator,
+)
 from app.obsidian.infrastructure.models import (
     obsidian_index_models as _obsidian_index_models,
 )
@@ -73,6 +76,9 @@ def test_legacy_metadata_repair_is_dry_run_hash_locked_and_body_preserving(
             repository=SqlAlchemyObsidianIndexRepository(session=session),
             vault_path=str(vault),
             alexandria_root="Alexandria",
+            context_reindex_manifest_validator=(
+                create_native_context_reindex_manifest_validator()
+            ),
         )
         try:
             plan = await service.plan_legacy_metadata_repairs()

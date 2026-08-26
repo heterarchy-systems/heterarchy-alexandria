@@ -12,19 +12,46 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.connections.containers import ConnectionsContainer
 from app.librarian.containers import LibrarianContainer
+from app.memory.application.contexts.graph.context_graph_candidate_expansion_service import (
+    ContextGraphCandidateExpansionService,
+    GraphProjectionSnapshotSource,
+)
+from app.memory.application.contexts.records.context_service import ContextService
+from app.memory.application.integration.context_projection_integrity_service import (
+    ContextProjectionIntegrityService,
+)
+from app.memory.application.reconciliation.runtime.memory_reconciliation_readiness_service import (
+    MemoryReconciliationReadinessService,
+)
 from app.memory.containers import MemoryContainer
-from app.memory.domain.repositories.contexts.context_graph_signal_provider import (
+from app.memory.domain.repositories.contexts.graph.context_graph_candidate_expansion_provider import (
+    IContextGraphCandidateExpansionProvider,
+)
+from app.memory.domain.repositories.contexts.graph.context_graph_signal_provider import (
     IContextGraphSignalProvider,
+)
+from app.memory.infrastructure.repositories.contexts.obsidian.obsidian_graph_candidate_hydrator import (
+    ObsidianGraphCandidateHydrator,
 )
 from app.obsidian.application.graph.projection.obsidian_graph_context_signal_service import (
     ObsidianGraphContextSignalService,
 )
+from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.obsidian.containers import ObsidianContainer
+from app.obsidian.domain.repositories.obsidian_graph_candidate_selection_compute_provider import (
+    IObsidianGraphCandidateSelectionComputeProvider,
+)
 from app.obsidian.domain.repositories.obsidian_graph_projection_repository import (
     IObsidianGraphProjectionRepository,
 )
+from app.obsidian.infrastructure.graph.native_obsidian_graph_candidate_selection_compute_provider import (
+    create_native_obsidian_graph_candidate_selection_compute_provider,
+)
 from app.obsidian.infrastructure.graph.neo4j_graph_projection_factory import (
     optional_neo4j_graph_projection_repository,
+)
+from app.operations.application.diagnostics.operational_retrieval_diagnostics_service import (
+    OperationalRetrievalDiagnosticsService,
 )
 from app.operations.application.maintenance_job_queue import MaintenanceJobSubmitter
 from app.operations.application.readiness.external_api_rate_limit import (
@@ -35,6 +62,15 @@ from app.operations.application.readiness.external_api_rate_limit import (
 from app.operations.application.readiness.operational_readiness_cache import (
     NoopOperationalReadinessCache,
     OperationalReadinessCache,
+)
+from app.operations.application.readiness.operational_readiness_service import (
+    OperationalReadinessService,
+)
+from app.operations.application.readiness.operational_retrieval_canary_service import (
+    OperationalRetrievalCanaryService,
+)
+from app.operations.application.readiness.operational_runtime_provenance_service import (
+    OperationalRuntimeProvenanceService,
 )
 from app.operations.infrastructure.redis_maintenance_job_queue import (
     RedisMaintenanceJobSubmitter,
@@ -205,6 +241,74 @@ def create_graph_signal_provider(
     return ObsidianGraphContextSignalService(repository=repository)
 
 
+def create_graph_candidate_expansion_provider(
+    config: AppConfig,
+    repository: GraphProjectionSnapshotSource | None,
+    selector: IObsidianGraphCandidateSelectionComputeProvider,
+    session: AsyncSession,
+) -> IContextGraphCandidateExpansionProvider | None:
+    """Create the measured AUTO-only multi-hop graph expansion provider.
+
+    Args:
+        config: Typed service configuration.
+        repository: Active graph projection snapshot source, or None while disabled.
+        selector: Application-lifetime authoritative Rust graph candidate selector.
+        session: Request-scoped PostgreSQL session used only for candidate hydration.
+
+    Returns:
+        AUTO-only graph expansion provider, or None while graph read model is disabled.
+    """
+    if config.graph_read_model == "disabled" or repository is None:
+        return None
+    return ContextGraphCandidateExpansionService(
+        projection_source=repository,
+        selector=selector,
+        hydrator=ObsidianGraphCandidateHydrator(session),
+    )
+
+
+def create_operational_readiness_service(
+    config: AppConfig,
+    database: Database,
+    context_service: ContextService,
+    obsidian_service: ObsidianService,
+    reconciliation_service: MemoryReconciliationReadinessService | None,
+    readiness_cache: OperationalReadinessCache,
+    projection_integrity_service: ContextProjectionIntegrityService,
+    runtime_provenance_service: OperationalRuntimeProvenanceService,
+) -> OperationalReadinessService:
+    """Assemble one request-scoped operational readiness object graph.
+
+    Args:
+        config: Validated application configuration.
+        database: Shared database lifecycle coordinator.
+        context_service: Request-scoped Context application service.
+        obsidian_service: Request-scoped canonical Vault application service.
+        reconciliation_service: Optional memory reconciliation diagnostics service.
+        readiness_cache: Bounded fail-open readiness cache.
+        projection_integrity_service: Persisted projection-integrity reader.
+        runtime_provenance_service: Application-scoped immutable provenance probe.
+
+    Returns:
+        Request-scoped readiness service sharing one Context service with its canary.
+    """
+    retrieval_canary_service = OperationalRetrievalCanaryService(
+        context_service=context_service,
+        query=config.readiness_canary_query,
+        limit=config.readiness_canary_limit,
+    )
+    return OperationalReadinessService(
+        database=database,
+        context_service=context_service,
+        obsidian_service=obsidian_service,
+        reconciliation_service=reconciliation_service,
+        readiness_cache=readiness_cache,
+        runtime_provenance_service=runtime_provenance_service,
+        retrieval_canary_service=retrieval_canary_service,
+        projection_integrity_service=projection_integrity_service,
+    )
+
+
 class ApplicationContainer(containers.DeclarativeContainer):
     """Root container for shared application resources."""
 
@@ -261,6 +365,16 @@ class ApplicationContainer(containers.DeclarativeContainer):
         repository=graph_projection_repository,
     )
 
+    graph_candidate_selection_compute_provider = providers.Singleton(
+        create_native_obsidian_graph_candidate_selection_compute_provider
+    )
+    graph_candidate_expansion_provider = providers.Factory(
+        create_graph_candidate_expansion_provider,
+        config=app_config,
+        repository=graph_projection_repository,
+        selector=graph_candidate_selection_compute_provider,
+        session=db_session,
+    )
     connections = providers.Container(
         ConnectionsContainer,
         db_session=db_session,
@@ -273,6 +387,7 @@ class ApplicationContainer(containers.DeclarativeContainer):
         librarian_provider_repo=connections.librarian_provider_repo,
         provider_secret_repo=connections.provider_secret_repo,
         graph_signal_provider=graph_signal_provider,
+        graph_candidate_expansion_provider=graph_candidate_expansion_provider,
         index_maintenance_coordinator=index_maintenance_coordinator,
         external_api_rate_limiter=external_api_rate_limiter,
     )
@@ -293,4 +408,23 @@ class ApplicationContainer(containers.DeclarativeContainer):
         memory_embedding_recovery_service=memory.context_embedding_recovery_service,
         graph_projection_repository=graph_projection_repository,
         index_maintenance_coordinator=index_maintenance_coordinator,
+    )
+    operational_retrieval_diagnostics_service = providers.Factory(
+        OperationalRetrievalDiagnosticsService,
+        context_service=memory.context_service,
+    )
+    operational_runtime_provenance_service = providers.Singleton(
+        OperationalRuntimeProvenanceService,
+        config=app_config,
+    )
+    operational_readiness_service = providers.Factory(
+        create_operational_readiness_service,
+        config=app_config,
+        database=database,
+        context_service=memory.context_service,
+        obsidian_service=obsidian.obsidian_service,
+        reconciliation_service=memory.memory_reconciliation_readiness_service,
+        readiness_cache=operational_readiness_cache,
+        projection_integrity_service=obsidian.context_projection_integrity_service,
+        runtime_provenance_service=operational_runtime_provenance_service,
     )

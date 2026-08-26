@@ -12,6 +12,17 @@ use super::{
     TraversalDirection, relation_filter,
 };
 
+pub(super) fn traverse_projection(
+    projection: &GraphProjection,
+    traversal_requests: &[GraphTraversalRequest],
+) -> Result<Vec<GraphTraversalResult>, GraphComputeError> {
+    let index = GraphIndex::new(projection)?;
+    Ok(traversal_requests
+        .iter()
+        .map(|request| index.traverse_request(request))
+        .collect())
+}
+
 pub(super) fn analyze_projection(
     projection: &GraphProjection,
     previous_projection: Option<&GraphProjection>,

@@ -4,6 +4,9 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+      args:
+        - ALEXANDRIA_BUILD_REVISION
+        - ALEXANDRIA_BUILD_TIMESTAMP
     env_file:
       - ./.env
       - ./runtime-performance.env

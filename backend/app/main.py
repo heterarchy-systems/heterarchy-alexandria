@@ -75,6 +75,9 @@ from app.operations.interface.routers.recovery_plan_router import (
 from app.operations.interface.routers.recovery_run_router import (
     router as recovery_run_router,
 )
+from app.operations.interface.routers.retrieval_diagnostics_router import (
+    router as retrieval_diagnostics_router,
+)
 from app.platform.config.app_config import AppConfig
 from app.platform.config.redis_config import RedisConfig
 from app.platform.health_router import install_health_routes
@@ -314,6 +317,7 @@ def create_app(app_config: AppConfig) -> FastAPI:
     app.include_router(obsidian_librarian_execution_router)
     app.include_router(obsidian_settings_router)
     app.include_router(operational_readiness_router)
+    app.include_router(retrieval_diagnostics_router)
     app.include_router(recovery_plan_router)
     app.include_router(recovery_run_router)
     app.include_router(agent_router)

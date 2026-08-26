@@ -3,26 +3,30 @@
 from __future__ import annotations
 
 import os
-
 from datetime import UTC, datetime
 from pathlib import Path
 
 import anyio
 import pytest
+from pydantic import TypeAdapter
+
 from app.memory.application.reconciliation.candidates.memory_candidate_recall_service import (
     MemoryCandidateRecallService,
 )
 from app.memory.application.reconciliation.candidates.memory_candidate_service import (
     MemoryCandidateService,
 )
+from app.memory.application.reconciliation.candidates.memory_evolution_candidate_evidence_service import (
+    MemoryEvolutionCandidateEvidenceService,
+)
+from app.memory.application.reconciliation.candidates.memory_relation_classifier import (
+    MemoryRelationClassifier,
+)
 from app.memory.application.reconciliation.plans.memory_reconciliation_plan_service import (
     MemoryReconciliationPlanService,
 )
 from app.memory.application.reconciliation.plans.memory_reconciliation_preview_service import (
     MemoryReconciliationPreviewService,
-)
-from app.memory.application.reconciliation.candidates.memory_relation_classifier import (
-    MemoryRelationClassifier,
 )
 from app.memory.domain.contracts.memory_reconciliation_contracts import (
     MemoryCandidateCreate,
@@ -53,12 +57,14 @@ from app.memory.domain.event_enum.reconciliation_enums import (
 from app.memory.domain.repositories.contexts.memory_candidate_recall_source import (
     IMemoryCandidateRecallSource,
 )
+from app.memory.infrastructure.providers.native_memory_reconciliation_candidate_compute_provider import (
+    create_native_memory_reconciliation_candidate_compute_provider,
+)
 from app.memory.infrastructure.repositories.memory_reconciliation_repository import (
     SqlAlchemyMemoryReconciliationRepository,
 )
 from app.shared.exceptions.memory_context_exceptions import MemoryContextValidationError
 from app.shared.infrastructure.database import Database
-from pydantic import TypeAdapter
 
 NOW = datetime(2026, 7, 25, tzinfo=UTC)
 _CLAIMS_ADAPTER = TypeAdapter(tuple[CanonicalClaim, ...])
@@ -213,6 +219,9 @@ def _preview_service(
             recall_source=recall_source,
             repository=repository,
         ),
+        candidate_evidence_service=MemoryEvolutionCandidateEvidenceService(
+            create_native_memory_reconciliation_candidate_compute_provider()
+        ),
         classifier=MemoryRelationClassifier(),
         plan_service=MemoryReconciliationPlanService(),
         repository=repository,
@@ -275,6 +284,12 @@ def test_preview_without_matches_creates_unrelated_context_plan(tmp_path: Path) 
                     MemoryReconciliationActionType.CREATE_CONTEXT
                 ]
                 assert "No existing Context candidate was recalled." in plan.warnings
+                assert plan.candidate_evidence is not None
+                assert plan.candidate_evidence.compute_authority == (
+                    "rust:reconciliation_candidates:v1"
+                )
+                assert plan.candidate_evidence.compared_context_ids == ()
+                assert plan.candidate_evidence.metrics.input_items == 1
                 assert await repository.get_plan(plan.plan_id) == plan
                 assert source.queries == ["heterarchy-alexandria uses Redis"]
         finally:

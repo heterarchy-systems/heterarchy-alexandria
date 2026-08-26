@@ -1,0 +1,583 @@
+{
+  "contract_version": 1,
+  "manifest_version": 1,
+  "cases": [
+    {
+      "name": "valid_mixed_candidates_preserve_input_order",
+      "candidates": [
+        {
+          "note_id": "ctx-global",
+          "relative_path": "Contexts/A Global.md",
+          "canonical_relative_path": "Contexts/A Global.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-a"
+        },
+        {
+          "note_id": "skill-a",
+          "relative_path": "Jobs/Skills/Skill A.md",
+          "canonical_relative_path": "Jobs/Skills/Skill A.md",
+          "alexandria_type": "skill",
+          "scope": "GLOBAL",
+          "content_hash": "hash-a"
+        },
+        {
+          "note_id": "ctx-project",
+          "relative_path": "Contexts/Projects/Project A.md",
+          "canonical_relative_path": "Contexts/Projects/Project A.md",
+          "alexandria_type": "context",
+          "scope": "PROJECT",
+          "project": "project-a",
+          "content_hash": "hash-b"
+        }
+      ],
+      "expected": {
+        "accepted_indices": [0, 1, 2],
+        "issues": []
+      }
+    },
+    {
+      "name": "canonical_unicode_path_collision_rejects_every_collider",
+      "candidates": [
+        {
+          "note_id": "ctx-nfc",
+          "relative_path": "Contexts/기능/Café.md",
+          "canonical_relative_path": "Contexts/기능/Café.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-nfc"
+        },
+        {
+          "note_id": "ctx-nfd",
+          "relative_path": "Contexts/기능/Café.md",
+          "canonical_relative_path": "Contexts/기능/Café.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-nfd"
+        },
+        {
+          "note_id": "ctx-valid",
+          "relative_path": "Contexts/Valid.md",
+          "canonical_relative_path": "Contexts/Valid.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-valid"
+        }
+      ],
+      "expected": {
+        "accepted_indices": [2],
+        "issues": [
+          {
+            "relative_path": "Contexts/기능/Café.md",
+            "context_id": "ctx-nfc",
+            "message": "DUPLICATE_CANONICAL_PATH: multiple physical notes normalize to Contexts/기능/Café.md"
+          },
+          {
+            "relative_path": "Contexts/기능/Café.md",
+            "context_id": "ctx-nfd",
+            "message": "DUPLICATE_CANONICAL_PATH: multiple physical notes normalize to Contexts/기능/Café.md"
+          }
+        ]
+      }
+    },
+    {
+      "name": "duplicate_note_id_first_candidate_wins",
+      "candidates": [
+        {
+          "note_id": "ctx-shared",
+          "relative_path": "Contexts/First.md",
+          "canonical_relative_path": "Contexts/First.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-first"
+        },
+        {
+          "note_id": "ctx-shared",
+          "relative_path": "Contexts/Second.md",
+          "canonical_relative_path": "Contexts/Second.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-second"
+        },
+        {
+          "note_id": "ctx-third",
+          "relative_path": "Contexts/Third.md",
+          "canonical_relative_path": "Contexts/Third.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-third"
+        }
+      ],
+      "expected": {
+        "accepted_indices": [0, 2],
+        "issues": [
+          {
+            "relative_path": "Contexts/Second.md",
+            "context_id": "ctx-shared",
+            "message": "DUPLICATE_CONTEXT_ID: ctx-shared is also declared by Contexts/First.md"
+          }
+        ]
+      }
+    },
+    {
+      "name": "duplicate_context_identity_content_first_candidate_wins_but_non_context_is_ignored",
+      "candidates": [
+        {
+          "note_id": "ctx-first",
+          "relative_path": "Contexts/First.md",
+          "canonical_relative_path": "Contexts/First.md",
+          "alexandria_type": "context",
+          "scope": "PROJECT",
+          "project": "project-a",
+          "content_hash": "shared-hash"
+        },
+        {
+          "note_id": "ctx-second",
+          "relative_path": "Contexts/Second.md",
+          "canonical_relative_path": "Contexts/Second.md",
+          "alexandria_type": "context",
+          "scope": "PROJECT",
+          "project": "project-a",
+          "content_hash": "shared-hash"
+        },
+        {
+          "note_id": "skill-shared",
+          "relative_path": "Jobs/Skills/Shared.md",
+          "canonical_relative_path": "Jobs/Skills/Shared.md",
+          "alexandria_type": "skill",
+          "scope": "PROJECT",
+          "project": "project-a",
+          "content_hash": "shared-hash"
+        }
+      ],
+      "expected": {
+        "accepted_indices": [0, 2],
+        "issues": [
+          {
+            "relative_path": "Contexts/Second.md",
+            "context_id": "ctx-second",
+            "message": "DUPLICATE_CONTEXT_CONTENT: canonical scope identity and content hash also belong to Contexts/First.md"
+          }
+        ]
+      }
+    },
+    {
+      "name": "same_hash_different_scope_identity_is_valid",
+      "candidates": [
+        {
+          "note_id": "ctx-global",
+          "relative_path": "Contexts/Global.md",
+          "canonical_relative_path": "Contexts/Global.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "same-hash"
+        },
+        {
+          "note_id": "ctx-project",
+          "relative_path": "Contexts/Project.md",
+          "canonical_relative_path": "Contexts/Project.md",
+          "alexandria_type": "context",
+          "scope": "PROJECT",
+          "project": "project-a",
+          "content_hash": "same-hash"
+        }
+      ],
+      "expected": {
+        "accepted_indices": [0, 1],
+        "issues": []
+      }
+    },
+    {
+      "name": "missing_supersedes_target_rejects_replacement",
+      "candidates": [
+        {
+          "note_id": "ctx-replacement",
+          "relative_path": "Contexts/Replacement.md",
+          "canonical_relative_path": "Contexts/Replacement.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-replacement",
+          "supersedes_context_id": "ctx-absent"
+        },
+        {
+          "note_id": "ctx-unrelated",
+          "relative_path": "Contexts/Unrelated.md",
+          "canonical_relative_path": "Contexts/Unrelated.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-unrelated"
+        }
+      ],
+      "expected": {
+        "accepted_indices": [1],
+        "issues": [
+          {
+            "relative_path": "Contexts/Replacement.md",
+            "context_id": "ctx-replacement",
+            "message": "INVALID_SUPERSEDE: superseded Context is absent or invalid: ctx-absent"
+          }
+        ]
+      }
+    },
+    {
+      "name": "missing_replacement_backlink_target_rejects_old_context",
+      "candidates": [
+        {
+          "note_id": "ctx-old",
+          "relative_path": "Contexts/Old.md",
+          "canonical_relative_path": "Contexts/Old.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-old",
+          "superseded_by_context_id": "ctx-absent"
+        },
+        {
+          "note_id": "ctx-unrelated",
+          "relative_path": "Contexts/Unrelated.md",
+          "canonical_relative_path": "Contexts/Unrelated.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-unrelated"
+        }
+      ],
+      "expected": {
+        "accepted_indices": [1],
+        "issues": [
+          {
+            "relative_path": "Contexts/Old.md",
+            "context_id": "ctx-old",
+            "message": "INVALID_SUPERSEDE: replacement Context is absent or invalid: ctx-absent"
+          }
+        ]
+      }
+    },
+    {
+      "name": "replacement_without_reciprocal_forward_reference_rejects_old_context_only",
+      "candidates": [
+        {
+          "note_id": "ctx-old",
+          "relative_path": "Contexts/Old.md",
+          "canonical_relative_path": "Contexts/Old.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-old",
+          "superseded_by_context_id": "ctx-replacement"
+        },
+        {
+          "note_id": "ctx-replacement",
+          "relative_path": "Contexts/Replacement.md",
+          "canonical_relative_path": "Contexts/Replacement.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-replacement"
+        }
+      ],
+      "expected": {
+        "accepted_indices": [1],
+        "issues": [
+          {
+            "relative_path": "Contexts/Old.md",
+            "context_id": "ctx-old",
+            "message": "INVALID_SUPERSEDE: replacement Context does not contain the reciprocal supersedes reference: ctx-replacement"
+          }
+        ]
+      }
+    },
+    {
+      "name": "conflicting_target_backlink_rejects_earlier_replacement",
+      "candidates": [
+        {
+          "note_id": "ctx-replacement",
+          "relative_path": "Contexts/Replacement.md",
+          "canonical_relative_path": "Contexts/Replacement.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-replacement",
+          "supersedes_context_id": "ctx-old"
+        },
+        {
+          "note_id": "ctx-old",
+          "relative_path": "Contexts/Old.md",
+          "canonical_relative_path": "Contexts/Old.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-old",
+          "superseded_by_context_id": "ctx-other"
+        },
+        {
+          "note_id": "ctx-other",
+          "relative_path": "Contexts/Other.md",
+          "canonical_relative_path": "Contexts/Other.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-other",
+          "supersedes_context_id": "ctx-old"
+        }
+      ],
+      "expected": {
+        "accepted_indices": [1, 2],
+        "issues": [
+          {
+            "relative_path": "Contexts/Replacement.md",
+            "context_id": "ctx-replacement",
+            "message": "INVALID_SUPERSEDE: superseded Context backlink conflicts with replacement: ctx-other"
+          }
+        ]
+      }
+    },
+    {
+      "name": "first_replacement_for_target_wins_by_input_order",
+      "candidates": [
+        {
+          "note_id": "ctx-old",
+          "relative_path": "Contexts/Old.md",
+          "canonical_relative_path": "Contexts/Old.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-old"
+        },
+        {
+          "note_id": "ctx-replacement-a",
+          "relative_path": "Contexts/Replacement A.md",
+          "canonical_relative_path": "Contexts/Replacement A.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-replacement-a",
+          "supersedes_context_id": "ctx-old"
+        },
+        {
+          "note_id": "ctx-replacement-b",
+          "relative_path": "Contexts/Replacement B.md",
+          "canonical_relative_path": "Contexts/Replacement B.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-replacement-b",
+          "supersedes_context_id": "ctx-old"
+        }
+      ],
+      "expected": {
+        "accepted_indices": [0, 1],
+        "issues": [
+          {
+            "relative_path": "Contexts/Replacement B.md",
+            "context_id": "ctx-replacement-b",
+            "message": "INVALID_SUPERSEDE: Context already has another replacement: ctx-replacement-a"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reciprocal_supersede_pair_is_valid",
+      "candidates": [
+        {
+          "note_id": "ctx-old",
+          "relative_path": "Contexts/Old.md",
+          "canonical_relative_path": "Contexts/Old.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-old",
+          "superseded_by_context_id": "ctx-replacement"
+        },
+        {
+          "note_id": "ctx-replacement",
+          "relative_path": "Contexts/Replacement.md",
+          "canonical_relative_path": "Contexts/Replacement.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-replacement",
+          "supersedes_context_id": "ctx-old"
+        }
+      ],
+      "expected": {
+        "accepted_indices": [0, 1],
+        "issues": []
+      }
+    },
+    {
+      "name": "two_node_cycle_rejects_both_in_input_order",
+      "candidates": [
+        {
+          "note_id": "ctx-a",
+          "relative_path": "Contexts/A.md",
+          "canonical_relative_path": "Contexts/A.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-a",
+          "supersedes_context_id": "ctx-b"
+        },
+        {
+          "note_id": "ctx-b",
+          "relative_path": "Contexts/B.md",
+          "canonical_relative_path": "Contexts/B.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-b",
+          "supersedes_context_id": "ctx-a"
+        }
+      ],
+      "expected": {
+        "accepted_indices": [],
+        "issues": [
+          {
+            "relative_path": "Contexts/A.md",
+            "context_id": "ctx-a",
+            "message": "INVALID_SUPERSEDE: supersede relationship contains a cycle"
+          },
+          {
+            "relative_path": "Contexts/B.md",
+            "context_id": "ctx-b",
+            "message": "INVALID_SUPERSEDE: supersede relationship contains a cycle"
+          }
+        ]
+      }
+    },
+    {
+      "name": "self_cycle_is_classified_as_cycle",
+      "candidates": [
+        {
+          "note_id": "ctx-self",
+          "relative_path": "Contexts/Self.md",
+          "canonical_relative_path": "Contexts/Self.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-self",
+          "supersedes_context_id": "ctx-self"
+        }
+      ],
+      "expected": {
+        "accepted_indices": [],
+        "issues": [
+          {
+            "relative_path": "Contexts/Self.md",
+            "context_id": "ctx-self",
+            "message": "INVALID_SUPERSEDE: supersede relationship contains a cycle"
+          }
+        ]
+      }
+    },
+    {
+      "name": "invalid_target_propagates_across_multiple_hops",
+      "candidates": [
+        {
+          "note_id": "ctx-a",
+          "relative_path": "Contexts/A.md",
+          "canonical_relative_path": "Contexts/A.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-a",
+          "supersedes_context_id": "ctx-b"
+        },
+        {
+          "note_id": "ctx-b",
+          "relative_path": "Contexts/B.md",
+          "canonical_relative_path": "Contexts/B.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-b",
+          "supersedes_context_id": "ctx-c"
+        },
+        {
+          "note_id": "ctx-c",
+          "relative_path": "Contexts/C.md",
+          "canonical_relative_path": "Contexts/C.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-c",
+          "supersedes_context_id": "ctx-absent"
+        }
+      ],
+      "expected": {
+        "accepted_indices": [],
+        "issues": [
+          {
+            "relative_path": "Contexts/A.md",
+            "context_id": "ctx-a",
+            "message": "INVALID_SUPERSEDE: superseded Context is absent or invalid: ctx-b"
+          },
+          {
+            "relative_path": "Contexts/B.md",
+            "context_id": "ctx-b",
+            "message": "INVALID_SUPERSEDE: superseded Context is absent or invalid: ctx-c"
+          },
+          {
+            "relative_path": "Contexts/C.md",
+            "context_id": "ctx-c",
+            "message": "INVALID_SUPERSEDE: superseded Context is absent or invalid: ctx-absent"
+          }
+        ]
+      }
+    },
+    {
+      "name": "phase_one_duplicate_issue_precedes_later_supersede_issue",
+      "candidates": [
+        {
+          "note_id": "ctx-shared",
+          "relative_path": "Contexts/First.md",
+          "canonical_relative_path": "Contexts/First.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-first"
+        },
+        {
+          "note_id": "ctx-shared",
+          "relative_path": "Contexts/Duplicate.md",
+          "canonical_relative_path": "Contexts/Duplicate.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-duplicate"
+        },
+        {
+          "note_id": "ctx-replacement",
+          "relative_path": "Contexts/Replacement.md",
+          "canonical_relative_path": "Contexts/Replacement.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-replacement",
+          "supersedes_context_id": "ctx-absent"
+        }
+      ],
+      "expected": {
+        "accepted_indices": [0],
+        "issues": [
+          {
+            "relative_path": "Contexts/Duplicate.md",
+            "context_id": "ctx-shared",
+            "message": "DUPLICATE_CONTEXT_ID: ctx-shared is also declared by Contexts/First.md"
+          },
+          {
+            "relative_path": "Contexts/Replacement.md",
+            "context_id": "ctx-replacement",
+            "message": "INVALID_SUPERSEDE: superseded Context is absent or invalid: ctx-absent"
+          }
+        ]
+      }
+    },
+    {
+      "name": "non_string_supersede_values_are_ignored",
+      "candidates": [
+        {
+          "note_id": "ctx-a",
+          "relative_path": "Contexts/A.md",
+          "canonical_relative_path": "Contexts/A.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-a",
+          "supersedes_context_id": 7,
+          "superseded_by_context_id": ["ctx-b"]
+        },
+        {
+          "note_id": "ctx-b",
+          "relative_path": "Contexts/B.md",
+          "canonical_relative_path": "Contexts/B.md",
+          "alexandria_type": "context",
+          "scope": "GLOBAL",
+          "content_hash": "hash-b"
+        }
+      ],
+      "expected": {
+        "accepted_indices": [0, 1],
+        "issues": []
+      }
+    }
+  ]
+}

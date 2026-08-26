@@ -247,6 +247,36 @@ class MemoryCompactResponse(StrictSchemaModel):
         AwareTimestamp | None,
         described_field("Reviewed at for this memory compact response."),
     ]
+    source_set_hash: Annotated[
+        str | None,
+        described_field("Deterministic source-set hash for Compact 2.0 provenance."),
+    ]
+    compaction_policy_version: Annotated[
+        str | None,
+        described_field("Compaction policy version that generated this artifact."),
+    ]
+    generation_revision: Annotated[
+        int | None,
+        described_field("Generation revision for this compact artifact."),
+    ]
+    generated_at: Annotated[
+        AwareTimestamp | None,
+        described_field("Generation timestamp for this compact artifact."),
+    ]
+    source_count: Annotated[
+        int,
+        described_field("Source count derived from canonical source references."),
+    ]
+    expansion_refs: Annotated[
+        list[str],
+        described_field(
+            "Stable source expansion paths derived from source references."
+        ),
+    ]
+    provenance_complete: Annotated[
+        bool,
+        described_field("Whether the Compact 2.0 provenance seal is complete."),
+    ]
     warnings: Annotated[
         list[str], described_field("Warnings for this memory compact response.")
     ] = schema_list_default()
@@ -293,6 +323,13 @@ class MemoryCompactResponse(StrictSchemaModel):
             review_score=compact.review_score,
             review_max_score=compact.review_max_score,
             reviewed_at=compact.reviewed_at,
+            source_set_hash=compact.source_set_hash,
+            compaction_policy_version=compact.compaction_policy_version,
+            generation_revision=compact.generation_revision,
+            generated_at=compact.generated_at,
+            source_count=compact.source_count,
+            expansion_refs=list(compact.expansion_refs),
+            provenance_complete=compact.provenance_complete,
             warnings=_response_warnings(
                 [*compact.metadata_warnings, *(warnings or [])]
             ),

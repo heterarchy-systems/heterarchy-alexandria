@@ -10,6 +10,11 @@ from pathlib import Path
 
 from asyncer import asyncify
 
+from app.memory.application.memory_compacts.lifecycle.memory_compact_provenance import (
+    MEMORY_COMPACT_GENERATION_REVISION,
+    MEMORY_COMPACT_POLICY_VERSION,
+    memory_compact_source_set_hash,
+)
 from app.memory.domain.entities.memory_compact import (
     MemoryCompact,
     MemoryCompactSourceRef,
@@ -63,6 +68,7 @@ class MemoryCompactCreateRepositoryDelegate:
         """
         now = datetime.now(UTC)
         compact_id = new_uuid()
+        source_refs = _source_refs(compact_id, payload)
         compact = MemoryCompact(
             id=compact_id,
             project=payload.project,
@@ -70,7 +76,7 @@ class MemoryCompactCreateRepositoryDelegate:
             covered_to=aware_utc_datetime(payload.covered_to),
             markdown_body=payload.markdown_body,
             status=payload.status,
-            source_refs=_source_refs(compact_id, payload),
+            source_refs=source_refs,
             created_at=now,
             updated_at=now,
             archived_at=None,
@@ -78,6 +84,10 @@ class MemoryCompactCreateRepositoryDelegate:
             review_score=payload.review_score,
             review_max_score=payload.review_max_score,
             reviewed_at=payload.reviewed_at,
+            source_set_hash=memory_compact_source_set_hash(source_refs),
+            compaction_policy_version=MEMORY_COMPACT_POLICY_VERSION,
+            generation_revision=MEMORY_COMPACT_GENERATION_REVISION,
+            generated_at=now,
         )
         persistence_task = asyncio.ensure_future(
             asyncify(_persist_created_compact)(self._store, compact)

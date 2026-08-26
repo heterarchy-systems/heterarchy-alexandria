@@ -6,6 +6,7 @@
 
 mod fusion;
 mod scoring;
+mod trace;
 
 use std::error::Error;
 use std::fmt::{Display, Formatter};
@@ -14,9 +15,11 @@ use serde::Serialize;
 
 pub use fusion::{
     BestRetrievalIndex, FusedRetrievalIndex, hybrid_candidate_limit, merge_hybrid_candidates,
-    merge_hybrid_indices, rank_best_candidates, rank_best_index_values, rank_best_indices,
+    merge_hybrid_indices, merge_hybrid_indices_with_trace, rank_best_candidates,
+    rank_best_index_values, rank_best_indices,
 };
 pub use scoring::cosine_similarity;
+pub use trace::RetrievalFusionTrace;
 
 /// Version of the retrieval candidate/ranking contract.
 pub const RETRIEVAL_KERNEL_VERSION: u16 = 1;
@@ -255,7 +258,7 @@ fn validate_finite(field_name: &str, value: f64) -> Result<(), RetrievalKernelEr
 mod tests {
     use super::{
         RetrievalCandidate, RetrievalLane, cosine_similarity, hybrid_candidate_limit,
-        merge_hybrid_candidates, rank_best_candidates,
+        merge_hybrid_candidates, merge_hybrid_indices_with_trace, rank_best_candidates,
     };
 
     fn candidate(
@@ -322,6 +325,31 @@ mod tests {
         };
         assert_eq!(fused[0].why_retrieved, "first");
         assert_eq!(fused[1].representative.lane_index, 2);
+    }
+
+    #[test]
+    fn hybrid_fusion_trace_reports_duplicates_cross_lane_and_representatives() {
+        let fts = ["alpha", "alpha", "beta"];
+        let vector = ["beta", "gamma", "gamma"];
+        let (results, trace) = match merge_hybrid_indices_with_trace(&fts, &vector, 2) {
+            Ok(value) => value,
+            Err(error) => unreachable!("valid traced fusion failed: {error}"),
+        };
+
+        assert_eq!(results.len(), 2);
+        assert_eq!(trace.fts_input_count, 3);
+        assert_eq!(trace.vector_input_count, 3);
+        assert_eq!(trace.fts_unique_count, 2);
+        assert_eq!(trace.vector_unique_count, 2);
+        assert_eq!(trace.fts_duplicate_count, 1);
+        assert_eq!(trace.vector_duplicate_count, 1);
+        assert_eq!(trace.fused_candidate_count, 3);
+        assert_eq!(trace.cross_lane_count, 1);
+        assert_eq!(trace.returned_count, 2);
+        assert_eq!(
+            trace.representative_fts_count + trace.representative_vector_count,
+            trace.returned_count
+        );
     }
 
     #[test]

@@ -10,6 +10,9 @@ from app.memory.application.reconciliation.candidates.memory_candidate_recall_se
 from app.memory.application.reconciliation.candidates.memory_candidate_service import (
     MemoryCandidateService,
 )
+from app.memory.application.reconciliation.candidates.memory_evolution_candidate_evidence_service import (
+    MemoryEvolutionCandidateEvidenceService,
+)
 from app.memory.application.reconciliation.candidates.memory_relation_classifier import (
     MemoryRelationClassifier,
 )
@@ -35,6 +38,7 @@ class MemoryReconciliationPreviewService:
         self,
         candidate_service: MemoryCandidateService,
         recall_service: MemoryCandidateRecallService,
+        candidate_evidence_service: MemoryEvolutionCandidateEvidenceService,
         classifier: MemoryRelationClassifier,
         plan_service: MemoryReconciliationPlanService,
         repository: IMemoryReconciliationPlanRepository,
@@ -44,12 +48,14 @@ class MemoryReconciliationPreviewService:
         Args:
             candidate_service: Candidate service dependency.
             recall_service: Recall service dependency.
+            candidate_evidence_service: Deterministic Rust proposal evidence dependency.
             classifier: Classifier used by this operation.
             plan_service: Plan service dependency.
             repository: Repository used by this operation.
         """
         self._candidate_service = candidate_service
         self._recall_service = recall_service
+        self._candidate_evidence_service = candidate_evidence_service
         self._classifier = classifier
         self._plan_service = plan_service
         self._repository = repository
@@ -84,6 +90,9 @@ class MemoryReconciliationPreviewService:
             candidate,
             limit=request.recall_limit,
         )
+        candidate_evidence = await self._candidate_evidence_service.discover(
+            candidate, recalled
+        )
         decisions = tuple(
             [
                 await self._classifier.classify_with_model(candidate, existing)
@@ -94,6 +103,7 @@ class MemoryReconciliationPreviewService:
             candidate=candidate,
             decisions=decisions,
             idempotency_key=explicit_key,
+            candidate_evidence=candidate_evidence,
         )
         persisted = await self._repository.save_plan(plan)
         log_reconciliation_preview(

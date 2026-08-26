@@ -77,6 +77,15 @@ class NativeMemoryReconciliationCandidateComputeProvider(
 
     native_module: NativeReconciliationCandidateModule
 
+    @property
+    def authority(self) -> str:
+        """Return the active Rust reconciliation-candidate compute authority.
+
+        Returns:
+            Stable identifier for the Rust reconciliation-candidate authority.
+        """
+        return "rust:reconciliation_candidates:v1"
+
     def discover(
         self,
         items: tuple[ReconciliationCandidateComputeItem, ...],

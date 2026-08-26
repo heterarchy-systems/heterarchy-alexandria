@@ -28,6 +28,39 @@ class NativeComputeContractModule(Protocol):
         """
 
 
+# protocol-contract: structural-seam
+class NativeRuntimeProvenanceModule(NativeComputeContractModule, Protocol):
+    """Native build identity exposed for operational runtime verification."""
+
+    def native_package_version(self) -> str:
+        """Return the native Python-adapter package version.
+
+        Returns:
+            Package version reported by the loaded native extension.
+        """
+
+    def native_git_revision(self) -> str:
+        """Return the source revision baked into the native extension.
+
+        Returns:
+            Native extension Git revision string.
+        """
+
+    def native_build_profile(self) -> str:
+        """Return the Cargo build profile baked into the native extension.
+
+        Returns:
+            Native extension build profile such as debug or release.
+        """
+
+    def feature_authority_schema_version(self) -> int:
+        """Return the native feature-authority registry schema version.
+
+        Returns:
+            Integer schema version exposed by the native extension.
+        """
+
+
 def load_native_compute_module() -> NativeComputeContractModule:
     """Load and validate the required native compute extension.
 
@@ -54,6 +87,28 @@ def load_native_compute_module() -> NativeComputeContractModule:
             "NATIVE_COMPUTE_CONTRACT_ERROR: expected compute contract "
             f"{_NATIVE_COMPUTE_CONTRACT_VERSION}, found {contract_version}"
         )
+    return module
+
+
+def load_native_runtime_provenance_module() -> NativeRuntimeProvenanceModule:
+    """Load the native module and validate its runtime-provenance surface.
+
+    Returns:
+        Native module exposing build provenance in addition to the compute contract.
+
+    Raises:
+        RuntimeError: If the compatible native extension omits provenance metadata.
+    """
+    module = cast(NativeRuntimeProvenanceModule, load_native_compute_module())
+    try:
+        module.native_package_version()
+        module.native_git_revision()
+        module.native_build_profile()
+        module.feature_authority_schema_version()
+    except AttributeError as exc:
+        raise RuntimeError(
+            "NATIVE_PROVENANCE_UNAVAILABLE: native extension omits runtime provenance"
+        ) from exc
     return module
 
 

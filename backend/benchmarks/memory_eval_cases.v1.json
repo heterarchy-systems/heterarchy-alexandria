@@ -1,0 +1,2747 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "case_id": "exact_lookup-01",
+      "query": "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20",
+      "query_class": "EXACT_LOOKUP",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "67bcb6b4-981a-4b16-bd0e-d3461572d602"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Exact stable title lookup should retrieve the named canonical note.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "exact_lookup-02",
+      "query": "Neo4j 기능 05 Graph-aware Context Retrieval",
+      "query_class": "EXACT_LOOKUP",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "ctx_alexandria_neo4j_feature_05_graph_aware_context_20260803"
+      ],
+      "expected_titles": [
+        "Neo4j 기능 05 Graph-aware Context Retrieval"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Exact stable title lookup should retrieve the named canonical note.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "exact_lookup-03",
+      "query": "Alexandria Memory Steward Contract",
+      "query_class": "EXACT_LOOKUP",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "d7111f69-acac-4540-8dde-3a312b222472"
+      ],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Exact stable title lookup should retrieve the named canonical note.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "exact_lookup-04",
+      "query": "heterarchy-alexandria Project Index",
+      "query_class": "EXACT_LOOKUP",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "b6a3291c-9a4a-48a5-9121-4a6d3e15f23b"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Project Index"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Exact stable title lookup should retrieve the named canonical note.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "exact_lookup-05",
+      "query": "heterarchy-alexandria Retrieval Quality Benchmark and Scope Correction 2026-08-21",
+      "query_class": "EXACT_LOOKUP",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "c6249a0a-0341-406f-9f1c-67db7a6779bb"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Retrieval Quality Benchmark and Scope Correction 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Exact stable title lookup should retrieve the named canonical note.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "exact_lookup-06",
+      "query": "heterarchy-alexandria Retrieval Performance Verification Summary 2026-08-21",
+      "query_class": "EXACT_LOOKUP",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "7daafba1-4321-4fc4-a1a7-aeef7325cf75"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Retrieval Performance Verification Summary 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Exact stable title lookup should retrieve the named canonical note.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "exact_lookup-07",
+      "query": "heterarchy-alexandria PostgreSQL FTS Ranking and Query Plan Optimization 2026-08-21",
+      "query_class": "EXACT_LOOKUP",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "91cb4875-0946-4416-84fe-da180493280e"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria PostgreSQL FTS Ranking and Query Plan Optimization 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Exact stable title lookup should retrieve the named canonical note.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "exact_lookup-08",
+      "query": "heterarchy-alexandria FastEmbed Singleton and Vector Retrieval Latency Optimization 2026-08-21",
+      "query_class": "EXACT_LOOKUP",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "62b3b67d-654e-4b0f-aacf-72392993713b"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria FastEmbed Singleton and Vector Retrieval Latency Optimization 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Exact stable title lookup should retrieve the named canonical note.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "exact_lookup-09",
+      "query": "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23",
+      "query_class": "EXACT_LOOKUP",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Exact stable title lookup should retrieve the named canonical note.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "exact_lookup-10",
+      "query": "heterarchy-alexandria Memory OS Evolution Plan Index 2026-08-24",
+      "query_class": "EXACT_LOOKUP",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "f0cf847c-d29c-4bca-83fe-bcf79d245023"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Memory OS Evolution Plan Index 2026-08-24"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Exact stable title lookup should retrieve the named canonical note.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "semantic_paraphrase-01",
+      "query": "Alexandria modernization에서 permanent debt baseline을 왜 허용하지 않기로 했지?",
+      "query_class": "SEMANTIC_PARAPHRASE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "67bcb6b4-981a-4b16-bd0e-d3461572d602"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Semantic paraphrase must resolve to the reviewed canonical source without exact-title overlap.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "semantic_paraphrase-02",
+      "query": "MCP v2와 strict Pydantic, Dependency Injector 규칙을 Alexandria backend에 이식하기로 한 개발 계약",
+      "query_class": "SEMANTIC_PARAPHRASE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "67bcb6b4-981a-4b16-bd0e-d3461572d602"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Semantic paraphrase must resolve to the reviewed canonical source without exact-title overlap.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "semantic_paraphrase-03",
+      "query": "Memory Steward가 hard delete를 허용하려면 어떤 안전 조건들을 먼저 만족해야 하나?",
+      "query_class": "SEMANTIC_PARAPHRASE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "d7111f69-acac-4540-8dde-3a312b222472"
+      ],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Semantic paraphrase must resolve to the reviewed canonical source without exact-title overlap.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "semantic_paraphrase-04",
+      "query": "새 CURRENT Memory Compact를 승격한 뒤 이전 CURRENT를 어떻게 처리하는가?",
+      "query_class": "SEMANTIC_PARAPHRASE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "d7111f69-acac-4540-8dde-3a312b222472",
+        "588bc9a6-7fcf-40ff-b251-8f408225f45a"
+      ],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract",
+        "Memory Compact 품질 및 생명주기 Specification"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Semantic paraphrase must resolve to the reviewed canonical source without exact-title overlap.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "semantic_paraphrase-05",
+      "query": "temporal compact의 week_N은 ISO week가 아니라 어떤 기준으로 계산하지?",
+      "query_class": "SEMANTIC_PARAPHRASE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "d7111f69-acac-4540-8dde-3a312b222472",
+        "588bc9a6-7fcf-40ff-b251-8f408225f45a"
+      ],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract",
+        "Memory Compact 품질 및 생명주기 Specification"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Semantic paraphrase must resolve to the reviewed canonical source without exact-title overlap.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "semantic_paraphrase-06",
+      "query": "Neo4j graph evidence가 primary FTS vector ranking을 바꾸면 retrieval은 어떻게 동작해야 하나?",
+      "query_class": "SEMANTIC_PARAPHRASE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "ctx_alexandria_neo4j_feature_05_graph_aware_context_20260803"
+      ],
+      "expected_titles": [
+        "Neo4j 기능 05 Graph-aware Context Retrieval"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Semantic paraphrase must resolve to the reviewed canonical source without exact-title overlap.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "semantic_paraphrase-07",
+      "query": "graph mode disabled일 때 warning이나 graph evidence를 붙이지 않는 no-op contract",
+      "query_class": "SEMANTIC_PARAPHRASE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "ctx_alexandria_neo4j_feature_05_graph_aware_context_20260803"
+      ],
+      "expected_titles": [
+        "Neo4j 기능 05 Graph-aware Context Retrieval"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Semantic paraphrase must resolve to the reviewed canonical source without exact-title overlap.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "semantic_paraphrase-08",
+      "query": "Graph evidence lane은 primary recall ordering과 score를 preserve해야 한다는 규칙",
+      "query_class": "SEMANTIC_PARAPHRASE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "ctx_alexandria_neo4j_feature_05_graph_aware_context_20260803"
+      ],
+      "expected_titles": [
+        "Neo4j 기능 05 Graph-aware Context Retrieval"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Semantic paraphrase must resolve to the reviewed canonical source without exact-title overlap.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "semantic_paraphrase-09",
+      "query": "Alexandria에서 archived PRD와 현재 제품 계약을 구분해서 탐색하려면 어느 source mount를 봐야 하나?",
+      "query_class": "SEMANTIC_PARAPHRASE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "b6a3291c-9a4a-48a5-9121-4a6d3e15f23b",
+        "965539ba-c8fd-432b-87fc-0c466177e3ec"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Project Index",
+        "Alexandria Knowledge Operating System"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Semantic paraphrase must resolve to the reviewed canonical source without exact-title overlap.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "semantic_paraphrase-10",
+      "query": "운영 evidence와 active specification, archived design source를 한곳에서 찾아가는 인덱스",
+      "query_class": "SEMANTIC_PARAPHRASE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "b6a3291c-9a4a-48a5-9121-4a6d3e15f23b",
+        "965539ba-c8fd-432b-87fc-0c466177e3ec"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Project Index",
+        "Alexandria Knowledge Operating System"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Semantic paraphrase must resolve to the reviewed canonical source without exact-title overlap.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "cross_language-01",
+      "query": "Which contract says permanent debt baseline is forbidden in Alexandria modernization?",
+      "query_class": "CROSS_LANGUAGE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "67bcb6b4-981a-4b16-bd0e-d3461572d602"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Cross-language and mixed-language wording should preserve semantic recall to the reviewed source.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "cross_language-02",
+      "query": "What is the canonical Memory Steward hard-delete safety contract?",
+      "query_class": "CROSS_LANGUAGE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "d7111f69-acac-4540-8dde-3a312b222472"
+      ],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Cross-language and mixed-language wording should preserve semantic recall to the reviewed source.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "cross_language-03",
+      "query": "Graph evidence가 primary ranking을 change하면 안 된다는 retrieval contract 어디야?",
+      "query_class": "CROSS_LANGUAGE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "ctx_alexandria_neo4j_feature_05_graph_aware_context_20260803"
+      ],
+      "expected_titles": [
+        "Neo4j 기능 05 Graph-aware Context Retrieval"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Cross-language and mixed-language wording should preserve semantic recall to the reviewed source.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "cross_language-04",
+      "query": "Find the project-wide Source of Truth index for heterarchy-alexandria",
+      "query_class": "CROSS_LANGUAGE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "b6a3291c-9a4a-48a5-9121-4a6d3e15f23b"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Project Index"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Cross-language and mixed-language wording should preserve semantic recall to the reviewed source.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "cross_language-05",
+      "query": "검색 scope correction과 Recall@1 fix를 기록한 retrieval quality benchmark",
+      "query_class": "CROSS_LANGUAGE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "c6249a0a-0341-406f-9f1c-67db7a6779bb"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Retrieval Quality Benchmark and Scope Correction 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Cross-language and mixed-language wording should preserve semantic recall to the reviewed source.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "cross_language-06",
+      "query": "What document summarizes warm FTS Vector Hybrid latency verification?",
+      "query_class": "CROSS_LANGUAGE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "7daafba1-4321-4fc4-a1a7-aeef7325cf75"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Retrieval Performance Verification Summary 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Cross-language and mixed-language wording should preserve semantic recall to the reviewed source.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "cross_language-07",
+      "query": "PostgreSQL FTS query plan을 UNION candidate lane으로 optimize한 기록",
+      "query_class": "CROSS_LANGUAGE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "91cb4875-0946-4416-84fe-da180493280e"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria PostgreSQL FTS Ranking and Query Plan Optimization 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Cross-language and mixed-language wording should preserve semantic recall to the reviewed source.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "cross_language-08",
+      "query": "Which note explains FastEmbed Singleton DI and warm vector latency?",
+      "query_class": "CROSS_LANGUAGE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "62b3b67d-654e-4b0f-aacf-72392993713b"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria FastEmbed Singleton and Vector Retrieval Latency Optimization 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Cross-language and mixed-language wording should preserve semantic recall to the reviewed source.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "cross_language-09",
+      "query": "Rust compute migration의 final runtime seal and cutover evidence",
+      "query_class": "CROSS_LANGUAGE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Cross-language and mixed-language wording should preserve semantic recall to the reviewed source.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "cross_language-10",
+      "query": "Memory OS evolution 전체 roadmap index를 찾아줘",
+      "query_class": "CROSS_LANGUAGE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "f0cf847c-d29c-4bca-83fe-bcf79d245023"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Memory OS Evolution Plan Index 2026-08-24"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Cross-language and mixed-language wording should preserve semantic recall to the reviewed source.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "temporal_current_state-01",
+      "query": "Rust compute migration 지금 최종 검증 상태는 구현 진행 기록이 아니라 무엇이지?",
+      "query_class": "TEMPORAL_CURRENT_STATE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [
+        "619b8cd5-a854-4980-a50d-44bb6b40ebd1"
+      ],
+      "forbidden_titles": [
+        "heterarchy-alexandria Rust Compute Migration Implementation Progress 2026-08-22"
+      ],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "The 2026-08-23 runtime seal is newer state evidence than the 2026-08-22 implementation-progress record.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "temporal_current_state-02",
+      "query": "현재 Rust compute cutover가 완료됐는지 가장 최신 evidence를 보여줘",
+      "query_class": "TEMPORAL_CURRENT_STATE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [
+        "619b8cd5-a854-4980-a50d-44bb6b40ebd1"
+      ],
+      "forbidden_titles": [
+        "heterarchy-alexandria Rust Compute Migration Implementation Progress 2026-08-22"
+      ],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "The 2026-08-23 runtime seal is newer state evidence than the 2026-08-22 implementation-progress record.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "temporal_current_state-03",
+      "query": "8월 22일 implementation progress 이후 나온 최종 runtime 상태를 찾아줘",
+      "query_class": "TEMPORAL_CURRENT_STATE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [
+        "619b8cd5-a854-4980-a50d-44bb6b40ebd1"
+      ],
+      "forbidden_titles": [
+        "heterarchy-alexandria Rust Compute Migration Implementation Progress 2026-08-22"
+      ],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "The 2026-08-23 runtime seal is newer state evidence than the 2026-08-22 implementation-progress record.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "temporal_current_state-04",
+      "query": "Rust migration의 current verified state만 보고 싶어, 중간 progress 말고",
+      "query_class": "TEMPORAL_CURRENT_STATE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [
+        "619b8cd5-a854-4980-a50d-44bb6b40ebd1"
+      ],
+      "forbidden_titles": [
+        "heterarchy-alexandria Rust Compute Migration Implementation Progress 2026-08-22"
+      ],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "The 2026-08-23 runtime seal is newer state evidence than the 2026-08-22 implementation-progress record.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "temporal_current_state-05",
+      "query": "Python compute 제거가 끝난 뒤 최종적으로 seal된 기록은?",
+      "query_class": "TEMPORAL_CURRENT_STATE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [
+        "619b8cd5-a854-4980-a50d-44bb6b40ebd1"
+      ],
+      "forbidden_titles": [
+        "heterarchy-alexandria Rust Compute Migration Implementation Progress 2026-08-22"
+      ],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "The 2026-08-23 runtime seal is newer state evidence than the 2026-08-22 implementation-progress record.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "temporal_current_state-06",
+      "query": "가장 최신 Rust compute runtime cutover evidence가 필요해",
+      "query_class": "TEMPORAL_CURRENT_STATE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [
+        "619b8cd5-a854-4980-a50d-44bb6b40ebd1"
+      ],
+      "forbidden_titles": [
+        "heterarchy-alexandria Rust Compute Migration Implementation Progress 2026-08-22"
+      ],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "The 2026-08-23 runtime seal is newer state evidence than the 2026-08-22 implementation-progress record.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "temporal_current_state-07",
+      "query": "implementation progress 다음 단계에서 최종 승인된 Rust migration 상태",
+      "query_class": "TEMPORAL_CURRENT_STATE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [
+        "619b8cd5-a854-4980-a50d-44bb6b40ebd1"
+      ],
+      "forbidden_titles": [
+        "heterarchy-alexandria Rust Compute Migration Implementation Progress 2026-08-22"
+      ],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "The 2026-08-23 runtime seal is newer state evidence than the 2026-08-22 implementation-progress record.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "temporal_current_state-08",
+      "query": "현재 기준 native compute migration이 실제 runtime에서 닫혔다는 문서",
+      "query_class": "TEMPORAL_CURRENT_STATE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [
+        "619b8cd5-a854-4980-a50d-44bb6b40ebd1"
+      ],
+      "forbidden_titles": [
+        "heterarchy-alexandria Rust Compute Migration Implementation Progress 2026-08-22"
+      ],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "The 2026-08-23 runtime seal is newer state evidence than the 2026-08-22 implementation-progress record.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "temporal_current_state-09",
+      "query": "중간 개발일지가 아니라 Rust compute migration의 final seal을 찾아줘",
+      "query_class": "TEMPORAL_CURRENT_STATE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [
+        "619b8cd5-a854-4980-a50d-44bb6b40ebd1"
+      ],
+      "forbidden_titles": [
+        "heterarchy-alexandria Rust Compute Migration Implementation Progress 2026-08-22"
+      ],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "The 2026-08-23 runtime seal is newer state evidence than the 2026-08-22 implementation-progress record.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "temporal_current_state-10",
+      "query": "Rust compute migration 최신 상태를 과거 progress보다 우선해서 검색해줘",
+      "query_class": "TEMPORAL_CURRENT_STATE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [
+        "619b8cd5-a854-4980-a50d-44bb6b40ebd1"
+      ],
+      "forbidden_titles": [
+        "heterarchy-alexandria Rust Compute Migration Implementation Progress 2026-08-22"
+      ],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "The 2026-08-23 runtime seal is newer state evidence than the 2026-08-22 implementation-progress record.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "supersession-01",
+      "query": "Rust compute migration에서 implementation progress를 대체하는 최종 cutover evidence",
+      "query_class": "SUPERSESSION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [
+        "619b8cd5-a854-4980-a50d-44bb6b40ebd1"
+      ],
+      "forbidden_titles": [
+        "heterarchy-alexandria Rust Compute Migration Implementation Progress 2026-08-22"
+      ],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Supersession evaluation forbids the older implementation-progress title when final runtime evidence is requested.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "supersession-02",
+      "query": "예전 구현 진행 기록 대신 final runtime seal을 우선해줘",
+      "query_class": "SUPERSESSION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [
+        "619b8cd5-a854-4980-a50d-44bb6b40ebd1"
+      ],
+      "forbidden_titles": [
+        "heterarchy-alexandria Rust Compute Migration Implementation Progress 2026-08-22"
+      ],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Supersession evaluation forbids the older implementation-progress title when final runtime evidence is requested.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "supersession-03",
+      "query": "Rust compute가 끝났다는 replacement record를 찾아줘",
+      "query_class": "SUPERSESSION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [
+        "619b8cd5-a854-4980-a50d-44bb6b40ebd1"
+      ],
+      "forbidden_titles": [
+        "heterarchy-alexandria Rust Compute Migration Implementation Progress 2026-08-22"
+      ],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Supersession evaluation forbids the older implementation-progress title when final runtime evidence is requested.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "supersession-04",
+      "query": "중간 progress보다 최종 seal을 current answer로 써야 하는 질의",
+      "query_class": "SUPERSESSION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [
+        "619b8cd5-a854-4980-a50d-44bb6b40ebd1"
+      ],
+      "forbidden_titles": [
+        "heterarchy-alexandria Rust Compute Migration Implementation Progress 2026-08-22"
+      ],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Supersession evaluation forbids the older implementation-progress title when final runtime evidence is requested.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "supersession-05",
+      "query": "2026-08-22 progress가 아니라 그 이후 final authority 상태",
+      "query_class": "SUPERSESSION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [
+        "619b8cd5-a854-4980-a50d-44bb6b40ebd1"
+      ],
+      "forbidden_titles": [
+        "heterarchy-alexandria Rust Compute Migration Implementation Progress 2026-08-22"
+      ],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Supersession evaluation forbids the older implementation-progress title when final runtime evidence is requested.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "supersession-06",
+      "query": "Rust migration obsolete progress를 답으로 쓰지 말고 final seal 검색",
+      "query_class": "SUPERSESSION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [
+        "619b8cd5-a854-4980-a50d-44bb6b40ebd1"
+      ],
+      "forbidden_titles": [
+        "heterarchy-alexandria Rust Compute Migration Implementation Progress 2026-08-22"
+      ],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Supersession evaluation forbids the older implementation-progress title when final runtime evidence is requested.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "supersession-07",
+      "query": "Python retirement 완료 여부는 progress note 말고 final seal 기준으로",
+      "query_class": "SUPERSESSION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [
+        "619b8cd5-a854-4980-a50d-44bb6b40ebd1"
+      ],
+      "forbidden_titles": [
+        "heterarchy-alexandria Rust Compute Migration Implementation Progress 2026-08-22"
+      ],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Supersession evaluation forbids the older implementation-progress title when final runtime evidence is requested.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "supersession-08",
+      "query": "native compute authority의 최신 replacement evidence",
+      "query_class": "SUPERSESSION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [
+        "619b8cd5-a854-4980-a50d-44bb6b40ebd1"
+      ],
+      "forbidden_titles": [
+        "heterarchy-alexandria Rust Compute Migration Implementation Progress 2026-08-22"
+      ],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Supersession evaluation forbids the older implementation-progress title when final runtime evidence is requested.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "supersession-09",
+      "query": "Rust compute cutover 최종 문서를 우선하고 implementation progress는 배제",
+      "query_class": "SUPERSESSION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [
+        "619b8cd5-a854-4980-a50d-44bb6b40ebd1"
+      ],
+      "forbidden_titles": [
+        "heterarchy-alexandria Rust Compute Migration Implementation Progress 2026-08-22"
+      ],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Supersession evaluation forbids the older implementation-progress title when final runtime evidence is requested.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "supersession-10",
+      "query": "final runtime seal이 존재할 때 오래된 progress를 누출하지 않는 검색",
+      "query_class": "SUPERSESSION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [
+        "619b8cd5-a854-4980-a50d-44bb6b40ebd1"
+      ],
+      "forbidden_titles": [
+        "heterarchy-alexandria Rust Compute Migration Implementation Progress 2026-08-22"
+      ],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Supersession evaluation forbids the older implementation-progress title when final runtime evidence is requested.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "conflict_preservation-01",
+      "query": "Memory Compact lifecycle 판단에서 Steward contract와 lifecycle specification 두 근거를 같이 보여줘",
+      "query_class": "CONFLICT_PRESERVATION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "d7111f69-acac-4540-8dde-3a312b222472",
+        "588bc9a6-7fcf-40ff-b251-8f408225f45a"
+      ],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract",
+        "Memory Compact 품질 및 생명주기 Specification"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 2,
+      "expected_abstention": false,
+      "rationale": "Conflict-preservation cases require two reviewed independent sources to survive retrieval without collapse.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "conflict_preservation-02",
+      "query": "hard delete와 compact lifecycle이 충돌할 수 있으니 두 canonical source를 모두 보존해서 찾아줘",
+      "query_class": "CONFLICT_PRESERVATION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "d7111f69-acac-4540-8dde-3a312b222472",
+        "588bc9a6-7fcf-40ff-b251-8f408225f45a"
+      ],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract",
+        "Memory Compact 품질 및 생명주기 Specification"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 2,
+      "expected_abstention": false,
+      "rationale": "Conflict-preservation cases require two reviewed independent sources to survive retrieval without collapse.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "conflict_preservation-03",
+      "query": "Memory Steward 정책과 Compact 생명주기 규칙을 한쪽으로 collapse하지 말고 둘 다 검색",
+      "query_class": "CONFLICT_PRESERVATION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "d7111f69-acac-4540-8dde-3a312b222472",
+        "588bc9a6-7fcf-40ff-b251-8f408225f45a"
+      ],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract",
+        "Memory Compact 품질 및 생명주기 Specification"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 2,
+      "expected_abstention": false,
+      "rationale": "Conflict-preservation cases require two reviewed independent sources to survive retrieval without collapse.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "conflict_preservation-04",
+      "query": "current compact 승격 판단에 필요한 두 독립 계약을 함께 제시해줘",
+      "query_class": "CONFLICT_PRESERVATION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "d7111f69-acac-4540-8dde-3a312b222472",
+        "588bc9a6-7fcf-40ff-b251-8f408225f45a"
+      ],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract",
+        "Memory Compact 품질 및 생명주기 Specification"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 2,
+      "expected_abstention": false,
+      "rationale": "Conflict-preservation cases require two reviewed independent sources to survive retrieval without collapse.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "conflict_preservation-05",
+      "query": "temporal compact 규칙을 설명할 때 Steward와 lifecycle spec 둘 다 evidence로 유지",
+      "query_class": "CONFLICT_PRESERVATION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "d7111f69-acac-4540-8dde-3a312b222472",
+        "588bc9a6-7fcf-40ff-b251-8f408225f45a"
+      ],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract",
+        "Memory Compact 품질 및 생명주기 Specification"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 2,
+      "expected_abstention": false,
+      "rationale": "Conflict-preservation cases require two reviewed independent sources to survive retrieval without collapse.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "conflict_preservation-06",
+      "query": "프로젝트 source index와 Knowledge Operating System 설명을 하나로 뭉개지 말고 둘 다 찾아줘",
+      "query_class": "CONFLICT_PRESERVATION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "b6a3291c-9a4a-48a5-9121-4a6d3e15f23b",
+        "965539ba-c8fd-432b-87fc-0c466177e3ec"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Project Index",
+        "Alexandria Knowledge Operating System"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 2,
+      "expected_abstention": false,
+      "rationale": "Conflict-preservation cases require two reviewed independent sources to survive retrieval without collapse.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "conflict_preservation-07",
+      "query": "active source와 knowledge operating model이 다르면 두 문서를 함께 recall해줘",
+      "query_class": "CONFLICT_PRESERVATION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "b6a3291c-9a4a-48a5-9121-4a6d3e15f23b",
+        "965539ba-c8fd-432b-87fc-0c466177e3ec"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Project Index",
+        "Alexandria Knowledge Operating System"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 2,
+      "expected_abstention": false,
+      "rationale": "Conflict-preservation cases require two reviewed independent sources to survive retrieval without collapse.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "conflict_preservation-08",
+      "query": "프로젝트 인덱스와 Knowledge OS 관점을 동시에 보존하는 검색",
+      "query_class": "CONFLICT_PRESERVATION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "b6a3291c-9a4a-48a5-9121-4a6d3e15f23b",
+        "965539ba-c8fd-432b-87fc-0c466177e3ec"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Project Index",
+        "Alexandria Knowledge Operating System"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 2,
+      "expected_abstention": false,
+      "rationale": "Conflict-preservation cases require two reviewed independent sources to survive retrieval without collapse.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "conflict_preservation-09",
+      "query": "source-of-truth navigation에 필요한 Project Index와 Knowledge OS를 모두 반환",
+      "query_class": "CONFLICT_PRESERVATION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "b6a3291c-9a4a-48a5-9121-4a6d3e15f23b",
+        "965539ba-c8fd-432b-87fc-0c466177e3ec"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Project Index",
+        "Alexandria Knowledge Operating System"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 2,
+      "expected_abstention": false,
+      "rationale": "Conflict-preservation cases require two reviewed independent sources to survive retrieval without collapse.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "conflict_preservation-10",
+      "query": "서로 다른 canonical 관점을 가진 project index와 Knowledge Operating System을 함께 확인",
+      "query_class": "CONFLICT_PRESERVATION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "b6a3291c-9a4a-48a5-9121-4a6d3e15f23b",
+        "965539ba-c8fd-432b-87fc-0c466177e3ec"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Project Index",
+        "Alexandria Knowledge Operating System"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 2,
+      "expected_abstention": false,
+      "rationale": "Conflict-preservation cases require two reviewed independent sources to survive retrieval without collapse.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "experiential_recall-01",
+      "query": "예전에 retrieval recall이 0으로 측정됐던 원인이 뭐였는지 기록 찾아줘",
+      "query_class": "EXPERIENTIAL_RECALL",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "c6249a0a-0341-406f-9f1c-67db7a6779bb"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Retrieval Quality Benchmark and Scope Correction 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Experiential recall should retrieve prior verified incidents, fixes, or runtime evidence rather than generic plans.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "experiential_recall-02",
+      "query": "exact title이 Daily Health 뒤로 밀렸던 검색 품질 문제를 어떻게 고쳤지?",
+      "query_class": "EXPERIENTIAL_RECALL",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "c6249a0a-0341-406f-9f1c-67db7a6779bb"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Retrieval Quality Benchmark and Scope Correction 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Experiential recall should retrieve prior verified incidents, fixes, or runtime evidence rather than generic plans.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "experiential_recall-03",
+      "query": "FTS가 몇 초씩 걸리던 query plan 문제를 해결한 경험 기록",
+      "query_class": "EXPERIENTIAL_RECALL",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "91cb4875-0946-4416-84fe-da180493280e"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria PostgreSQL FTS Ranking and Query Plan Optimization 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Experiential recall should retrieve prior verified incidents, fixes, or runtime evidence rather than generic plans.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "experiential_recall-04",
+      "query": "FastEmbed cold init 때문에 vector latency가 커졌던 문제와 해결 기록",
+      "query_class": "EXPERIENTIAL_RECALL",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "62b3b67d-654e-4b0f-aacf-72392993713b"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria FastEmbed Singleton and Vector Retrieval Latency Optimization 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Experiential recall should retrieve prior verified incidents, fixes, or runtime evidence rather than generic plans.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "experiential_recall-05",
+      "query": "FTS Vector Hybrid 최적화 후 실제 성능을 검증한 결과",
+      "query_class": "EXPERIENTIAL_RECALL",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "7daafba1-4321-4fc4-a1a7-aeef7325cf75"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Retrieval Performance Verification Summary 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Experiential recall should retrieve prior verified incidents, fixes, or runtime evidence rather than generic plans.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "experiential_recall-06",
+      "query": "Rust compute migration을 실제 runtime seal까지 닫은 경험 기록",
+      "query_class": "EXPERIENTIAL_RECALL",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Experiential recall should retrieve prior verified incidents, fixes, or runtime evidence rather than generic plans.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "experiential_recall-07",
+      "query": "retrieval benchmark scope mistake를 다시 겪지 않으려면 어떤 기록을 봐야 해?",
+      "query_class": "EXPERIENTIAL_RECALL",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "c6249a0a-0341-406f-9f1c-67db7a6779bb"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Retrieval Quality Benchmark and Scope Correction 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Experiential recall should retrieve prior verified incidents, fixes, or runtime evidence rather than generic plans.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "experiential_recall-08",
+      "query": "vector embedding service를 Factory에서 Singleton으로 바꾼 이유와 결과",
+      "query_class": "EXPERIENTIAL_RECALL",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "62b3b67d-654e-4b0f-aacf-72392993713b"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria FastEmbed Singleton and Vector Retrieval Latency Optimization 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Experiential recall should retrieve prior verified incidents, fixes, or runtime evidence rather than generic plans.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "experiential_recall-09",
+      "query": "PostgreSQL FTS candidate lane 최적화에서 얻은 운영 교훈",
+      "query_class": "EXPERIENTIAL_RECALL",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "91cb4875-0946-4416-84fe-da180493280e"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria PostgreSQL FTS Ranking and Query Plan Optimization 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Experiential recall should retrieve prior verified incidents, fixes, or runtime evidence rather than generic plans.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "experiential_recall-10",
+      "query": "최적화 후 warm retrieval latency와 quality를 함께 검증한 evidence",
+      "query_class": "EXPERIENTIAL_RECALL",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "7daafba1-4321-4fc4-a1a7-aeef7325cf75"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Retrieval Performance Verification Summary 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Experiential recall should retrieve prior verified incidents, fixes, or runtime evidence rather than generic plans.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "procedural_recall-01",
+      "query": "Alexandria 개발할 때 strict Pydantic DI FastAPI 규칙을 어떤 계약 순서로 따라야 하지?",
+      "query_class": "PROCEDURAL_RECALL",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "67bcb6b4-981a-4b16-bd0e-d3461572d602"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Procedural recall targets explicit contracts, indexes, and verified execution procedures.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "procedural_recall-02",
+      "query": "Rust compute migration 작업 전에 harness workspace와 xtask를 어떻게 세팅하기로 했지?",
+      "query_class": "PROCEDURAL_RECALL",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "ac529f47-0aae-4364-911f-56d84b98822b"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Plan Index 2026-08-22"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Procedural recall targets explicit contracts, indexes, and verified execution procedures.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "procedural_recall-03",
+      "query": "Memory Steward daily cycle에서 hard delete 전에 따라야 할 절차",
+      "query_class": "PROCEDURAL_RECALL",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "d7111f69-acac-4540-8dde-3a312b222472"
+      ],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Procedural recall targets explicit contracts, indexes, and verified execution procedures.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "procedural_recall-04",
+      "query": "retrieval benchmark를 실행하고 품질을 검증하는 절차 문서",
+      "query_class": "PROCEDURAL_RECALL",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "b27e75af-5813-4fb1-9347-4c2cd56e3352"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Retrieval Benchmark Harness and Verification 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Procedural recall targets explicit contracts, indexes, and verified execution procedures.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "procedural_recall-05",
+      "query": "FTS Vector Hybrid 성능 검증을 재현하려면 어떤 summary를 따라가야 하지?",
+      "query_class": "PROCEDURAL_RECALL",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "7daafba1-4321-4fc4-a1a7-aeef7325cf75"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Retrieval Performance Verification Summary 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Procedural recall targets explicit contracts, indexes, and verified execution procedures.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "procedural_recall-06",
+      "query": "Rust compute migration 전체 단계 순서를 찾아가는 plan index",
+      "query_class": "PROCEDURAL_RECALL",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "ac529f47-0aae-4364-911f-56d84b98822b"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Plan Index 2026-08-22"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Procedural recall targets explicit contracts, indexes, and verified execution procedures.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "procedural_recall-07",
+      "query": "Memory OS 고도화를 phase 순서대로 진행하려면 어느 index를 봐야 해?",
+      "query_class": "PROCEDURAL_RECALL",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "f0cf847c-d29c-4bca-83fe-bcf79d245023"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Memory OS Evolution Plan Index 2026-08-24"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Procedural recall targets explicit contracts, indexes, and verified execution procedures.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "procedural_recall-08",
+      "query": "Memory Evaluation Suite 구현 순서를 정의한 계획서",
+      "query_class": "PROCEDURAL_RECALL",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "1abdb34e-4fe0-4f6a-9db1-4933dd83fa6b"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Memory OS 05 Memory Evaluation Suite Plan 2026-08-24"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Procedural recall targets explicit contracts, indexes, and verified execution procedures.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "procedural_recall-09",
+      "query": "프로젝트의 current source of truth를 따라가는 navigation 절차",
+      "query_class": "PROCEDURAL_RECALL",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "b6a3291c-9a4a-48a5-9121-4a6d3e15f23b"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Project Index"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Procedural recall targets explicit contracts, indexes, and verified execution procedures.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "procedural_recall-10",
+      "query": "Memory Steward가 compact를 current로 승격하고 이전 것을 처리하는 절차",
+      "query_class": "PROCEDURAL_RECALL",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "d7111f69-acac-4540-8dde-3a312b222472",
+        "588bc9a6-7fcf-40ff-b251-8f408225f45a"
+      ],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract",
+        "Memory Compact 품질 및 생명주기 Specification"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Procedural recall targets explicit contracts, indexes, and verified execution procedures.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "multi_hop_graph-01",
+      "query": "Rust compute migration plan에서 final runtime seal까지 이어지는 관계를 graph evidence로 찾아줘",
+      "query_class": "MULTI_HOP_GRAPH",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [
+        "wikilink"
+      ],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Multi-hop cases require graph relation evidence in addition to retrieving reviewed target memories.",
+      "minimum_graph_distance": 2
+    },
+    {
+      "case_id": "multi_hop_graph-02",
+      "query": "retrieval quality benchmark에서 performance summary로 이어지는 evidence chain",
+      "query_class": "MULTI_HOP_GRAPH",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "7daafba1-4321-4fc4-a1a7-aeef7325cf75"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Retrieval Performance Verification Summary 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [
+        "wikilink"
+      ],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Multi-hop cases require graph relation evidence in addition to retrieving reviewed target memories.",
+      "minimum_graph_distance": 2
+    },
+    {
+      "case_id": "multi_hop_graph-03",
+      "query": "Engineering Modernization contract에서 retrieval quality 개선 기록까지 연결해줘",
+      "query_class": "MULTI_HOP_GRAPH",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "c6249a0a-0341-406f-9f1c-67db7a6779bb"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Retrieval Quality Benchmark and Scope Correction 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [
+        "wikilink"
+      ],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Multi-hop cases require graph relation evidence in addition to retrieving reviewed target memories.",
+      "minimum_graph_distance": 2
+    },
+    {
+      "case_id": "multi_hop_graph-04",
+      "query": "Project Index에서 Memory OS Evolution plan으로 이어지는 graph path를 찾아줘",
+      "query_class": "MULTI_HOP_GRAPH",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "f0cf847c-d29c-4bca-83fe-bcf79d245023"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Memory OS Evolution Plan Index 2026-08-24"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [
+        "wikilink"
+      ],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Multi-hop cases require graph relation evidence in addition to retrieving reviewed target memories.",
+      "minimum_graph_distance": 2
+    },
+    {
+      "case_id": "multi_hop_graph-05",
+      "query": "Memory OS index에서 Memory Evaluation Suite plan까지 관계 evidence를 보여줘",
+      "query_class": "MULTI_HOP_GRAPH",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "1abdb34e-4fe0-4f6a-9db1-4933dd83fa6b"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Memory OS 05 Memory Evaluation Suite Plan 2026-08-24"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [
+        "wikilink"
+      ],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Multi-hop cases require graph relation evidence in addition to retrieving reviewed target memories.",
+      "minimum_graph_distance": 2
+    },
+    {
+      "case_id": "multi_hop_graph-06",
+      "query": "Rust migration plan index와 runtime seal 사이 lineage를 찾아줘",
+      "query_class": "MULTI_HOP_GRAPH",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [
+        "wikilink"
+      ],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Multi-hop cases require graph relation evidence in addition to retrieving reviewed target memories.",
+      "minimum_graph_distance": 2
+    },
+    {
+      "case_id": "multi_hop_graph-07",
+      "query": "retrieval benchmark harness와 최종 performance verification 관계를 graph로 확인",
+      "query_class": "MULTI_HOP_GRAPH",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "7daafba1-4321-4fc4-a1a7-aeef7325cf75"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Retrieval Performance Verification Summary 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [
+        "wikilink"
+      ],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Multi-hop cases require graph relation evidence in addition to retrieving reviewed target memories.",
+      "minimum_graph_distance": 2
+    },
+    {
+      "case_id": "multi_hop_graph-08",
+      "query": "Project Index에서 Rust Compute Migration plan index까지 연결된 근거",
+      "query_class": "MULTI_HOP_GRAPH",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "ac529f47-0aae-4364-911f-56d84b98822b"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Plan Index 2026-08-22"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [
+        "wikilink"
+      ],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Multi-hop cases require graph relation evidence in addition to retrieving reviewed target memories.",
+      "minimum_graph_distance": 2
+    },
+    {
+      "case_id": "multi_hop_graph-09",
+      "query": "Memory Steward contract와 compact lifecycle specification 사이 relation evidence",
+      "query_class": "MULTI_HOP_GRAPH",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "d7111f69-acac-4540-8dde-3a312b222472",
+        "588bc9a6-7fcf-40ff-b251-8f408225f45a"
+      ],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract",
+        "Memory Compact 품질 및 생명주기 Specification"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [
+        "wikilink"
+      ],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Multi-hop cases require graph relation evidence in addition to retrieving reviewed target memories.",
+      "minimum_graph_distance": 2
+    },
+    {
+      "case_id": "multi_hop_graph-10",
+      "query": "Graph-aware Context Retrieval 문서와 retrieval performance chain을 relation 기반으로 찾아줘",
+      "query_class": "MULTI_HOP_GRAPH",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "ctx_alexandria_neo4j_feature_05_graph_aware_context_20260803",
+        "7daafba1-4321-4fc4-a1a7-aeef7325cf75"
+      ],
+      "expected_titles": [
+        "Neo4j 기능 05 Graph-aware Context Retrieval",
+        "heterarchy-alexandria Retrieval Performance Verification Summary 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [
+        "wikilink"
+      ],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Multi-hop cases require graph relation evidence in addition to retrieving reviewed target memories.",
+      "minimum_graph_distance": 2
+    },
+    {
+      "case_id": "wrong_premise-01",
+      "query": "Alexandria는 전부 Rust로 rewrite됐지? 현재 architecture contract를 찾아줘",
+      "query_class": "WRONG_PREMISE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "67bcb6b4-981a-4b16-bd0e-d3461572d602"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20"
+      ],
+      "forbidden_context_ids": [
+        "619b8cd5-a854-4980-a50d-44bb6b40ebd1"
+      ],
+      "forbidden_titles": [
+        "heterarchy-alexandria Rust Compute Migration Implementation Progress 2026-08-22"
+      ],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Wrong-premise cases require recall of corrective current evidence instead of reinforcing an obsolete or false premise.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "wrong_premise-02",
+      "query": "Rust compute migration이 아직 implementation progress 단계지? 최신 상태 확인",
+      "query_class": "WRONG_PREMISE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "bc5153a0-6a46-40ac-9224-b93d8fc79c23"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Rust Compute Migration Runtime Seal 2026-08-23"
+      ],
+      "forbidden_context_ids": [
+        "619b8cd5-a854-4980-a50d-44bb6b40ebd1"
+      ],
+      "forbidden_titles": [
+        "heterarchy-alexandria Rust Compute Migration Implementation Progress 2026-08-22"
+      ],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Wrong-premise cases require recall of corrective current evidence instead of reinforcing an obsolete or false premise.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "wrong_premise-03",
+      "query": "retrieval quality는 Recall 0인 상태지? 수정된 benchmark evidence를 찾아줘",
+      "query_class": "WRONG_PREMISE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "c6249a0a-0341-406f-9f1c-67db7a6779bb"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Retrieval Quality Benchmark and Scope Correction 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Wrong-premise cases require recall of corrective current evidence instead of reinforcing an obsolete or false premise.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "wrong_premise-04",
+      "query": "Vector retrieval은 매 요청마다 FastEmbed model을 새로 초기화하지? 현재 최적화 기록",
+      "query_class": "WRONG_PREMISE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "62b3b67d-654e-4b0f-aacf-72392993713b"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria FastEmbed Singleton and Vector Retrieval Latency Optimization 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Wrong-premise cases require recall of corrective current evidence instead of reinforcing an obsolete or false premise.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "wrong_premise-05",
+      "query": "Neo4j graph evidence가 ranking score를 바꾸도록 설계했지? 실제 contract 확인",
+      "query_class": "WRONG_PREMISE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "ctx_alexandria_neo4j_feature_05_graph_aware_context_20260803"
+      ],
+      "expected_titles": [
+        "Neo4j 기능 05 Graph-aware Context Retrieval"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Wrong-premise cases require recall of corrective current evidence instead of reinforcing an obsolete or false premise.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "wrong_premise-06",
+      "query": "FTS query는 original match가 있어도 fallback variant를 끝까지 실행하지? 현재 규칙",
+      "query_class": "WRONG_PREMISE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "91cb4875-0946-4416-84fe-da180493280e"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria PostgreSQL FTS Ranking and Query Plan Optimization 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Wrong-premise cases require recall of corrective current evidence instead of reinforcing an obsolete or false premise.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "wrong_premise-07",
+      "query": "Alexandria project source는 아직 alexandria-hermes index가 canonical이지? 최신 index",
+      "query_class": "WRONG_PREMISE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "b6a3291c-9a4a-48a5-9121-4a6d3e15f23b"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Project Index"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Wrong-premise cases require recall of corrective current evidence instead of reinforcing an obsolete or false premise.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "wrong_premise-08",
+      "query": "Memory OS 계획은 Python을 없애는 전면 Rust rewrite 계획이지? 실제 roadmap",
+      "query_class": "WRONG_PREMISE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "f0cf847c-d29c-4bca-83fe-bcf79d245023"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Memory OS Evolution Plan Index 2026-08-24"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Wrong-premise cases require recall of corrective current evidence instead of reinforcing an obsolete or false premise.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "wrong_premise-09",
+      "query": "retrieval benchmark는 absolute latency threshold를 CI hard gate로 쓰지? 실제 verification",
+      "query_class": "WRONG_PREMISE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "7daafba1-4321-4fc4-a1a7-aeef7325cf75"
+      ],
+      "expected_titles": [
+        "heterarchy-alexandria Retrieval Performance Verification Summary 2026-08-21"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Wrong-premise cases require recall of corrective current evidence instead of reinforcing an obsolete or false premise.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "wrong_premise-10",
+      "query": "Memory Steward는 오래된 기억을 바로 hard delete하지? canonical safety contract",
+      "query_class": "WRONG_PREMISE",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [
+        "d7111f69-acac-4540-8dde-3a312b222472"
+      ],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract"
+      ],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 1,
+      "expected_abstention": false,
+      "rationale": "Wrong-premise cases require recall of corrective current evidence instead of reinforcing an obsolete or false premise.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "unknown_abstention-01",
+      "query": "heterarchy-alexandria에서 양자 텔레포테이션 캐시 프로토콜 v9 설계 문서를 찾아줘",
+      "query_class": "UNKNOWN_ABSTENTION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [],
+      "expected_titles": [],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 0,
+      "expected_abstention": true,
+      "rationale": "No reviewed Alexandria memory should satisfy this deliberately out-of-domain fictional query; retrieval should abstain.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "unknown_abstention-02",
+      "query": "Alexandria의 Mars colony oxygen scheduler 운영 계약 어디 있어?",
+      "query_class": "UNKNOWN_ABSTENTION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [],
+      "expected_titles": [],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 0,
+      "expected_abstention": true,
+      "rationale": "No reviewed Alexandria memory should satisfy this deliberately out-of-domain fictional query; retrieval should abstain.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "unknown_abstention-03",
+      "query": "heterarchy-alexandria에 저장된 COBOL payroll migration final report를 보여줘",
+      "query_class": "UNKNOWN_ABSTENTION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [],
+      "expected_titles": [],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 0,
+      "expected_abstention": true,
+      "rationale": "No reviewed Alexandria memory should satisfy this deliberately out-of-domain fictional query; retrieval should abstain.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "unknown_abstention-04",
+      "query": "Memory Steward의 lunar mining permit reconciliation 규칙을 찾아줘",
+      "query_class": "UNKNOWN_ABSTENTION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [],
+      "expected_titles": [],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 0,
+      "expected_abstention": true,
+      "rationale": "No reviewed Alexandria memory should satisfy this deliberately out-of-domain fictional query; retrieval should abstain.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "unknown_abstention-05",
+      "query": "Rust compute에서 photonic DNA index accelerator 계획을 recall해줘",
+      "query_class": "UNKNOWN_ABSTENTION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [],
+      "expected_titles": [],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 0,
+      "expected_abstention": true,
+      "rationale": "No reviewed Alexandria memory should satisfy this deliberately out-of-domain fictional query; retrieval should abstain.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "unknown_abstention-06",
+      "query": "Alexandria가 관리하는 submarine reactor maintenance specification을 찾아줘",
+      "query_class": "UNKNOWN_ABSTENTION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [],
+      "expected_titles": [],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 0,
+      "expected_abstention": true,
+      "rationale": "No reviewed Alexandria memory should satisfy this deliberately out-of-domain fictional query; retrieval should abstain.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "unknown_abstention-07",
+      "query": "Neo4j graph에 등록된 medieval tax ledger ingestion contract를 보여줘",
+      "query_class": "UNKNOWN_ABSTENTION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [],
+      "expected_titles": [],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 0,
+      "expected_abstention": true,
+      "rationale": "No reviewed Alexandria memory should satisfy this deliberately out-of-domain fictional query; retrieval should abstain.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "unknown_abstention-08",
+      "query": "heterarchy-alexandria의 quantum llama routing benchmark 결과가 뭐였지?",
+      "query_class": "UNKNOWN_ABSTENTION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [],
+      "expected_titles": [],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 0,
+      "expected_abstention": true,
+      "rationale": "No reviewed Alexandria memory should satisfy this deliberately out-of-domain fictional query; retrieval should abstain.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "unknown_abstention-09",
+      "query": "Memory OS에 있는 interstellar archive compression policy를 찾아줘",
+      "query_class": "UNKNOWN_ABSTENTION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [],
+      "expected_titles": [],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 0,
+      "expected_abstention": true,
+      "rationale": "No reviewed Alexandria memory should satisfy this deliberately out-of-domain fictional query; retrieval should abstain.",
+      "minimum_graph_distance": 0
+    },
+    {
+      "case_id": "unknown_abstention-10",
+      "query": "Alexandria의 fictional phoenix protocol incident report를 recall해줘",
+      "query_class": "UNKNOWN_ABSTENTION",
+      "project": "heterarchy-alexandria",
+      "include_scopes": [
+        "PROJECT",
+        "GLOBAL"
+      ],
+      "include_lifecycle_statuses": [],
+      "expected_context_ids": [],
+      "expected_titles": [],
+      "forbidden_context_ids": [],
+      "forbidden_titles": [],
+      "required_graph_relations": [],
+      "minimum_expected_matches": 0,
+      "expected_abstention": true,
+      "rationale": "No reviewed Alexandria memory should satisfy this deliberately out-of-domain fictional query; retrieval should abstain.",
+      "minimum_graph_distance": 0
+    }
+  ]
+}

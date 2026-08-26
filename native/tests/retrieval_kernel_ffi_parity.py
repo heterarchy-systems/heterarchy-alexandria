@@ -35,6 +35,16 @@ class NativeModule(Protocol):
         limit: int,
     ) -> list[tuple[str, int, int | None, int | None, float]]: ...
 
+    def retrieval_merge_hybrid_indices_with_trace(
+        self,
+        fts_context_ids: list[str],
+        vector_context_ids: list[str],
+        limit: int,
+    ) -> tuple[
+        list[tuple[str, int, int | None, int | None, float]],
+        tuple[int, int, int, int, int, int, int, int, int, int, int],
+    ]: ...
+
 
 def main() -> int:
     corpus = _load_json_object(CORPUS_PATH)
@@ -88,6 +98,22 @@ def main() -> int:
                 fts_matches=_require_list(case, "fts_matches"),
                 vector_matches=_require_list(case, "vector_matches"),
             )
+            traced_compact, trace = native.retrieval_merge_hybrid_indices_with_trace(
+                _context_ids(_require_list(case, "fts_matches")),
+                _context_ids(_require_list(case, "vector_matches")),
+                _require_int(case, "limit"),
+            )
+            call_count += 1
+            if traced_compact != compact:
+                raise AssertionError(
+                    f"traced compact fusion result drift: {traced_compact!r} != {compact!r}"
+                )
+            _assert_compact_fusion_trace(
+                trace,
+                compact=compact,
+                fts_matches=_require_list(case, "fts_matches"),
+                vector_matches=_require_list(case, "vector_matches"),
+            )
 
         for raw_case in _require_list(corpus, "best_match_cases"):
             case = _require_object(raw_case)
@@ -120,6 +146,7 @@ def main() -> int:
         f"candidate_limit={len(_require_list(corpus, 'candidate_limit_cases'))} "
         f"fusion={len(_require_list(corpus, 'fusion_cases'))} "
         f"compact_fusion={len(_require_list(corpus, 'fusion_cases'))} "
+        f"compact_trace_fusion={len(_require_list(corpus, 'fusion_cases'))} "
         f"best={len(_require_list(corpus, 'best_match_cases'))} "
         f"cosine={len(_require_list(corpus, 'cosine_cases'))} "
         f"call_count={call_count}"
@@ -189,6 +216,38 @@ def _assert_compact_fusion(
     if actual != expected_rows:
         raise AssertionError(
             f"compact merge_hybrid real-extension mismatch: {actual!r} != {expected_rows!r}"
+        )
+
+
+def _assert_compact_fusion_trace(
+    actual: tuple[int, int, int, int, int, int, int, int, int, int, int],
+    *,
+    compact: list[tuple[str, int, int | None, int | None, float]],
+    fts_matches: list[JsonValue],
+    vector_matches: list[JsonValue],
+) -> None:
+    fts_ids = _context_ids(fts_matches)
+    vector_ids = _context_ids(vector_matches)
+    fts_unique = set(fts_ids)
+    vector_unique = set(vector_ids)
+    representative_fts = sum(1 for row in compact if row[0] == "fts")
+    representative_vector = sum(1 for row in compact if row[0] == "vector")
+    expected = (
+        len(fts_ids),
+        len(vector_ids),
+        len(fts_unique),
+        len(vector_unique),
+        len(fts_ids) - len(fts_unique),
+        len(vector_ids) - len(vector_unique),
+        len(fts_unique | vector_unique),
+        len(fts_unique & vector_unique),
+        len(compact),
+        representative_fts,
+        representative_vector,
+    )
+    if actual != expected:
+        raise AssertionError(
+            f"compact merge_hybrid trace mismatch: {actual!r} != {expected!r}"
         )
 
 

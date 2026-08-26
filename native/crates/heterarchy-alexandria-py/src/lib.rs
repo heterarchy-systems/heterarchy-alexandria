@@ -4,17 +4,25 @@
 
 mod bulk_embedding_runtime_wire;
 mod bulk_embedding_wire;
+mod context_reindex_manifest_wire;
 mod document_index_wire;
 pub mod embedding_runtime_registry;
 mod fastembed_runtime;
+mod graph_traversal_wire;
+mod raw_data_integrity_compact;
+mod raw_data_integrity_wire;
 mod reconciliation_candidate_wire;
 mod retrieval_kernel_compact;
 mod retrieval_kernel_wire;
 
 use bulk_embedding_runtime_wire::run_bulk_embedding_payload;
 use bulk_embedding_wire::{finalize_bulk_embedding_payload, prepare_bulk_embedding_payload};
+use context_reindex_manifest_wire::compute_context_reindex_manifest_payload;
 use document_index_wire::compute_document_index_batch_payload;
 use fastembed_runtime::infer_query_input;
+use graph_traversal_wire::{
+    compute_graph_candidate_selection_payload, compute_graph_traversal_payload,
+};
 use heterarchy_alexandria_core::ComputeContractVersion;
 use heterarchy_alexandria_core::document_analysis::{
     DocumentBatch, DocumentId, DocumentInput, RelativeVaultPath, analyze_batch,
@@ -38,9 +46,11 @@ use heterarchy_alexandria_core::reference_extraction::{
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyBytes;
+use raw_data_integrity_wire::scan_raw_data_integrity_payload;
 use reconciliation_candidate_wire::compute_reconciliation_candidates_payload;
 use retrieval_kernel_compact::{
-    retrieval_hybrid_candidate_limit, retrieval_merge_hybrid_indices, retrieval_rank_best_indices,
+    retrieval_hybrid_candidate_limit, retrieval_merge_hybrid_indices,
+    retrieval_merge_hybrid_indices_with_trace, retrieval_rank_best_indices,
 };
 use retrieval_kernel_wire::compute_retrieval_kernel_payload;
 use serde::Deserialize;
@@ -244,6 +254,26 @@ fn compute_contract_version() -> u16 {
 }
 
 #[pyfunction]
+fn native_package_version() -> &'static str {
+    env!("CARGO_PKG_VERSION")
+}
+
+#[pyfunction]
+fn native_git_revision() -> &'static str {
+    env!("HETERARCHY_ALEXANDRIA_NATIVE_GIT_REVISION")
+}
+
+#[pyfunction]
+fn native_build_profile() -> &'static str {
+    env!("HETERARCHY_ALEXANDRIA_NATIVE_BUILD_PROFILE")
+}
+
+#[pyfunction]
+fn feature_authority_schema_version() -> u16 {
+    1
+}
+
+#[pyfunction]
 fn analyze_document_batch_json<'python>(
     python: Python<'python>,
     payload: &[u8],
@@ -263,6 +293,18 @@ fn compute_document_index_batch_json<'python>(
     let owned_payload = payload.to_vec();
     let encoded = python
         .detach(move || compute_document_index_batch_payload(&owned_payload))
+        .map_err(PyValueError::new_err)?;
+    Ok(PyBytes::new(python, &encoded))
+}
+
+#[pyfunction]
+fn scan_raw_data_integrity_batch_json<'python>(
+    python: Python<'python>,
+    payload: &[u8],
+) -> PyResult<Bound<'python, PyBytes>> {
+    let owned_payload = payload.to_vec();
+    let encoded = python
+        .detach(move || scan_raw_data_integrity_payload(&owned_payload))
         .map_err(PyValueError::new_err)?;
     Ok(PyBytes::new(python, &encoded))
 }
@@ -311,6 +353,30 @@ fn compute_graph_json<'python>(
     let owned_payload = payload.to_vec();
     let encoded = python
         .detach(move || compute_graph_payload(&owned_payload))
+        .map_err(PyValueError::new_err)?;
+    Ok(PyBytes::new(python, &encoded))
+}
+
+#[pyfunction]
+fn traverse_graph_projection_json<'python>(
+    python: Python<'python>,
+    payload: &[u8],
+) -> PyResult<Bound<'python, PyBytes>> {
+    let owned_payload = payload.to_vec();
+    let encoded = python
+        .detach(move || compute_graph_traversal_payload(&owned_payload))
+        .map_err(PyValueError::new_err)?;
+    Ok(PyBytes::new(python, &encoded))
+}
+
+#[pyfunction]
+fn select_graph_projection_candidates_json<'python>(
+    python: Python<'python>,
+    payload: &[u8],
+) -> PyResult<Bound<'python, PyBytes>> {
+    let owned_payload = payload.to_vec();
+    let encoded = python
+        .detach(move || compute_graph_candidate_selection_payload(&owned_payload))
         .map_err(PyValueError::new_err)?;
     Ok(PyBytes::new(python, &encoded))
 }
@@ -371,6 +437,18 @@ fn compute_retrieval_kernel_json<'python>(
     let owned_payload = payload.to_vec();
     let encoded = python
         .detach(move || compute_retrieval_kernel_payload(&owned_payload))
+        .map_err(PyValueError::new_err)?;
+    Ok(PyBytes::new(python, &encoded))
+}
+
+#[pyfunction]
+fn compute_context_reindex_manifest_json<'python>(
+    python: Python<'python>,
+    payload: &[u8],
+) -> PyResult<Bound<'python, PyBytes>> {
+    let owned_payload = payload.to_vec();
+    let encoded = python
+        .detach(move || compute_context_reindex_manifest_payload(&owned_payload))
         .map_err(PyValueError::new_err)?;
     Ok(PyBytes::new(python, &encoded))
 }
@@ -739,7 +817,22 @@ fn relative_path(value: String, error_code: &str) -> Result<RelativeVaultPath, S
 #[pymodule]
 fn heterarchy_alexandria_native(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(pyo3::wrap_pyfunction!(compute_contract_version, module)?)?;
+    module.add_function(pyo3::wrap_pyfunction!(native_package_version, module)?)?;
+    module.add_function(pyo3::wrap_pyfunction!(native_git_revision, module)?)?;
+    module.add_function(pyo3::wrap_pyfunction!(native_build_profile, module)?)?;
+    module.add_function(pyo3::wrap_pyfunction!(
+        feature_authority_schema_version,
+        module
+    )?)?;
     module.add_function(pyo3::wrap_pyfunction!(analyze_document_batch_json, module)?)?;
+    module.add_function(pyo3::wrap_pyfunction!(
+        scan_raw_data_integrity_batch_json,
+        module
+    )?)?;
+    module.add_function(pyo3::wrap_pyfunction!(
+        raw_data_integrity_compact::scan_raw_data_integrity_compact,
+        module
+    )?)?;
     module.add_function(pyo3::wrap_pyfunction!(
         compute_document_index_batch_json,
         module
@@ -751,6 +844,14 @@ fn heterarchy_alexandria_native(module: &Bound<'_, PyModule>) -> PyResult<()> {
     )?)?;
     module.add_function(pyo3::wrap_pyfunction!(compute_hash_batch_json, module)?)?;
     module.add_function(pyo3::wrap_pyfunction!(compute_graph_json, module)?)?;
+    module.add_function(pyo3::wrap_pyfunction!(
+        traverse_graph_projection_json,
+        module
+    )?)?;
+    module.add_function(pyo3::wrap_pyfunction!(
+        select_graph_projection_candidates_json,
+        module
+    )?)?;
     module.add_function(pyo3::wrap_pyfunction!(
         prepare_bulk_embedding_batch_json,
         module
@@ -776,7 +877,15 @@ fn heterarchy_alexandria_native(module: &Bound<'_, PyModule>) -> PyResult<()> {
         retrieval_merge_hybrid_indices,
         module
     )?)?;
+    module.add_function(pyo3::wrap_pyfunction!(
+        retrieval_merge_hybrid_indices_with_trace,
+        module
+    )?)?;
     module.add_function(pyo3::wrap_pyfunction!(retrieval_rank_best_indices, module)?)?;
+    module.add_function(pyo3::wrap_pyfunction!(
+        compute_context_reindex_manifest_json,
+        module
+    )?)?;
     module.add_function(pyo3::wrap_pyfunction!(
         compute_reconciliation_candidates_json,
         module
@@ -791,11 +900,21 @@ mod tests {
     use super::{
         analyze_document_batch_payload, chunk_markdown_batch_payload, compute_contract_version,
         compute_graph_payload, compute_hash_batch_payload, extract_reference_batch_payload,
+        feature_authority_schema_version, native_build_profile, native_git_revision,
+        native_package_version,
     };
 
     #[test]
     fn adapter_exposes_core_contract_version() {
         assert_eq!(compute_contract_version(), 1);
+    }
+
+    #[test]
+    fn adapter_exposes_runtime_provenance_contract() {
+        assert!(!native_package_version().is_empty());
+        assert!(!native_git_revision().is_empty());
+        assert!(!native_build_profile().is_empty());
+        assert_eq!(feature_authority_schema_version(), 1);
     }
 
     #[test]

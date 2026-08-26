@@ -10,6 +10,7 @@ from app.memory.domain.event_enum.context_enums import (
     ContextKind,
     ContextScope,
     ContextSourceType,
+    MemoryFunction,
 )
 from app.obsidian.domain.event_enum.obsidian_enums import (
     ObsidianContextLifecycleStatus,
@@ -47,6 +48,7 @@ class ObsidianContextIdentity:
     supersedes_context_id: str | None
     superseded_by_context_id: str | None
     context_kind: ContextKind
+    memory_function: MemoryFunction | None
     created_at: datetime | None
     updated_at: datetime | None
     recorded_at: datetime | None = None

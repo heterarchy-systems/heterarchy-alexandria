@@ -64,6 +64,7 @@ async def search_contexts(
         user_id=request.user_id,
         session_id=request.session_id,
         include_lifecycle_statuses=request.include_lifecycle_statuses,
+        prefer_memory_functions=request.prefer_memory_functions,
     )
     response = ContextPackResponse.model_validate(pack_payload(pack))
     return response

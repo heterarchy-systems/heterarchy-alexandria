@@ -7,6 +7,9 @@ from datetime import UTC, datetime
 from app.obsidian.application.librarian.delegation.obsidian_librarian_delegation import (
     ObsidianLibrarianDelegateService,
 )
+from app.obsidian.application.notes.lifecycle.obsidian_context_reindex_manifest import (
+    ContextReindexManifestValidator,
+)
 from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.obsidian.domain.contracts.obsidian_contracts import (
     ObsidianVaultMoveApplyRequest,
@@ -40,6 +43,7 @@ class ObsidianLibrarianJobService:
         self,
         database: Database,
         vault_config_store: ObsidianVaultConfigStore,
+        context_reindex_manifest_validator: ContextReindexManifestValidator,
         delegate_service: ObsidianLibrarianDelegateService | None = None,
     ) -> None:
         """Initialize the best-effort in-process job registry.
@@ -47,10 +51,12 @@ class ObsidianLibrarianJobService:
         Args:
             database: Application database coordinator used to open owned job sessions.
             vault_config_store: Runtime Obsidian vault configuration store.
+            context_reindex_manifest_validator: Cross-note manifest validation authority.
             delegate_service: Optional provider-backed librarian delegate service.
         """
         self._database = database
         self._vault_config_store = vault_config_store
+        self._context_reindex_manifest_validator = context_reindex_manifest_validator
         self._delegate_service = delegate_service
         self._jobs: dict[str, ObsidianLibrarianJob] = {}
 
@@ -123,6 +129,9 @@ class ObsidianLibrarianJobService:
                 obsidian_service = ObsidianService(
                     repository=SqlAlchemyObsidianIndexRepository(session=session),
                     vault_config_store=self._vault_config_store,
+                    context_reindex_manifest_validator=(
+                        self._context_reindex_manifest_validator
+                    ),
                     delegate_service=self._delegate_service,
                 )
                 report = await obsidian_service.apply_vault_moves(request)

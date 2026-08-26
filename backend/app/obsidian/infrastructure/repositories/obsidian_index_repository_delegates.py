@@ -141,6 +141,22 @@ class ObsidianIndexQueryRepositoryDelegate:
         """
         return await self._query_store.count_by_status()
 
+    async def list_indexed_notes(self) -> tuple[ObsidianNote, ...]:
+        """Return all indexed managed notes in deterministic order.
+
+        Returns:
+            Immutable sequence delegated from the focused query store.
+        """
+        return await self._query_store.list_indexed_notes()
+
+    async def projection_source_revision(self) -> str:
+        """Return the current indexed-note projection source revision.
+
+        Returns:
+            Deterministic revision token delegated from the focused query store.
+        """
+        return await self._query_store.projection_source_revision()
+
 
 class ObsidianIndexErrorRepositoryDelegate:
     """Delegate structured index error persistence."""

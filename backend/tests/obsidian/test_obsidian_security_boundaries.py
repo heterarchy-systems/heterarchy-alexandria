@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import os
-
 from pathlib import Path
 
 import anyio
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.obsidian.application.notes.frontmatter.obsidian_frontmatter_redaction import (
     frontmatter_contains_secret_field,
     redacted_frontmatter,
@@ -20,11 +21,13 @@ from app.obsidian.domain.event_enum.obsidian_enums import (
     AlexandriaNoteType,
     ObsidianIndexErrorCode,
 )
+from app.obsidian.infrastructure.markdown.native_context_reindex_manifest import (
+    create_native_context_reindex_manifest_validator,
+)
 from app.obsidian.infrastructure.repositories.obsidian_index_repository import (
     SqlAlchemyObsidianIndexRepository,
 )
 from app.shared.infrastructure.database import Database
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def _service(tmp_path: Path) -> tuple[Database, AsyncSession, ObsidianService]:
@@ -38,6 +41,7 @@ async def _service(tmp_path: Path) -> tuple[Database, AsyncSession, ObsidianServ
         repository=SqlAlchemyObsidianIndexRepository(session=session),
         vault_path=str(tmp_path / "vault"),
         alexandria_root="Alexandria",
+        context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
     )
     return database, session, service
 

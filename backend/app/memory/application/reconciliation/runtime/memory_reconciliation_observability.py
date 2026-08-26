@@ -164,10 +164,27 @@ def _plan_attributes(
     Returns:
         JSONObject result produced by plan attributes.
     """
+    evidence = plan.candidate_evidence
+    metrics = None if evidence is None else evidence.metrics
     return {
         "plan_id": plan.plan_id,
         "candidate_id": plan.candidate.candidate_id,
         "compared_context_count": len(plan.decisions),
+        "candidate_compute_authority": (
+            None if evidence is None else evidence.compute_authority
+        ),
+        "candidate_comparison_pair_count": (
+            None if metrics is None else metrics.comparison_pairs
+        ),
+        "candidate_qualifying_pair_count": (
+            None if metrics is None else metrics.qualifying_pairs
+        ),
+        "candidate_retained_pair_count": (
+            None if metrics is None else metrics.retained_pairs
+        ),
+        "candidate_exact_duplicate_group_count": (
+            None if metrics is None else metrics.exact_duplicate_groups
+        ),
         "selected_relation": plan.primary_decision.value,
         "confidence": None if selected is None else selected.confidence,
         "decision_source": (

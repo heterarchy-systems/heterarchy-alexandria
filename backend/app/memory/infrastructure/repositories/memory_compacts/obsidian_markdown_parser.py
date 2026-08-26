@@ -153,6 +153,16 @@ def _compact_from_frontmatter(
             reviewed_at=_optional_datetime(
                 _frontmatter_text(frontmatter, "reviewed_at")
             ),
+            source_set_hash=_frontmatter_text(frontmatter, "source_set_hash"),
+            compaction_policy_version=_frontmatter_text(
+                frontmatter, "compaction_policy_version"
+            ),
+            generation_revision=_optional_int(
+                _frontmatter_text(frontmatter, "generation_revision")
+            ),
+            generated_at=_optional_datetime(
+                _frontmatter_text(frontmatter, "generated_at")
+            ),
             metadata_warnings=(
                 ("memory_compact_timestamp_missing",) if updated_at_missing else ()
             ),

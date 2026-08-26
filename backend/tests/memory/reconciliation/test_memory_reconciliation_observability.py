@@ -5,13 +5,19 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime
 
+from pytest import LogCaptureFixture
+
 from app.memory.application.reconciliation.runtime.memory_reconciliation_observability import (
     log_reconciliation_apply,
     log_reconciliation_preview,
 )
+from app.memory.domain.contracts.memory_reconciliation_candidate_compute_contracts import (
+    ReconciliationCandidateComputeMetrics,
+)
 from app.memory.domain.entities.memory_reconciliation import (
     CanonicalClaim,
     MemoryCandidate,
+    MemoryEvolutionCandidateEvidence,
     MemoryReconciliationAction,
     MemoryReconciliationPlan,
     MemoryReconciliationResult,
@@ -27,7 +33,6 @@ from app.memory.domain.event_enum.reconciliation_enums import (
     MemoryReconciliationStatus,
     MemoryRelationType,
 )
-from pytest import LogCaptureFixture
 
 NOW = datetime(2026, 7, 25, tzinfo=UTC)
 SECRET_BODY = "heterarchy-alexandria secret memory body that must never enter logs."
@@ -106,6 +111,19 @@ def _plan() -> MemoryReconciliationPlan:
         idempotency_key="key-1",
         status=MemoryReconciliationStatus.REVIEW_REQUIRED,
         created_at=NOW,
+        candidate_evidence=MemoryEvolutionCandidateEvidence(
+            compute_authority="rust:reconciliation_candidates:v1",
+            candidate_item_id="candidate-1",
+            compared_context_ids=("obsidian:existing-1",),
+            candidate_pairs=(),
+            metrics=ReconciliationCandidateComputeMetrics(
+                input_items=2,
+                comparison_pairs=1,
+                qualifying_pairs=1,
+                retained_pairs=1,
+                exact_duplicate_groups=0,
+            ),
+        ),
     )
 
 
@@ -151,6 +169,11 @@ def test_preview_and_apply_logs_are_structured_and_content_safe(
         "plan_id": "plan-1",
         "candidate_id": "candidate-1",
         "compared_context_count": 1,
+        "candidate_compute_authority": "rust:reconciliation_candidates:v1",
+        "candidate_comparison_pair_count": 1,
+        "candidate_qualifying_pair_count": 1,
+        "candidate_retained_pair_count": 1,
+        "candidate_exact_duplicate_group_count": 0,
         "selected_relation": "CONTRADICTS",
         "confidence": 0.91,
         "decision_source": "DETERMINISTIC",

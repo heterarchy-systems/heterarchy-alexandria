@@ -1,3 +1,6 @@
+ARG ALEXANDRIA_BUILD_REVISION
+ARG ALEXANDRIA_BUILD_TIMESTAMP=unknown
+
 FROM rust:1.97-slim-trixie AS native-builder
 
 WORKDIR /src
@@ -20,13 +23,37 @@ COPY native/Cargo.toml native/Cargo.lock ./native/
 COPY native/crates ./native/crates
 COPY native/xtask ./native/xtask
 
+# Warm the complete native dependency graph, including the downloaded ORT artifact,
+# without tying expensive dependency layers to deployment provenance.
 RUN cargo build \
     --release \
     --locked \
     --manifest-path native/Cargo.toml \
     -p heterarchy-alexandria-py
 
+# Only the final PyO3 crate relink depends on the source/deployment revision.
+# Missing provenance is a build failure instead of silently producing an unsealed image.
+ARG ALEXANDRIA_BUILD_REVISION
+RUN case "${ALEXANDRIA_BUILD_REVISION}" in \
+        ""|unknown|unset|none) echo "ALEXANDRIA_BUILD_REVISION must identify the built source tree" >&2; exit 2 ;; \
+    esac \
+    && ALEXANDRIA_BUILD_REVISION="${ALEXANDRIA_BUILD_REVISION}" cargo build \
+        --release \
+        --locked \
+        --manifest-path native/Cargo.toml \
+        -p heterarchy-alexandria-py
+
 FROM python:3.13-slim-trixie AS runtime
+
+ARG ALEXANDRIA_BUILD_REVISION
+ARG ALEXANDRIA_BUILD_TIMESTAMP
+
+LABEL org.opencontainers.image.revision=${ALEXANDRIA_BUILD_REVISION}
+LABEL org.opencontainers.image.created=${ALEXANDRIA_BUILD_TIMESTAMP}
+
+ENV SERVICE_RUNTIME_REVISION=${ALEXANDRIA_BUILD_REVISION} \
+    SERVICE_RUNTIME_EXPECTED_REVISION=${ALEXANDRIA_BUILD_REVISION} \
+    SERVICE_RUNTIME_BUILD_TIMESTAMP=${ALEXANDRIA_BUILD_TIMESTAMP}
 
 WORKDIR /app
 

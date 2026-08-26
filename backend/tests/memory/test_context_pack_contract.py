@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
+
 from app.memory.application.retrieval.context_pack import (
     MAX_CONTEXT_PACK_CHARACTERS,
     build_context_pack,
@@ -45,6 +46,7 @@ def _match(
     status: ContextStorageStatus = ContextStorageStatus.SAVED,
     fts_score: float | None = 1.0,
     vector_score: float | None = None,
+    graph_score: float | None = None,
     evidence_refs: list[str] | None = None,
     lifecycle_status: str | None = None,
     retrieval_source: str | None = None,
@@ -112,27 +114,32 @@ def _match(
         score=score,
         fts_score=fts_score,
         vector_score=vector_score,
+        graph_score=graph_score,
         why_retrieved="Matched the requested memory.",
     )
 
 
 @pytest.mark.parametrize(
-    ("fts_score", "vector_score", "expected_strategy"),
+    ("fts_score", "vector_score", "graph_score", "expected_strategy"),
     [
-        (1.0, None, RagStrategy.FTS_ONLY),
-        (None, 0.8, RagStrategy.VECTOR_ONLY),
-        (0.7, 0.8, RagStrategy.HYBRID),
+        (1.0, None, None, RagStrategy.FTS_ONLY),
+        (None, 0.8, None, RagStrategy.VECTOR_ONLY),
+        (0.7, 0.8, None, RagStrategy.HYBRID),
+        (None, None, 0.9, RagStrategy.AUTO),
+        (0.7, 0.8, 0.9, RagStrategy.AUTO),
     ],
 )
 def test_search_match_payload_exposes_recall_metadata(
     fts_score: float | None,
     vector_score: float | None,
+    graph_score: float | None,
     expected_strategy: RagStrategy,
 ) -> None:
     match = _match(
         "ctx-metadata",
         fts_score=fts_score,
         vector_score=vector_score,
+        graph_score=graph_score,
     )
 
     payload = match_payload(match)

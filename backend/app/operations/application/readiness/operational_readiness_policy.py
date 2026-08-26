@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from app.memory.domain.entities.context_projection_integrity import (
+    ContextProjectionIntegritySnapshot,
+)
 from app.memory.domain.entities.context_read_models import RagDependencyHealth
 from app.memory.domain.entities.memory_reconciliation_diagnostics import (
     MemoryReconciliationDiagnostics,
@@ -17,6 +20,12 @@ from app.operations.domain.entities.operational_readiness import (
     OperationalRagSnapshot,
     OperationalReconciliationSnapshot,
     OperationalVaultSnapshot,
+)
+from app.operations.domain.entities.operational_retrieval_canary import (
+    OperationalRetrievalCanarySnapshot,
+)
+from app.operations.domain.entities.operational_runtime_provenance import (
+    OperationalRuntimeProvenanceSnapshot,
 )
 from app.operations.domain.event_enum.operational_readiness_enums import (
     OperationalReadinessStatus,
@@ -124,6 +133,9 @@ def _warnings(
     database: OperationalDatabaseSnapshot,
     vault: OperationalVaultSnapshot,
     rag: OperationalRagSnapshot,
+    runtime: OperationalRuntimeProvenanceSnapshot,
+    retrieval_canary: OperationalRetrievalCanarySnapshot,
+    projection_integrity: ContextProjectionIntegritySnapshot,
     reconciliation: OperationalReconciliationSnapshot,
 ) -> list[str]:
     """Execute warnings.
@@ -132,6 +144,9 @@ def _warnings(
         database: Database used by this operation.
         vault: Vault used by this operation.
         rag: Rag used by this operation.
+        runtime: Runtime build provenance used by this operation.
+        retrieval_canary: Real retrieval-path canary results.
+        projection_integrity: Persisted full Obsidian-to-Context projection state.
         reconciliation: Reconciliation used by this operation.
 
     Returns:
@@ -188,6 +203,37 @@ def _warnings(
         warnings.append("memory_reconciliation_failed_results_present")
     if reconciliation.hard_delete_results > 0:
         warnings.append("memory_reconciliation_hard_delete_detected")
+    if runtime.checked:
+        warnings.extend(
+            warning
+            for warning in runtime.warnings
+            if warning
+            not in {
+                "runtime_provenance_unverified",
+                "runtime_revision_unverified",
+                "native_revision_unverified",
+            }
+        )
+    if retrieval_canary.checked:
+        if not retrieval_canary.fts.ok:
+            warnings.append("retrieval_canary_fts_only_failed")
+        if not retrieval_canary.vector.ok:
+            warnings.append("retrieval_canary_vector_only_failed")
+        if not retrieval_canary.hybrid.ok:
+            warnings.append("retrieval_canary_hybrid_failed")
+    if projection_integrity.checked:
+        if not projection_integrity.available:
+            warnings.append("projection_integrity_snapshot_missing")
+        elif projection_integrity.invalid_count > 0:
+            warnings.append("projection_integrity_invalid_notes")
+        if (
+            projection_integrity.available
+            and projection_integrity.source_revision
+            != projection_integrity.current_source_revision
+        ):
+            warnings.append("projection_integrity_source_revision_mismatch")
+        elif projection_integrity.available and projection_integrity.stale:
+            warnings.append("projection_integrity_snapshot_stale")
     return warnings
 
 
@@ -215,6 +261,20 @@ def _blockers(warnings: list[str]) -> list[str]:
         "memory_reconciliation_partial_apply_present",
         "memory_reconciliation_failed_results_present",
         "memory_reconciliation_hard_delete_detected",
+        "runtime_expected_revision_missing",
+        "runtime_revision_missing",
+        "runtime_revision_mismatch",
+        "native_provenance_unavailable",
+        "native_revision_missing",
+        "native_revision_mismatch",
+        "native_feature_authority_schema_mismatch",
+        "retrieval_canary_fts_only_failed",
+        "retrieval_canary_vector_only_failed",
+        "retrieval_canary_hybrid_failed",
+        "projection_integrity_snapshot_missing",
+        "projection_integrity_snapshot_stale",
+        "projection_integrity_source_revision_mismatch",
+        "projection_integrity_invalid_notes",
     }
     return [warning for warning in warnings if warning in blocking_codes]
 
@@ -240,6 +300,30 @@ def _status(
     """
     if active_recovery_run_id is not None:
         return OperationalReadinessStatus.RECOVERING
+    warning_set = set(warnings)
+    if warning_set & {
+        "runtime_expected_revision_missing",
+        "runtime_revision_missing",
+        "runtime_revision_mismatch",
+        "native_provenance_unavailable",
+        "native_revision_missing",
+        "native_revision_mismatch",
+        "native_feature_authority_schema_mismatch",
+    }:
+        return OperationalReadinessStatus.DEGRADED_RUNTIME_DRIFT
+    if warning_set & {
+        "retrieval_canary_fts_only_failed",
+        "retrieval_canary_vector_only_failed",
+        "retrieval_canary_hybrid_failed",
+    }:
+        return OperationalReadinessStatus.DEGRADED_RETRIEVAL_CANARY
+    if warning_set & {
+        "projection_integrity_snapshot_missing",
+        "projection_integrity_snapshot_stale",
+        "projection_integrity_source_revision_mismatch",
+        "projection_integrity_invalid_notes",
+    }:
+        return OperationalReadinessStatus.DEGRADED_PROJECTION_INTEGRITY
     blockers = _blockers(warnings)
     if blockers:
         return OperationalReadinessStatus.BLOCKED
@@ -307,6 +391,29 @@ def _next_actions(
         actions.append("inspect_memory_reconciliation_failures")
     if "memory_reconciliation_hard_delete_detected" in warning_set:
         actions.append("audit_memory_reconciliation_integrity")
+    if warning_set & {
+        "runtime_expected_revision_missing",
+        "runtime_revision_missing",
+        "runtime_revision_mismatch",
+        "native_provenance_unavailable",
+        "native_revision_missing",
+        "native_revision_mismatch",
+        "native_feature_authority_schema_mismatch",
+    }:
+        actions.append("rebuild_and_redeploy_runtime")
+    if warning_set & {
+        "retrieval_canary_fts_only_failed",
+        "retrieval_canary_vector_only_failed",
+        "retrieval_canary_hybrid_failed",
+    }:
+        actions.append("inspect_retrieval_canary")
+    if warning_set & {
+        "projection_integrity_snapshot_missing",
+        "projection_integrity_snapshot_stale",
+        "projection_integrity_source_revision_mismatch",
+        "projection_integrity_invalid_notes",
+    }:
+        actions.append("refresh_projection_integrity")
     return actions
 
 

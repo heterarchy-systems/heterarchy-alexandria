@@ -1,6 +1,7 @@
 //! Deterministic graph projection, diff, and bounded algorithm compute.
 
 mod algorithms;
+mod candidate_selection;
 mod projection;
 
 use std::collections::BTreeSet;
@@ -21,6 +22,7 @@ const MAX_REQUESTS: usize = 100_000;
 const MAX_BATCH_SIZE: usize = 1_000_000;
 const MAX_TRAVERSAL_DEPTH: usize = 1_024;
 const MAX_TRAVERSAL_RESULTS: usize = 1_000_000;
+const MAX_SELECTED_GRAPH_CANDIDATES: usize = 1_024;
 
 /// Current relational-index status supplied by the Python effect boundary.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -454,6 +456,62 @@ pub struct GraphTraversalResult {
     pub truncated: bool,
 }
 
+/// One Rust-owned shortest-path hop supporting a selected retrieval candidate.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct GraphCandidatePathHop {
+    /// Stable projected edge identity used for this hop.
+    pub edge_id: String,
+    /// Traversal predecessor note identity.
+    pub source_note_id: String,
+    /// Note identity reached by this hop.
+    pub target_note_id: String,
+    /// Projected relation followed by this hop.
+    pub relation: String,
+    /// Actual traversal direction relative to the predecessor note.
+    pub direction: TraversalDirection,
+    /// Cumulative hop distance from the selected seed after this edge.
+    pub depth: usize,
+}
+
+/// One bounded graph candidate selected from traversal evidence.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct GraphSelectedCandidate {
+    /// Selected projected note identity.
+    pub note_id: String,
+    /// Minimum traversal distance from any seed.
+    pub min_depth: usize,
+    /// Number of seed traversals that reached this note.
+    pub seed_support: usize,
+    /// Shared normalized character trigrams between query and projected title.
+    pub shared_title_trigrams: usize,
+    /// Union size used for deterministic title-trigram similarity ordering.
+    pub title_trigram_union: usize,
+    /// Rust-owned shortest path from the deterministic selected seed to this candidate.
+    pub path_hops: Vec<GraphCandidatePathHop>,
+}
+
+/// Query/title relevance evidence for one caller-supplied projected note.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct GraphTitleRelevance {
+    /// Projected note identity.
+    pub note_id: String,
+    /// Shared normalized character trigrams between query and projected title.
+    pub shared_title_trigrams: usize,
+    /// Union size used for deterministic title-trigram similarity comparison.
+    pub title_trigram_union: usize,
+}
+
+/// Traversal trace plus bounded relevance-selected graph candidates.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct GraphCandidateSelection {
+    /// Underlying deterministic traversal results used for candidate discovery.
+    pub traversals: Vec<GraphTraversalResult>,
+    /// Selected candidates ordered by title relevance, graph distance, and support.
+    pub candidates: Vec<GraphSelectedCandidate>,
+    /// Title-relevance evidence for caller-supplied primary note identities.
+    pub primary_title_relevance: Vec<GraphTitleRelevance>,
+}
+
 /// Supersedes ancestry and descendants for one requested note.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct GraphLineageResult {
@@ -526,11 +584,91 @@ pub struct GraphComputeResult {
     pub analysis: GraphAnalysis,
 }
 
+/// Execute bounded deterministic traversal over an already-built active projection.
+///
+/// This path intentionally skips projection construction, cycle analysis, orphan analysis, and
+/// diff calculation so retrieval can reuse the Python-owned active graph snapshot without
+/// rebuilding it for every search.
+///
+/// # Errors
+///
+/// Returns an error for excessive request counts, invalid traversal bounds, duplicate projected
+/// node identities, or projected edges whose endpoints are missing.
+pub fn traverse_projection(
+    projection: &GraphProjection,
+    traversal_requests: &[GraphTraversalRequest],
+) -> Result<Vec<GraphTraversalResult>, GraphComputeError> {
+    if traversal_requests.len() > MAX_REQUESTS {
+        return Err(GraphComputeError::new(format!(
+            "graph traversal request count exceeds the {MAX_REQUESTS} item limit"
+        )));
+    }
+    for request in traversal_requests {
+        request.validate()?;
+    }
+    algorithms::traverse_projection(projection, traversal_requests)
+}
+
+/// Traverse one active projection and select a small relevance-bounded graph candidate set.
+///
+/// Selection first ranks normalized query/title character-trigram overlap, then uses graph
+/// distance, multi-seed support, and stable traversal order as deterministic tie-breakers.
+/// Python remains authority for hydrating selected note identities and applying retrieval policy.
+///
+/// # Errors
+///
+/// Returns an error for blank queries, excessive request or candidate counts, invalid traversal
+/// bounds, duplicate projected node identities, or projected edges whose endpoints are missing.
+pub fn select_projection_candidates(
+    projection: &GraphProjection,
+    traversal_requests: &[GraphTraversalRequest],
+    primary_note_ids: &[String],
+    query: &str,
+    max_candidates: usize,
+    min_shared_trigrams: usize,
+) -> Result<GraphCandidateSelection, GraphComputeError> {
+    validate_non_blank("graph candidate query", query)?;
+    if traversal_requests.len() > MAX_REQUESTS {
+        return Err(GraphComputeError::new(format!(
+            "graph traversal request count exceeds the {MAX_REQUESTS} item limit"
+        )));
+    }
+    if primary_note_ids.len() > MAX_SELECTED_GRAPH_CANDIDATES {
+        return Err(GraphComputeError::new(format!(
+            "primary note count exceeds the {MAX_SELECTED_GRAPH_CANDIDATES} item limit"
+        )));
+    }
+    if max_candidates == 0 || max_candidates > MAX_SELECTED_GRAPH_CANDIDATES {
+        return Err(GraphComputeError::new(format!(
+            "max_candidates must be between 1 and {MAX_SELECTED_GRAPH_CANDIDATES}"
+        )));
+    }
+    if min_shared_trigrams == 0 {
+        return Err(GraphComputeError::new(
+            "min_shared_trigrams must be one or greater",
+        ));
+    }
+    for request in traversal_requests {
+        request.validate()?;
+    }
+    let traversals = algorithms::traverse_projection(projection, traversal_requests)?;
+    candidate_selection::select_candidates(
+        projection,
+        traversals,
+        traversal_requests,
+        primary_note_ids,
+        query,
+        max_candidates,
+        min_shared_trigrams,
+    )
+}
+
 /// Build the healthy projection and execute bounded deterministic graph algorithms.
 ///
 /// # Errors
 ///
-/// Returns an error only for invalid internal projection or graph algorithm invariants.
+/// Returns an error when source projection inputs violate graph invariants or when bounded graph
+/// analysis cannot be completed for the validated request.
 pub fn compute_graph(
     request: GraphComputeRequest,
 ) -> Result<GraphComputeResult, GraphComputeError> {
@@ -569,8 +707,9 @@ pub(crate) fn relation_filter(values: &[String]) -> BTreeSet<&str> {
 mod tests {
     use super::{
         GraphComputeRequest, GraphIndexStatus, GraphLineageRequest, GraphProjection,
-        GraphProjectionIssueCode, GraphSourceEdge, GraphSourceNote, GraphTraversalRequest,
-        TraversalDirection, compute_graph,
+        GraphProjectionEdge, GraphProjectionIssueCode, GraphProjectionNode, GraphSourceEdge,
+        GraphSourceNote, GraphTraversalRequest, TraversalDirection, compute_graph,
+        traverse_projection,
     };
     use crate::document_analysis::{DocumentId, RelativeVaultPath};
     use unicode_normalization::UnicodeNormalization;
@@ -606,6 +745,36 @@ mod tests {
             relation: relation.to_owned(),
             confidence: 1.0,
             source_kind: "frontmatter".to_owned(),
+        }
+    }
+
+    fn projection_node(note_id: &str) -> GraphProjectionNode {
+        GraphProjectionNode {
+            note_id: note_id.to_owned(),
+            relative_path: format!("Contexts/{note_id}.md"),
+            alexandria_type: "context".to_owned(),
+            title: note_id.to_uppercase(),
+            status: "active".to_owned(),
+            project: None,
+        }
+    }
+
+    fn projection_edge(
+        edge_id: &str,
+        source: &str,
+        target: &str,
+        relation: &str,
+        source_kind: &str,
+    ) -> GraphProjectionEdge {
+        GraphProjectionEdge {
+            edge_id: edge_id.to_owned(),
+            source_note_id: source.to_owned(),
+            source_path: format!("Contexts/{source}.md"),
+            target_note_id: target.to_owned(),
+            target_path: format!("Contexts/{target}.md"),
+            relation: relation.to_owned(),
+            confidence: 1.0,
+            source_kind: source_kind.to_owned(),
         }
     }
 
@@ -691,6 +860,74 @@ mod tests {
         );
         assert_eq!(result.analysis.diff.added_node_ids.len(), 4);
         assert_eq!(result.analysis.diff.added_edge_ids.len(), 3);
+    }
+
+    #[test]
+    fn traverses_active_projection_without_rebuilding_and_respects_depth_relation_and_cycles() {
+        let projection = GraphProjection {
+            nodes: vec![
+                projection_node("a"),
+                projection_node("b"),
+                projection_node("c"),
+            ],
+            edges: vec![
+                projection_edge("e1", "a", "b", "wikilink", "wikilink"),
+                projection_edge("e2", "b", "c", "wikilink", "wikilink"),
+                projection_edge("e3", "c", "a", "related", "frontmatter"),
+            ],
+        };
+        let requests = vec![
+            GraphTraversalRequest {
+                request_id: "depth-one".to_owned(),
+                start_note_id: "a".to_owned(),
+                direction: TraversalDirection::Outgoing,
+                relations: vec!["wikilink".to_owned()],
+                max_depth: 1,
+                max_results: 10,
+            },
+            GraphTraversalRequest {
+                request_id: "depth-two".to_owned(),
+                start_note_id: "a".to_owned(),
+                direction: TraversalDirection::Outgoing,
+                relations: vec!["wikilink".to_owned()],
+                max_depth: 2,
+                max_results: 10,
+            },
+            GraphTraversalRequest {
+                request_id: "cycle-safe".to_owned(),
+                start_note_id: "a".to_owned(),
+                direction: TraversalDirection::Outgoing,
+                relations: Vec::new(),
+                max_depth: 8,
+                max_results: 10,
+            },
+        ];
+
+        let results = match traverse_projection(&projection, &requests) {
+            Ok(value) => value,
+            Err(error) => unreachable!("valid active projection traversal failed: {error}"),
+        };
+
+        assert_eq!(
+            results[0]
+                .visits
+                .iter()
+                .map(|visit| (visit.note_id.as_str(), visit.depth))
+                .collect::<Vec<_>>(),
+            vec![("a", 0), ("b", 1)]
+        );
+        assert!(results[0].truncated);
+        assert_eq!(
+            results[1]
+                .visits
+                .iter()
+                .map(|visit| (visit.note_id.as_str(), visit.depth))
+                .collect::<Vec<_>>(),
+            vec![("a", 0), ("b", 1), ("c", 2)]
+        );
+        assert!(!results[1].truncated);
+        assert_eq!(results[2].visits.len(), 3);
+        assert!(!results[2].truncated);
     }
 
     #[test]

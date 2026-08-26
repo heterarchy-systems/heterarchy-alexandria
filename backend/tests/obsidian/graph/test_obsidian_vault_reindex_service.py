@@ -30,6 +30,9 @@ from app.obsidian.infrastructure.graph.native_obsidian_graph_projection_compute_
 from app.obsidian.infrastructure.graph.sqlalchemy_obsidian_graph_projection_source import (
     SqlAlchemyObsidianGraphProjectionSource,
 )
+from app.obsidian.infrastructure.markdown.native_context_reindex_manifest import (
+    create_native_context_reindex_manifest_validator,
+)
 from app.obsidian.infrastructure.models import (
     obsidian_index_models as _obsidian_index_models,
 )
@@ -145,6 +148,7 @@ def test_composite_reindex_refreshes_graph_from_new_canonical_markdown(
                 repository=repository,
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
+                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             graph_repository = FakeObsidianGraphProjectionRepository()
             graph_service = ObsidianGraphProjectionRebuildService(
@@ -233,6 +237,7 @@ def test_report_bundle_order_always_materializes_expected_incoming_edges(
                 repository=repository,
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
+                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             graph_repository = FakeObsidianGraphProjectionRepository()
             graph_service = ObsidianGraphProjectionRebuildService(

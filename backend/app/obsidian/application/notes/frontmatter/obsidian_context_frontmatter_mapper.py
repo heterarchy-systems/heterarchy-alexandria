@@ -111,6 +111,7 @@ def context_identity_from_frontmatter(
         supersedes_context_id=boundary.supersedes_context_id,
         superseded_by_context_id=boundary.superseded_by_context_id,
         context_kind=boundary.context_kind or legacy_context_kind(boundary.kind),
+        memory_function=boundary.memory_function,
         created_at=boundary.created_at,
         updated_at=boundary.updated_at,
         recorded_at=boundary.recorded_at,
@@ -168,6 +169,9 @@ def normalized_context_frontmatter(identity: ObsidianContextIdentity) -> JSONObj
         "supersedes_context_id": identity.supersedes_context_id,
         "superseded_by_context_id": identity.superseded_by_context_id,
         "context_kind": identity.context_kind.value,
+        "memory_function": (
+            None if identity.memory_function is None else identity.memory_function.value
+        ),
         "created_at": (
             None if identity.created_at is None else identity.created_at.isoformat()
         ),

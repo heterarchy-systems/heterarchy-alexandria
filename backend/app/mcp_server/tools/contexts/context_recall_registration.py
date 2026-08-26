@@ -15,6 +15,7 @@ from app.memory.domain.event_enum.context_enums import (
     ContextKind,
     ContextRecallLifecycleStatus,
     ContextScope,
+    MemoryFunction,
     RagStrategy,
 )
 from app.memory.interface.schemas.context.context_retrieval_schema import (
@@ -46,6 +47,7 @@ def register_context_recall_tools(
         user_id: str | None = None,
         session_id: str | None = None,
         include_lifecycle_statuses: list[ContextRecallLifecycleStatus] | None = None,
+        prefer_memory_functions: list[MemoryFunction] | None = None,
     ) -> JSONValue:
         """Search Context Vault and return a Context Pack.
 
@@ -61,6 +63,7 @@ def register_context_recall_tools(
             user_id: Optional user filter.
             session_id: Optional session filter.
             include_lifecycle_statuses: Optional administrative lifecycle filter.
+            prefer_memory_functions: Optional soft functional-memory preference.
 
         Returns:
             Backend Context Pack response.
@@ -82,6 +85,9 @@ def register_context_recall_tools(
                     []
                     if include_lifecycle_statuses is None
                     else include_lifecycle_statuses
+                ),
+                prefer_memory_functions=(
+                    [] if prefer_memory_functions is None else prefer_memory_functions
                 ),
             ),
         )

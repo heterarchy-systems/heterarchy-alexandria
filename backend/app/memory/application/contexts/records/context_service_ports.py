@@ -5,6 +5,9 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from datetime import datetime
 
+from app.memory.application.contexts.diagnostics.context_search_trace import (
+    ContextSearchExplainResult,
+)
 from app.memory.domain.entities.context_read_models import (
     ContextPack,
     ContextRecord,
@@ -15,6 +18,7 @@ from app.memory.domain.event_enum.context_enums import (
     ContextKind,
     ContextRecallLifecycleStatus,
     ContextScope,
+    MemoryFunction,
     RagStrategy,
 )
 
@@ -28,6 +32,68 @@ class ContextReadinessPort(ABC):
 
         Returns:
             Current Context retrieval dependency health.
+        """
+
+
+class ContextRetrievalCanaryPort(ABC):
+    """Expose one bounded real search call for operational readiness canaries."""
+
+    @abstractmethod
+    async def readiness_canary(
+        self,
+        query: str,
+        strategy: RagStrategy,
+        limit: int,
+    ) -> ContextPack:
+        """Execute one real retrieval path through Context Pack construction.
+
+        Args:
+            query: Bounded readiness query text.
+            strategy: Retrieval lane that must execute without fallback.
+            limit: Maximum matches requested by the canary.
+
+        Returns:
+            Context pack produced by the normal search path.
+        """
+
+
+class ContextSearchDiagnosticsPort(ABC):
+    """Expose explain-only Context retrieval diagnostics to operational tooling."""
+
+    @abstractmethod
+    async def explain_search(
+        self,
+        query: str,
+        strategy: RagStrategy = RagStrategy.HYBRID,
+        limit: int = 5,
+        project: str | None = None,
+        kind: ContextKind | None = None,
+        include_scopes: list[ContextScope] | None = None,
+        workspace_id: str | None = None,
+        agent_id: str | None = None,
+        user_id: str | None = None,
+        session_id: str | None = None,
+        include_lifecycle_statuses: list[ContextRecallLifecycleStatus] | None = None,
+        prefer_memory_functions: list[MemoryFunction] | None = None,
+    ) -> ContextSearchExplainResult:
+        """Run normal Context recall with bounded execution diagnostics.
+
+        Args:
+            query: Search query text.
+            strategy: Requested retrieval strategy.
+            limit: Maximum matches.
+            project: Optional project filter.
+            kind: Optional Context kind filter.
+            include_scopes: Optional recall scope filters.
+            workspace_id: Optional workspace filter.
+            agent_id: Optional agent filter.
+            user_id: Optional user filter.
+            session_id: Optional session filter.
+            include_lifecycle_statuses: Optional administrative lifecycle filter.
+            prefer_memory_functions: Optional soft functional-memory preference.
+
+        Returns:
+            Normal Context pack paired with bounded retrieval execution diagnostics.
         """
 
 

@@ -6,6 +6,8 @@ from dataclasses import dataclass
 
 from app.memory.domain.entities.context_read_models import ContextSearchMatch
 from app.memory.domain.repositories.contexts.context_retrieval_kernel_provider import (
+    ContextRetrievalFusionTrace,
+    ContextRetrievalMergeTraceResult,
     IContextRetrievalKernelProvider,
 )
 
@@ -112,6 +114,43 @@ class TestContextRetrievalKernelProvider(IContextRetrievalKernelProvider):
             key=lambda evidence: (-evidence.fused_score, evidence.first_seen),
         )[:limit]
         return [_fused_match(evidence) for evidence in ranked]
+
+    def merge_with_trace(
+        self,
+        fts_matches: list[ContextSearchMatch],
+        vector_matches: list[ContextSearchMatch],
+        limit: int,
+    ) -> ContextRetrievalMergeTraceResult:
+        """Return tests-only fusion and deterministic diagnostic counters.
+
+        Args:
+            fts_matches: Ordered lexical lane.
+            vector_matches: Ordered vector lane.
+            limit: Maximum returned matches.
+
+        Returns:
+            Fused matches paired with tests-only trace counters.
+        """
+        matches = tuple(self.merge(fts_matches, vector_matches, limit))
+        fts_ids = [match.context.id for match in fts_matches]
+        vector_ids = [match.context.id for match in vector_matches]
+        fts_unique = set(fts_ids)
+        vector_unique = set(vector_ids)
+        representative_fts = sum(1 for match in matches if match.fts_score is not None)
+        trace = ContextRetrievalFusionTrace(
+            fts_input_count=len(fts_ids),
+            vector_input_count=len(vector_ids),
+            fts_unique_count=len(fts_unique),
+            vector_unique_count=len(vector_unique),
+            fts_duplicate_count=len(fts_ids) - len(fts_unique),
+            vector_duplicate_count=len(vector_ids) - len(vector_unique),
+            fused_candidate_count=len(fts_unique | vector_unique),
+            cross_lane_count=len(fts_unique & vector_unique),
+            returned_count=len(matches),
+            representative_fts_count=representative_fts,
+            representative_vector_count=len(matches) - representative_fts,
+        )
+        return ContextRetrievalMergeTraceResult(matches=matches, trace=trace)
 
     def rank_best(
         self,

@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import hashlib
-
 from app.memory.application.reconciliation.plans.memory_reconciliation_policy import (
     actions_for_decision,
     select_primary_decision,
 )
 from app.memory.domain.entities.memory_reconciliation import (
     MemoryCandidate,
+    MemoryEvolutionCandidateEvidence,
     MemoryReconciliationPlan,
     MemoryRelationDecision,
 )
@@ -17,6 +16,7 @@ from app.memory.domain.event_enum.reconciliation_enums import (
     MemoryReconciliationStatus,
     MemoryRelationType,
 )
+from app.shared.compute.native_text_hashing import hash_text
 from app.shared.infrastructure.identifiers import new_uuid
 from app.shared.types.types_convert_utils import now_utc
 
@@ -29,6 +29,7 @@ class MemoryReconciliationPlanService:
         candidate: MemoryCandidate,
         decisions: tuple[MemoryRelationDecision, ...],
         idempotency_key: str | None = None,
+        candidate_evidence: MemoryEvolutionCandidateEvidence | None = None,
     ) -> MemoryReconciliationPlan:
         """Build one deterministic plan without mutating canonical memory.
 
@@ -36,6 +37,7 @@ class MemoryReconciliationPlanService:
             candidate: Candidate.
             decisions: Decisions.
             idempotency_key: Idempotency key.
+            candidate_evidence: Optional deterministic Rust candidate evidence.
 
         Returns:
             MemoryReconciliationPlan: Operation result.
@@ -46,6 +48,7 @@ class MemoryReconciliationPlanService:
         )
         requires_review = primary_relation in {
             MemoryRelationType.CONTRADICTS,
+            MemoryRelationType.SUPERSEDES,
             MemoryRelationType.UNKNOWN,
         }
         warnings: list[str] = []
@@ -58,6 +61,11 @@ class MemoryReconciliationPlanService:
         if primary_relation is MemoryRelationType.CONTRADICTS:
             warnings.append(
                 "An unresolved contradiction must remain visible to recall."
+            )
+        if primary_relation is MemoryRelationType.SUPERSEDES:
+            warnings.append(
+                "Supersession requires explicit Memory Steward approval before "
+                "canonical lifecycle mutation."
             )
         if primary_relation is MemoryRelationType.UNKNOWN:
             warnings.append(
@@ -90,6 +98,7 @@ class MemoryReconciliationPlanService:
                 else MemoryReconciliationStatus.PLANNED
             ),
             created_at=now_utc(),
+            candidate_evidence=candidate_evidence,
         )
 
 
@@ -111,4 +120,4 @@ def _generated_idempotency_key(candidate: MemoryCandidate) -> str:
         candidate.session_id or "",
         candidate.content_hash,
     )
-    return hashlib.sha256("|".join(identity_parts).encode("utf-8")).hexdigest()
+    return hash_text("|".join(identity_parts))
