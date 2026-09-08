@@ -1,0 +1,298 @@
+{
+  "fixture": {
+    "claim_boundary": "routing overhead only; no real-model quality claim",
+    "database": "temporary PostgreSQL pgvector",
+    "embedding": "deterministic KeywordEmbeddingProvider",
+    "native": "TestContextRetrievalKernelProvider with native library loaded",
+    "samples": 20
+  },
+  "operations": {
+    "primary_match": {
+      "baseline_context_service": {
+        "embedding_document_calls": 0,
+        "embedding_query_calls": 0,
+        "fts_queries": 20,
+        "operation_ms": {
+          "p50": 3.333188,
+          "p95": 3.890167
+        },
+        "outcomes": [
+          "CONTEXT_PACK"
+        ],
+        "payload_bytes": {
+          "max": 2789,
+          "median": 2789.0
+        },
+        "sample_context_ids": [
+          "d8bff0b8-b248-483c-a62c-9edb0f965f13"
+        ],
+        "sample_routes": [
+          "FTS_ONLY"
+        ],
+        "samples": 20,
+        "serialization_ms": {
+          "p50": 0.090375,
+          "p95": 0.118916
+        },
+        "sql_statements": 60,
+        "temporal_batch_queries": 0,
+        "vector_queries": 0
+      },
+      "delta": {
+        "embedding_query_calls": 20,
+        "fts_queries": 20,
+        "sql_statements": 180,
+        "temporal_batch_queries": 40,
+        "vector_queries": 20
+      },
+      "high_level_recall": {
+        "embedding_document_calls": 0,
+        "embedding_query_calls": 20,
+        "fts_queries": 40,
+        "operation_ms": {
+          "p50": 13.670124999999999,
+          "p95": 15.513292
+        },
+        "outcomes": [
+          "MATCHED"
+        ],
+        "payload_bytes": {
+          "max": 6805,
+          "median": 6805.0
+        },
+        "sample_context_ids": [
+          "d8bff0b8-b248-483c-a62c-9edb0f965f13",
+          "f70780e5-57a6-4473-944a-4ceec37e5a44"
+        ],
+        "sample_routes": [
+          "EXACT_SELECTOR",
+          "PRIMARY_FTS",
+          "PRIMARY_SEMANTIC"
+        ],
+        "samples": 20,
+        "serialization_ms": {
+          "p50": 0.214312,
+          "p95": 0.254708
+        },
+        "sql_statements": 240,
+        "temporal_batch_queries": 40,
+        "vector_queries": 20
+      }
+    },
+    "related_global_exhaustion": {
+      "baseline_context_service": {
+        "embedding_document_calls": 0,
+        "embedding_query_calls": 20,
+        "fts_queries": 140,
+        "operation_ms": {
+          "p50": 13.625562500000001,
+          "p95": 29.360375
+        },
+        "outcomes": [
+          "CONTEXT_PACK"
+        ],
+        "payload_bytes": {
+          "max": 322,
+          "median": 322.0
+        },
+        "sample_context_ids": [],
+        "sample_routes": [
+          "HYBRID"
+        ],
+        "samples": 20,
+        "serialization_ms": {
+          "p50": 0.0343125,
+          "p95": 0.041917
+        },
+        "sql_statements": 180,
+        "temporal_batch_queries": 0,
+        "vector_queries": 20
+      },
+      "delta": {
+        "embedding_query_calls": 20,
+        "fts_queries": 140,
+        "sql_statements": 180,
+        "temporal_batch_queries": 0,
+        "vector_queries": 20
+      },
+      "high_level_recall": {
+        "embedding_document_calls": 0,
+        "embedding_query_calls": 40,
+        "fts_queries": 280,
+        "operation_ms": {
+          "p50": 24.923729,
+          "p95": 27.209208
+        },
+        "outcomes": [
+          "SEARCH_EXHAUSTED"
+        ],
+        "payload_bytes": {
+          "max": 1555,
+          "median": 1555.0
+        },
+        "sample_context_ids": [],
+        "sample_routes": [
+          "EXACT_SELECTOR",
+          "PRIMARY_FTS",
+          "PRIMARY_SEMANTIC",
+          "GLOBAL_FTS",
+          "GLOBAL_SEMANTIC"
+        ],
+        "samples": 20,
+        "serialization_ms": {
+          "p50": 0.066458,
+          "p95": 0.074125
+        },
+        "sql_statements": 360,
+        "temporal_batch_queries": 0,
+        "vector_queries": 40
+      }
+    },
+    "related_project": {
+      "baseline_context_service": {
+        "embedding_document_calls": 0,
+        "embedding_query_calls": 20,
+        "fts_queries": 40,
+        "operation_ms": {
+          "p50": 9.8429585,
+          "p95": 30.080667
+        },
+        "outcomes": [
+          "CONTEXT_PACK"
+        ],
+        "payload_bytes": {
+          "max": 2631,
+          "median": 2631.0
+        },
+        "sample_context_ids": [
+          "b9584012-4d08-42ee-baea-546728b257fb"
+        ],
+        "sample_routes": [
+          "HYBRID"
+        ],
+        "samples": 20,
+        "serialization_ms": {
+          "p50": 0.1223335,
+          "p95": 0.758209
+        },
+        "sql_statements": 120,
+        "temporal_batch_queries": 0,
+        "vector_queries": 20
+      },
+      "delta": {
+        "embedding_query_calls": 20,
+        "fts_queries": 40,
+        "sql_statements": 100,
+        "temporal_batch_queries": 20,
+        "vector_queries": 20
+      },
+      "high_level_recall": {
+        "embedding_document_calls": 0,
+        "embedding_query_calls": 40,
+        "fts_queries": 80,
+        "operation_ms": {
+          "p50": 14.263020999999998,
+          "p95": 16.743209
+        },
+        "outcomes": [
+          "MATCHED"
+        ],
+        "payload_bytes": {
+          "max": 4251,
+          "median": 4251.0
+        },
+        "sample_context_ids": [
+          "b9584012-4d08-42ee-baea-546728b257fb"
+        ],
+        "sample_routes": [
+          "EXACT_SELECTOR",
+          "PRIMARY_FTS",
+          "PRIMARY_SEMANTIC",
+          "RELATED_PROJECT_FTS",
+          "RELATED_PROJECT_SEMANTIC"
+        ],
+        "samples": 20,
+        "serialization_ms": {
+          "p50": 0.1666245,
+          "p95": 0.200791
+        },
+        "sql_statements": 220,
+        "temporal_batch_queries": 20,
+        "vector_queries": 40
+      }
+    },
+    "semantic_paraphrase": {
+      "baseline_context_service": {
+        "embedding_document_calls": 0,
+        "embedding_query_calls": 20,
+        "fts_queries": 40,
+        "operation_ms": {
+          "p50": 8.6850005,
+          "p95": 10.067042
+        },
+        "outcomes": [
+          "CONTEXT_PACK"
+        ],
+        "payload_bytes": {
+          "max": 5060,
+          "median": 5060.0
+        },
+        "sample_context_ids": [
+          "f70780e5-57a6-4473-944a-4ceec37e5a44",
+          "d8bff0b8-b248-483c-a62c-9edb0f965f13"
+        ],
+        "sample_routes": [
+          "HYBRID"
+        ],
+        "samples": 20,
+        "serialization_ms": {
+          "p50": 0.147979,
+          "p95": 0.165958
+        },
+        "sql_statements": 120,
+        "temporal_batch_queries": 0,
+        "vector_queries": 20
+      },
+      "delta": {
+        "embedding_query_calls": 0,
+        "fts_queries": 0,
+        "sql_statements": 20,
+        "temporal_batch_queries": 20,
+        "vector_queries": 0
+      },
+      "high_level_recall": {
+        "embedding_document_calls": 0,
+        "embedding_query_calls": 20,
+        "fts_queries": 40,
+        "operation_ms": {
+          "p50": 10.450979,
+          "p95": 11.319667
+        },
+        "outcomes": [
+          "MATCHED"
+        ],
+        "payload_bytes": {
+          "max": 6616,
+          "median": 6616.0
+        },
+        "sample_context_ids": [
+          "f70780e5-57a6-4473-944a-4ceec37e5a44",
+          "d8bff0b8-b248-483c-a62c-9edb0f965f13"
+        ],
+        "sample_routes": [
+          "EXACT_SELECTOR",
+          "PRIMARY_FTS",
+          "PRIMARY_SEMANTIC"
+        ],
+        "samples": 20,
+        "serialization_ms": {
+          "p50": 0.20358349999999997,
+          "p95": 0.223541
+        },
+        "sql_statements": 140,
+        "temporal_batch_queries": 20,
+        "vector_queries": 20
+      }
+    }
+  }
+}

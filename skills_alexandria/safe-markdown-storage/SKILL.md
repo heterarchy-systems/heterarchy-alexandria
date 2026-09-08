@@ -16,9 +16,13 @@ Obsidian Markdown is canonical storage. PostgreSQL indexes, embeddings, and the 
 ## Procedure
 1. Choose the correct managed note type and the narrowest valid Context scope.
 2. Read an existing target before update and retain its returned `content_hash` as the optimistic-concurrency precondition.
-3. Write through `alexandria_create_note`, `alexandria_update_note`, or `alexandria_upsert_note`; keep Markdown in `body` and caller metadata in typed fields.
-4. Read back the canonical note, then perform only the reindex/embedding/graph maintenance indicated by the write result and readiness state.
-5. Stop only when identity, integrity, path, graph, RAG, and queue checks are clean or a bounded exception is explicitly recorded.
+3. Prefer `alexandria_verified_upsert(request={...})` for an existing logical project/report/date/entity workflow. For exact-path skills, prompts or private Contexts outside that schema, use the exact create/update/upsert API; do not invent a dated report identity.
+4. Inspect the composite's source durability, readback, duplicate and projection evidence. For a low-level write, read back the canonical note. Perform only maintenance indicated by the result and required by the task.
+5. Report stored and fully projected separately. Pending vector/graph work does not invalidate proven source storage; unknown durability is not a confirmed write.
+
+Discover the tool before calling it. Local skill/source changes do not reload a
+running server. If the required composite is absent, retain the capability gap
+instead of inventing a compatibility orchestration layer.
 
 ## 1. Choose the correct managed note type
 
@@ -35,11 +39,15 @@ Do not store routine scratch output as `context` merely because it is easy. Dura
 
 ## 2. Separate Markdown body from typed metadata
 
-For agent writes, use `alexandria_create_note`, `alexandria_update_note`, or `alexandria_upsert_note`.
+Verified upsert accepts `identity`, `title`, `body`, `alexandria_type`,
+`idempotency_key`, optional `expected_content_hash`, `tags`, typed `provenance`
+and `source` inside `request`. Identity contains `project`, `report`, ISO `date`,
+`entity` and optional `edition`. It has no arbitrary `frontmatter` or custom path
+argument; use the existing exact write boundary when those are required.
 
 Send human-readable Markdown in `body`. Send identity and metadata through the typed arguments/frontmatter object. Do not prepend a second YAML frontmatter block to `body` when using the write API.
 
-Example create shape:
+Low-level exact create example (arguments are not wrapped in `request`):
 
 ```text
 alexandria_create_note(
@@ -82,7 +90,7 @@ The server owns canonical write history and computes body hashes through the nat
 
 `expected_content_hash` is different from `content_hash`:
 
-- `content_hash` describes the currently stored body and is server-owned.
+- The top-level note `content_hash` is the server-returned canonical source revision used for CAS. Nested frontmatter/body integrity hashes are distinct; do not substitute them.
 - `expected_content_hash` is an optimistic-concurrency precondition supplied by the caller.
 
 Never set `expected_content_hash` to a digest calculated from the new body. Use the hash returned by the most recent read of the existing note.
@@ -95,10 +103,16 @@ For every update:
 2. Retain the returned `content_hash`.
 3. Merge desired changes with that latest note.
 4. Update using the same exact selector and `expected_content_hash` from step 2.
-5. On `409 OBSIDIAN_WRITE_CONFLICT`, do not retry blindly. Re-read, re-merge, and retry.
+5. On `409 OBSIDIAN_WRITE_CONFLICT`, re-read and merge before a new update. A changed composite payload is a new logical mutation, not a retry under the old key. Resolve the previous outcome first.
 6. Read the result back and verify the expected body and metadata.
 
 Use `frontmatter_mode="merge"` for normal edits. Use `frontmatter_mode="replace_user_fields"` only when intentionally removing obsolete caller-owned metadata.
+
+For composite retries, preserve the original key and immutable request, including
+the original CAS. After timeout/unknown outcome, verify exact durable state or
+the operation checkpoint before retrying. Missing/deleted source or corrupt
+checkpoint after admission requires recovery; never generate a fresh key to
+recreate an output whose prior outcome is unknown.
 
 Do not infer an update target from a similar title.
 
@@ -115,6 +129,11 @@ For `alexandria_type="context"`, choose the narrowest correct scope and provide 
 | `USER` | `user_id` |
 
 Supply `workspace_id` whenever the caller has one. Do not broaden a missing identity to `GLOBAL` just to make validation pass.
+
+AUTO recall may skip absent identity lanes; it does not relax Context write
+validation. Ordinary non-Context notes with no scope use their existing project
+as PROJECT, or GLOBAL if absent. Do not add scope metadata solely to compensate
+for a stale deployed search implementation.
 
 Recommended `context_kind` values:
 
@@ -179,6 +198,12 @@ Title/alias resolution is a convenience, but canonical paths are less ambiguous.
 
 When Alexandria manages a generated links section, do not duplicate it with a second hand-maintained relation block.
 
+Prefer `alexandria_relate(request={...})` for typed relationships between existing
+note IDs. Retain its idempotency key and optional source CAS, and inspect the
+returned source/edge/backlink/projection evidence. Projection lag is not full
+graph success. The following maintenance sequence applies to low-level writes
+or a diagnosed projection gap, not every relation operation.
+
 After a write that changes links or graph-relevant metadata:
 
 1. inspect `reindex_required` in the write result;
@@ -191,7 +216,7 @@ After a write that changes links or graph-relevant metadata:
 
 If a canonical Markdown write succeeds but downstream indexing fails, preserve the Markdown and use the repair/reindex path. Do not mutate PostgreSQL, Redis, or the graph projection cache behind the API to make status look healthy.
 
-Healthy closure should normally show:
+For an explicitly requested full operational recovery, healthy closure targets:
 
 ```text
 Vault:        stale_notes=0, error_notes=0
@@ -206,7 +231,18 @@ Queue:        pending=0, dead_letter_length=0
 Readiness:    READY, warnings=[], blockers=[]
 ```
 
-If Vault reindex creates stale/missing embeddings, enqueue a bounded embedding reindex with a stable `source_id` and `force=false`, then poll it to success. Reserve `force=true` for an intentional full recomputation.
+If Vault reindex creates stale/missing embeddings, enqueue a bounded embedding
+reindex with a stable `source_id` and `force=false`, then inspect its terminal
+state, result warnings and affected RAG rows. `SUCCEEDED` with warnings or no
+updates does not prove embeddings are current. Reserve `force=true` for an
+intentional full recomputation.
+
+Ordinary note storage does not require draining unrelated global queue work or
+repairing all historical graph issues. Preserve task-specific verification and
+report any relevant projection warnings. `alexandria_verify` can diagnose one
+note by exactly one `note_id`, `path`, or logical `identity` inside `request`.
+Its nullable `vector_current`/`graph_current` fields are unverified when null;
+use RAG/graph diagnostics for any stronger projection-freshness claim.
 
 ## 10. Write bodies for durable recall
 
@@ -286,8 +322,8 @@ Before declaring a durable write complete, verify all applicable items:
 - External/untrusted source text clearly separated from trusted decisions?
 - Wikilinks point to intended canonical targets?
 - Readback succeeds?
-- Required reindex/embedding/graph maintenance completed?
-- Final readiness and graph/RAG diagnostics clean or explicitly documented?
+- Task-required projection work completed or pending/degraded state reported?
+- Readback, duplicate safety and durability claims supported by returned evidence?
 
 When identity, integrity, path, trust, or concurrency is uncertain, fail closed rather than weakening the note into a broader or less validated form.
 
@@ -298,5 +334,5 @@ When identity, integrity, path, trust, or concurrency is uncertain, fail closed 
 
 ## Related Alexandria skills
 
-- `skills_alexandria/alexandria-library/SKILL.md` — recall and safe agent memory use.
-- `skills_alexandria/operational-sync/SKILL.md` — reindex, embedding, graph, and recovery synchronization.
+- [Alexandria Library](../alexandria-library/SKILL.md) — recall and composite memory operations.
+- [Operational Sync](../operational-sync/SKILL.md) — load for indicated projection recovery.

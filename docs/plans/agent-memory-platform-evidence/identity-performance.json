@@ -1,0 +1,62 @@
+{
+  "baseline_commit": "24b91d5",
+  "scope": "same current source reader, PostgreSQL and native parser; compare baseline resolver orchestration with current resolver",
+  "rows": [
+    {
+      "variant": "before",
+      "source_notes": 10,
+      "samples": 5,
+      "p50_ms": 113.42870898079127,
+      "p95_sample_max_ms": 117.70579195581377,
+      "sql_statements": [
+        10,
+        10,
+        10,
+        10,
+        10
+      ]
+    },
+    {
+      "variant": "after",
+      "source_notes": 10,
+      "samples": 5,
+      "p50_ms": 47.24316706415266,
+      "p95_sample_max_ms": 50.206625019200146,
+      "sql_statements": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "variant": "before",
+      "source_notes": 100,
+      "samples": 5,
+      "p50_ms": 1126.1455420171842,
+      "p95_sample_max_ms": 1170.54391594138,
+      "sql_statements": [
+        100,
+        100,
+        100,
+        100,
+        100
+      ]
+    },
+    {
+      "variant": "after",
+      "source_notes": 100,
+      "samples": 5,
+      "p50_ms": 450.1689999597147,
+      "p95_sample_max_ms": 463.42312498018146,
+      "sql_statements": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ]
+}

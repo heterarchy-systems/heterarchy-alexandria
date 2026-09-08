@@ -44,6 +44,12 @@ The repository, Python distribution, CLI, runtime identity, and persistent inter
 - PostgreSQL-backed operational storage for memory/reconciliation state, Local MCP OAuth, rebuildable Obsidian/Context lexical and pgvector indexes, and persistent graph rows
 - Obsidian-backed Markdown notes under `SERVICE_OBSIDIAN_VAULT_PATH`
 
+Ordinary agents can use `recall`, `verified_upsert`, `relate`, `memory_cycle`,
+`verify`, and managed-spec preparation/completion. These typed composites reuse
+the existing note, retrieval, graph, reconciliation and recovery authorities.
+See the [agent memory operation guide](docs/agent-memory-platform.md) for retry,
+source/projection, temporal and trust-boundary semantics.
+
 Removed legacy surfaces stay removed by contract tests:
 
 - Next.js/frontend runtime and frontend CI

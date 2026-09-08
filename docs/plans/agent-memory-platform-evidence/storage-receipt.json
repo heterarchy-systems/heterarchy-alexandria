@@ -1,0 +1,274 @@
+{
+  "recorded_at": "2026-09-08T15:21:52.728593Z",
+  "baseline_commit": "24b91d579c044ef31d5b533f64cd855dad345c42",
+  "implementation_committed": false,
+  "pushed": false,
+  "deployment_performed": false,
+  "ci": {
+    "command": "make ci",
+    "exit_code": 0,
+    "postgres_tests": 945,
+    "postgres_seconds": 88.98,
+    "benchmark_tests": 34,
+    "log": "docs/plans/agent-memory-platform-evidence/make-ci-final.log",
+    "sha256": "59d42a8f1359bc94fcf35227054c45f2ada3550acbe4a375bcd94ece1e8c9cda",
+    "native_profile": "debug",
+    "release_deployment_executed": false
+  },
+  "note": {
+    "id": "6e66ca32-502f-4c69-b82b-fa46aa29251d",
+    "path": "Contexts/Projects/Agent Platform/Development Log/2026/09/Heterarchy Alexandria/10 2026-09-08 Heterarchy Alexandria Agent Memory Platform Implementation and Verification.md",
+    "title": "10 2026-09-08 Heterarchy Alexandria Agent Memory Platform Implementation and Verification",
+    "content_hash": "b114a9386597122cac50f753ff76b2a10743f0d2561a5638a482bdc92106ff05",
+    "version": 3,
+    "index_status": "indexed",
+    "body_matches_submitted": true,
+    "explicit_scope_present": false
+  },
+  "vault_fts": {
+    "query": "Agent Memory Platform Implementation Verification",
+    "project": "Heterarchy Alexandria",
+    "total": 4,
+    "target_rank": 1
+  },
+  "reindex": {
+    "files_seen": 1980,
+    "files_indexed": 1898,
+    "files_skipped": 82,
+    "stale_marked": 0,
+    "errors": [],
+    "error_details": [],
+    "skip_reasons": {
+      "missing_alexandria_frontmatter": 82
+    },
+    "edge_targets_resolved": 0,
+    "graph_projection": {
+      "status": "completed",
+      "graph_read_model": "postgresql",
+      "run_id": "aca52b3b-0b6e-4f06-a362-63f4df6e9ee8",
+      "scanned": 8403,
+      "indexed": 8398,
+      "updated": 8398,
+      "skipped": 5,
+      "issue_total": 5,
+      "issue_counts": [
+        {
+          "code": "missing_target_note",
+          "count": 5
+        }
+      ],
+      "issues": [],
+      "issues_truncated": true,
+      "errors": [],
+      "duration_seconds": 0.434367
+    }
+  },
+  "embedding_job": {
+    "job_id": "1fddf122cf494c25837849e1150afd91",
+    "kind": "embedding_reindex",
+    "status": "SUCCEEDED",
+    "requested_by": "codex-agent-memory-platform",
+    "source_id": "implementation-log-v3-6e66ca32-502f-4c69-b82b-fa46aa29251d",
+    "limit": 1000,
+    "force": false,
+    "attempts": 1,
+    "submitted_at": "2026-09-08T15:21:26.519553Z",
+    "started_at": "2026-09-08T15:21:26.527842Z",
+    "finished_at": "2026-09-08T15:21:27.918187Z",
+    "stream_id": "1788880886520-0",
+    "deduplicated": false,
+    "error_summary": null,
+    "result": {
+      "scanned": 4,
+      "updated": 4,
+      "skipped": 0,
+      "warnings": []
+    }
+  },
+  "operational_readiness": {
+    "status": "READY",
+    "overall_status": "READY",
+    "ready": true,
+    "checked_at": "2026-09-08T15:21:52.728593Z",
+    "duration_ms": 2097,
+    "vault": {
+      "exists": true,
+      "readable": true,
+      "vault_path": "/vault",
+      "alexandria_root": ".",
+      "alexandria_root_exists": true,
+      "indexed_notes": 1898,
+      "stale_notes": 0,
+      "error_notes": 0
+    },
+    "database": {
+      "reachable": true,
+      "integrity": "HEALTHY",
+      "schema_version": "202609071940_librarian_drop",
+      "corruption_detected": false
+    },
+    "rag": {
+      "fts": "HEALTHY",
+      "vector": "HEALTHY",
+      "embedding": "HEALTHY",
+      "effective_strategy": "HYBRID",
+      "model_name": "intfloat/multilingual-e5-small",
+      "dimensions": 384,
+      "fingerprint": {
+        "provider": "FASTEMBED_LOCAL",
+        "model": "intfloat/multilingual-e5-small",
+        "provider_version": "5.17.4",
+        "pooling_mode": "mean",
+        "normalize": true,
+        "dimensions": 384,
+        "document_input_format": "context-title-heading-content-v1+e5-passage-prefix-v1"
+      },
+      "source_statuses": [
+        {
+          "source_name": "context_vault",
+          "status": "HEALTHY",
+          "total_rows": 0,
+          "current_rows": 0,
+          "stale_rows": 0,
+          "missing_rows": 0,
+          "current_fingerprint": {
+            "provider": "FASTEMBED_LOCAL",
+            "model": "intfloat/multilingual-e5-small",
+            "provider_version": "5.17.4",
+            "pooling_mode": "mean",
+            "normalize": true,
+            "dimensions": 384,
+            "document_input_format": "context-title-heading-content-v1+e5-passage-prefix-v1"
+          },
+          "stored_fingerprints": []
+        },
+        {
+          "source_name": "obsidian_vault",
+          "status": "HEALTHY",
+          "total_rows": 22513,
+          "current_rows": 22513,
+          "stale_rows": 0,
+          "missing_rows": 0,
+          "current_fingerprint": {
+            "provider": "FASTEMBED_LOCAL",
+            "model": "intfloat/multilingual-e5-small",
+            "provider_version": "5.17.4",
+            "pooling_mode": "mean",
+            "normalize": true,
+            "dimensions": 384,
+            "document_input_format": "context-title-heading-content-v1+e5-passage-prefix-v1"
+          },
+          "stored_fingerprints": [
+            {
+              "provider": "FASTEMBED_LOCAL",
+              "model": "intfloat/multilingual-e5-small",
+              "provider_version": "5.17.4",
+              "pooling_mode": "mean",
+              "normalize": true,
+              "dimensions": 384
+            }
+          ]
+        }
+      ],
+      "warnings": []
+    },
+    "reconciliation": {
+      "configured": true,
+      "reachable": true,
+      "total_contexts": 0,
+      "temporal_state_count": 2,
+      "missing_temporal_states": 0,
+      "backfill_complete": true,
+      "total_plans": 2,
+      "pending_review_plans": 0,
+      "total_results": 2,
+      "partial_apply_results": 0,
+      "failed_results": 0,
+      "open_conflicts": 0,
+      "reviewing_conflicts": 0,
+      "hard_delete_results": 0,
+      "latest_failure_code": null,
+      "latest_failure_at": null
+    },
+    "runtime": {
+      "checked": true,
+      "environment": "local",
+      "runtime_revision": "worktree-105b4601ff55e51998838990",
+      "expected_revision": "worktree-105b4601ff55e51998838990",
+      "build_timestamp": "2026-09-08T08:11:24Z",
+      "native_revision": "worktree-105b4601ff55e51998838990",
+      "native_package_version": "0.1.0",
+      "native_build_profile": "release",
+      "native_contract_version": 1,
+      "feature_authority_schema_version": 1,
+      "verified": true,
+      "drift_detected": false,
+      "native_aligned": true,
+      "warnings": []
+    },
+    "retrieval_canary": {
+      "checked": true,
+      "query": "Alexandria readiness canary",
+      "limit": 3,
+      "healthy": true,
+      "fts": {
+        "strategy": "FTS_ONLY",
+        "ok": true,
+        "effective_strategy": "FTS_ONLY",
+        "match_count": 1,
+        "context_pack_built": true,
+        "failure_code": null,
+        "warnings": []
+      },
+      "vector": {
+        "strategy": "VECTOR_ONLY",
+        "ok": true,
+        "effective_strategy": "VECTOR_ONLY",
+        "match_count": 3,
+        "context_pack_built": true,
+        "failure_code": null,
+        "warnings": []
+      },
+      "hybrid": {
+        "strategy": "HYBRID",
+        "ok": true,
+        "effective_strategy": "HYBRID",
+        "match_count": 3,
+        "context_pack_built": true,
+        "failure_code": null,
+        "warnings": []
+      }
+    },
+    "projection_integrity": {
+      "checked": true,
+      "available": true,
+      "healthy": true,
+      "source_revision": "obsidian-index:1898:2026-09-08T15:21:08.233386+00:00",
+      "current_source_revision": "obsidian-index:1898:2026-09-08T15:21:08.233386+00:00",
+      "scanned_count": 1898,
+      "valid_count": 1898,
+      "invalid_count": 0,
+      "stale": false,
+      "checked_at": "2026-09-08T15:21:09.006446+00:00",
+      "failures": []
+    },
+    "active_recovery_run_id": null,
+    "last_successful_recovery_run_id": null,
+    "warnings": [],
+    "blockers": [],
+    "next_actions": [],
+    "data_integrity": {
+      "status": "HEALTHY",
+      "scanned_notes": 1980,
+      "warnings": []
+    }
+  },
+  "evidence_limits": {
+    "source_ci": "Current source; canonical native debug artifact.",
+    "connected_runtime": "Previous release deployment; new high-level API/plugin reload not performed.",
+    "scope_dogfood": "Old live Context search omitted scope note; repaired in source and real PostgreSQL/Vault regression. New-source live overlay probe unexecuted.",
+    "semantic_quality": "Deterministic fixture routing/SQL/native evidence and existing live canaries; no universal semantic-quality or soak claim.",
+    "graph": "Five existing missing_target_note issues; graph rebuild completed without errors.",
+    "hash_redaction": "Old runtime redacted the CI digest in intermediate log revision 2. Final revision 3 replaces it with an artifact reference; full digest retained in this receipt and repository plan. Final body readback matches."
+  }
+}

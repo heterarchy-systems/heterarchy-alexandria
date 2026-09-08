@@ -1,0 +1,14 @@
+{
+  "alias": {
+    "p50_ms": 6.0478545,
+    "p95_ms": 6.928458,
+    "samples": 20,
+    "sql_statements": 40
+  },
+  "control": {
+    "p50_ms": 11.314646,
+    "p95_ms": 12.650083,
+    "samples": 20,
+    "sql_statements": 60
+  }
+}

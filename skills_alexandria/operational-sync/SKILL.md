@@ -13,7 +13,7 @@ Use this skill to restore heterarchy-alexandria retrieval health without modifyi
 - Treat PostgreSQL FTS, pgvector, embedding rows, and the bounded graph projection cache as rebuildable index state; Rust owns deterministic graph projection and traversal compute.
 - Runtime persistence is PostgreSQL-only. Do not add or operate a SQLite runtime, compatibility path, fallback, or direct SQLite cleanup procedure.
 - Preserve PostgreSQL indexed graph-edge state as the graph source; do not introduce a second graph database or compute authority.
-- Treat vault reindex, queued embedding reindex, and graph rebuild as one fail-fast maintenance lane; run them sequentially and retry an HTTP `409` only after the active operation finishes.
+- Run required maintenance sequentially. A classified busy-maintenance conflict may be retried after its owner finishes; CAS conflicts, blocked recovery and unknown outcomes require their own returned next actions.
 - Prefer non-destructive sync first: status check → Obsidian reindex → queued embedding reindex when needed → PostgreSQL/Rust graph projection rebuild → verification.
 - Use the persisted recovery plan/run workflow before manual repair. Do not mutate PostgreSQL or copy files behind the API.
 - Preserve recovery manifests and exact blockers when automatic recovery is not allowed.
@@ -22,32 +22,59 @@ Use this skill to restore heterarchy-alexandria retrieval health without modifyi
 - Stop only when `/operations/readiness` is `READY` or the remaining blocker is explicitly explained.
 
 ## Procedure
-1. Read operational readiness, RAG status, graph status, and maintenance queue state before mutating anything.
+1. Read operational readiness/capabilities once, then inspect only the failing subsystem's detailed status. For a single note, prefer `alexandria_verify` with an exact selector when registered.
 2. Reindex the canonical Vault when note/index drift exists and treat the returned `graph_projection` as primary graph evidence.
 3. Catch up only stale/missing embeddings with bounded `force=false` maintenance jobs unless full recomputation is explicitly required.
 4. Recheck graph, queue, RAG, and readiness; stop only when remaining warnings/issues are zero or explicitly bounded and documented.
 
+`alexandria_verify` can return `vector_current=null` or `graph_current=null`.
+Those values mean unverified, not current. Consult affected RAG/graph status
+before claiming projection freshness; source/readback evidence remains separate.
+
+## Source access during degradation
+
+Index degraded does not mean memory unavailable. If the source is readable,
+retain exact note-ID/path/logical-identity access through registered recall/read
+tools while repairing only affected projections. Distinguish source revision,
+projection revision and freshness; an unknown revision is not proof of staleness.
+Source unavailable or uncertain durability requires the returned recovery action,
+not another write or an index-only repair claim.
+
+For queued embedding or persisted recovery operations, preserve the original key
+and any returned plan/run/job ID after timeout or disconnected transport. Read
+durable status before retrying. Synchronous Vault/graph rebuilds may return no
+usable operation identity when the response is lost: record UNKNOWN, inspect
+current readiness/projection state and active maintenance, and do not infer that
+the particular rebuild succeeded from a healthy snapshot alone. Do not blindly
+resubmit, reset checkpoints, start competing recovery, or invent a replacement
+key. Keep unknown operation outcome separate from currently observed health.
+
 ## Fast path
 
-Run from the repo root unless noted otherwise.
+Run from the repo root unless noted otherwise. The examples enable pipeline
+failure handling so a failed HTTP call cannot be hidden by successful JSON
+formatting. Retain the error and follow the unknown-outcome guidance for writes.
 
 ```bash
-curl -sS http://127.0.0.1:8000/health/live
-curl -sS http://127.0.0.1:8000/obsidian/status | jq
-curl -sS http://127.0.0.1:8000/memory/contexts/rag/status | jq
-curl -sS http://127.0.0.1:8000/obsidian/graph/projection/status | jq
-curl -sS http://127.0.0.1:8000/operations/readiness | jq
+set -euo pipefail
+curl -fsS http://127.0.0.1:8000/health/live
+curl -fsS http://127.0.0.1:8000/obsidian/status | jq
+curl -fsS http://127.0.0.1:8000/memory/contexts/rag/status | jq
+curl -fsS http://127.0.0.1:8000/obsidian/graph/projection/status | jq
+curl -fsS http://127.0.0.1:8000/operations/readiness | jq
 ```
 
 If `stale_notes>0` or the vault index may be stale:
 
 ```bash
-curl -sS -X POST http://127.0.0.1:8000/obsidian/index/rebuild | jq
+set -euo pipefail
+curl -fsS -X POST http://127.0.0.1:8000/obsidian/index/rebuild | jq
 ```
 
 If `embedding=REINDEX_REQUIRED`, `stale_rows>0`, or `missing_rows>0`, use the official queued maintenance path. Do not substitute vault reindex or the legacy synchronous soft-rebuild route for embedding inference:
 
 ```bash
+set -euo pipefail
 job_json="$(
   curl -fsS -X POST \
     http://127.0.0.1:8000/operations/maintenance/embedding-reindex/jobs \
@@ -69,8 +96,8 @@ for _ in $(seq 1 120); do
       "http://127.0.0.1:8000/operations/maintenance/jobs/${job_id}"
   )"
   printf '%s\n' "$state" | jq
-  status="$(printf '%s' "$state" | jq -r '.status')"
-  case "$status" in
+  job_status="$(printf '%s' "$state" | jq -r '.status')"
+  case "$job_status" in
     SUCCEEDED) completed=true; break ;;
     FAILED) exit 1 ;;
     QUEUED|RUNNING|RETRYING) ;;
@@ -86,7 +113,7 @@ curl -fsS \
   http://127.0.0.1:8000/memory/contexts/rag/status | jq
 ```
 
-Use a stable `source_id` for duplicate suppression and keep `limit` bounded to `1..1000`. Set `force=true` only when matching embeddings must be regenerated, not for ordinary missing/stale repair. Completion requires the job to succeed, queue `pending=0`, `dead_letter_length=0`, and RAG status to report no missing/stale rows with effective `HYBRID` retrieval.
+Use a stable `source_id` for duplicate suppression and keep `limit` bounded to `1..1000`. Set `force=true` only when matching embeddings must be regenerated. If polling expires, retain the job ID and resume status checks; do not submit a duplicate job. Completion requires that job to succeed and the affected RAG rows to be current. Report unrelated queue/dead-letter work separately; do not repair or drain it as part of a single-note save.
 
 After every vault reindex, re-check RAG status. Vault reindex can create new missing embedding rows, so enqueue another bounded embedding job if needed.
 
@@ -96,6 +123,7 @@ dedicated rebuild only when projection is missing, stale, failed, intentionally 
 or an explicit diagnostic rebuild is required:
 
 ```bash
+set -euo pipefail
 curl -fsS -X POST \
   http://127.0.0.1:8000/obsidian/graph/projection/rebuild | jq
 curl -fsS \
@@ -123,6 +151,7 @@ Use this only when readiness reports `RECOVERY_REQUIRED` or another explicit
 blocker that the official recovery workflow owns. Start with a read-only plan:
 
 ```bash
+set -euo pipefail
 plan_json="$(
   curl -fsS -X POST \
     http://127.0.0.1:8000/operations/recovery/plan \
@@ -137,6 +166,7 @@ Do not apply when `automatic_execution_allowed` is false. Preserve and report
 When execution is explicitly allowed, reuse the plan's generated idempotency key:
 
 ```bash
+set -euo pipefail
 allowed="$(printf '%s' "$plan_json" | jq -r '.automatic_execution_allowed')"
 [[ "$allowed" == true ]] || exit 1
 idempotency_key="$(printf '%s' "$plan_json" | jq -r '.idempotency_key')"
@@ -177,7 +207,8 @@ The equivalent MCP boundary is:
 Readiness must be clean:
 
 ```bash
-curl -sS http://127.0.0.1:8000/operations/readiness | jq
+set -euo pipefail
+curl -fsS http://127.0.0.1:8000/operations/readiness | jq
 ```
 
 Expected:
@@ -195,7 +226,8 @@ Expected:
 Run a representative HYBRID search:
 
 ```bash
-curl -sS -X POST http://127.0.0.1:8000/memory/contexts/retrieval/search \
+set -euo pipefail
+curl -fsS -X POST http://127.0.0.1:8000/memory/contexts/retrieval/search \
   -H "Content-Type: application/json" \
   --data '{"query":"운영 안정성 자동 복구 루프","strategy":"HYBRID","limit":3,"project":"heterarchy-alexandria","include_scopes":["PROJECT"]}' | jq
 ```
@@ -208,11 +240,13 @@ Expected:
 - a relevant Obsidian PRD/context note appears
 - vector/semantic retrieval evidence is present
 
-When graph projection is enabled, also verify graph discovery from a known seed:
+When graph discovery is in scope, inspect its status and a known seed. Reuse the
+rebuild result already obtained; do not rebuild again solely for verification:
 
 ```bash
-curl -fsS -X POST \
-  http://127.0.0.1:8000/obsidian/graph/projection/rebuild | jq
+set -euo pipefail
+curl -fsS \
+  http://127.0.0.1:8000/obsidian/graph/projection/status | jq
 curl -fsS \
   "http://127.0.0.1:8000/obsidian/notes/<note-id>/related?limit=5" | jq
 ```
@@ -225,14 +259,14 @@ Expected:
 - returned notes can be read back from canonical Obsidian Markdown;
 - related-note traversal reads the active PostgreSQL/Rust projection while core RAG remains usable.
 
-## Code repair note
+## Implementation failures
 
-If `/operations/readiness` returns 500 with a Pydantic validation error for `ContextEmbeddingSourceStatusResponse`, fix the interface schema boundary rather than the embedding data:
-
-- Convert `ContextEmbeddingSourceStatus` dataclasses through `source_status_payload()` before Pydantic validation.
-- Add/keep a router regression test that asserts `rag.source_statuses` is serialized.
-- Run `cd backend && make ci` before claiming completion.
+If a readiness endpoint fails, retain the typed error or trace and separate a
+schema/service defect from projection drift. Do not mutate embeddings to conceal
+a serialization error. Repository fixes follow the current AGENTS/Harness and
+focused regression evidence; repository closure uses root `make ci`. Operational
+checks alone do not prove a source fix or a deployment.
 
 ## Related Alexandria skills
 
-- [[Skills/Active/Alexandria Library]] — scoped recall, safe writes, and graph-aware discovery.
+- [Alexandria Library](../alexandria-library/SKILL.md) — normal composite memory operations.

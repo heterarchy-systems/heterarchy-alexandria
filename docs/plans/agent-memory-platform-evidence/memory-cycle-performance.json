@@ -1,0 +1,34 @@
+{
+  "fixture": "real_postgres_temporary_vault_native",
+  "overflow_rejected": true,
+  "scales": [
+    {
+      "apply_latency_ms": 81.69170806650072,
+      "apply_payload_bytes": 4125,
+      "apply_sql_statements": 22,
+      "candidate_count": 2,
+      "dry_run_latency_ms": 71.39766693580896,
+      "dry_run_payload_bytes": 3601,
+      "dry_run_sql_statements": 14,
+      "replay_latency_ms": 39.850000059232116,
+      "replay_payload_bytes": 4124,
+      "replay_sql_statements": 4,
+      "service_elapsed_ms": 71.27112499438226,
+      "service_query_count": null
+    },
+    {
+      "apply_latency_ms": 314.7426670184359,
+      "apply_payload_bytes": 12446,
+      "apply_sql_statements": 86,
+      "candidate_count": 10,
+      "dry_run_latency_ms": 181.56633293256164,
+      "dry_run_payload_bytes": 11922,
+      "dry_run_sql_statements": 70,
+      "replay_latency_ms": 100.92295799404383,
+      "replay_payload_bytes": 12445,
+      "replay_sql_statements": 12,
+      "service_elapsed_ms": 181.3973329262808,
+      "service_query_count": null
+    }
+  ]
+}

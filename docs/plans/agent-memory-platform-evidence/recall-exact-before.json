@@ -1,0 +1,254 @@
+{
+  "cases": [
+    {
+      "effective_strategies": [
+        "FTS_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 0,
+      "latency_max_ms": 58.677,
+      "latency_mean_ms": 56.426,
+      "latency_min_ms": 55.106,
+      "latency_p50_ms": 55.881,
+      "latency_p95_ms": 58.677,
+      "match_count_max": 1,
+      "match_count_min": 1,
+      "mean_reciprocal_rank": 0.0,
+      "project": "heterarchy-alexandria",
+      "query": "heterarchy-alexandria Engineering Modernization Contract and Handoff 2026-08-20",
+      "ranking_stable": true,
+      "recall_at_1": 0.0,
+      "recall_at_3": 0.0,
+      "requested_strategy": "HYBRID",
+      "response_bytes_p50": 12387,
+      "retrieved_context_id_variants": [
+        [
+          "ac529f47-0aae-4364-911f-56d84b98822b"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "heterarchy-alexandria Rust Compute Migration Plan Index 2026-08-22"
+        ]
+      ],
+      "successful_samples": 5,
+      "warning_count_max": 2
+    },
+    {
+      "effective_strategies": [
+        "FTS_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Neo4j 기능 05 Graph-aware Context Retrieval"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 0,
+      "latency_max_ms": 91.925,
+      "latency_mean_ms": 91.797,
+      "latency_min_ms": 91.639,
+      "latency_p50_ms": 91.844,
+      "latency_p95_ms": 91.925,
+      "match_count_max": 1,
+      "match_count_min": 1,
+      "mean_reciprocal_rank": 1.0,
+      "project": "heterarchy-alexandria",
+      "query": "Neo4j 기능 05 Graph-aware Context Retrieval",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "HYBRID",
+      "response_bytes_p50": 6505,
+      "retrieved_context_id_variants": [
+        [
+          "ctx_alexandria_neo4j_feature_05_graph_aware_context_20260803"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Neo4j 기능 05 Graph-aware Context Retrieval"
+        ]
+      ],
+      "successful_samples": 5,
+      "warning_count_max": 2
+    },
+    {
+      "effective_strategies": [
+        "FTS_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "Alexandria Memory Steward Contract"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 0,
+      "latency_max_ms": 283.425,
+      "latency_mean_ms": 280.501,
+      "latency_min_ms": 277.045,
+      "latency_p50_ms": 281.865,
+      "latency_p95_ms": 283.425,
+      "match_count_max": 1,
+      "match_count_min": 1,
+      "mean_reciprocal_rank": 1.0,
+      "project": "heterarchy-alexandria",
+      "query": "Alexandria Memory Steward Contract",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "HYBRID",
+      "response_bytes_p50": 12824,
+      "retrieved_context_id_variants": [
+        [
+          "d7111f69-acac-4540-8dde-3a312b222472"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "Alexandria Memory Steward Contract"
+        ]
+      ],
+      "successful_samples": 5,
+      "warning_count_max": 2
+    },
+    {
+      "effective_strategies": [
+        "FTS_ONLY"
+      ],
+      "expected_context_ids": [],
+      "expected_titles": [
+        "heterarchy-alexandria Project Index"
+      ],
+      "failed_samples": 0,
+      "failures": [],
+      "graph_evidence_match_count_max": 2,
+      "latency_max_ms": 710.915,
+      "latency_mean_ms": 707.553,
+      "latency_min_ms": 703.69,
+      "latency_p50_ms": 707.524,
+      "latency_p95_ms": 710.915,
+      "match_count_max": 2,
+      "match_count_min": 2,
+      "mean_reciprocal_rank": 1.0,
+      "project": "heterarchy-alexandria",
+      "query": "heterarchy-alexandria Project Index",
+      "ranking_stable": true,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "requested_strategy": "HYBRID",
+      "response_bytes_p50": 24552,
+      "retrieved_context_id_variants": [
+        [
+          "b6a3291c-9a4a-48a5-9121-4a6d3e15f23b",
+          "965539ba-c8fd-432b-87fc-0c466177e3ec"
+        ]
+      ],
+      "retrieved_title_variants": [
+        [
+          "heterarchy-alexandria Project Index",
+          "Alexandria Knowledge Operating System"
+        ]
+      ],
+      "successful_samples": 5,
+      "warning_count_max": 2
+    }
+  ],
+  "environment": {
+    "base_url": "http://127.0.0.1:8000",
+    "golden_case_count": 4,
+    "golden_cases_path": "/Users/imhaneul/Documents/herterarchy/heterarchy-alexandria/backend/benchmarks/golden_cases.exact_title.v1.json",
+    "graph_phase_timing_available": false,
+    "limit": 3,
+    "measured_at": "2026-09-08T09:27:08.199990+00:00",
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "project": null,
+    "python_version": "3.14.7",
+    "repetitions": 5,
+    "retrieval_kernel_authority": "rust",
+    "server_memory_timing_available": false,
+    "warmups": 1
+  },
+  "quality_by_strategy": [
+    {
+      "evaluated_cases": 4,
+      "mean_reciprocal_rank": 0.75,
+      "recall_at_1": 0.75,
+      "recall_at_3": 0.75,
+      "requested_strategy": "HYBRID",
+      "unstable_case_count": 0
+    }
+  ],
+  "rag_status": {
+    "default_strategy": "FTS_ONLY",
+    "dimensions": 384,
+    "embedding": "REINDEX_REQUIRED",
+    "fingerprint": {
+      "dimensions": 384,
+      "document_input_format": "context-title-heading-content-v1+e5-passage-prefix-v1",
+      "model": "intfloat/multilingual-e5-small",
+      "normalize": true,
+      "pooling_mode": "mean",
+      "provider": "FASTEMBED_LOCAL",
+      "provider_version": "5.17.4"
+    },
+    "fts": "HEALTHY",
+    "model_name": "intfloat/multilingual-e5-small",
+    "source_statuses": [
+      {
+        "current_fingerprint": {
+          "dimensions": 384,
+          "document_input_format": "context-title-heading-content-v1+e5-passage-prefix-v1",
+          "model": "intfloat/multilingual-e5-small",
+          "normalize": true,
+          "pooling_mode": "mean",
+          "provider": "FASTEMBED_LOCAL",
+          "provider_version": "5.17.4"
+        },
+        "current_rows": 0,
+        "missing_rows": 0,
+        "source_name": "context_vault",
+        "stale_rows": 0,
+        "status": "HEALTHY",
+        "stored_fingerprints": [],
+        "total_rows": 0
+      },
+      {
+        "current_fingerprint": {
+          "dimensions": 384,
+          "document_input_format": "context-title-heading-content-v1+e5-passage-prefix-v1",
+          "model": "intfloat/multilingual-e5-small",
+          "normalize": true,
+          "pooling_mode": "mean",
+          "provider": "FASTEMBED_LOCAL",
+          "provider_version": "5.17.4"
+        },
+        "current_rows": 22343,
+        "missing_rows": 159,
+        "source_name": "obsidian_vault",
+        "stale_rows": 159,
+        "status": "REINDEX_REQUIRED",
+        "stored_fingerprints": [
+          {
+            "dimensions": 384,
+            "model": "intfloat/multilingual-e5-small",
+            "normalize": true,
+            "pooling_mode": "mean",
+            "provider": "FASTEMBED_LOCAL",
+            "provider_version": "5.17.4"
+          }
+        ],
+        "total_rows": 22502
+      }
+    ],
+    "vector": "HEALTHY",
+    "warnings": [
+      "Embedding index status is REINDEX_REQUIRED; vector recall is disabled across configured sources until all source fingerprints match; run retrieval reindex before vector recall."
+    ]
+  }
+}

@@ -240,6 +240,7 @@ dev_timeline/
 
 # Local/generated planning docs stay out of git; only shared assets are kept.
 docs/*
+!docs/agent-memory-platform.md
 !docs/project_subject/
 !docs/project_subject/**
 !docs/project_remaining_work/
@@ -253,7 +254,7 @@ docs/*
 !docs/usage_guidebook/
 !docs/usage_guidebook/**
 
-# Local heterarchy-alexandria runtime data: SQLite DBs, embedding/vector caches, and
+# Local heterarchy-alexandria runtime data: embedding/vector caches and
 # downloaded model cache files are machine-local state and must not be committed.
 backend/data/
 .comx-agent/

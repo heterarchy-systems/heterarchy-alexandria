@@ -1,0 +1,13 @@
+{
+  "operation": "relate_harness_hierarchy",
+  "storage": "PostgreSQL",
+  "compute": "Rust native graph projection",
+  "edge_count": 5,
+  "end_to_end_latency_ms": {
+    "p50": 153.299,
+    "p95": 312.616,
+    "max": 312.616
+  },
+  "replay_latency_ms": 24.553,
+  "query_count": "not instrumented"
+}
