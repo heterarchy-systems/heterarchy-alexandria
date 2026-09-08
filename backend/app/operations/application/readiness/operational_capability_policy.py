@@ -11,6 +11,7 @@ from app.operations.domain.entities.operational_readiness import (
     OperationalReadinessSnapshot,
 )
 from app.operations.domain.event_enum.operational_capability_enums import (
+    OperationalCapabilityFreshness,
     OperationalCapabilityState,
 )
 
@@ -55,12 +56,241 @@ def capability_snapshot(
         ready=semantic_ready,
         blockers=tuple(semantic_blockers),
         warnings=tuple(readiness.rag.warnings),
+        freshness=_rag_freshness(readiness.rag.vector, readiness.rag.warnings),
     )
+    source = _source_capability(readiness)
+    metadata_index = _metadata_index_capability(readiness)
+    fts = _rag_capability(readiness.rag.fts, "fts", readiness)
+    vector = _rag_capability(readiness.rag.vector, "vector", readiness)
+    embedding = _rag_capability(readiness.rag.embedding, "embedding", readiness)
+    graph = _graph_capability(readiness)
+    reconciliation = _reconciliation_capability(readiness)
     return OperationalCapabilitySnapshot(
         checked_at=readiness.checked_at,
         core_memory=core,
         semantic_retrieval=semantic,
+        source=source,
+        metadata_index=metadata_index,
+        fts=fts,
+        vector=vector,
+        embedding=embedding,
+        graph=graph,
+        reconciliation=reconciliation,
     )
+
+
+def _source_capability(
+    readiness: OperationalReadinessSnapshot,
+) -> OperationalCapability:
+    """Classify canonical source availability independently of index metadata."""
+    if not readiness.vault.exists or not readiness.vault.alexandria_root_exists:
+        return OperationalCapability(
+            state=OperationalCapabilityState.BLOCKED,
+            ready=False,
+            blockers=("source_unavailable",),
+            warnings=(),
+        )
+    if not readiness.vault.readable:
+        return OperationalCapability(
+            state=OperationalCapabilityState.BLOCKED,
+            ready=False,
+            blockers=("source_unreadable",),
+            warnings=(),
+        )
+    return OperationalCapability(
+        state=OperationalCapabilityState.READY,
+        ready=True,
+        blockers=(),
+        warnings=(),
+    )
+
+
+def _metadata_index_capability(
+    readiness: OperationalReadinessSnapshot,
+) -> OperationalCapability:
+    """Classify metadata-index evidence without treating unknown as empty."""
+    vault = readiness.vault
+    if (
+        vault.indexed_notes is None
+        or vault.stale_notes is None
+        or vault.error_notes is None
+    ):
+        return OperationalCapability(
+            state=OperationalCapabilityState.UNKNOWN,
+            ready=False,
+            blockers=(),
+            warnings=("metadata_index_unknown",),
+            source_revision=readiness.projection_integrity.current_source_revision,
+            projection_revision=readiness.projection_integrity.source_revision,
+            freshness=_projection_freshness(readiness),
+        )
+    blockers: list[str] = []
+    warnings: list[str] = []
+    if (
+        readiness.vault.indexed_notes is None
+        or readiness.vault.stale_notes is None
+        or readiness.vault.error_notes is None
+    ):
+        warnings.append("metadata_index_unknown")
+    error_notes = vault.error_notes
+    stale_notes = vault.stale_notes
+    if error_notes is not None and error_notes > 0:
+        blockers.append("metadata_index_errors_present")
+    if stale_notes is not None and stale_notes > 0:
+        warnings.append("metadata_index_stale")
+    state = (
+        OperationalCapabilityState.BLOCKED
+        if blockers
+        else OperationalCapabilityState.DEGRADED
+        if warnings
+        else OperationalCapabilityState.READY
+    )
+    return OperationalCapability(
+        state=state,
+        ready=not blockers and not warnings,
+        blockers=tuple(blockers),
+        warnings=tuple(warnings),
+        source_revision=readiness.projection_integrity.current_source_revision,
+        projection_revision=readiness.projection_integrity.source_revision,
+        freshness=_projection_freshness(readiness),
+    )
+
+
+def _rag_capability(
+    state: RagHealthState,
+    name: str,
+    readiness: OperationalReadinessSnapshot,
+) -> OperationalCapability:
+    """Map one RAG dependency health state to independent evidence."""
+    if state is RagHealthState.HEALTHY:
+        capability_state = OperationalCapabilityState.READY
+        ready = True
+        blockers: tuple[str, ...] = ()
+        warnings: tuple[str, ...] = ()
+        freshness = OperationalCapabilityFreshness.CURRENT
+    elif state is RagHealthState.DISABLED:
+        capability_state = OperationalCapabilityState.UNKNOWN
+        ready = False
+        blockers = ()
+        warnings = (f"{name}_disabled",)
+        freshness = OperationalCapabilityFreshness.UNKNOWN
+    elif state is RagHealthState.REINDEX_REQUIRED:
+        capability_state = OperationalCapabilityState.DEGRADED
+        ready = False
+        blockers = ()
+        warnings = (f"{name}_stale",)
+        freshness = OperationalCapabilityFreshness.STALE
+    else:
+        capability_state = OperationalCapabilityState.DEGRADED
+        ready = False
+        blockers = ()
+        warnings = (f"{name}_degraded",)
+        freshness = OperationalCapabilityFreshness.UNKNOWN
+    return OperationalCapability(
+        state=capability_state,
+        ready=ready,
+        blockers=blockers,
+        warnings=warnings,
+        source_revision=readiness.projection_integrity.current_source_revision,
+        projection_revision=readiness.projection_integrity.source_revision,
+        freshness=freshness,
+    )
+
+
+def _graph_capability(
+    readiness: OperationalReadinessSnapshot,
+) -> OperationalCapability:
+    """Classify graph projection status without inventing source freshness."""
+    graph = readiness.graph
+    if graph.status == "ready":
+        return OperationalCapability(
+            state=OperationalCapabilityState.READY,
+            ready=True,
+            blockers=(),
+            warnings=("graph_projection_freshness_unknown",),
+            projection_revision=graph.projection_revision,
+            freshness=OperationalCapabilityFreshness.UNKNOWN,
+        )
+    if graph.status == "unavailable":
+        return OperationalCapability(
+            state=OperationalCapabilityState.BLOCKED,
+            ready=False,
+            blockers=("graph_projection_unavailable",),
+            warnings=graph.warnings,
+            projection_revision=graph.projection_revision,
+            freshness=OperationalCapabilityFreshness.UNKNOWN,
+        )
+    return OperationalCapability(
+        state=OperationalCapabilityState.UNKNOWN,
+        ready=False,
+        blockers=(),
+        warnings=graph.warnings or ("graph_projection_unchecked",),
+        projection_revision=graph.projection_revision,
+        freshness=OperationalCapabilityFreshness.UNKNOWN,
+    )
+
+
+def _reconciliation_capability(
+    readiness: OperationalReadinessSnapshot,
+) -> OperationalCapability:
+    """Classify reconciliation reachability and existing diagnostics."""
+    reconciliation = readiness.reconciliation
+    if not reconciliation.configured:
+        return OperationalCapability(
+            state=OperationalCapabilityState.OPTIONAL,
+            ready=False,
+            blockers=(),
+            warnings=("reconciliation_unconfigured",),
+        )
+    if not reconciliation.reachable:
+        return OperationalCapability(
+            state=OperationalCapabilityState.BLOCKED,
+            ready=False,
+            blockers=("reconciliation_unreachable",),
+            warnings=(),
+        )
+    warnings: list[str] = []
+    if reconciliation.open_conflicts or reconciliation.reviewing_conflicts:
+        warnings.append("reconciliation_review_required")
+    if reconciliation.failed_results:
+        warnings.append("reconciliation_failures_present")
+    return OperationalCapability(
+        state=(
+            OperationalCapabilityState.DEGRADED
+            if warnings
+            else OperationalCapabilityState.READY
+        ),
+        ready=not warnings,
+        blockers=(),
+        warnings=tuple(warnings),
+    )
+
+
+def _projection_freshness(
+    readiness: OperationalReadinessSnapshot,
+) -> OperationalCapabilityFreshness:
+    """Map existing indexed-source revision evidence to capability freshness."""
+    projection = readiness.projection_integrity
+    if not projection.checked or not projection.available:
+        return OperationalCapabilityFreshness.UNKNOWN
+    if (
+        projection.stale
+        or projection.source_revision != projection.current_source_revision
+    ):
+        return OperationalCapabilityFreshness.STALE
+    return OperationalCapabilityFreshness.CURRENT
+
+
+def _rag_freshness(
+    state: RagHealthState,
+    warnings: tuple[str, ...],
+) -> OperationalCapabilityFreshness:
+    """Return RAG freshness without inferring it from absent evidence."""
+    if warnings and state is not RagHealthState.HEALTHY:
+        return OperationalCapabilityFreshness.STALE
+    if state is RagHealthState.HEALTHY:
+        return OperationalCapabilityFreshness.CURRENT
+    return OperationalCapabilityFreshness.UNKNOWN
 
 
 def _core_blockers(readiness: OperationalReadinessSnapshot) -> list[str]:
@@ -100,6 +330,12 @@ def _core_warnings(readiness: OperationalReadinessSnapshot) -> list[str]:
         list[str] result produced by core warnings.
     """
     warnings: list[str] = []
+    if (
+        readiness.vault.indexed_notes is None
+        or readiness.vault.stale_notes is None
+        or readiness.vault.error_notes is None
+    ):
+        warnings.append("metadata_index_unknown")
     reconciliation = readiness.reconciliation
     if reconciliation.configured and not reconciliation.reachable:
         warnings.append("memory_reconciliation_repository_unreachable")

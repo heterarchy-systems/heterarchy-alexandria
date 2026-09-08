@@ -258,7 +258,8 @@ class ObsidianNoteResponse(StrictSchemaModel):
         AwareTimestamp, described_field("Modified at for this Obsidian note response.")
     ]
     indexed_at: Annotated[
-        AwareTimestamp, described_field("Indexed at for this Obsidian note response.")
+        AwareTimestamp | None,
+        described_field("Indexed at for this Obsidian note response."),
     ]
     wikilink: Annotated[
         str, described_field("Wikilink for this Obsidian note response.")

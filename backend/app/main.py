@@ -33,6 +33,9 @@ from app.memory.application.contexts.embedding.context_embedding_recovery_servic
     ContextEmbeddingRecoveryService,
 )
 from app.memory.application.contexts.records.context_service import ContextService
+from app.memory.interface.routers.context_recall_router import (
+    router as context_recall_router,
+)
 from app.memory.interface.routers.context_retrieval_router import (
     router as context_retrieval_router,
 )
@@ -40,11 +43,17 @@ from app.memory.interface.routers.context_router import router as context_router
 from app.memory.interface.routers.memory_compact_router import (
     router as memory_compact_router,
 )
+from app.memory.interface.routers.memory_cycle_router import (
+    router as memory_cycle_router,
+)
 from app.memory.interface.routers.memory_existing_reconciliation_router import (
     router as memory_existing_reconciliation_router,
 )
 from app.memory.interface.routers.memory_reconciliation_router import (
     router as memory_reconciliation_router,
+)
+from app.obsidian.interface.routers.managed_spec_router import (
+    router as managed_spec_router,
 )
 from app.obsidian.interface.routers.obsidian_router import router as obsidian_router
 from app.obsidian.interface.routers.obsidian_settings_router import (
@@ -296,10 +305,13 @@ def create_app(app_config: AppConfig) -> FastAPI:
     app.include_router(connection_hub_router)
     app.include_router(context_router)
     app.include_router(context_retrieval_router)
+    app.include_router(context_recall_router)
     app.include_router(memory_compact_router)
+    app.include_router(memory_cycle_router)
     app.include_router(memory_existing_reconciliation_router)
     app.include_router(memory_reconciliation_router)
     app.include_router(obsidian_router)
+    app.include_router(managed_spec_router)
     app.include_router(obsidian_settings_router)
     app.include_router(operational_readiness_router)
     app.include_router(retrieval_diagnostics_router)

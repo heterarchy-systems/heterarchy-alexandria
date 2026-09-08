@@ -34,10 +34,15 @@ from app.memory.domain.contracts.memory_reconciliation_contracts import (
 from app.memory.domain.entities.context_read_models import ContextRecord
 from app.memory.domain.entities.memory_existing_reconciliation import (
     ExistingMemoryAssessment,
+    ExistingMemoryPlanPreview,
+    ExistingMemoryPlanPreviewReport,
     ExistingMemoryReconciliationReport,
 )
 from app.memory.domain.entities.memory_reconciliation import (
     CanonicalClaim,
+    MemoryCandidate,
+    MemoryRecallCandidate,
+    MemoryReconciliationPlan,
     MemorySourceReference,
     MemoryTemporalState,
 )
@@ -47,6 +52,7 @@ from app.memory.domain.repositories.reconciliation.memory_reconciliation_use_cas
 )
 from app.memory.domain.types.context_payload_types import ContextMetadataPayload
 from app.shared.exceptions.memory_context_exceptions import MemoryContextValidationError
+from app.shared.serialization.orjson_codec import loads_json
 from app.shared.types.extra_types import JSONValue
 
 _CLAIMS_ADAPTER = TypeAdapter(tuple[CanonicalClaim, ...])
@@ -109,6 +115,75 @@ class MemoryExistingReconciliationService:
         """
         return await self._run(request, dry_run=False)
 
+    async def preview_plans(
+        self,
+        request: ExistingMemoryReconciliationRequest,
+    ) -> ExistingMemoryPlanPreviewReport:
+        """Return full child plans without persisting plans or temporal overlays.
+
+        This is the read-only planning surface used by aggregate memory-cycle
+        orchestration.  It deliberately shares candidate construction,
+        retrieval, classification, and plan policy with the existing-memory
+        reconciliation owner instead of reimplementing those semantics.
+
+        Args:
+            request: Existing-memory scan filters and bounds.
+
+        Returns:
+            Bounded full child-plan preview.
+        """
+        _validate_request(request)
+        previews: list[ExistingMemoryPlanPreview] = []
+        warnings: list[str] = []
+        scanned = 0
+        total_available = 0
+        offset = 0
+        while scanned < request.max_contexts:
+            page_limit = min(request.batch_size, request.max_contexts - scanned)
+            contexts, total = await self._list_contexts_page(
+                request,
+                limit=page_limit,
+                offset=offset,
+            )
+            total_available = total
+            if not contexts:
+                break
+            for context in contexts:
+                prepared = await self._prepare_context(context, request)
+                previews.append(
+                    ExistingMemoryPlanPreview(
+                        context=context,
+                        content_hash=prepared.candidate.content_hash,
+                        canonical_path=prepared.canonical_path,
+                        temporal=prepared.temporal,
+                        temporal_overlay_present=prepared.temporal_overlay_present,
+                        plan=prepared.plan,
+                        warnings=prepared.warnings,
+                        compared_contexts=prepared.recalled,
+                    )
+                )
+            scanned += len(contexts)
+            offset += len(contexts)
+            if offset >= total:
+                break
+        if total_available > scanned:
+            warnings.append(
+                f"Scan stopped at max_contexts={request.max_contexts}; "
+                f"{total_available - scanned} matching Contexts remain."
+            )
+        warnings.append(
+            "Dry-run child-plan preview completed without persisting plans or "
+            "temporal overlays."
+        )
+        return ExistingMemoryPlanPreviewReport(
+            scanned=scanned,
+            total_available=total_available,
+            window_start=request.created_after,
+            window_end=request.created_before,
+            previews=tuple(previews),
+            warnings=tuple(warnings),
+        )
+
     async def _run(
         self,
         request: ExistingMemoryReconciliationRequest,
@@ -137,12 +212,10 @@ class MemoryExistingReconciliationService:
         offset = 0
         while scanned < request.max_contexts:
             page_limit = min(request.batch_size, request.max_contexts - scanned)
-            contexts, total = await self._context_service.list_contexts(
+            contexts, total = await self._list_contexts_page(
+                request,
                 limit=page_limit,
                 offset=offset,
-                project=request.project,
-                scope=request.scope,
-                include_archived=request.include_archived,
             )
             total_available = total
             if not contexts:
@@ -204,16 +277,106 @@ class MemoryExistingReconciliationService:
         Returns:
             tuple[ExistingMemoryAssessment, _AssessmentCounters] result produced by assess context.
         """
+        prepared = await self._prepare_context(context, request)
+        temporal = prepared.temporal
+        backfill_required = not prepared.temporal_overlay_present
+        temporal_states_written = 0
+        if backfill_required and not dry_run:
+            await self._repository.upsert_temporal_state(temporal)
+            temporal_states_written = 1
+        plan_id: str | None = None
+        plan_persisted = False
+        primary_relation: MemoryRelationType | None = None
+        requires_review = False
+        if prepared.plan is not None:
+            plan = prepared.plan
+            plans_generated = 1
+            primary_relation = plan.primary_decision
+            requires_review = plan.requires_review
+            if dry_run:
+                plan_id = plan.plan_id
+            else:
+                existing_plan = await self._repository.get_plan_by_idempotency_key(
+                    plan.idempotency_key
+                )
+                persisted_plan = (
+                    existing_plan
+                    if existing_plan is not None
+                    else await self._repository.save_plan(plan)
+                )
+                plan_id = persisted_plan.plan_id
+                plan_persisted = existing_plan is None
+        else:
+            plans_generated = 0
+        assessment = ExistingMemoryAssessment(
+            context_id=context.id,
+            temporal_overlay_present=prepared.temporal_overlay_present,
+            temporal_backfill_required=backfill_required,
+            canonical_claim_count=len(prepared.candidate.canonical_claims),
+            primary_relation=primary_relation,
+            related_context_ids=tuple(
+                dict.fromkeys(
+                    decision.existing_context_id for decision in prepared.plan.decisions
+                )
+                if prepared.plan is not None
+                else ()
+            ),
+            plan_id=plan_id,
+            plan_persisted=plan_persisted,
+            requires_review=requires_review,
+            warnings=prepared.warnings,
+        )
+        return assessment, _AssessmentCounters(
+            temporal_backfill_candidates=int(backfill_required),
+            temporal_states_written=temporal_states_written,
+            plans_generated=plans_generated,
+            plans_persisted=int(plan_persisted),
+            contexts_missing_claims=int(not prepared.candidate.canonical_claims),
+            review_required=int(requires_review),
+        )
+
+    async def _list_contexts_page(
+        self,
+        request: ExistingMemoryReconciliationRequest,
+        *,
+        limit: int,
+        offset: int,
+    ) -> tuple[list[ContextRecord], int]:
+        """List one page while preserving the original minimal port call shape."""
+        if (
+            request.workspace_id is None
+            and request.created_after is None
+            and request.created_before is None
+        ):
+            return await self._context_service.list_contexts(
+                limit=limit,
+                offset=offset,
+                project=request.project,
+                scope=request.scope,
+                include_archived=request.include_archived,
+            )
+        return await self._context_service.list_contexts(
+            limit=limit,
+            offset=offset,
+            project=request.project,
+            scope=request.scope,
+            workspace_id=request.workspace_id,
+            include_archived=request.include_archived,
+            created_after=request.created_after,
+            created_before=request.created_before,
+        )
+
+    async def _prepare_context(
+        self,
+        context: ContextRecord,
+        request: ExistingMemoryReconciliationRequest,
+    ) -> _PreparedContext:
+        """Build one candidate and child plan without persistence effects."""
         persisted_temporal = await self._repository.get_temporal_state(context.id)
         canonical_temporal = temporal_state_from_context_metadata(context)
         temporal = (
             persisted_temporal or canonical_temporal or _default_temporal(context)
         )
-        backfill_required = persisted_temporal is None
-        temporal_states_written = 0
-        if backfill_required and not dry_run:
-            await self._repository.upsert_temporal_state(temporal)
-            temporal_states_written = 1
         claims = _canonical_claims(context.context_metadata)
         warnings: list[str] = []
         if not claims:
@@ -239,56 +402,23 @@ class MemoryExistingReconciliationService:
             for decision in decisions
             if decision.relation is not MemoryRelationType.UNRELATED
         )
-        plan_id: str | None = None
-        plan_persisted = False
-        primary_relation: MemoryRelationType | None = None
-        requires_review = False
-        if meaningful:
-            plan = self._plan_service.build(
+        plan = (
+            self._plan_service.build(
                 candidate=candidate,
                 decisions=meaningful,
                 idempotency_key=_existing_plan_key(context.id, candidate.content_hash),
             )
-            plans_generated = 1
-            primary_relation = plan.primary_decision
-            requires_review = plan.requires_review
-            if dry_run:
-                plan_id = plan.plan_id
-            else:
-                existing_plan = await self._repository.get_plan_by_idempotency_key(
-                    plan.idempotency_key
-                )
-                persisted_plan = (
-                    existing_plan
-                    if existing_plan is not None
-                    else await self._repository.save_plan(plan)
-                )
-                plan_id = persisted_plan.plan_id
-                plan_persisted = existing_plan is None
-        else:
-            plans_generated = 0
-        related_context_ids = tuple(
-            dict.fromkeys(decision.existing_context_id for decision in meaningful)
+            if meaningful
+            else None
         )
-        assessment = ExistingMemoryAssessment(
-            context_id=context.id,
+        return _PreparedContext(
+            candidate=candidate,
+            canonical_path=_canonical_path(context),
+            temporal=temporal,
             temporal_overlay_present=persisted_temporal is not None,
-            temporal_backfill_required=backfill_required,
-            canonical_claim_count=len(claims),
-            primary_relation=primary_relation,
-            related_context_ids=related_context_ids,
-            plan_id=plan_id,
-            plan_persisted=plan_persisted,
-            requires_review=requires_review,
+            plan=plan,
             warnings=tuple(warnings),
-        )
-        return assessment, _AssessmentCounters(
-            temporal_backfill_candidates=int(backfill_required),
-            temporal_states_written=temporal_states_written,
-            plans_generated=plans_generated,
-            plans_persisted=int(plan_persisted),
-            contexts_missing_claims=int(not claims),
-            review_required=int(requires_review),
+            recalled=recalled,
         )
 
 
@@ -302,6 +432,19 @@ class _AssessmentCounters:
     plans_persisted: int
     contexts_missing_claims: int
     review_required: int
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _PreparedContext:
+    """Read-only candidate and plan evidence shared by scan operations."""
+
+    candidate: MemoryCandidate
+    canonical_path: str
+    temporal: MemoryTemporalState
+    temporal_overlay_present: bool
+    plan: MemoryReconciliationPlan | None
+    warnings: tuple[str, ...]
+    recalled: tuple[MemoryRecallCandidate, ...]
 
 
 def _validate_request(request: ExistingMemoryReconciliationRequest) -> None:
@@ -321,6 +464,22 @@ def _validate_request(request: ExistingMemoryReconciliationRequest) -> None:
     if request.recall_limit < 1 or request.recall_limit > 100:
         raise MemoryContextValidationError(
             "existing-memory recall_limit must be between 1 and 100"
+        )
+    if request.created_after is not None and request.created_after.tzinfo is None:
+        raise MemoryContextValidationError(
+            "existing-memory created_after must be timezone-aware"
+        )
+    if request.created_before is not None and request.created_before.tzinfo is None:
+        raise MemoryContextValidationError(
+            "existing-memory created_before must be timezone-aware"
+        )
+    if (
+        request.created_after is not None
+        and request.created_before is not None
+        and request.created_before < request.created_after
+    ):
+        raise MemoryContextValidationError(
+            "existing-memory created_before must not be before created_after"
         )
 
 
@@ -409,6 +568,11 @@ def _canonical_claims(metadata: ContextMetadataPayload) -> tuple[CanonicalClaim,
         tuple[CanonicalClaim, ...] result produced by canonical claims.
     """
     value: JSONValue | None = metadata.get("canonical_claims")
+    if isinstance(value, str):
+        try:
+            value = loads_json(value)
+        except (TypeError, ValueError):
+            return ()
     if not isinstance(value, list):
         return ()
     try:
@@ -432,6 +596,13 @@ def _metadata_text(metadata: ContextMetadataPayload, key: str) -> str | None:
         return None
     normalized = value.strip()
     return normalized or None
+
+
+def _canonical_path(context: ContextRecord) -> str:
+    """Return the canonical source path used by cycle identity evidence."""
+    return _metadata_text(context.context_metadata, "relative_path") or (
+        f"context:{context.id}"
+    )
 
 
 def _existing_plan_key(context_id: str, content_hash: str) -> str:

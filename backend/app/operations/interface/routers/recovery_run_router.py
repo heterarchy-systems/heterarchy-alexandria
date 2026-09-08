@@ -8,6 +8,9 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.container import ApplicationContainer
 from app.memory.application.contexts.records.context_service import ContextService
+from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild_service import (
+    ObsidianGraphProjectionRebuildService,
+)
 from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.operations.application.recovery.execution.recovery_run_errors import (
     RecoveryInProgressError,
@@ -47,6 +50,12 @@ async def recovery_run(
         ObsidianService,
         Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
     ],
+    graph_projection_service: Annotated[
+        ObsidianGraphProjectionRebuildService,
+        Depends(
+            Provide[ApplicationContainer.obsidian.graph_projection_rebuild_service]
+        ),
+    ],
     context_service_factory: Annotated[
         Callable[[], ContextService | Awaitable[ContextService]],
         Depends(Provide[ApplicationContainer.memory.context_service.provider]),
@@ -77,6 +86,7 @@ async def recovery_run(
         obsidian_service=obsidian_service,
         context_service_factory=context_service_factory,
         obsidian_service_factory=obsidian_service_factory,
+        graph_projection_service=graph_projection_service,
     )
     try:
         run = await service.start(request.to_contract())
@@ -112,6 +122,12 @@ async def retry_recovery_run(
         ObsidianService,
         Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
     ],
+    graph_projection_service: Annotated[
+        ObsidianGraphProjectionRebuildService,
+        Depends(
+            Provide[ApplicationContainer.obsidian.graph_projection_rebuild_service]
+        ),
+    ],
     context_service_factory: Annotated[
         Callable[[], ContextService | Awaitable[ContextService]],
         Depends(Provide[ApplicationContainer.memory.context_service.provider]),
@@ -143,6 +159,7 @@ async def retry_recovery_run(
         obsidian_service=obsidian_service,
         context_service_factory=context_service_factory,
         obsidian_service_factory=obsidian_service_factory,
+        graph_projection_service=graph_projection_service,
     )
     try:
         run = await service.retry(run_id, request.to_contract())
@@ -184,6 +201,12 @@ async def get_recovery_run(
         ObsidianService,
         Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
     ],
+    graph_projection_service: Annotated[
+        ObsidianGraphProjectionRebuildService,
+        Depends(
+            Provide[ApplicationContainer.obsidian.graph_projection_rebuild_service]
+        ),
+    ],
 ) -> RecoveryRunResponse:
     """Return persisted recovery run by id.
 
@@ -200,6 +223,7 @@ async def get_recovery_run(
         database=database,
         context_service=context_service,
         obsidian_service=obsidian_service,
+        graph_projection_service=graph_projection_service,
     )
     run = await service.get(run_id)
     if run is None:

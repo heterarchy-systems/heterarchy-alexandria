@@ -48,6 +48,7 @@ from app.obsidian.domain.entities.obsidian_note import (
     ObsidianVaultLocation,
     ObsidianVaultMovePlan,
     ObsidianVaultMoveReport,
+    ObsidianVaultSourceSnapshot,
     ObsidianVaultStatus,
 )
 from app.obsidian.infrastructure.obsidian_vault_config_store import (
@@ -204,6 +205,17 @@ class ObsidianVaultOperations(ObsidianReadinessPort, ObsidianDataIntegrityPort):
             Vault-relative managed Markdown paths.
         """
         return await self._vault_inventory_service.managed_markdown_paths()
+
+    async def source_snapshot(self, max_notes: int) -> ObsidianVaultSourceSnapshot:
+        """Read a bounded, source-owned Markdown snapshot for identity resolution.
+
+        Args:
+            max_notes: Maximum number of Markdown files to parse.
+
+        Returns:
+            Source snapshot with explicit completeness and error state.
+        """
+        return await self._vault_inventory_service.source_snapshot(max_notes)
 
     async def search_vault_paths(
         self,

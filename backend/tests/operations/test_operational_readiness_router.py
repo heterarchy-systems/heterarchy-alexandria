@@ -8,6 +8,10 @@ from types import SimpleNamespace
 
 import anyio
 import pytest
+from dependency_injector import providers
+from fastapi.testclient import TestClient
+from tests.operations.operational_readiness_fakes import HealthyGraphProjectionService
+
 from app.main import app as default_app, create_app
 from app.memory.domain.entities.context_read_models import (
     ContextEmbeddingSourceStatus,
@@ -31,8 +35,6 @@ from app.operations.interface.routers.operational_readiness_router import (
 )
 from app.platform.config.app_config import AppConfig
 from app.shared.infrastructure.database import Database
-from dependency_injector import providers
-from fastapi.testclient import TestClient
 
 _ROUTER_PACKAGES = [
     "app.connections.interface.routers",
@@ -175,6 +177,7 @@ def test_operational_readiness_route_returns_snapshot_payload(tmp_path: Path) ->
                 obsidian_service=_FakeObsidianService(tmp_path),
                 reconciliation_service=None,
                 readiness_cache=NoopOperationalReadinessCache(),
+                graph_projection_service=HealthyGraphProjectionService(),
             )
             response = await operational_readiness(service=service)
             return response.model_dump(mode="json")
@@ -229,6 +232,7 @@ def test_operational_capabilities_keep_core_ready_without_embeddings(
                 obsidian_service=_FakeObsidianService(tmp_path),
                 reconciliation_service=None,
                 readiness_cache=NoopOperationalReadinessCache(),
+                graph_projection_service=HealthyGraphProjectionService(),
             )
             response = await operational_capabilities(service=service)
             return response.model_dump(mode="json")
@@ -237,12 +241,10 @@ def test_operational_capabilities_keep_core_ready_without_embeddings(
 
     payload = anyio.run(scenario)
 
-    assert payload["core_memory"] == {
-        "state": "READY",
-        "ready": True,
-        "blockers": [],
-        "warnings": [],
-    }
+    assert payload["core_memory"]["state"] == "READY"
+    assert payload["core_memory"]["ready"] is True
+    assert payload["core_memory"]["blockers"] == []
+    assert payload["core_memory"]["warnings"] == []
     assert payload["semantic_retrieval"]["state"] == "DEGRADED"
     assert payload["semantic_retrieval"]["ready"] is False
     assert "rag_embedding_not_healthy" in payload["semantic_retrieval"]["blockers"]
@@ -296,6 +298,16 @@ def test_fastapi_resolves_readiness_and_recovery_dependencies(
     assert readiness_response.status_code == 200
     assert readiness_response.json()["reconciliation"]["configured"] is True
     assert capabilities_response.status_code == 200
-    assert capabilities_response.json()["core_memory"]["ready"] is True
+    capabilities_payload = capabilities_response.json()
+    assert capabilities_payload["core_memory"]["ready"] is True
+    assert {
+        "source",
+        "metadata_index",
+        "fts",
+        "vector",
+        "embedding",
+        "graph",
+        "reconciliation",
+    } <= capabilities_payload.keys()
     assert recovery_response.status_code == 200
     assert recovery_response.json()["idempotency_key"] == "fastapi-di-contract"

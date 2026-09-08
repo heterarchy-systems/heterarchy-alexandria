@@ -27,11 +27,24 @@ from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild
 from app.obsidian.application.graph.projection.obsidian_graph_projection_source_builder import (
     ObsidianGraphProjectionSourceBuilder,
 )
+from app.obsidian.application.service.managed_spec.managed_spec_adapters import (
+    ObsidianManagedSpecCheckpointStore,
+    ObsidianManagedSpecOutputWriter,
+)
+from app.obsidian.application.service.managed_spec.managed_spec_execution_service import (
+    ManagedSpecExecutionService,
+)
 from app.obsidian.application.service.notes.obsidian_canonical_identity_service import (
     ObsidianCanonicalIdentityService,
 )
+from app.obsidian.application.service.notes.obsidian_relate_service import (
+    ObsidianRelateService,
+)
 from app.obsidian.application.service.notes.obsidian_report_bundle_service import (
     ObsidianReportBundleService,
+)
+from app.obsidian.application.service.notes.obsidian_verified_upsert_service import (
+    ObsidianVerifiedUpsertService,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.obsidian.application.service.vault.obsidian_vault_reindex_service import (
@@ -45,6 +58,9 @@ from app.obsidian.infrastructure.graph.sqlalchemy_obsidian_graph_projection_sour
 )
 from app.obsidian.infrastructure.markdown.native_context_reindex_manifest import (
     create_native_context_reindex_manifest_validator,
+)
+from app.obsidian.infrastructure.obsidian_report_bundle_run_store import (
+    ObsidianReportBundleRunStore,
 )
 from app.obsidian.infrastructure.obsidian_vault_config_store import (
     ObsidianVaultConfigStore,
@@ -189,4 +205,42 @@ class ObsidianContainer(containers.DeclarativeContainer):
         ObsidianCanonicalIdentityService,
         obsidian_service=obsidian_service,
         vault_config_store=vault_config_store,
+    )
+    verified_upsert_service = providers.Factory(
+        ObsidianVerifiedUpsertService,
+        obsidian_service=obsidian_service,
+        canonical_identity_service=canonical_identity_service,
+        vault_config_store=vault_config_store,
+        index_maintenance_coordinator=index_maintenance_coordinator,
+        commit_projection=db_session.provided.commit,
+        rollback_projection=db_session.provided.rollback,
+    )
+    relate_service = providers.Factory(
+        ObsidianRelateService,
+        obsidian_service=obsidian_service,
+        graph_note_diagnostics_service=graph_note_diagnostics_service,
+        graph_service=graph_service,
+        graph_repository=graph_projection_repository,
+        vault_config_store=vault_config_store,
+        index_maintenance_coordinator=index_maintenance_coordinator,
+        commit_projection=db_session.provided.commit,
+        rollback_projection=db_session.provided.rollback,
+    )
+    managed_spec_checkpoint_store = providers.Factory(
+        ObsidianManagedSpecCheckpointStore,
+        run_store=providers.Factory(
+            ObsidianReportBundleRunStore,
+            vault_path=vault_config_store.provided.current.call().vault_path,
+        ),
+    )
+    managed_spec_output_writer = providers.Factory(
+        ObsidianManagedSpecOutputWriter,
+        service=verified_upsert_service,
+    )
+    managed_spec_service = providers.Factory(
+        ManagedSpecExecutionService,
+        source=obsidian_service,
+        checkpoint_store=managed_spec_checkpoint_store,
+        output_writer=managed_spec_output_writer,
+        index_maintenance_coordinator=index_maintenance_coordinator,
     )

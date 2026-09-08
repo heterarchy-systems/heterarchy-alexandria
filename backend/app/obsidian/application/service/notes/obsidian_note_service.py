@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import replace
+from functools import partial
 from pathlib import Path
+
+import anyio
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.obsidian.application.graph.diagnostics.obsidian_graph_link_renderer import (
     add_or_update_alexandria_links_section,
@@ -19,7 +24,8 @@ from app.obsidian.application.notes.frontmatter.obsidian_note_write_metadata imp
     write_is_unchanged,
 )
 from app.obsidian.application.notes.lifecycle.obsidian_authoritative_read import (
-    authoritative_note_from_path,
+    authoritative_note_from_index,
+    authoritative_note_from_path_async,
 )
 from app.obsidian.application.notes.lifecycle.obsidian_context_save_policy import (
     apply_context_save_policy,
@@ -39,6 +45,7 @@ from app.obsidian.application.service.vault.obsidian_vault_lifecycle_service imp
     index_error_code,
 )
 from app.obsidian.domain.contracts.obsidian_contracts import (
+    ObsidianNoteIndex,
     ObsidianSaveNote,
     ObsidianSearchQuery,
     ObsidianWriteNote,
@@ -49,6 +56,7 @@ from app.obsidian.domain.entities.obsidian_note import (
     ObsidianNoteWriteResult,
     ObsidianReindexResult,
     ObsidianSearchHit,
+    ObsidianVaultSourceSnapshot,
 )
 from app.obsidian.domain.event_enum.obsidian_enums import (
     AlexandriaNoteType,
@@ -78,6 +86,7 @@ from app.shared.application.index_maintenance_coordinator import (
 from app.shared.exceptions.obsidian_exceptions import (
     ObsidianIndexWriteError,
     ObsidianNotFoundError,
+    ObsidianStoredProjectionError,
     ObsidianValidationError,
 )
 from app.shared.infrastructure.identifiers import new_uuid
@@ -85,6 +94,23 @@ from app.shared.types.types_convert_utils import now_utc
 from app.shared.utils.secret_redaction import redact_secret_text
 
 logger = logging.getLogger(__name__)
+DEFAULT_SOURCE_SCAN_LIMIT = 4096
+SOURCE_METADATA_LOOKUP_TIMEOUT_SECONDS = 1.0
+
+
+def _persist_and_index(
+    absolute: Path,
+    document: str,
+    safe_path: str,
+    alexandria_root: str,
+) -> ObsidianNoteIndex | None:
+    """Persist source and parse its native index payload in one worker."""
+    atomic_write_markdown(absolute, document)
+    return note_index_from_path(
+        absolute,
+        safe_path,
+        alexandria_root=alexandria_root,
+    )
 
 
 class ObsidianNoteService:
@@ -97,6 +123,8 @@ class ObsidianNoteService:
         reindex: Callable[[], Awaitable[ObsidianReindexResult]],
         mark_context_superseded: ObsidianNoteSupersedeHook,
         index_maintenance_coordinator: IndexMaintenanceCoordinator,
+        source_snapshot: Callable[[int], Awaitable[ObsidianVaultSourceSnapshot]],
+        source_scan_limit: int,
     ) -> None:
         """Create the canonical note service.
 
@@ -106,12 +134,18 @@ class ObsidianNoteService:
             reindex: Vault index refresh callback.
             mark_context_superseded: Context lifecycle reconciliation callback.
             index_maintenance_coordinator: Process-wide rebuildable-index write lane.
+            source_snapshot: Source-owned bounded Markdown snapshot callback.
+            source_scan_limit: Maximum source files to scan for ID fallback reads.
         """
+        if source_scan_limit <= 0:
+            raise ObsidianValidationError("source_scan_limit must be greater than zero")
         self._repository = repository
         self._vault_config_store = vault_config_store
         self._reindex = reindex
         self._mark_context_superseded = mark_context_superseded
         self._index_maintenance_coordinator = index_maintenance_coordinator
+        self._source_snapshot = source_snapshot
+        self._source_scan_limit = source_scan_limit
         self._write_target_resolver = ObsidianWriteTargetResolver(
             repository=repository,
             vault_config_store=vault_config_store,
@@ -146,18 +180,29 @@ class ObsidianNoteService:
             Authoritative note loaded from Markdown.
         """
         config = self._vault_config_store.current()
-        indexed = await self._repository.get_by_id(note_id)
-        if indexed is None:
-            await self._reindex()
-            indexed = await self._repository.get_by_id(note_id)
-        if indexed is None:
-            raise ObsidianNotFoundError(f"Obsidian note not found: {note_id}")
-        return authoritative_note_from_path(
-            vault_path=config.vault_path,
-            relative_path=indexed.relative_path,
-            alexandria_root=config.alexandria_root,
-            indexed=indexed,
+        indexed, metadata_unavailable = await self._best_effort_index_lookup(
+            lambda: self._repository.get_by_id(note_id)
         )
+        if indexed is None:
+            return await self._read_note_from_source_snapshot(
+                note_id=note_id,
+                indexed=None,
+                metadata_unavailable=metadata_unavailable,
+            )
+        try:
+            return await authoritative_note_from_path_async(
+                vault_path=config.vault_path,
+                relative_path=indexed.relative_path,
+                alexandria_root=config.alexandria_root,
+                indexed=indexed,
+                expected_note_id=note_id,
+            )
+        except ObsidianNotFoundError:
+            return await self._read_note_from_source_snapshot(
+                note_id=note_id,
+                indexed=indexed,
+                metadata_unavailable=False,
+            )
 
     async def read_note_by_path(self, relative_path: str) -> ObsidianNote:
         """Read one managed note by vault-relative path.
@@ -170,17 +215,60 @@ class ObsidianNoteService:
         """
         config = self._vault_config_store.current()
         safe_path = str(safe_relative_path(relative_path))
-        indexed = await self._repository.get_by_path(safe_path)
-        if indexed is None:
-            await self._reindex()
-            indexed = await self._repository.get_by_path(safe_path)
-        if indexed is None:
-            raise ObsidianNotFoundError(f"Obsidian note not found: {safe_path}")
-        return authoritative_note_from_path(
+        indexed, metadata_unavailable = await self._best_effort_index_lookup(
+            lambda: self._repository.get_by_path(safe_path)
+        )
+        return await authoritative_note_from_path_async(
             vault_path=config.vault_path,
             relative_path=safe_path,
             alexandria_root=config.alexandria_root,
             indexed=indexed,
+            index_error=(
+                "INDEX_METADATA_UNAVAILABLE" if metadata_unavailable else None
+            ),
+        )
+
+    async def _best_effort_index_lookup(
+        self,
+        lookup: Callable[[], Awaitable[ObsidianNote | None]],
+    ) -> tuple[ObsidianNote | None, bool]:
+        """Read projection metadata without making it a source-read prerequisite."""
+        try:
+            async with asyncio.timeout(SOURCE_METADATA_LOOKUP_TIMEOUT_SECONDS):
+                return await lookup(), False
+        except (SQLAlchemyError, OSError):
+            logger.warning("Obsidian index metadata is unavailable during source read")
+            return None, True
+
+    async def _read_note_from_source_snapshot(
+        self,
+        *,
+        note_id: str,
+        indexed: ObsidianNote | None,
+        metadata_unavailable: bool,
+    ) -> ObsidianNote:
+        """Resolve an exact id from one complete bounded source snapshot."""
+        snapshot = await self._source_snapshot(self._source_scan_limit)
+        if not snapshot.complete or snapshot.errors:
+            raise ObsidianValidationError(
+                "SOURCE_SCAN_INCOMPLETE: cannot prove requested note id is "
+                "absent or unique"
+            )
+        matches = [payload for payload in snapshot.notes if payload.note_id == note_id]
+        if len(matches) > 1:
+            raise ObsidianValidationError(
+                "AMBIGUOUS_SOURCE_NOTE_ID: multiple canonical Markdown notes "
+                "match the requested id"
+            )
+        if not matches:
+            raise ObsidianNotFoundError(f"Obsidian note not found: {note_id}")
+        return authoritative_note_from_index(
+            matches[0],
+            indexed=indexed,
+            index_error=(
+                "INDEX_METADATA_UNAVAILABLE" if metadata_unavailable else None
+            ),
+            expected_note_id=note_id,
         )
 
     async def save_note(self, payload: ObsidianSaveNote) -> ObsidianNote:
@@ -298,7 +386,6 @@ class ObsidianNoteService:
                 f"DUPLICATE_CONTEXT_ID: {note_id} is already used by "
                 f"{id_match.relative_path}"
             )
-        absolute.parent.mkdir(parents=True, exist_ok=True)
         warnings = [*redaction.warnings, *frontmatter_warnings]
         if frontmatter_mode is None:
             frontmatter = frontmatter_for_save(
@@ -350,11 +437,15 @@ class ObsidianNoteService:
             frontmatter = policy.frontmatter
             supersedes_context_id = policy.supersedes_context_id
         document = render_markdown_document(frontmatter, body)
-        atomic_write_markdown(absolute, document)
-        index_payload = note_index_from_path(
-            absolute,
-            safe_path,
-            alexandria_root=config.alexandria_root,
+        index_payload = await anyio.to_thread.run_sync(
+            partial(
+                _persist_and_index,
+                absolute,
+                document,
+                safe_path,
+                config.alexandria_root,
+            ),
+            limiter=anyio.to_thread.current_default_thread_limiter(),
         )
         if index_payload is None:
             raise ObsidianValidationError(
@@ -363,6 +454,20 @@ class ObsidianNoteService:
         try:
             note = await self._repository.upsert_note(index_payload)
         except ObsidianIndexWriteError as exc:
+            try:
+                source_readback = await authoritative_note_from_path_async(
+                    vault_path=config.vault_path,
+                    relative_path=safe_path,
+                    alexandria_root=config.alexandria_root,
+                    expected_note_id=note_id,
+                )
+            except (
+                OSError,
+                ValueError,
+                ObsidianNotFoundError,
+                ObsidianValidationError,
+            ):
+                source_readback = None
             index_error = ObsidianIndexError(
                 note_path=safe_path,
                 context_id=note_id,
@@ -371,6 +476,11 @@ class ObsidianNoteService:
                 detected_at=now_utc(),
             )
             await self._record_index_error_best_effort(index_error)
+            if source_readback is not None:
+                raise ObsidianStoredProjectionError(
+                    note=source_readback,
+                    failed_stage="metadata_index",
+                ) from exc
             raise ObsidianValidationError(
                 "INDEX_WRITE_FAILED: canonical Markdown was preserved for reindex"
             ) from exc
@@ -384,6 +494,21 @@ class ObsidianNoteService:
                     replacement_context_id=note.note_id,
                 )
             except (OSError, ObsidianValidationError) as exc:
+                try:
+                    source_readback = await authoritative_note_from_path_async(
+                        vault_path=config.vault_path,
+                        relative_path=safe_path,
+                        alexandria_root=config.alexandria_root,
+                        indexed=note,
+                        expected_note_id=note.note_id,
+                    )
+                except (
+                    OSError,
+                    ValueError,
+                    ObsidianNotFoundError,
+                    ObsidianValidationError,
+                ):
+                    source_readback = None
                 index_error = ObsidianIndexError(
                     note_path=safe_path,
                     context_id=note.note_id,
@@ -392,6 +517,11 @@ class ObsidianNoteService:
                     detected_at=now_utc(),
                 )
                 await self._record_index_error_best_effort(index_error)
+                if source_readback is not None:
+                    raise ObsidianStoredProjectionError(
+                        note=source_readback,
+                        failed_stage="context_supersession",
+                    ) from exc
                 raise ObsidianValidationError(
                     "INDEX_WRITE_FAILED: replacement Markdown was preserved for "
                     "reindex reconciliation"

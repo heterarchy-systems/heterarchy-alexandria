@@ -9,6 +9,8 @@ from typing import cast
 
 import anyio
 import pytest
+from tests.operations.operational_readiness_fakes import HealthyGraphProjectionService
+
 from app.memory.domain.entities.context_read_models import RagDependencyHealth
 from app.memory.domain.event_enum.context_enums import RagHealthState, RagStrategy
 from app.obsidian.domain.entities.obsidian_note import (
@@ -163,6 +165,7 @@ def test_operational_readiness_reports_ready_when_all_dependencies_are_healthy(
                 database=database,
                 context_service=_FakeContextService(_healthy_rag()),
                 obsidian_service=_FakeObsidianService(_obsidian_status(tmp_path)),
+                graph_projection_service=HealthyGraphProjectionService(),
             )
 
             snapshot = await service.snapshot()
@@ -220,6 +223,7 @@ def test_operational_readiness_blocks_when_rag_strategy_is_not_hybrid(
                 database=database,
                 context_service=_FakeContextService(_healthy_components_fts_only_rag()),
                 obsidian_service=_FakeObsidianService(_obsidian_status(tmp_path)),
+                graph_projection_service=HealthyGraphProjectionService(),
             )
 
             snapshot = await service.snapshot()
@@ -258,6 +262,7 @@ def test_operational_readiness_blocks_when_rag_health_reports_warnings(
                 database=database,
                 context_service=_FakeContextService(_healthy_components_warning_rag()),
                 obsidian_service=_FakeObsidianService(_obsidian_status(tmp_path)),
+                graph_projection_service=HealthyGraphProjectionService(),
             )
 
             snapshot = await service.snapshot()
@@ -289,6 +294,7 @@ def test_operational_readiness_degrades_to_fts_only_when_embedding_reindex_requi
                 database=database,
                 context_service=_FakeContextService(_degraded_embedding_rag()),
                 obsidian_service=_FakeObsidianService(_obsidian_status(tmp_path)),
+                graph_projection_service=HealthyGraphProjectionService(),
             )
 
             snapshot = await service.snapshot()
@@ -329,6 +335,7 @@ def test_operational_readiness_blocks_when_vault_has_index_errors(
                 obsidian_service=_FakeObsidianService(
                     _obsidian_status(tmp_path, stale=1, errors=1)
                 ),
+                graph_projection_service=HealthyGraphProjectionService(),
             )
 
             snapshot = await service.snapshot()
@@ -378,6 +385,7 @@ def test_operational_readiness_routes_frontmatter_errors_to_repair_planning(
                         index_errors=(index_error,),
                     )
                 ),
+                graph_projection_service=HealthyGraphProjectionService(),
             )
             return (await service.snapshot()).next_actions
         finally:
@@ -409,6 +417,7 @@ def test_operational_readiness_reports_active_recovery_lock(
                 database=database,
                 context_service=_FakeContextService(_healthy_rag()),
                 obsidian_service=_FakeObsidianService(_obsidian_status(tmp_path)),
+                graph_projection_service=HealthyGraphProjectionService(),
             )
 
             snapshot = await service.snapshot()
@@ -451,6 +460,7 @@ def test_operational_readiness_reports_unreadable_active_recovery_lock(
                 database=database,
                 context_service=_FakeContextService(_healthy_rag()),
                 obsidian_service=_FakeObsidianService(_obsidian_status(tmp_path)),
+                graph_projection_service=HealthyGraphProjectionService(),
             )
 
             snapshot = await service.snapshot()
@@ -502,6 +512,7 @@ def test_operational_readiness_reports_last_successful_recovery_run(
                 database=database,
                 context_service=_FakeContextService(_healthy_rag()),
                 obsidian_service=_FakeObsidianService(_obsidian_status(tmp_path)),
+                graph_projection_service=HealthyGraphProjectionService(),
             )
 
             snapshot = await service.snapshot()

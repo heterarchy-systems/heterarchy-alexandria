@@ -5,8 +5,10 @@ from __future__ import annotations
 from typing import cast
 
 import anyio
-import app.operations.application.readiness.operational_readiness_service as readiness_module
 import pytest
+from tests.operations.operational_readiness_fakes import HealthyGraphProjectionService
+
+import app.operations.application.readiness.operational_readiness_service as readiness_module
 from app.memory.domain.entities.context_read_models import RagDependencyHealth
 from app.memory.domain.event_enum.context_enums import RagHealthState, RagStrategy
 from app.obsidian.domain.entities.obsidian_note import ObsidianVaultStatus
@@ -104,6 +106,7 @@ async def _fresh_snapshot() -> OperationalReadinessSnapshot:
         database=cast(Database, _HealthyPostgresDatabase()),
         context_service=_CountingContextService(),
         obsidian_service=_CountingObsidianService(),
+        graph_projection_service=HealthyGraphProjectionService(),
     )
     return await service.snapshot()
 
@@ -133,6 +136,7 @@ def test_active_recovery_bypasses_cached_ready_snapshot(
             context_service=context_service,
             obsidian_service=obsidian_service,
             readiness_cache=cache,
+            graph_projection_service=HealthyGraphProjectionService(),
         )
 
         snapshot = await service.snapshot()
@@ -174,6 +178,7 @@ def test_cache_hit_still_checks_authoritative_recovery_state(
             context_service=context_service,
             obsidian_service=obsidian_service,
             readiness_cache=cache,
+            graph_projection_service=HealthyGraphProjectionService(),
         )
 
         snapshot = await service.snapshot()

@@ -75,6 +75,7 @@ class ObsidianGraphCandidateHydrator(IContextGraphCandidateHydrator):
                 _obsidian_scope_recall_clause(
                     obsidian_table.c.frontmatter_json,
                     obsidian_table.c.project,
+                    obsidian_table.c.alexandria_type,
                     scope_filter,
                 )
             )

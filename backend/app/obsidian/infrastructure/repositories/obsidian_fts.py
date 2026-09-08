@@ -12,8 +12,10 @@ from sqlalchemy import (
     bindparam,
     case,
     cast as sql_cast,
+    exists,
     func,
     literal_column,
+    or_,
     select,
     union,
 )
@@ -30,6 +32,7 @@ from app.shared.utils.text_metrics import extract_word_tokens
 MAX_FTS_TOKEN_COUNT = 32
 MAX_FTS_TOKEN_LENGTH = 64
 EXACT_TITLE_FTS_RANK_BOOST = 1.0
+EXACT_ALIAS_FTS_RANK_BOOST = 1.0
 
 type ObsidianFtsRow = tuple[str, str, float]
 type ObsidianFtsStatement = Select[ObsidianFtsRow]
@@ -110,12 +113,18 @@ def build_obsidian_fts_query(
         ),
         else_=0.0,
     )
+    exact_alias_match = _exact_alias_match()
+    exact_alias_boost = case(
+        (exact_alias_match, EXACT_ALIAS_FTS_RANK_BOOST),
+        else_=0.0,
+    )
     rank = cast(
         ColumnElement[float],
         (
             func.ts_rank_cd(chunk_document, query)
             + (func.ts_rank_cd(note_document, query) * 0.5)
             + exact_title_boost
+            + exact_alias_boost
         ).label("rank"),
     )
     chunk_candidates = select(ObsidianChunkORM.id.label("chunk_id")).where(
@@ -125,7 +134,7 @@ def build_obsidian_fts_query(
         select(ObsidianChunkORM.id.label("chunk_id"))
         .select_from(ObsidianFileORM)
         .join(ObsidianChunkORM, ObsidianChunkORM.note_id == ObsidianFileORM.note_id)
-        .where(note_document.op("@@")(query))
+        .where(or_(note_document.op("@@")(query), exact_alias_match))
     )
     candidates = union(chunk_candidates, note_candidates).subquery(
         "obsidian_fts_candidates"
@@ -139,6 +148,7 @@ def build_obsidian_fts_query(
     parameters: dict[str, ObsidianFtsParameter] = {
         "query": normalized,
         "exact_title": query_text.strip().lower(),
+        "exact_alias": _normalized_alias(query_text),
         "limit": limit,
         "indexed_status": "indexed",
     }
@@ -214,3 +224,39 @@ def _escape_like_pattern(value: str) -> str:
         str result produced by escape like pattern.
     """
     return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def _exact_alias_match() -> ColumnElement[bool]:
+    """Return a safe exact match over scalar or array alias frontmatter."""
+    frontmatter = sql_cast(ObsidianFileORM.frontmatter_json, JSONB)
+    alias_matches: list[ColumnElement[bool]] = []
+    for field_name in ("aliases", "report_aliases"):
+        alias_value = frontmatter[field_name]
+        alias_type = func.jsonb_typeof(alias_value)
+        safe_values = case(
+            (alias_type == "array", alias_value),
+            (alias_type == "string", func.jsonb_build_array(alias_value)),
+            else_=sql_cast(literal_column("'[]'"), JSONB),
+        )
+        aliases = func.jsonb_array_elements_text(safe_values).table_valued("value")
+        alias_matches.append(
+            exists(
+                select(literal_column("1"))
+                .select_from(aliases)
+                .where(
+                    func.regexp_replace(
+                        func.lower(func.trim(aliases.c.value)),
+                        r"\s+",
+                        " ",
+                        "g",
+                    )
+                    == bindparam("exact_alias")
+                )
+            )
+        )
+    return or_(*alias_matches)
+
+
+def _normalized_alias(value: str) -> str:
+    """Normalize one alias lookup using canonical whitespace and case rules."""
+    return " ".join(value.casefold().split())

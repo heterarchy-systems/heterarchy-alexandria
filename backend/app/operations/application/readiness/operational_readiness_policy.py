@@ -10,6 +10,9 @@ from app.memory.domain.entities.memory_reconciliation_diagnostics import (
     MemoryReconciliationDiagnostics,
 )
 from app.memory.domain.event_enum.context_enums import RagHealthState, RagStrategy
+from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild_service import (
+    ObsidianGraphProjectionStatusReport,
+)
 from app.obsidian.domain.entities.obsidian_note import (
     ObsidianIndexError,
     ObsidianVaultStatus,
@@ -17,6 +20,7 @@ from app.obsidian.domain.entities.obsidian_note import (
 from app.obsidian.domain.event_enum.obsidian_enums import ObsidianIndexErrorCode
 from app.operations.domain.entities.operational_readiness import (
     OperationalDatabaseSnapshot,
+    OperationalGraphSnapshot,
     OperationalRagSnapshot,
     OperationalReconciliationSnapshot,
     OperationalVaultSnapshot,
@@ -50,6 +54,39 @@ def _vault_snapshot(status: ObsidianVaultStatus) -> OperationalVaultSnapshot:
         indexed_notes=status.indexed_notes,
         stale_notes=status.stale_notes,
         error_notes=status.error_notes,
+    )
+
+
+def graph_snapshot_from_status(
+    status: ObsidianGraphProjectionStatusReport | None,
+) -> OperationalGraphSnapshot:
+    """Map an existing graph status report without asserting freshness."""
+    if status is None:
+        return OperationalGraphSnapshot(
+            status="unknown",
+            enabled=False,
+            node_count=None,
+            edge_count=None,
+            run_id=None,
+            projection_revision=None,
+            warnings=("graph_projection_unchecked",),
+        )
+    status_value = status.status
+    enabled = status.enabled
+    run_id = status.run_id
+    projection_version = status.projection_version
+    projection_revision = (
+        None if projection_version is None else str(projection_version)
+    )
+    warnings = ("graph_projection_status_error",) if status.errors else ()
+    return OperationalGraphSnapshot(
+        status=str(status_value),
+        enabled=enabled,
+        node_count=status.node_count,
+        edge_count=status.edge_count,
+        run_id=run_id,
+        projection_revision=projection_revision,
+        warnings=warnings,
     )
 
 
@@ -161,9 +198,9 @@ def _warnings(
         warnings.append("vault_not_found")
     if not vault.alexandria_root_exists:
         warnings.append("alexandria_root_not_found")
-    if vault.stale_notes > 0:
+    if vault.stale_notes is not None and vault.stale_notes > 0:
         warnings.append("obsidian_stale_notes_present")
-    if vault.error_notes > 0:
+    if vault.error_notes is not None and vault.error_notes > 0:
         warnings.append("obsidian_error_notes_present")
     if rag.fts is not RagHealthState.HEALTHY:
         warnings.append("rag_fts_not_healthy")

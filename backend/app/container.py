@@ -18,9 +18,19 @@ from app.memory.application.contexts.records.context_service import ContextServi
 from app.memory.application.integration.context_projection_integrity_service import (
     ContextProjectionIntegrityService,
 )
+from app.memory.application.reconciliation.cycles.memory_cycle_service import (
+    MemoryCycleService,
+)
+from app.memory.application.reconciliation.cycles.memory_cycle_source_fence import (
+    MemoryCycleSourceFence,
+)
 from app.memory.application.reconciliation.runtime.memory_reconciliation_readiness_service import (
     MemoryReconciliationReadinessService,
 )
+from app.memory.application.retrieval.obsidian_exact_selector_resolver import (
+    ObsidianExactSelectorResolver,
+)
+from app.memory.application.retrieval.recall_service import RecallService
 from app.memory.containers import MemoryContainer
 from app.memory.domain.repositories.contexts.graph.context_graph_candidate_expansion_provider import (
     IContextGraphCandidateExpansionProvider,
@@ -51,6 +61,9 @@ from app.obsidian.infrastructure.graph.native_obsidian_graph_projection_compute_
 from app.obsidian.infrastructure.graph.postgresql_obsidian_graph_projection_repository import (
     PostgreSqlObsidianGraphProjectionRepository,
 )
+from app.obsidian.infrastructure.obsidian_report_bundle_run_store import (
+    ObsidianReportBundleRunStore,
+)
 from app.operations.application.diagnostics.operational_retrieval_diagnostics_service import (
     OperationalRetrievalDiagnosticsService,
 )
@@ -65,6 +78,7 @@ from app.operations.application.readiness.operational_readiness_cache import (
     OperationalReadinessCache,
 )
 from app.operations.application.readiness.operational_readiness_service import (
+    GraphProjectionReadinessPort,
     OperationalReadinessService,
 )
 from app.operations.application.readiness.operational_retrieval_canary_service import (
@@ -95,7 +109,10 @@ from app.shared.security.secret_cipher import SecretCipher, SecretCipherSettings
 
 @asynccontextmanager
 async def initialize_database(database_url: str) -> AsyncGenerator[Database]:
-    """Provision Database with startup/shutdown lifecycle.
+    """Provision the database engine with startup/shutdown lifecycle.
+
+    Application lifecycle health probes own connectivity checks. Constructing
+    the engine must not make canonical source reads depend on PostgreSQL uptime.
 
     Args:
         database_url [str]: Async SQLAlchemy database URL used to create the resource.
@@ -105,7 +122,6 @@ async def initialize_database(database_url: str) -> AsyncGenerator[Database]:
         Database: Initialized database resource for the application lifecycle.
     """
     database = Database(database_url=database_url)
-    await database.initialize()
     try:
         yield database
     finally:
@@ -253,6 +269,7 @@ def create_operational_readiness_service(
     readiness_cache: OperationalReadinessCache,
     projection_integrity_service: ContextProjectionIntegrityService,
     runtime_provenance_service: OperationalRuntimeProvenanceService,
+    graph_projection_service: GraphProjectionReadinessPort,
 ) -> OperationalReadinessService:
     """Assemble one request-scoped operational readiness object graph.
 
@@ -265,6 +282,7 @@ def create_operational_readiness_service(
         readiness_cache: Bounded fail-open readiness cache.
         projection_integrity_service: Persisted projection-integrity reader.
         runtime_provenance_service: Application-scoped immutable provenance probe.
+        graph_projection_service: Canonical PostgreSQL graph status reader.
 
     Returns:
         Request-scoped readiness service sharing one Context service with its canary.
@@ -283,6 +301,7 @@ def create_operational_readiness_service(
         runtime_provenance_service=runtime_provenance_service,
         retrieval_canary_service=retrieval_canary_service,
         projection_integrity_service=projection_integrity_service,
+        graph_projection_service=graph_projection_service,
     )
 
 
@@ -375,6 +394,39 @@ class ApplicationContainer(containers.DeclarativeContainer):
         OperationalRetrievalDiagnosticsService,
         context_service=memory.context_service,
     )
+    recall_exact_selector_resolver = providers.Factory(
+        ObsidianExactSelectorResolver,
+        obsidian_service=obsidian.obsidian_service,
+        canonical_identity_service=obsidian.canonical_identity_service,
+    )
+    recall_service = providers.Factory(
+        RecallService,
+        context_service=memory.context_service,
+        temporal_recall_service=memory.memory_temporal_recall_service,
+        exact_selector_resolver=recall_exact_selector_resolver,
+    )
+    memory_cycle_source_fence = providers.Factory(
+        MemoryCycleSourceFence,
+        source=obsidian.obsidian_service,
+        context_reader=memory.context_service,
+    )
+    memory_cycle_service = providers.Factory(
+        MemoryCycleService,
+        existing_reconciliation_service=memory.memory_existing_reconciliation_service,
+        context_service=memory.context_service,
+        source_fence=memory_cycle_source_fence,
+        reconciliation_repository=memory.reconciliation_repo,
+        reconciliation_apply_service=memory.reconciliation_apply_service,
+        compact_service=memory.memory_compact_service,
+        compact_policy=memory.memory_compact_reconciliation_policy,
+        index_maintenance_coordinator=index_maintenance_coordinator,
+        checkpoint_store=providers.Factory(
+            ObsidianReportBundleRunStore,
+            vault_path=obsidian.vault_config_store.provided.current.call().vault_path,
+        ),
+        commit_projection=db_session.provided.commit,
+        rollback_projection=db_session.provided.rollback,
+    )
     operational_runtime_provenance_service = providers.Singleton(
         OperationalRuntimeProvenanceService,
         config=app_config,
@@ -389,4 +441,5 @@ class ApplicationContainer(containers.DeclarativeContainer):
         readiness_cache=operational_readiness_cache,
         projection_integrity_service=obsidian.context_projection_integrity_service,
         runtime_provenance_service=operational_runtime_provenance_service,
+        graph_projection_service=obsidian.graph_projection_rebuild_service,
     )

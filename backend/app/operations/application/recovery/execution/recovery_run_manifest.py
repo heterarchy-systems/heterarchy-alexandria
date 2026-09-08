@@ -2,12 +2,20 @@
 
 from __future__ import annotations
 
+import os
+import tempfile
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import UTC, datetime
+from fcntl import LOCK_EX, flock
 from pathlib import Path
 from typing import Annotated
 
 from pydantic import ConfigDict, ValidationError
 
+from app.operations.application.recovery.execution.recovery_run_errors import (
+    RecoveryInProgressError,
+)
 from app.operations.application.recovery.planning.operational_recovery_paths import (
     recovery_directory as _recovery_dir,
 )
@@ -202,16 +210,20 @@ def _write_active_lock(plan: RecoveryPlan) -> None:
     Args:
         plan: Plan used by this operation.
     """
-    path = _active_lock_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    payload = RecoveryActiveLockPayload(
-        run_id=plan.id,
-        idempotency_key=plan.idempotency_key,
-        trigger=plan.trigger,
-        actor=plan.actor,
-        started_at=datetime.now(UTC),
-    )
-    path.write_bytes(dumps_pretty_json(schema_payload(payload)))
+    with _active_record_guard():
+        existing = _read_active_lock()
+        if existing is not None:
+            raise RecoveryInProgressError(existing.run_id, existing.idempotency_key)
+        payload = RecoveryActiveLockPayload(
+            run_id=plan.id,
+            idempotency_key=plan.idempotency_key,
+            trigger=plan.trigger,
+            actor=plan.actor,
+            started_at=datetime.now(UTC),
+        )
+        _write_recovery_record(
+            _active_lock_path(), dumps_pretty_json(schema_payload(payload))
+        )
 
 
 def _checkpoint_active_step(plan: RecoveryPlan, current_step: str) -> str:
@@ -224,21 +236,21 @@ def _checkpoint_active_step(plan: RecoveryPlan, current_step: str) -> str:
     Returns:
         str result produced by checkpoint active step.
     """
-    path = _active_lock_path()
-    payload = _read_active_lock()
-    if payload is None or payload.run_id != plan.id:
-        payload = RecoveryActiveLockPayload(
-            run_id=plan.id,
-            idempotency_key=plan.idempotency_key,
-            trigger=plan.trigger,
-            actor=plan.actor,
-            started_at=datetime.now(UTC),
+    with _active_record_guard():
+        payload = _read_active_lock()
+        if payload is None or payload.run_id != plan.id:
+            raise RecoveryInProgressError(
+                UNREADABLE_ACTIVE_RECOVERY_RUN_ID
+                if payload is None
+                else payload.run_id,
+                None if payload is None else payload.idempotency_key,
+            )
+        payload = payload.model_copy(
+            update={"current_step": current_step, "updated_at": datetime.now(UTC)}
         )
-    payload = payload.model_copy(
-        update={"current_step": current_step, "updated_at": datetime.now(UTC)}
-    )
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(dumps_pretty_json(schema_payload(payload)))
+        _write_recovery_record(
+            _active_lock_path(), dumps_pretty_json(schema_payload(payload))
+        )
     return current_step
 
 
@@ -248,13 +260,7 @@ def _clear_active_lock(plan: RecoveryPlan) -> None:
     Args:
         plan: Plan used by this operation.
     """
-    path = _active_lock_path()
-    if not path.exists():
-        return
-    payload = _read_active_lock()
-    if payload is not None and payload.run_id != plan.id:
-        return
-    path.unlink()
+    _clear_active_lock_for_run_id(plan.id)
 
 
 def _clear_active_lock_for_run_id(run_id: str) -> None:
@@ -263,13 +269,13 @@ def _clear_active_lock_for_run_id(run_id: str) -> None:
     Args:
         run_id: Identifier for run.
     """
-    path = _active_lock_path()
-    if not path.exists():
-        return
-    payload = _read_active_lock()
-    if payload is None or payload.run_id != run_id:
-        return
-    path.unlink()
+    with _active_record_guard():
+        path = _active_lock_path()
+        payload = _read_active_lock()
+        if payload is None or payload.run_id != run_id:
+            return
+        path.unlink()
+        _sync_recovery_directory(path.parent)
 
 
 def _write_manifest(run: RecoveryRun) -> None:
@@ -279,8 +285,47 @@ def _write_manifest(run: RecoveryRun) -> None:
         run: Run used by this operation.
     """
     path = Path(run.manifest_path)
+    _write_recovery_record(path, dumps_pretty_json(schema_payload(_run_payload(run))))
+
+
+@contextmanager
+def _active_record_guard() -> Iterator[None]:
+    """Fence admission and conditional updates of the existing active record."""
+    directory = _recovery_dir()
+    directory.mkdir(parents=True, exist_ok=True)
+    descriptor = os.open(directory / "active-run.guard", os.O_CREAT | os.O_RDWR, 0o600)
+    try:
+        # Callers run record effects in the bounded worker lane. Waiting here
+        # prevents an incidental competing admission from aborting the owner.
+        flock(descriptor, LOCK_EX)
+        yield
+    finally:
+        os.close(descriptor)
+
+
+def _write_recovery_record(path: Path, content: bytes) -> None:
+    """Durably replace one complete recovery record without a truncated read window."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(dumps_pretty_json(schema_payload(_run_payload(run))))
+    descriptor, name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    temporary = Path(name)
+    try:
+        with os.fdopen(descriptor, "wb") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+        _sync_recovery_directory(path.parent)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def _sync_recovery_directory(path: Path) -> None:
+    """Persist recovery record rename or removal in its parent directory."""
+    descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
 
 
 def _run_from_manifest(path: Path) -> RecoveryRun:

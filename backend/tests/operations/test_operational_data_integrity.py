@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import os
-
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
 import anyio
+from tests.operations.operational_readiness_fakes import HealthyGraphProjectionService
+
 from app.memory.application.contexts.records.context_service_ports import (
     ContextReadinessPort,
 )
@@ -20,6 +21,7 @@ from app.obsidian.application.service.obsidian_service_ports import (
 )
 from app.obsidian.domain.entities.obsidian_note import (
     ObsidianIndexError,
+    ObsidianVaultLocation,
     ObsidianVaultStatus,
 )
 from app.obsidian.domain.event_enum.obsidian_enums import ObsidianIndexErrorCode
@@ -73,6 +75,12 @@ class _InventoryObsidianService(ObsidianReadinessPort, ObsidianDataIntegrityPort
 
     async def status(self) -> ObsidianVaultStatus:
         return self._status
+
+    def vault_location(self) -> ObsidianVaultLocation:
+        return ObsidianVaultLocation(
+            vault_path=self._status.vault_path,
+            alexandria_root=self._status.alexandria_root,
+        )
 
     async def managed_markdown_paths(self) -> list[str]:
         return self._managed_paths
@@ -186,6 +194,7 @@ def test_integrity_warnings_do_not_change_operational_ready(
                 database=database,
                 context_service=_HealthyContextService(),
                 obsidian_service=obsidian,
+                graph_projection_service=HealthyGraphProjectionService(),
             ).snapshot()
             assert snapshot.status is OperationalReadinessStatus.READY
             assert snapshot.ready is True

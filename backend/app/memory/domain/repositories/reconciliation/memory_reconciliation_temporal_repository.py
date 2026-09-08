@@ -37,3 +37,17 @@ class IMemoryReconciliationTemporalRepository(ABC):
         Returns:
             MemoryTemporalState | None: Operation result.
         """
+
+    @abstractmethod
+    async def get_temporal_states(
+        self,
+        context_ids: tuple[str, ...],
+    ) -> dict[str, MemoryTemporalState]:
+        """Return temporal overlays for a bounded set of Context identifiers.
+
+        Args:
+            context_ids: Stable Context identifiers. An empty tuple performs no query.
+
+        Returns:
+            Mapping containing only identifiers with persisted temporal overlays.
+        """

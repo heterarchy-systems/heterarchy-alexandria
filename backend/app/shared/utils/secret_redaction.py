@@ -12,7 +12,7 @@ HIGH_RISK_SECRET_PATTERNS = (
 )
 BLOCKED_SECRET_PLACEHOLDER = "[BLOCKED_SECRET_CONTENT]"
 TOKEN_ASSIGNMENT_PATTERN = re.compile(
-    r"(?i)\b(api[_-]?key|token|secret|password)\s*[:=]\s*([\"']?)[A-Za-z0-9_./+=\-]{12,}\2"
+    r"(?i)\b(api[_-]?key|token|secret|password)\s*[:=]\s*([\"']?)[A-Za-z0-9_./+=:\-]{12,}\2"
 )
 AUTHORIZATION_HEADER_PATTERN = re.compile(r"(?im)^(\s*authorization\s*:\s*)([^\r\n]+)")
 BEARER_TOKEN_PATTERN = re.compile(r"(?i)\bbearer(\s+)[A-Za-z0-9._~+/=-]{4,}")
@@ -224,11 +224,33 @@ def _redact_non_url_text(content: str) -> tuple[str, int]:
     redacted, assignment_count = TOKEN_ASSIGNMENT_PATTERN.subn(
         lambda match: f"{match.group(1)}=<REDACTED>", redacted
     )
-    redacted, token_count = LONG_TOKEN_PATTERN.subn("<REDACTED_LONG_VALUE>", redacted)
+    redacted, token_count = _redact_long_values(redacted)
     return (
         redacted,
         authorization_count + bearer_count + assignment_count + token_count,
     )
+
+
+def _redact_long_values(content: str) -> tuple[str, int]:
+    """Preserve explicitly typed SHA-256 references after credential redaction."""
+    count = 0
+
+    def replace(match: re.Match[str]) -> str:
+        nonlocal count
+        value = match.group(0)
+        prefix = content[max(0, match.start() - 7) : match.start()].casefold()
+        line_start = content.rfind("\n", 0, match.start()) + 1
+        credential_context = is_secret_field_name(content[line_start : match.start()])
+        if (
+            prefix == "sha256:"
+            and not credential_context
+            and re.fullmatch(r"[0-9a-fA-F]{64}", value)
+        ):
+            return value
+        count += 1
+        return "<REDACTED_LONG_VALUE>"
+
+    return LONG_TOKEN_PATTERN.sub(replace, content), count
 
 
 def _redacted_authorization_header(match: re.Match[str]) -> str:

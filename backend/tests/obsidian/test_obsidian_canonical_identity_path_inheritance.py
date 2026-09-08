@@ -6,10 +6,13 @@ from dataclasses import dataclass
 from typing import cast
 
 import anyio
+
 from app.obsidian.application.service.notes.obsidian_canonical_identity_service import (
     ObsidianCanonicalIdentityService,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
+from app.obsidian.domain.contracts.obsidian_contracts import ObsidianNoteIndex
+from app.obsidian.domain.entities.obsidian_note import ObsidianVaultSourceSnapshot
 from app.obsidian.infrastructure.obsidian_vault_config_store import (
     ObsidianVaultConfigStore,
 )
@@ -38,6 +41,16 @@ class _FakeObsidianService:
 
     async def read_note_by_path(self, path: str) -> _FakeNote:
         return self._notes[path]
+
+    async def source_snapshot(self, max_notes: int) -> ObsidianVaultSourceSnapshot:
+        return ObsidianVaultSourceSnapshot(
+            notes=cast(
+                tuple[ObsidianNoteIndex, ...],
+                tuple(self._notes.values()),
+            ),
+            complete=True,
+            scanned_paths=min(len(self._notes), max_notes),
+        )
 
 
 def _weekend_note(*, date: str, relative_path: str, note_id: str) -> _FakeNote:

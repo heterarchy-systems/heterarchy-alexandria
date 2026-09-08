@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import os
-
 from datetime import UTC, datetime
 from pathlib import Path
 
 import anyio
+from sqlalchemy.exc import SQLAlchemyError
+from tests.operations.operational_readiness_fakes import HealthyGraphProjectionService
+
 from app.memory.domain.entities.context_read_models import RagDependencyHealth
 from app.memory.domain.entities.memory_reconciliation_diagnostics import (
     MemoryReconciliationDiagnostics,
@@ -21,7 +23,6 @@ from app.operations.domain.event_enum.operational_readiness_enums import (
     OperationalReadinessStatus,
 )
 from app.shared.infrastructure.database import Database
-from sqlalchemy.exc import SQLAlchemyError
 
 NOW = datetime(2026, 7, 25, tzinfo=UTC)
 
@@ -121,6 +122,7 @@ def test_readiness_surfaces_backfill_and_review_work_as_nonblocking_warnings(
                         reviewing_conflicts=1,
                     )
                 ),
+                graph_projection_service=HealthyGraphProjectionService(),
             )
 
             snapshot = await service.snapshot()
@@ -165,6 +167,7 @@ def test_readiness_blocks_partial_failed_or_hard_delete_reconciliation_state(
                         hard_delete_results=1,
                     )
                 ),
+                graph_projection_service=HealthyGraphProjectionService(),
             )
 
             snapshot = await service.snapshot()
@@ -198,6 +201,7 @@ def test_readiness_blocks_when_reconciliation_diagnostics_are_unreachable(
                 context_service=_ContextService(),
                 obsidian_service=_ObsidianService(tmp_path),
                 reconciliation_service=_UnavailableReconciliationService(),
+                graph_projection_service=HealthyGraphProjectionService(),
             )
 
             snapshot = await service.snapshot()

@@ -10,6 +10,9 @@ from app.memory.application.contexts.records.context_service import ContextServi
 from app.memory.application.reconciliation.runtime.memory_reconciliation_readiness_service import (
     MemoryReconciliationReadinessService,
 )
+from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild_service import (
+    ObsidianGraphProjectionRebuildService,
+)
 from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.operations.application.recovery.planning.recovery_plan_service import (
     RecoveryPlanService,
@@ -47,6 +50,12 @@ async def recovery_plan(
             Provide[ApplicationContainer.memory.memory_reconciliation_readiness_service]
         ),
     ],
+    graph_projection_service: Annotated[
+        ObsidianGraphProjectionRebuildService,
+        Depends(
+            Provide[ApplicationContainer.obsidian.graph_projection_rebuild_service]
+        ),
+    ],
 ) -> RecoveryPlanResponse:
     """Return recovery dry-run plan.
 
@@ -56,6 +65,7 @@ async def recovery_plan(
         context_service: Context/RAG service.
         obsidian_service: Obsidian vault service.
         reconciliation_service: Memory reconciliation diagnostics service.
+        graph_projection_service: Graph projection status service.
 
     Returns:
         Recovery dry-run plan response.
@@ -65,6 +75,7 @@ async def recovery_plan(
         context_service=context_service,
         obsidian_service=obsidian_service,
         reconciliation_service=reconciliation_service,
+        graph_projection_service=graph_projection_service,
     )
     plan = await service.plan(request.to_contract())
     return RecoveryPlanResponse.from_entity(plan)

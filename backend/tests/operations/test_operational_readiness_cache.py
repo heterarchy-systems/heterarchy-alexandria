@@ -6,6 +6,8 @@ import os
 from pathlib import Path
 
 import anyio
+from tests.operations.operational_readiness_fakes import HealthyGraphProjectionService
+
 from app.memory.domain.entities.context_read_models import RagDependencyHealth
 from app.memory.domain.event_enum.context_enums import RagHealthState, RagStrategy
 from app.obsidian.domain.entities.obsidian_note import ObsidianVaultStatus
@@ -81,6 +83,7 @@ async def _fresh_snapshot(
         database=database,
         context_service=_CountingContextService(),
         obsidian_service=_CountingObsidianService(tmp_path),
+        graph_projection_service=HealthyGraphProjectionService(),
     )
     return await service.snapshot()
 
@@ -104,6 +107,7 @@ def test_cache_hit_skips_authoritative_dependency_probes(tmp_path: Path) -> None
                 context_service=context_service,
                 obsidian_service=obsidian_service,
                 readiness_cache=cache,
+                graph_projection_service=HealthyGraphProjectionService(),
             )
 
             snapshot = await service.snapshot()
@@ -138,6 +142,7 @@ def test_cache_miss_stores_one_fresh_snapshot(tmp_path: Path) -> None:
                 context_service=context_service,
                 obsidian_service=obsidian_service,
                 readiness_cache=cache,
+                graph_projection_service=HealthyGraphProjectionService(),
             )
 
             snapshot = await service.snapshot()
@@ -174,6 +179,7 @@ def test_recovery_verification_bypasses_cached_readiness(tmp_path: Path) -> None
                 obsidian_service=obsidian_service,
                 readiness_cache=cache,
                 ignore_active_recovery_run_id="internal-verification",
+                graph_projection_service=HealthyGraphProjectionService(),
             )
 
             await service.snapshot()

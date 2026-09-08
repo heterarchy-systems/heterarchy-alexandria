@@ -3,7 +3,7 @@
 from typing import Annotated
 
 from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.container import ApplicationContainer
 from app.obsidian.application.graph.obsidian_graph_service import ObsidianGraphService
@@ -12,8 +12,14 @@ from app.obsidian.application.service.notes.obsidian_canonical_identity_service 
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.obsidian.domain.event_enum.obsidian_enums import ObsidianWriteMode
+from app.obsidian.interface.routers.obsidian_relation_router import (
+    router as relation_router,
+)
 from app.obsidian.interface.routers.obsidian_report_bundle_router import (
     router as report_bundle_router,
+)
+from app.obsidian.interface.routers.obsidian_verified_upsert_router import (
+    router as verified_upsert_router,
 )
 from app.obsidian.interface.schemas.obsidian.obsidian_note_write_schema import (
     ObsidianNoteWriteResponse,
@@ -33,6 +39,7 @@ from app.obsidian.interface.schemas.obsidian.obsidian_search_schema import (
     ObsidianSearchRequest,
     ObsidianSearchResponse,
 )
+from app.platform.middleware.database_session import mark_database_transaction_read_only
 from app.shared.exceptions.exception_decorators import router_exception_status
 from app.shared.exceptions.route_exceptions import (
     OBSIDIAN_ROUTE_EXCEPTION_MAPPING,
@@ -42,6 +49,8 @@ from app.shared.type_validation.strict_json_body import model_validate_json_body
 
 router = APIRouter()
 router.include_router(report_bundle_router)
+router.include_router(relation_router)
+router.include_router(verified_upsert_router)
 
 
 @router.post(
@@ -118,6 +127,7 @@ async def related_obsidian_notes_by_path(
 @router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
 @inject
 async def read_obsidian_note_by_path(
+    request: Request,
     service: Annotated[
         ObsidianService,
         Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
@@ -127,12 +137,14 @@ async def read_obsidian_note_by_path(
     """Read one Obsidian note by path.
 
     Args:
+        request: Read-only HTTP request whose projection transaction is discarded.
         path: Vault-relative path.
         service: Obsidian application service.
 
     Returns:
         Note response.
     """
+    mark_database_transaction_read_only(request)
     note = await service.read_note_by_path(path)
     return ObsidianNoteResponse.from_entity(note)
 
@@ -250,6 +262,7 @@ async def related_obsidian_notes(
 @inject
 async def read_obsidian_note(
     note_id: str,
+    request: Request,
     service: Annotated[
         ObsidianService,
         Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
@@ -258,12 +271,14 @@ async def read_obsidian_note(
     """Read one Obsidian note by id.
 
     Args:
+        request: Read-only HTTP request whose projection transaction is discarded.
         note_id: Stable note id.
         service: Obsidian application service.
 
     Returns:
         Note response.
     """
+    mark_database_transaction_read_only(request)
     note = await service.read_note(note_id)
     return ObsidianNoteResponse.from_entity(note)
 

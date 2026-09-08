@@ -10,6 +10,7 @@ from app.memory.interface.schemas.context.context_retrieval_schema import (
 )
 from app.operations.domain.entities.operational_readiness import (
     OperationalDatabaseSnapshot,
+    OperationalGraphSnapshot,
     OperationalRagSnapshot,
     OperationalReconciliationSnapshot,
     OperationalVaultSnapshot,
@@ -48,15 +49,15 @@ class OperationalVaultSnapshotResponse(StrictSchemaModel):
         ),
     ]
     indexed_notes: Annotated[
-        int,
+        int | None,
         described_field("Indexed notes for this operational vault snapshot response."),
     ]
     stale_notes: Annotated[
-        int,
+        int | None,
         described_field("Stale notes for this operational vault snapshot response."),
     ]
     error_notes: Annotated[
-        int,
+        int | None,
         described_field("Error notes for this operational vault snapshot response."),
     ]
 
@@ -127,6 +128,41 @@ class OperationalDatabaseSnapshotResponse(StrictSchemaModel):
             integrity=snapshot.integrity,
             schema_version=snapshot.schema_version,
             corruption_detected=snapshot.corruption_detected,
+        )
+
+
+class OperationalGraphSnapshotResponse(StrictSchemaModel):
+    """Graph projection status evidence."""
+
+    status: Annotated[str, described_field("Graph projection status.")]
+    enabled: Annotated[bool, described_field("Whether graph projection is enabled.")]
+    node_count: Annotated[int | None, described_field("Observed graph node count.")]
+    edge_count: Annotated[int | None, described_field("Observed graph edge count.")]
+    run_id: Annotated[
+        str | None, described_field("Graph projection activation run id.")
+    ]
+    projection_revision: Annotated[
+        str | None,
+        described_field("Graph projection activation revision."),
+    ]
+    warnings: Annotated[list[str], described_field("Graph status warnings.")] = (
+        schema_list_default()
+    )
+
+    @classmethod
+    def from_entity(
+        cls,
+        snapshot: OperationalGraphSnapshot,
+    ) -> OperationalGraphSnapshotResponse:
+        """Map graph status evidence to the HTTP contract."""
+        return cls(
+            status=snapshot.status,
+            enabled=snapshot.enabled,
+            node_count=snapshot.node_count,
+            edge_count=snapshot.edge_count,
+            run_id=snapshot.run_id,
+            projection_revision=snapshot.projection_revision,
+            warnings=list(snapshot.warnings),
         )
 
 

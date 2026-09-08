@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import hashlib
 
-from app.obsidian.domain.contracts.obsidian_contracts import ObsidianReportBundleRequest
+from app.obsidian.domain.contracts.obsidian_contracts import (
+    ObsidianNoteIndex,
+    ObsidianReportBundleRequest,
+)
 from app.obsidian.domain.entities.obsidian_note import ObsidianNote
 from app.shared.serialization.orjson_codec import dumps_canonical_json
 from app.shared.types.extra_types import JSONObject, JSONValue
@@ -51,7 +54,10 @@ def report_bundle_request_hash(request: ObsidianReportBundleRequest) -> str:
     return hashlib.sha256(dumps_canonical_json(payload)).hexdigest()
 
 
-def same_report_content(left: ObsidianNote, right: ObsidianNote) -> bool:
+type ReportNote = ObsidianNote | ObsidianNoteIndex
+
+
+def same_report_content(left: ReportNote, right: ReportNote) -> bool:
     """Compare canonical content hashes for two report notes.
 
     Args:
@@ -66,7 +72,7 @@ def same_report_content(left: ObsidianNote, right: ObsidianNote) -> bool:
     return isinstance(left_hash, str) and bool(left_hash) and left_hash == right_hash
 
 
-def same_report_identity(left: ObsidianNote, right: ObsidianNote) -> bool:
+def same_report_identity(left: ReportNote, right: ReportNote) -> bool:
     """Compare the declared business identity of two report notes.
 
     Args:

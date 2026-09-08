@@ -9,6 +9,7 @@ from app.obsidian.application.service.obsidian_service_ports import ObsidianReco
 from app.obsidian.domain.contracts.obsidian_contracts import ObsidianSearchQuery
 from app.obsidian.domain.entities.obsidian_note import ObsidianNote
 from app.operations.application.readiness.operational_readiness_service import (
+    GraphProjectionReadinessPort,
     OperationalReadinessService,
 )
 from app.operations.application.recovery.execution.recovery_run_contracts import (
@@ -41,6 +42,8 @@ class RecoveryRunVerificationService:
         obsidian_service: ObsidianRecoveryPort,
         context_service_factory: ContextRecoveryPortFactory | None = None,
         obsidian_service_factory: ObsidianRecoveryPortFactory | None = None,
+        *,
+        graph_projection_service: GraphProjectionReadinessPort,
     ) -> None:
         """Initialize recovery verification dependencies.
 
@@ -50,6 +53,7 @@ class RecoveryRunVerificationService:
             obsidian_service: Obsidian readiness, search, and read boundary.
             context_service_factory: Factory that creates context service.
             obsidian_service_factory: Factory that creates obsidian service.
+            graph_projection_service: Graph projection status boundary.
         """
         self._database = database
         self._context_service_factory = context_service_factory or (
@@ -58,6 +62,7 @@ class RecoveryRunVerificationService:
         self._obsidian_service_factory = obsidian_service_factory or (
             lambda: obsidian_service
         )
+        self._graph_projection_service = graph_projection_service
 
     async def verify_readiness(self, plan: RecoveryPlan) -> JSONObject:
         """Verify runtime readiness.
@@ -81,6 +86,7 @@ class RecoveryRunVerificationService:
                     context_service=context_service,
                     obsidian_service=obsidian_service,
                     ignore_active_recovery_run_id=plan.id,
+                    graph_projection_service=self._graph_projection_service,
                 ).snapshot()
                 representative = await self.verify_representative_search(
                     obsidian_service

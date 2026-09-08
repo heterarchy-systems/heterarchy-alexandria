@@ -24,6 +24,7 @@ from app.memory.domain.repositories.reconciliation.memory_reconciliation_tempora
 )
 from app.memory.domain.types.context_payload_types import ContextMetadataPayload
 from app.shared.compute.native_text_hashing import hash_text
+from app.shared.serialization.orjson_codec import loads_json
 from app.shared.types.extra_types import JSONValue
 
 _CLAIMS_ADAPTER = TypeAdapter(tuple[CanonicalClaim, ...])
@@ -227,6 +228,11 @@ def _canonical_claims(metadata: ContextMetadataPayload) -> tuple[CanonicalClaim,
         tuple[CanonicalClaim, ...] result produced by canonical claims.
     """
     value = metadata.get("canonical_claims")
+    if isinstance(value, str):
+        try:
+            value = loads_json(value)
+        except (TypeError, ValueError):
+            return ()
     if not isinstance(value, list):
         return ()
     try:

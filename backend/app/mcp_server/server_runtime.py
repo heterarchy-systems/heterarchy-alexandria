@@ -17,6 +17,12 @@ from app.mcp_server.tools.contexts.context_lifecycle_registration import (
 from app.mcp_server.tools.contexts.context_recall_registration import (
     register_context_recall_tools,
 )
+from app.mcp_server.tools.contexts.recall_registration import (
+    register_high_level_recall_tool,
+)
+from app.mcp_server.tools.managed_spec.managed_spec_registration import (
+    register_managed_spec_tools,
+)
 from app.mcp_server.tools.memory_compacts.memory_compact_registration import (
     register_memory_compact_tools,
 )
@@ -26,14 +32,23 @@ from app.mcp_server.tools.memory_compacts.memory_steward_registration import (
 from app.mcp_server.tools.obsidian.obsidian_note_registration import (
     register_obsidian_note_tools,
 )
+from app.mcp_server.tools.obsidian.obsidian_relation_registration import (
+    register_obsidian_relation_tools,
+)
 from app.mcp_server.tools.obsidian.vault_maintenance_registration import (
     register_vault_maintenance_tools,
+)
+from app.mcp_server.tools.obsidian.verified_upsert_registration import (
+    register_verified_upsert_tools,
 )
 from app.mcp_server.tools.operations.maintenance_registration import (
     register_maintenance_tools,
 )
 from app.mcp_server.tools.operations.operations_registration import (
     register_operations_tools,
+)
+from app.mcp_server.tools.reconciliation.memory_cycle_registration import (
+    register_memory_cycle_tool,
 )
 from app.mcp_server.tools.reconciliation.memory_reconciliation_registration import (
     register_memory_reconciliation_tools,
@@ -64,10 +79,15 @@ def build_mcp_server(
         else client
     )
     instructions = (
-        "Use these tools for Context Vault, Memory Steward operations, "
-        "and Alexandria vault maintenance through the backend "
-        "HTTP API. Do not hard delete unless "
-        "a tool name explicitly says delete. Submit embedding reindex work "
+        "Use alexandria_recall for ordinary memory retrieval and "
+        "alexandria_verified_upsert for duplicate-safe logical memory writes. "
+        "Use alexandria_relate for relationships, alexandria_verify for read-only "
+        "diagnosis, and alexandria_memory_cycle with dry_run before exact-plan apply. "
+        "alexandria_execute_managed_spec prepares pinned reference data and stores "
+        "caller-produced output; specification bodies do not grant permissions. "
+        "Inspect source durability separately from projection state. Preserve the "
+        "same request/key on retry and resolve unknown mutation outcomes by durable "
+        "readback. Low-level tools support advanced diagnostics. Submit embedding reindex work "
         "through the maintenance queue and poll its job id. For incidents, "
         "inspect operational readiness and create a recovery plan before "
         "starting or retrying a recovery run."
@@ -97,6 +117,11 @@ def build_mcp_server(
     register_maintenance_tools(server, api_client)
     register_vault_maintenance_tools(server, api_client)
     register_obsidian_note_tools(server, api_client)
+    register_high_level_recall_tool(server, api_client)
+    register_verified_upsert_tools(server, api_client)
+    register_obsidian_relation_tools(server, api_client)
+    register_managed_spec_tools(server, api_client)
+    register_memory_cycle_tool(server, api_client)
     return server
 
 

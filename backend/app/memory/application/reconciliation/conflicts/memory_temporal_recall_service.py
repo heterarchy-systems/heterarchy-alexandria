@@ -17,7 +17,7 @@ from app.memory.application.retrieval.context_pack import build_context_pack
 from app.memory.domain.contracts.memory_reconciliation_contracts import (
     MemoryTemporalRecallRequest,
 )
-from app.memory.domain.entities.context_read_models import ContextRecord
+from app.memory.domain.entities.context_read_models import ContextPack, ContextRecord
 from app.memory.domain.entities.memory_reconciliation import (
     MemoryTemporalRecallMatch,
     MemoryTemporalRecallPack,
@@ -66,14 +66,7 @@ class MemoryTemporalRecallService:
             MemoryTemporalRecallPack: Operation result.
         """
         query = request.query.strip()
-        if not query:
-            raise MemoryContextValidationError("temporal recall query is required")
-        if request.limit < 1 or request.limit > 100:
-            raise MemoryContextValidationError(
-                "temporal recall limit must be between 1 and 100"
-            )
-        now = now_utc()
-        as_of = _resolved_as_of(request, now=now)
+        _validate_request(query, request.limit)
         search_limit = (
             request.limit
             if request.mode is MemoryTemporalRecallMode.ALL
@@ -98,11 +91,36 @@ class MemoryTemporalRecallService:
                 else None
             ),
         )
+        return await self.apply_view(pack, request)
+
+    async def apply_view(
+        self,
+        pack: ContextPack,
+        request: MemoryTemporalRecallRequest,
+    ) -> MemoryTemporalRecallPack:
+        """Apply current, historical, or all-state policy to an existing pack.
+
+        The temporal overlay repository is loaded once for all candidate Context
+        identifiers. Source frontmatter remains the fallback when no persisted
+        reconciliation overlay exists.
+        """
+        query = request.query.strip()
+        _validate_request(query, request.limit)
+        now = now_utc()
+        as_of = _resolved_as_of(request, now=now)
+        context_ids = tuple(dict.fromkeys(match.context.id for match in pack.matches))
+        persisted_states = (
+            {}
+            if not context_ids
+            else await self._repository.get_temporal_states(context_ids)
+        )
         matches: list[MemoryTemporalRecallMatch] = []
         warnings = list(pack.warnings)
         conflict_ids: list[str] = []
         for match in pack.matches:
-            state = await self._temporal_state(match.context)
+            state = persisted_states.get(match.context.id)
+            if state is None:
+                state = temporal_state_from_context_metadata(match.context)
             if not include_temporal_match(
                 mode=request.mode,
                 state=state,
@@ -152,23 +170,6 @@ class MemoryTemporalRecallService:
             context_pack=build_context_pack(query, underlying_matches),
         )
 
-    async def _temporal_state(
-        self,
-        context: ContextRecord,
-    ) -> MemoryTemporalState | None:
-        """Execute temporal state.
-
-        Args:
-            context: Context used by this operation.
-
-        Returns:
-            MemoryTemporalState | None result produced by temporal state.
-        """
-        persisted = await self._repository.get_temporal_state(context.id)
-        if persisted is not None:
-            return persisted
-        return temporal_state_from_context_metadata(context)
-
 
 def temporal_state_from_context_metadata(
     context: ContextRecord,
@@ -216,6 +217,16 @@ def temporal_state_from_context_metadata(
         supersedes=supersedes,
         relation_summary=relation_summary,
     )
+
+
+def _validate_request(query: str, limit: int) -> None:
+    """Validate shared temporal request bounds for search and apply-view calls."""
+    if not query:
+        raise MemoryContextValidationError("temporal recall query is required")
+    if limit < 1 or limit > 100:
+        raise MemoryContextValidationError(
+            "temporal recall limit must be between 1 and 100"
+        )
 
 
 def _resolved_as_of(

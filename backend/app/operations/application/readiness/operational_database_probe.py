@@ -33,7 +33,7 @@ class OperationalDatabaseProbe:
             async with self._database.session_factory()() as session:
                 await session.execute(text("SELECT 1"))
                 schema_version = await _schema_version(session)
-        except SQLAlchemyError:
+        except (SQLAlchemyError, OSError):
             return OperationalDatabaseSnapshot(
                 reachable=False,
                 integrity="UNAVAILABLE",

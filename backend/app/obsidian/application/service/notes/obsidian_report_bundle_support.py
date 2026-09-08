@@ -8,6 +8,12 @@ from typing import TYPE_CHECKING
 from app.obsidian.application.notes.lifecycle.obsidian_canonical_note_path import (
     canonical_managed_note_path,
 )
+from app.obsidian.application.service.notes.obsidian_note_service import (
+    DEFAULT_SOURCE_SCAN_LIMIT,
+)
+from app.obsidian.application.service.notes.obsidian_relation_mutation_service import (
+    ObsidianRelationMutationService,
+)
 from app.obsidian.application.service.notes.report_bundles.obsidian_report_bundle_identity import (
     report_bundle_request_hash,
     same_report_content,
@@ -19,9 +25,6 @@ if TYPE_CHECKING:
 from app.obsidian.domain.contracts.obsidian_contracts import (
     ObsidianReportBundleOwner,
     ObsidianReportBundleRequest,
-    ObsidianSaveNote,
-    ObsidianVaultInventoryRequest,
-    ObsidianWriteNote,
 )
 from app.obsidian.domain.entities.obsidian_note import (
     ObsidianNote,
@@ -30,8 +33,6 @@ from app.obsidian.domain.entities.obsidian_note import (
     ObsidianReportBundleResult,
 )
 from app.obsidian.domain.event_enum.obsidian_enums import (
-    ObsidianFrontmatterMode,
-    ObsidianRelationType,
     ObsidianReportBundleCompletionStatus,
     ObsidianWriteMatchBy,
     ObsidianWriteMode,
@@ -47,7 +48,7 @@ from app.shared.exceptions.obsidian_exceptions import (
     ObsidianNotFoundError,
     ObsidianValidationError,
 )
-from app.shared.types.extra_types import JSONObject, JSONValue
+from app.shared.types.extra_types import JSONObject
 
 
 class ObsidianReportBundleSupport:
@@ -66,6 +67,7 @@ class ObsidianReportBundleSupport:
         """
         self._obsidian_service = obsidian_service
         self._vault_config_store = vault_config_store
+        self._relation_mutation = ObsidianRelationMutationService(obsidian_service)
 
     @staticmethod
     def request_hash(request: ObsidianReportBundleRequest) -> str:
@@ -146,21 +148,19 @@ class ObsidianReportBundleSupport:
         requested_path = request.source.relative_path
         if requested_path is not None and source.relative_path != requested_path:
             duplicates.add(source.relative_path)
-        inventory = await self._obsidian_service.inventory_vault(
-            ObsidianVaultInventoryRequest()
+        snapshot = await self._obsidian_service.source_snapshot(
+            max_notes=DEFAULT_SOURCE_SCAN_LIMIT
         )
-        for item in inventory:
+        if not snapshot.complete or snapshot.errors:
+            raise ObsidianValidationError(
+                "DUPLICATE_SOURCE_SNAPSHOT_INCOMPLETE: duplicate verification "
+                "requires a complete bounded canonical source snapshot"
+            )
+        for item in snapshot.notes:
             if item.note_id == source.note_id:
                 continue
-            try:
-                candidate = await self._obsidian_service.read_note(item.note_id)
-            except ObsidianNotFoundError:
-                continue
-            if same_report_content(source, candidate) or same_report_identity(
-                source,
-                candidate,
-            ):
-                duplicates.add(candidate.relative_path)
+            if same_report_content(source, item) or same_report_identity(source, item):
+                duplicates.add(item.relative_path)
         return tuple(sorted(duplicates))
 
     async def update_owner(
@@ -179,41 +179,12 @@ class ObsidianReportBundleSupport:
         Returns:
             Write result produced by the owner metadata update.
         """
-        field_name = _relation_field(contract.relation)
-        targets = _relation_targets(owner.frontmatter.get(field_name))
-        if not any(
-            target.get("id") == source.note.note_id
-            or target.get("path") == source.note.relative_path
-            for target in targets
-            if isinstance(target, dict)
-        ):
-            targets.append(
-                {
-                    "id": source.note.note_id,
-                    "path": source.note.relative_path,
-                    "relation": contract.relation.value,
-                }
-            )
-        payload = ObsidianSaveNote(
-            title=owner.title,
-            body=owner.body.removeprefix("\n"),
-            alexandria_type=owner.alexandria_type,
-            note_id=owner.note_id,
-            relative_path=owner.relative_path,
-            tags=owner.tags,
-            status=owner.status,
-            project=owner.project,
-            source=owner.source or "report_bundle",
-            frontmatter={field_name: targets},
-            expected_content_hash=owner.content_hash,
-        )
-        return await self._obsidian_service.write_note(
-            ObsidianWriteNote(
-                note=payload,
-                write_mode=ObsidianWriteMode.UPDATE,
-                match_by=ObsidianWriteMatchBy.PATH,
-                frontmatter_mode=ObsidianFrontmatterMode.MERGE,
-            )
+        return await self._relation_mutation.relate(
+            source=owner,
+            target=source.note,
+            relation=contract.relation,
+            expected_source_hash=owner.content_hash,
+            operation_source="report_bundle",
         )
 
     async def completed_replay(
@@ -374,40 +345,6 @@ class ObsidianReportBundleSupport:
                 ],
             },
         )
-
-
-def _relation_field(relation: ObsidianRelationType) -> str:
-    """Execute relation field.
-
-    Args:
-        relation: Relation used by this operation.
-
-    Returns:
-        str result produced by relation field.
-    """
-    if relation is ObsidianRelationType.CITES:
-        return "source_ref_links"
-    if relation is ObsidianRelationType.WIKILINK:
-        raise ObsidianValidationError(
-            "graph owner relation must be a managed frontmatter relation"
-        )
-    return relation.value
-
-
-def _relation_targets(value: JSONValue | None) -> list[JSONValue]:
-    """Execute relation targets.
-
-    Args:
-        value: Value being processed.
-
-    Returns:
-        list[JSONValue] result produced by relation targets.
-    """
-    if value is None:
-        return []
-    if isinstance(value, list):
-        return list(value)
-    return [value]
 
 
 def _operation_error(function: str, error: Exception) -> JSONObject:

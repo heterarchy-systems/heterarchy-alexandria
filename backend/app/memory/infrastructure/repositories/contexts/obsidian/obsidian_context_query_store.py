@@ -47,6 +47,7 @@ from app.obsidian.infrastructure.repositories.obsidian_fts import (
 from app.shared.infrastructure.postgres_fts_relevance import (
     postgres_fts_rank_to_score,
 )
+from app.shared.types.extra_types import JSONObject, JSONValue
 
 type RankedObsidianCandidate = tuple[str, str, float]
 type HydratedObsidianCandidate = tuple[ObsidianFileORM, ObsidianChunkORM, float]
@@ -94,6 +95,7 @@ class ObsidianContextQueryStore:
             _obsidian_scope_recall_clause(
                 obsidian_table.c.frontmatter_json,
                 obsidian_table.c.project,
+                obsidian_table.c.alexandria_type,
                 scope_filter,
             )
         )
@@ -129,9 +131,7 @@ class ObsidianContextQueryStore:
                         score=fts_score,
                         fts_score=fts_score,
                         vector_score=None,
-                        why_retrieved=(
-                            "Matched Obsidian vault note chunk with PostgreSQL full-text search."
-                        ),
+                        why_retrieved=_fts_reason(note.frontmatter_json, recall.query),
                     )
                 )
                 if len(matches) >= recall_filter.limit:
@@ -188,6 +188,7 @@ class ObsidianContextQueryStore:
             _obsidian_scope_recall_clause(
                 obsidian_table.c.frontmatter_json,
                 obsidian_table.c.project,
+                obsidian_table.c.alexandria_type,
                 scope_filter,
             )
         )
@@ -285,3 +286,28 @@ class ObsidianContextQueryStore:
                 continue
             hydrated.append((note, chunk, score))
         return hydrated
+
+
+def _fts_reason(frontmatter: JSONObject, query: str) -> str:
+    """Return bounded FTS provenance, including declared alias evidence."""
+    normalized_query = _normalized_alias(query)
+    for field_name in ("aliases", "report_aliases"):
+        value: JSONValue | None = frontmatter.get(field_name)
+        values = (
+            [value]
+            if isinstance(value, str)
+            else value
+            if isinstance(value, list)
+            else []
+        )
+        if any(
+            isinstance(item, str) and _normalized_alias(item) == normalized_query
+            for item in values
+        ):
+            return "Matched declared Obsidian alias with PostgreSQL full-text search."
+    return "Matched Obsidian vault note chunk with PostgreSQL full-text search."
+
+
+def _normalized_alias(value: str) -> str:
+    """Normalize an alias using the canonical case and whitespace semantics."""
+    return " ".join(value.casefold().split())

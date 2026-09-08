@@ -19,6 +19,7 @@ from app.obsidian.application.service.notes.obsidian_legacy_metadata_repair_serv
     ObsidianLegacyMetadataRepairService,
 )
 from app.obsidian.application.service.notes.obsidian_note_service import (
+    DEFAULT_SOURCE_SCAN_LIMIT,
     ObsidianNoteService,
 )
 from app.obsidian.application.service.obsidian_service_ports import (
@@ -132,15 +133,17 @@ class ObsidianService(
             vault_config_store=self._vault_config_store,
             reindex=self.reindex,
         )
+        self._vault_inventory_service = ObsidianVaultInventoryService(
+            vault_config_store=self._vault_config_store
+        )
         self._note_service = ObsidianNoteService(
             repository=self._repository,
             vault_config_store=self._vault_config_store,
             reindex=self.reindex,
             mark_context_superseded=self._delegate_mark_context_superseded,
             index_maintenance_coordinator=self._index_maintenance_coordinator,
-        )
-        self._vault_inventory_service = ObsidianVaultInventoryService(
-            vault_config_store=self._vault_config_store
+            source_snapshot=self._vault_inventory_service.source_snapshot,
+            source_scan_limit=DEFAULT_SOURCE_SCAN_LIMIT,
         )
         self._vault_move_service = ObsidianVaultMoveService(
             vault_config_store=self._vault_config_store,

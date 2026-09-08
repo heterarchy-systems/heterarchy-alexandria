@@ -12,12 +12,17 @@ from app.obsidian.domain.entities.obsidian_note import (
     ObsidianNote,
     ObsidianReindexResult,
     ObsidianSearchHit,
+    ObsidianVaultLocation,
     ObsidianVaultStatus,
 )
 
 
 class ObsidianReadinessPort(ABC):
     """Expose Obsidian vault and index readiness."""
+
+    @abstractmethod
+    def vault_location(self) -> ObsidianVaultLocation:
+        """Return canonical source location without reading index metadata."""
 
     @abstractmethod
     async def status(self) -> ObsidianVaultStatus:

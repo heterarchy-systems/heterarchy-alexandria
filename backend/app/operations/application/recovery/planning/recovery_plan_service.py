@@ -16,6 +16,7 @@ from app.obsidian.application.service.obsidian_service_ports import (
     ObsidianReadinessPort,
 )
 from app.operations.application.readiness.operational_readiness_service import (
+    GraphProjectionReadinessPort,
     OperationalReadinessService,
 )
 from app.operations.application.recovery.planning.recovery_plan_contracts import (
@@ -53,6 +54,8 @@ class RecoveryPlanService:
         context_service: ContextReadinessPort,
         obsidian_service: ObsidianReadinessPort,
         reconciliation_service: MemoryReconciliationReadinessPort | None = None,
+        *,
+        graph_projection_service: GraphProjectionReadinessPort,
     ) -> None:
         """Create service.
 
@@ -61,11 +64,13 @@ class RecoveryPlanService:
             context_service: Context/RAG service.
             obsidian_service: Obsidian vault service.
             reconciliation_service: Optional memory reconciliation diagnostics.
+            graph_projection_service: Graph projection status boundary.
         """
         self._database = database
         self._context_service = context_service
         self._obsidian_service = obsidian_service
         self._reconciliation_service = reconciliation_service
+        self._graph_projection_service = graph_projection_service
 
     async def plan(self, request: RecoveryPlanRequest) -> RecoveryPlan:
         """Return a read-only recovery dry-run plan.
@@ -81,6 +86,7 @@ class RecoveryPlanService:
             context_service=self._context_service,
             obsidian_service=self._obsidian_service,
             reconciliation_service=self._reconciliation_service,
+            graph_projection_service=self._graph_projection_service,
         )
         readiness = await readiness_service.snapshot()
         created_at = datetime.now(UTC)

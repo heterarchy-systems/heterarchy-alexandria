@@ -35,6 +35,7 @@ from .obsidian_exceptions import (
     ObsidianGraphUnavailableError,
     ObsidianIndexWriteError,
     ObsidianNotFoundError,
+    ObsidianStoredProjectionError,
     ObsidianValidationError,
 )
 from .route_exceptions import (
@@ -65,6 +66,7 @@ __all__ = [
     "ObsidianGraphUnavailableError",
     "ObsidianIndexWriteError",
     "ObsidianNotFoundError",
+    "ObsidianStoredProjectionError",
     "ObsidianValidationError",
     "RedisExceptionAction",
     "RedisExceptionArgValue",

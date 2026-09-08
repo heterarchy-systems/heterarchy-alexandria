@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from app.obsidian.domain.contracts.obsidian_contracts import ObsidianNoteIndex
 from app.obsidian.domain.event_enum.obsidian_enums import (
     AlexandriaNoteType,
     ObsidianEdgeSourceKind,
@@ -51,11 +52,28 @@ class ObsidianNote:
     error_message: str | None
     size_bytes: int
     modified_at: datetime
-    indexed_at: datetime
+    indexed_at: datetime | None
 
     def __post_init__(self) -> None:
         """Normalize note tags to an immutable sequence."""
         self.tags = tuple(self.tags)
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ObsidianVaultSourceSnapshot:
+    """Bounded source-owned Markdown snapshot for exact identity resolution."""
+
+    notes: tuple[ObsidianNoteIndex, ...]
+    complete: bool
+    scanned_paths: int
+    errors: tuple[str, ...] = field(default_factory=tuple)
+    entries_seen: int = 0
+    total_bytes: int = 0
+
+    def __post_init__(self) -> None:
+        """Normalize snapshot collections to immutable sequences."""
+        object.__setattr__(self, "notes", tuple(self.notes))
+        object.__setattr__(self, "errors", tuple(self.errors))
 
 
 @dataclass(slots=True, kw_only=True)

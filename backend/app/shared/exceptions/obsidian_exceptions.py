@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Literal
+
 from app.shared.types.extra_types import JSONObject
+
+if TYPE_CHECKING:
+    from app.obsidian.domain.entities.obsidian_note import ObsidianNote
 
 
 class ObsidianDomainError(RuntimeError):
@@ -23,6 +28,27 @@ class ObsidianWriteConflictError(ObsidianDomainError):
 
 class ObsidianIndexWriteError(ObsidianDomainError):
     """Raised when one rebuildable Obsidian index write fails."""
+
+
+class ObsidianStoredProjectionError(ObsidianValidationError):
+    """Raised when Markdown is durable but a derived projection failed."""
+
+    def __init__(
+        self,
+        note: ObsidianNote,
+        failed_stage: Literal["metadata_index", "context_supersession"],
+    ) -> None:
+        """Create a typed stored-with-projection-warning failure.
+
+        Args:
+            note: Exact source readback after canonical Markdown persistence.
+            failed_stage: Projection stage that failed after source durability.
+        """
+        super().__init__(
+            "INDEX_WRITE_FAILED: canonical Markdown was preserved for reindex"
+        )
+        self.note = note
+        self.failed_stage = failed_stage
 
 
 class ObsidianGraphUnavailableError(ObsidianDomainError):
@@ -122,4 +148,26 @@ class ObsidianIdempotencyConflictError(ObsidianDomainError):
             "error_code": "IDEMPOTENCY_KEY_REUSED",
             "mutation_performed": False,
             "recommended_operation": "use_a_new_idempotency_key",
+        }
+
+
+class ObsidianCheckpointRecoveryRequiredError(ObsidianValidationError):
+    """Refuse new mutation when a durable operation record cannot be trusted."""
+
+    def __init__(self, checkpoint_id: str) -> None:
+        """Retain a non-secret record identity for safe durable investigation."""
+        super().__init__("CHECKPOINT_RECOVERY_REQUIRED")
+        self.checkpoint_id = checkpoint_id
+
+    def route_detail(self) -> JSONObject:
+        """Return actionable failure without treating corruption as absence."""
+        return {
+            "error_code": "CHECKPOINT_RECOVERY_REQUIRED",
+            "cause": "The existing durable operation checkpoint is invalid or unreadable.",
+            "affected_capability": "mutation_replay",
+            "retryable": False,
+            "checkpoint_id": self.checkpoint_id,
+            "safe_next_action": "Verify the canonical source and inspect the existing recovery plan before repairing this checkpoint.",
+            "recommended_action": "durable_readback_before_recovery",
+            "unsafe_action_warning": "Do not delete the checkpoint or change the key to repeat an unknown mutation.",
         }

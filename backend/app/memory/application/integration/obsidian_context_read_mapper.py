@@ -25,6 +25,7 @@ from app.obsidian.domain.entities.obsidian_note import ObsidianNote
 from app.obsidian.domain.event_enum.obsidian_enums import (
     AlexandriaNoteType,
     ObsidianContextLifecycleStatus,
+    ObsidianIndexStatus,
 )
 from app.shared.types.extra_types import JSONValue
 from app.shared.types.types_convert_utils import aware_utc_datetime
@@ -45,6 +46,12 @@ def context_record_from_obsidian_note(note: ObsidianNote) -> ContextRecord:
     identity = _identity_from_note(note)
     is_archived = (
         identity.status.value == ContextRecallLifecycleStatus.ARCHIVED.value.lower()
+    )
+    projection_timestamp = note.indexed_at or note.modified_at
+    archive_timestamp = (
+        note.indexed_at
+        if is_archived and note.index_status is ObsidianIndexStatus.INDEXED
+        else None
     )
     return ContextRecord(
         id=f"{OBSIDIAN_CONTEXT_ID_PREFIX}{note.note_id}",
@@ -75,13 +82,15 @@ def context_record_from_obsidian_note(note: ObsidianNote) -> ContextRecord:
             else aware_utc_datetime(identity.created_at)
         ),
         updated_at=(
-            aware_utc_datetime(note.indexed_at)
+            aware_utc_datetime(projection_timestamp)
             if identity.updated_at is None
             else aware_utc_datetime(identity.updated_at)
         ),
         last_accessed_at=None,
         expires_at=None,
-        archived_at=aware_utc_datetime(note.indexed_at) if is_archived else None,
+        archived_at=(
+            None if archive_timestamp is None else aware_utc_datetime(archive_timestamp)
+        ),
         access_count=0,
         is_archived=is_archived,
         memory_function=identity.memory_function,
@@ -274,6 +283,12 @@ def _context_metadata(
             metadata[field_name] = timestamp.isoformat()
     if note.source is not None:
         metadata["source"] = note.source
+    canonical_claims = note.frontmatter.get("canonical_claims")
+    if isinstance(canonical_claims, list | str):
+        metadata["canonical_claims"] = canonical_claims
+    conflict_set_ids = note.frontmatter.get("conflict_set_ids")
+    if isinstance(conflict_set_ids, list):
+        metadata["conflict_set_ids"] = conflict_set_ids
     if note.alexandria_type is not AlexandriaNoteType.CONTEXT:
         metadata["source_status"] = note.status
     return metadata

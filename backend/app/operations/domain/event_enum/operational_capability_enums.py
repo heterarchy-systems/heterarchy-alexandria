@@ -12,3 +12,12 @@ class OperationalCapabilityState(StrEnum):
     DEGRADED = "DEGRADED"
     BLOCKED = "BLOCKED"
     OPTIONAL = "OPTIONAL"
+    UNKNOWN = "UNKNOWN"
+
+
+class OperationalCapabilityFreshness(StrEnum):
+    """Evidence state for a capability's source/projection relationship."""
+
+    CURRENT = "CURRENT"
+    STALE = "STALE"
+    UNKNOWN = "UNKNOWN"

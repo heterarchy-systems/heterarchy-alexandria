@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass, field
+from itertools import islice
 from pathlib import Path
 from unicodedata import normalize
 
@@ -10,6 +12,22 @@ from app.shared.exceptions.obsidian_exceptions import ObsidianValidationError
 
 NOTE_SUFFIX = ".md"
 _SAFE_FILENAME_PATTERN = re.compile(r"[^A-Za-z0-9가-힣._ -]+")
+
+
+@dataclass(frozen=True, slots=True)
+class ManagedMarkdownScan:
+    """Bounded managed-Markdown discovery result."""
+
+    paths: tuple[Path, ...]
+    entries_seen: int
+    total_bytes: int
+    complete: bool
+    errors: tuple[str, ...] = field(default_factory=tuple)
+
+    def __post_init__(self) -> None:
+        """Normalize scan collections to immutable values."""
+        object.__setattr__(self, "paths", tuple(self.paths))
+        object.__setattr__(self, "errors", tuple(self.errors))
 
 
 def canonical_relative_path(relative_path: str | Path) -> str:
@@ -106,6 +124,162 @@ def discover_managed_markdown_paths(
     ]
 
 
+def scan_managed_markdown_paths(
+    scan_root: Path,
+    *,
+    managed_root: Path | None = None,
+    max_entries: int,
+    max_files: int,
+    max_total_bytes: int,
+    max_file_bytes: int,
+    max_errors: int,
+) -> ManagedMarkdownScan:
+    """Discover managed Markdown with explicit traversal and byte ceilings.
+
+    The existing ``discover_managed_markdown_paths`` contract remains unchanged
+    for maintenance callers. This scanner is the bounded source-read variant:
+    it does not materialize an unbounded recursive path list and never follows
+    a symlink directory.
+    """
+    if (
+        min(
+            max_entries,
+            max_files,
+            max_total_bytes,
+            max_file_bytes,
+            max_errors,
+        )
+        <= 0
+    ):
+        raise ValueError("bounded Markdown scan limits must be greater than zero")
+    root = scan_root if managed_root is None else managed_root
+    paths: list[Path] = []
+    errors: list[str] = []
+    entries_seen = 0
+    total_bytes = 0
+    complete = True
+    pending: list[Path] = [scan_root]
+    while pending:
+        current = pending.pop()
+        remaining_entries = max_entries - entries_seen
+        if current.is_file() or current.is_symlink():
+            entries = [current]
+        else:
+            try:
+                entries = list(islice(current.iterdir(), remaining_entries + 1))
+            except OSError:
+                _append_bounded_scan_error(
+                    errors, "SOURCE_DISCOVERY_FAILED", max_errors
+                )
+                complete = False
+                continue
+            if len(entries) > remaining_entries:
+                _append_bounded_scan_error(
+                    errors,
+                    "SOURCE_SCAN_LIMIT_EXCEEDED",
+                    max_errors,
+                )
+                return ManagedMarkdownScan(
+                    paths=tuple(paths),
+                    entries_seen=entries_seen + len(entries),
+                    total_bytes=total_bytes,
+                    complete=False,
+                    errors=tuple(errors),
+                )
+            entries.sort(key=lambda path: str(path))
+        for candidate in entries:
+            entries_seen += 1
+            if entries_seen > max_entries:
+                _append_bounded_scan_error(
+                    errors,
+                    "SOURCE_SCAN_LIMIT_EXCEEDED",
+                    max_errors,
+                )
+                complete = False
+                return ManagedMarkdownScan(
+                    paths=tuple(paths),
+                    entries_seen=entries_seen,
+                    total_bytes=total_bytes,
+                    complete=False,
+                    errors=tuple(errors),
+                )
+            if candidate.is_symlink() and candidate.is_dir():
+                if _is_visible_directory(root, candidate):
+                    _append_bounded_scan_error(
+                        errors,
+                        "PATH_SECURITY_VIOLATION",
+                        max_errors,
+                    )
+                    complete = False
+                continue
+            if candidate.is_dir():
+                if _is_visible_directory(root, candidate):
+                    pending.append(candidate)
+                continue
+            if candidate.suffix != NOTE_SUFFIX or not _is_visible_managed_path(
+                root,
+                candidate,
+            ):
+                continue
+            try:
+                file_bytes = candidate.stat().st_size
+            except OSError:
+                _append_bounded_scan_error(errors, "SOURCE_READ_FAILED", max_errors)
+                complete = False
+                continue
+            if (
+                file_bytes > max_file_bytes
+                or total_bytes + file_bytes > max_total_bytes
+            ):
+                _append_bounded_scan_error(
+                    errors,
+                    "SOURCE_SCAN_LIMIT_EXCEEDED",
+                    max_errors,
+                )
+                complete = False
+                return ManagedMarkdownScan(
+                    paths=tuple(paths),
+                    entries_seen=entries_seen,
+                    total_bytes=total_bytes,
+                    complete=False,
+                    errors=tuple(errors),
+                )
+            if len(paths) >= max_files:
+                _append_bounded_scan_error(
+                    errors,
+                    "SOURCE_SCAN_LIMIT_EXCEEDED",
+                    max_errors,
+                )
+                complete = False
+                return ManagedMarkdownScan(
+                    paths=tuple(paths),
+                    entries_seen=entries_seen,
+                    total_bytes=total_bytes,
+                    complete=False,
+                    errors=tuple(errors),
+                )
+            paths.append(candidate)
+            total_bytes += file_bytes
+    paths.sort(key=lambda path: str(path))
+    return ManagedMarkdownScan(
+        paths=tuple(paths),
+        entries_seen=entries_seen,
+        total_bytes=total_bytes,
+        complete=complete and not errors,
+        errors=tuple(errors),
+    )
+
+
+def _append_bounded_scan_error(
+    errors: list[str],
+    error: str,
+    max_errors: int,
+) -> None:
+    """Append one scan code without unbounded diagnostic growth."""
+    if len(errors) < max_errors:
+        errors.append(error)
+
+
 def _is_visible_managed_path(managed_root: Path, candidate: Path) -> bool:
     """Return whether visible managed path.
 
@@ -121,6 +295,15 @@ def _is_visible_managed_path(managed_root: Path, candidate: Path) -> bool:
     except ValueError:
         return False
     return not any(part.startswith(".") for part in relative.parts[:-1])
+
+
+def _is_visible_directory(managed_root: Path, candidate: Path) -> bool:
+    """Return whether a discovered directory is inside visible managed state."""
+    try:
+        relative = candidate.relative_to(managed_root)
+    except ValueError:
+        return False
+    return not any(part.startswith(".") for part in relative.parts)
 
 
 def validate_discovered_note_path(

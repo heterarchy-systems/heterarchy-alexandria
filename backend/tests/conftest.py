@@ -145,6 +145,17 @@ def _override_retrieval_kernel_for_host_tests() -> None:
         yield
 
 
+@pytest.fixture
+def restore_default_app_wiring() -> Iterator[None]:
+    """Release alternate test-app DI bindings before the next request uses the default app."""
+    try:
+        yield
+    finally:
+        from app.main import app
+
+        app.state.container.wire()
+
+
 def pytest_sessionstart(session: pytest.Session) -> None:
     """Create a migration-faithful isolated PostgreSQL database before collection."""
     del session

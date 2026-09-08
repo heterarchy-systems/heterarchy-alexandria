@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from sqlalchemy import func
+from sqlalchemy import and_, case, func
 from sqlalchemy.sql.elements import ColumnElement
 
 from app.memory.domain.contracts.context_recall_contracts import (
@@ -12,12 +12,14 @@ from app.memory.domain.contracts.context_recall_contracts import (
 )
 from app.memory.domain.event_enum.context_enums import (
     ContextRecallLifecycleStatus,
+    ContextScope,
 )
 from app.memory.infrastructure.repositories.contexts.records.scope_recall_filter import (
     ScopeRecallColumns,
     scope_recall_clause,
 )
 from app.obsidian.domain.event_enum.obsidian_enums import (
+    AlexandriaNoteType,
     ObsidianIndexStatus,
 )
 from app.obsidian.infrastructure.models.obsidian_index_models import (
@@ -43,6 +45,7 @@ def _candidate_limit(limit: int) -> int:
 def _obsidian_scope_recall_clause(
     frontmatter_column: ColumnElement[JSONObject],
     project_column: ColumnElement[str | None],
+    note_type_column: ColumnElement[str],
     scope_filter: ScopeIdentity,
 ) -> ColumnElement[bool]:
     """Execute obsidian scope recall clause.
@@ -50,6 +53,7 @@ def _obsidian_scope_recall_clause(
     Args:
         frontmatter_column: Frontmatter column used by this operation.
         project_column: Project column used by this operation.
+        note_type_column: Alexandria note type column used by this operation.
         scope_filter: Scope filter used by this operation.
 
     Returns:
@@ -67,15 +71,35 @@ def _obsidian_scope_recall_clause(
         """
         return func.json_extract_path_text(frontmatter_column, key)
 
-    scope_column = func.upper(extract("scope"))
+    scope_column = func.upper(func.nullif(func.trim(extract("scope")), ""))
+    normalized_project = func.nullif(func.trim(project_column), "")
+    effective_scope_column = case(
+        (
+            and_(
+                note_type_column != AlexandriaNoteType.CONTEXT.value,
+                scope_column.is_(None),
+                normalized_project.is_not(None),
+            ),
+            ContextScope.PROJECT.value,
+        ),
+        (
+            and_(
+                note_type_column != AlexandriaNoteType.CONTEXT.value,
+                scope_column.is_(None),
+                normalized_project.is_(None),
+            ),
+            ContextScope.GLOBAL.value,
+        ),
+        else_=scope_column,
+    )
     workspace_id_column = extract("workspace_id")
     agent_id_column = extract("agent_id")
     user_id_column = extract("user_id")
     session_id_column = extract("session_id")
     return scope_recall_clause(
         ScopeRecallColumns(
-            scope=scope_column,
-            project=project_column,
+            scope=effective_scope_column,
+            project=normalized_project,
             agent_id=agent_id_column,
             user_id=user_id_column,
             session_id=session_id_column,

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.memory.domain.entities.memory_reconciliation import MemoryTemporalState
@@ -72,3 +73,17 @@ class ReconciliationTemporalStore:
         """
         row = await self._session.get(ContextTemporalStateORM, context_id)
         return None if row is None else temporal_from_row(row)
+
+    async def get_many(
+        self,
+        context_ids: tuple[str, ...],
+    ) -> dict[str, MemoryTemporalState]:
+        """Return bounded overlays with one PostgreSQL ``IN`` query."""
+        if not context_ids:
+            return {}
+        statement = select(ContextTemporalStateORM).where(
+            ContextTemporalStateORM.context_id.in_(context_ids)
+        )
+        result = await self._session.execute(statement)
+        rows = result.scalars().all()
+        return {row.context_id: temporal_from_row(row) for row in rows}

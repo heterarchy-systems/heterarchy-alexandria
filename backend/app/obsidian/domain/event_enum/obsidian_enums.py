@@ -20,6 +20,7 @@ class ObsidianIndexStatus(StrEnum):
     """Index lifecycle status for one vault note."""
 
     INDEXED = "indexed"
+    UNINDEXED = "unindexed"
     STALE = "stale"
     ERROR = "error"
 

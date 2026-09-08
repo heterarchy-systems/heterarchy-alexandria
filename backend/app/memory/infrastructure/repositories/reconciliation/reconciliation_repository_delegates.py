@@ -247,3 +247,10 @@ class ReconciliationTemporalRepositoryDelegate:
             MemoryTemporalState | None: Operation result.
         """
         return await self._temporal_store.get(context_id)
+
+    async def get_temporal_states(
+        self,
+        context_ids: tuple[str, ...],
+    ) -> dict[str, MemoryTemporalState]:
+        """Return bounded temporal overlays through one store query."""
+        return await self._temporal_store.get_many(context_ids)

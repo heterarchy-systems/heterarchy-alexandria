@@ -8,13 +8,15 @@ from app.obsidian.application.notes.lifecycle.obsidian_canonical_note_path impor
     canonical_managed_note_path,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
-from app.obsidian.domain.contracts.obsidian_contracts import (
-    ObsidianVaultInventoryRequest,
+from app.obsidian.domain.contracts.obsidian_contracts import ObsidianNoteIndex
+from app.obsidian.domain.contracts.obsidian_logical_identity import (
+    ObsidianLogicalIdentity,
 )
 from app.obsidian.domain.entities.obsidian_note import (
     ObsidianCanonicalIdentityResult,
     ObsidianExactPathStatus,
     ObsidianNote,
+    ObsidianVaultSourceSnapshot,
 )
 from app.obsidian.infrastructure.markdown.paths import safe_filename
 from app.obsidian.infrastructure.obsidian_vault_config_store import (
@@ -24,6 +26,8 @@ from app.shared.exceptions.obsidian_exceptions import (
     ObsidianNotFoundError,
     ObsidianValidationError,
 )
+
+type _CanonicalNote = ObsidianNote | ObsidianNoteIndex
 
 
 class ObsidianCanonicalIdentityService:
@@ -83,7 +87,6 @@ class ObsidianCanonicalIdentityService:
             date: Value supplied to resolve.
             entity: Value supplied to resolve.
             edition: Value supplied to resolve.
-
         Returns:
             Result produced by resolve.
         """
@@ -93,18 +96,77 @@ class ObsidianCanonicalIdentityService:
             raise ObsidianValidationError(
                 "date must be a valid ISO calendar date"
             ) from exc
-        candidates = await self._obsidian_service.inventory_vault(
-            ObsidianVaultInventoryRequest()
+        snapshot = await self._source_snapshot()
+        return self._resolve_candidates(
+            project=project,
+            report=report,
+            date=date,
+            entity=entity,
+            edition=edition,
+            parsed_date=parsed_date,
+            candidates=list(snapshot.notes),
+            active_only=False,
         )
-        matches: list[tuple[ObsidianNote, str, tuple[str, ...]]] = []
-        family_candidates: list[ObsidianNote] = []
-        for candidate in candidates:
-            try:
-                note = await self._obsidian_service.read_note_by_path(
-                    candidate.relative_path
-                )
-            except ObsidianNotFoundError:
-                continue
+
+    async def resolve_logical_identity(
+        self,
+        identity: ObsidianLogicalIdentity,
+    ) -> ObsidianCanonicalIdentityResult:
+        """Resolve one shared logical identity against current active notes.
+
+        This is the high-level write boundary. The existing scalar ``resolve``
+        method remains available for diagnostics and legacy callers, while this
+        entry point makes lifecycle eligibility explicit for agent writes.
+
+        Args:
+            identity: Shared logical identity to resolve.
+
+        Returns:
+            Current canonical identity resolution.
+        """
+        try:
+            parsed_date = calendar_date.fromisoformat(identity.date)
+        except ValueError as exc:
+            raise ObsidianValidationError(
+                "date must be a valid ISO calendar date"
+            ) from exc
+        snapshot = await self._source_snapshot()
+        return self._resolve_candidates(
+            project=identity.project,
+            report=identity.report,
+            date=identity.date,
+            entity=identity.entity,
+            edition=identity.edition,
+            parsed_date=parsed_date,
+            candidates=list(snapshot.notes),
+            active_only=True,
+        )
+
+    async def _source_snapshot(self) -> ObsidianVaultSourceSnapshot:
+        """Read one complete bounded source snapshot for identity resolution."""
+        snapshot = await self._obsidian_service.source_snapshot(max_notes=4096)
+        if not snapshot.complete or snapshot.errors:
+            raise ObsidianValidationError(
+                "SOURCE_SNAPSHOT_INCOMPLETE: canonical identity requires a "
+                "complete source snapshot"
+            )
+        return snapshot
+
+    def _resolve_candidates(
+        self,
+        project: str,
+        report: str,
+        date: str,
+        entity: str,
+        edition: str | None,
+        parsed_date: calendar_date,
+        candidates: list[_CanonicalNote],
+        active_only: bool,
+    ) -> ObsidianCanonicalIdentityResult:
+        """Resolve one already-loaded source snapshot without additional reads."""
+        matches: list[tuple[_CanonicalNote, str, tuple[str, ...]]] = []
+        family_candidates: list[_CanonicalNote] = []
+        for note in candidates:
             family = _text(note.frontmatter.get("report_family")) or _text(
                 note.frontmatter.get("report")
             )
@@ -120,7 +182,7 @@ class ObsidianCanonicalIdentityService:
                 aliases=aliases,
             ):
                 family_candidates.append(note)
-            if not _identity_matches(
+            if _identity_matches(
                 note,
                 project=project,
                 family=family,
@@ -129,9 +191,9 @@ class ObsidianCanonicalIdentityService:
                 entity=entity,
                 edition=edition,
                 aliases=aliases,
+                active_only=active_only,
             ):
-                continue
-            matches.append((note, family, aliases))
+                matches.append((note, family, aliases))
 
         if len(matches) == 1:
             note, family, aliases = matches[0]
@@ -191,7 +253,7 @@ class ObsidianCanonicalIdentityService:
         parsed_date: calendar_date,
         entity: str,
         edition: str | None,
-        family_candidates: list[ObsidianNote],
+        family_candidates: list[_CanonicalNote],
     ) -> str:
         """Execute generated path.
 
@@ -233,7 +295,7 @@ class ObsidianCanonicalIdentityService:
 
 
 def _family_matches(
-    note: ObsidianNote,
+    note: _CanonicalNote,
     project: str,
     family: str,
     requested_report: str,
@@ -264,7 +326,7 @@ def _family_matches(
 
 
 def _latest_inherited_path(
-    candidates: list[ObsidianNote],
+    candidates: list[_CanonicalNote],
     target_date: calendar_date,
 ) -> str | None:
     """Execute latest inherited path.
@@ -352,7 +414,7 @@ def _render_inherited_path(
 
 
 def _identity_matches(
-    note: ObsidianNote,
+    note: _CanonicalNote,
     project: str,
     family: str,
     requested_report: str,
@@ -360,6 +422,7 @@ def _identity_matches(
     entity: str,
     edition: str | None,
     aliases: tuple[str, ...],
+    active_only: bool = False,
 ) -> bool:
     """Execute identity matches.
 
@@ -372,14 +435,17 @@ def _identity_matches(
         entity: Entity used by this operation.
         edition: Edition used by this operation.
         aliases: Aliases used by this operation.
+        active_only: Whether inactive lifecycle records are excluded.
 
     Returns:
         Whether identity matches.
     """
     note_date = _text(note.frontmatter.get("date"))
     note_edition = _text(note.frontmatter.get("edition"))
+    status = _normalized(_text(note.frontmatter.get("status")))
     return (
-        _family_matches(
+        (not active_only or status in {"active", "current"})
+        and _family_matches(
             note,
             project=project,
             family=family,
@@ -392,7 +458,7 @@ def _identity_matches(
     )
 
 
-def _aliases(note: ObsidianNote) -> tuple[str, ...]:
+def _aliases(note: _CanonicalNote) -> tuple[str, ...]:
     """Execute aliases.
 
     Args:

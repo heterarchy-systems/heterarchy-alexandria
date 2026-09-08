@@ -38,9 +38,22 @@ class OperationalVaultSnapshot:
     vault_path: str
     alexandria_root: str
     alexandria_root_exists: bool
-    indexed_notes: int
-    stale_notes: int
-    error_notes: int
+    indexed_notes: int | None
+    stale_notes: int | None
+    error_notes: int | None
+
+
+@dataclass(frozen=True, slots=True)
+class OperationalGraphSnapshot:
+    """Read-only PostgreSQL graph projection status evidence."""
+
+    status: str
+    enabled: bool
+    node_count: int | None
+    edge_count: int | None
+    run_id: str | None
+    projection_revision: str | None
+    warnings: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -120,6 +133,17 @@ class OperationalReadinessSnapshot:
     )
     projection_integrity: ContextProjectionIntegritySnapshot = field(
         default_factory=unchecked_context_projection_integrity_snapshot
+    )
+    graph: OperationalGraphSnapshot = field(
+        default_factory=lambda: OperationalGraphSnapshot(
+            status="unknown",
+            enabled=False,
+            node_count=None,
+            edge_count=None,
+            run_id=None,
+            projection_revision=None,
+            warnings=("graph_projection_unchecked",),
+        )
     )
 
     def __post_init__(self) -> None:

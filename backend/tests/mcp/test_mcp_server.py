@@ -1628,15 +1628,32 @@ def test_mcp_v2_transport_security_allows_tunnel_host() -> None:
 
 
 def test_fastmcp_server_registers_required_alexandria_tools() -> None:
-    """FastMCP should expose focused acquisition and core maintenance contracts."""
+    """MCP exposes typed agent composites alongside diagnostic primitives."""
     client, _ = _client()
     server = build_mcp_server(client=client)
 
     tools = anyio.run(server.list_tools)
     names = {tool.name for tool in tools}
 
-    assert len(names) == 46
+    assert len(names) == 52
+    composite_names = {
+        "alexandria_recall",
+        "alexandria_verified_upsert",
+        "alexandria_verify",
+        "alexandria_relate",
+        "alexandria_execute_managed_spec",
+        "alexandria_memory_cycle",
+    }
+    for tool in tools:
+        if tool.name in composite_names:
+            assert tool.output_schema is not None
     assert {
+        "alexandria_recall",
+        "alexandria_verified_upsert",
+        "alexandria_verify",
+        "alexandria_relate",
+        "alexandria_execute_managed_spec",
+        "alexandria_memory_cycle",
         "alexandria_search",
         "alexandria_memory_steward_readiness",
         "alexandria_memory_steward_refresh_current_compact",

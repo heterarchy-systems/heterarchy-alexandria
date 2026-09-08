@@ -163,3 +163,36 @@ def test_context_note_keeps_fail_closed_content_hash_validation() -> None:
         assert str(exc).startswith("INVALID_CONTENT_HASH:")
     else:
         raise AssertionError("Context hash mismatch must fail closed")
+
+
+def test_unindexed_archived_source_does_not_invent_archive_timestamp() -> None:
+    """Archive time requires explicit lifecycle metadata on source-only reads."""
+    body = "# Archived source\n\nHistorical source."
+    modified_at = datetime(2026, 8, 23, tzinfo=UTC)
+    note = ObsidianNote(
+        note_id="ctx_archived_source",
+        relative_path="Alexandria/Contexts/Archived Source.md",
+        alexandria_type=AlexandriaNoteType.CONTEXT,
+        title="Archived source",
+        status="archived",
+        tags=(),
+        project=None,
+        source=None,
+        content_hash=context_content_hash(body),
+        frontmatter={
+            "scope": "GLOBAL",
+            "status": "archived",
+            "content_hash": context_content_hash(body),
+        },
+        body=body,
+        index_status=ObsidianIndexStatus.UNINDEXED,
+        error_message=None,
+        size_bytes=len(body.encode("utf-8")),
+        modified_at=modified_at,
+        indexed_at=None,
+    )
+
+    mapped = context_record_from_obsidian_note(note)
+
+    assert mapped.archived_at is None
+    assert mapped.updated_at == modified_at

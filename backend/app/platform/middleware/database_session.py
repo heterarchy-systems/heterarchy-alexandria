@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from typing import Literal
 
 from fastapi import FastAPI
 from starlette.middleware.base import RequestResponseEndpoint
@@ -20,7 +21,7 @@ _TRANSACTION_STATE_SCOPE_KEY = "alexandria.database_transaction_state"
 class _DatabaseTransactionState:
     """Typed request-local transaction ownership state."""
 
-    independent: bool
+    mode: Literal["independent", "read_only"]
 
 
 def mark_database_transaction_independent(request: Request) -> None:
@@ -30,7 +31,21 @@ def mark_database_transaction_independent(request: Request) -> None:
         request: Incoming request whose handler manages independent transactions.
     """
     request.scope[_TRANSACTION_STATE_SCOPE_KEY] = _DatabaseTransactionState(
-        independent=True
+        mode="independent"
+    )
+
+
+def mark_database_transaction_read_only(request: Request) -> None:
+    """Keep a source-read response independent of failed projection transactions.
+
+    This route contract discards all SQL changes at request completion. Canonical
+    mutation handlers must keep the normal commit contract instead.
+
+    Args:
+        request: Read-only request whose projection session must be rolled back.
+    """
+    request.scope[_TRANSACTION_STATE_SCOPE_KEY] = _DatabaseTransactionState(
+        mode="read_only"
     )
 
 
@@ -44,7 +59,7 @@ def _database_transaction_is_independent(request: Request) -> bool:
         Whether database transaction is independent.
     """
     state = request.scope.get(_TRANSACTION_STATE_SCOPE_KEY)
-    return isinstance(state, _DatabaseTransactionState) and state.independent
+    return isinstance(state, _DatabaseTransactionState) and state.mode == "independent"
 
 
 def install_database_session_middleware(
@@ -86,7 +101,12 @@ def install_database_session_middleware(
 
             if _database_transaction_is_independent(request):
                 return response
-            if response.status_code < 400:
+            transaction_state = request.scope.get(_TRANSACTION_STATE_SCOPE_KEY)
+            read_only = (
+                isinstance(transaction_state, _DatabaseTransactionState)
+                and transaction_state.mode == "read_only"
+            )
+            if response.status_code < 400 and not read_only:
                 await session.commit()
             else:
                 await session.rollback()

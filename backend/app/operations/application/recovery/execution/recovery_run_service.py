@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, datetime
+from functools import partial
+
+import anyio
 
 from app.memory.application.contexts.records.context_service_ports import (
     ContextRecoveryPort,
 )
 from app.obsidian.application.service.obsidian_service_ports import ObsidianRecoveryPort
+from app.operations.application.readiness.operational_readiness_service import (
+    GraphProjectionReadinessPort,
+)
 from app.operations.application.recovery.execution.recovery_run_contracts import (
     ContextRecoveryPortFactory,
     ObsidianRecoveryPortFactory,
@@ -89,6 +96,8 @@ class RecoveryRunService:
         obsidian_service: ObsidianRecoveryPort,
         context_service_factory: ContextRecoveryPortFactory | None = None,
         obsidian_service_factory: ObsidianRecoveryPortFactory | None = None,
+        *,
+        graph_projection_service: GraphProjectionReadinessPort,
     ) -> None:
         """Create service.
 
@@ -98,6 +107,7 @@ class RecoveryRunService:
             obsidian_service: Obsidian vault service.
             context_service_factory: Factory that creates context service.
             obsidian_service_factory: Factory that creates obsidian service.
+            graph_projection_service: Graph projection status boundary.
         """
         self._database = database
         self._context_service = context_service
@@ -109,12 +119,14 @@ class RecoveryRunService:
             context_service_factory=context_service_factory,
             obsidian_service_factory=obsidian_service_factory,
         )
+        self._graph_projection_service = graph_projection_service
         self._verification = RecoveryRunVerificationService(
             database=database,
             context_service=context_service,
             obsidian_service=obsidian_service,
             context_service_factory=context_service_factory,
             obsidian_service_factory=obsidian_service_factory,
+            graph_projection_service=graph_projection_service,
         )
 
     async def start(self, request: RecoveryPlanRequest) -> RecoveryRun:
@@ -130,11 +142,12 @@ class RecoveryRunService:
             database=self._database,
             context_service=self._context_service,
             obsidian_service=self._obsidian_service,
+            graph_projection_service=self._graph_projection_service,
         ).plan(request)
         manifest_path = _manifest_path(plan)
         if manifest_path.exists():
             return _run_from_manifest(manifest_path)
-        active_lock = _read_active_lock()
+        active_lock = await _record_io(_read_active_lock)
         if active_lock is not None:
             raise RecoveryInProgressError(
                 run_id=active_lock.run_id,
@@ -142,13 +155,13 @@ class RecoveryRunService:
             )
         if not plan.automatic_execution_allowed:
             run = _blocked_run(plan=plan, manifest_path=manifest_path)
-            _write_manifest(run)
+            await _record_io(partial(_write_manifest, run))
             return run
 
         parent_run = _parent_run_for_retry(parent_run_id=request.parent_run_id)
         parent_success_steps = _successful_parent_steps(parent_run)
 
-        _write_active_lock(plan)
+        await _record_io(partial(_write_active_lock, plan))
         started_at = datetime.now(UTC)
         step_results: list[RecoveryRunStepResult] = []
         rebuild_results: JSONObject = {}
@@ -159,7 +172,9 @@ class RecoveryRunService:
         current_step: str | None = None
         try:
             for planned_step in plan.steps:
-                current_step = _checkpoint_active_step(plan, planned_step.code)
+                current_step = await _record_io(
+                    partial(_checkpoint_active_step, plan, planned_step.code)
+                )
                 if current_step == "snapshot_sources":
                     result = await _execute_or_skip_step(
                         current_step,
@@ -251,8 +266,8 @@ class RecoveryRunService:
             else ("inspect_recovery_run",),
             manifest_path=str(manifest_path),
         )
-        _write_manifest(run)
-        _clear_active_lock(plan)
+        await _record_io(partial(_write_manifest, run))
+        await _record_io(partial(_clear_active_lock, plan))
         return run
 
     async def get(self, run_id: str) -> RecoveryRun | None:
@@ -266,7 +281,7 @@ class RecoveryRunService:
         """
         manifest_path = _manifest_path_by_id(run_id=run_id)
         if not manifest_path.exists():
-            active_lock = _read_active_lock()
+            active_lock = await _record_io(_read_active_lock)
             if active_lock is not None and active_lock.run_id == run_id:
                 vault_status = await self._obsidian_service.status()
                 run = _interrupted_active_run(
@@ -277,8 +292,8 @@ class RecoveryRunService:
                     ),
                     manifest_path=manifest_path,
                 )
-                _write_manifest(run)
-                _clear_active_lock_for_run_id(run_id=run_id)
+                await _record_io(partial(_write_manifest, run))
+                await _record_io(partial(_clear_active_lock_for_run_id, run_id=run_id))
                 return run
             return None
         return _run_from_manifest(manifest_path)
@@ -308,3 +323,10 @@ class RecoveryRunService:
             parent_run_id=parent_run_id,
         )
         return await self.start(retry_request)
+
+
+async def _record_io[T](operation: Callable[[], T]) -> T:
+    """Run recovery record effects on the bounded framework worker lane."""
+    return await anyio.to_thread.run_sync(
+        operation, limiter=anyio.to_thread.current_default_thread_limiter()
+    )

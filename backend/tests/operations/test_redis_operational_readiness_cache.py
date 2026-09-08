@@ -6,6 +6,8 @@ from typing import cast
 
 import anyio
 import pytest
+from tests.operations.operational_readiness_fakes import HealthyGraphProjectionService
+
 from app.memory.domain.entities.context_read_models import RagDependencyHealth
 from app.memory.domain.event_enum.context_enums import RagHealthState, RagStrategy
 from app.obsidian.domain.entities.obsidian_note import ObsidianVaultStatus
@@ -107,6 +109,7 @@ async def _snapshot() -> OperationalReadinessSnapshot:
         database=cast(Database, _HealthyPostgresDatabase()),
         context_service=_HealthyContextService(),
         obsidian_service=_HealthyObsidianService(),
+        graph_projection_service=HealthyGraphProjectionService(),
     )
     return await service.snapshot()
 

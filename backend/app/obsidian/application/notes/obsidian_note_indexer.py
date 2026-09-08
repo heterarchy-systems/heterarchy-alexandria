@@ -37,6 +37,7 @@ def note_index_from_path(
     path: Path,
     relative_path: str,
     alexandria_root: str,
+    max_source_bytes: int | None = None,
 ) -> ObsidianNoteIndex | None:
     """Read one Markdown file and build an index payload when managed.
 
@@ -44,11 +45,12 @@ def note_index_from_path(
         path: Absolute Markdown path.
         relative_path: Vault-relative Markdown path.
         alexandria_root: Managed Alexandria root, or "." when the vault is root.
+        max_source_bytes: Optional source-byte ceiling for bounded reads.
 
     Returns:
         Index payload, or None when Alexandria frontmatter is missing.
     """
-    text = path.read_text(encoding="utf-8")
+    text = _read_source_text(path, max_source_bytes=max_source_bytes)
     if frontmatter_contains_secret_field(text):
         raise ValueError(
             "FRONTMATTER_SECRET_DETECTED: frontmatter contains a secret-like field"
@@ -104,6 +106,19 @@ def note_index_from_path(
             )
         ),
     )
+
+
+def _read_source_text(path: Path, max_source_bytes: int | None) -> str:
+    """Read complete UTF-8 source text with an optional byte ceiling."""
+    if max_source_bytes is None:
+        return path.read_text(encoding="utf-8")
+    if max_source_bytes <= 0:
+        raise ValueError("SOURCE_SCAN_LIMIT_EXCEEDED")
+    with path.open("rb") as source:
+        content = source.read(max_source_bytes + 1)
+    if len(content) > max_source_bytes:
+        raise ValueError("SOURCE_SCAN_LIMIT_EXCEEDED")
+    return content.decode("utf-8")
 
 
 def _note_type_from_frontmatter(

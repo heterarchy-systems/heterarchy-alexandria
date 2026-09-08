@@ -7,12 +7,8 @@ from types import SimpleNamespace
 
 import anyio
 import pytest
-from app.operations.application.recovery.planning.recovery_plan_contracts import (
-    RecoveryPlanRequest,
-)
-from app.operations.application.recovery.planning.recovery_plan_service import (
-    RecoveryPlanService,
-)
+from tests.operations.operational_readiness_fakes import HealthyGraphProjectionService
+
 from app.operations.application.recovery.execution.recovery_run_errors import (
     RecoveryInProgressError,
 )
@@ -21,6 +17,12 @@ from app.operations.application.recovery.execution.recovery_run_manifest import 
 )
 from app.operations.application.recovery.execution.recovery_run_service import (
     RecoveryRunService,
+)
+from app.operations.application.recovery.planning.recovery_plan_contracts import (
+    RecoveryPlanRequest,
+)
+from app.operations.application.recovery.planning.recovery_plan_service import (
+    RecoveryPlanService,
 )
 from app.operations.domain.entities.recovery_plan import (
     RecoveryPlan,
@@ -85,6 +87,7 @@ def _service() -> RecoveryRunService:
         database=SimpleNamespace(),
         context_service=_FakeContextService(),
         obsidian_service=_FakeObsidianService(),
+        graph_projection_service=HealthyGraphProjectionService(),
     )
 
 

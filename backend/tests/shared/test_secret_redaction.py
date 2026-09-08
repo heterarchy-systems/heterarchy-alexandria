@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+
 from app.shared.utils.secret_redaction import (
     BLOCKED_SECRET_PLACEHOLDER,
     redact_secret_text,
@@ -176,3 +177,26 @@ def test_redact_secret_text_still_blocks_private_keys() -> None:
     assert result.redacted_content == BLOCKED_SECRET_PLACEHOLDER
     assert result.redaction_count == 1
     assert result.warnings == ("high-risk secret content cannot be saved raw",)
+
+
+def test_declared_sha256_provenance_retains_the_complete_digest() -> None:
+    digest = "a1b2c3d4" * 8
+    result = redact_secret_text(f"policy-version:5:sha256:{digest}")
+    assert result.redacted_content == f"policy-version:5:sha256:{digest}"
+    assert result.redaction_count == 0
+
+
+@pytest.mark.parametrize(
+    "field", ["api_key", "token", "password", "password_hash", "hashed_password"]
+)
+def test_hash_syntax_does_not_exempt_credential_assignments(field: str) -> None:
+    digest = "a1b2c3d4" * 8
+    result = redact_secret_text(f"{field}=sha256:{digest}")
+    assert digest not in result.redacted_content
+    assert result.redaction_count > 0
+
+
+@pytest.mark.parametrize("value", ["a1b2c3d4" * 8, "sha256:" + "g" * 64])
+def test_opaque_or_malformed_hash_like_values_still_redact(value: str) -> None:
+    result = redact_secret_text(value)
+    assert result.redaction_count == 1
