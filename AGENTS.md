@@ -13,6 +13,11 @@ Load only the rule families relevant to the touched surface. PRDs and notes are 
 ## Engineering Harness
 Engineering testing, verification, change discipline, solution minimality, and language invariants follow the repository Harness under `.agents/`.
 
+The `.agents/` bundle is private, locally provisioned, and excluded from Git and
+its history. Preserve the local bundle and never publish its contents. A clean
+checkout or CI runner must receive the authorized private bundle before running
+canonical verification; absence is a prerequisite blocker, not a bypass.
+
 Shared contracts:
 - `.agents/shared/contracts/00-harness-authority-and-layering.md`
 - `.agents/shared/contracts/01-testing-and-verification.md`
