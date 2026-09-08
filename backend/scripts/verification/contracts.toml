@@ -1,0 +1,10 @@
+[project]
+source_roots = ["backend/app"]
+
+[rules]
+async = true
+pydantic = true
+
+[profiles]
+fastapi = true
+dependency_injector = true

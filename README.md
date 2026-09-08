@@ -474,26 +474,29 @@ cd backend
 uv sync
 make format_check
 make type_checking
-make guardrails
+make mechanical_check
 make test
 ```
 
-`make guardrails` is intentionally database-free. `make test` starts an
+`make mechanical_check` is intentionally database-free. `make test` starts an
 ephemeral localhost-only PostgreSQL/pgvector container on a random host port,
 runs the full test suite against a session-owned test database, and removes the
 container on exit. It does not depend on the runtime Compose `postgres` network
 alias or the private repository `.env`.
 
-The GitHub Actions parity gate is:
+Run the GitHub Actions parity gate from the repository root:
 
 ```bash
-cd backend
 make ci
 ```
 
-`make ci` also runs a no-editable package CLI smoke check for both
-`heterarchy-alexandria`, then runs the same ephemeral-PostgreSQL
-test contract used by the pre-push hook and GitHub Actions.
+`make ci` runs Python and Rust validation, including a no-editable package CLI
+smoke check for `heterarchy-alexandria` and the ephemeral-PostgreSQL test contract.
+CI requires no private `.agents` bundle. Python code-contract checks and their
+source-scope/profile configuration live in `backend/scripts/verification/`;
+Rust workspace, dependency, effect-boundary, and compute-authority checks live in
+`native/xtask/`. Private agent rules, skills, and their bundle-integrity checks
+remain local development tools.
 
 Health check:
 

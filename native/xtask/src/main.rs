@@ -22,18 +22,6 @@ const EXPECTED_FEATURES: [&str; 9] = [
     "reconciliation_candidates",
     "context_reindex_manifest",
 ];
-const REQUIRED_HARNESS_FILES: [&str; 9] = [
-    ".agents/rust_dev_harness/PROJECT_PROFILE.md",
-    ".agents/rust_dev_harness/HARNESS.toml",
-    ".agents/rust_dev_harness/HARNESS_MANIFEST.toml",
-    ".agents/rust_dev_harness/README.md",
-    ".agents/rust_dev_harness/rules/README.md",
-    ".agents/rust_dev_harness/rules/normal_dev_rules/README.md",
-    ".agents/rust_dev_harness/rules/type_dev_rules/README.md",
-    ".agents/rust_dev_harness/rules/async_dev_rules/README.md",
-    ".agents/rust_dev_harness/skills/rust-engineering/SKILL.md",
-];
-const MANDATORY_SKILL: &str = ".agents/rust_dev_harness/skills/rust-engineering/SKILL.md";
 const FORBIDDEN_CORE_DEPENDENCIES: [&str; 8] = [
     "pyo3",
     "sqlx",
@@ -143,7 +131,6 @@ fn repository_root() -> TaskResult<PathBuf> {
 }
 
 fn verify_rules(repository_root: &Path) -> TaskResult<()> {
-    verify_harness(repository_root)?;
     let workspace_manifest = read_toml(&repository_root.join("native/Cargo.toml"))?;
     verify_workspace_manifest(&workspace_manifest)?;
     verify_member_manifests(repository_root)?;
@@ -152,13 +139,6 @@ fn verify_rules(repository_root: &Path) -> TaskResult<()> {
     verify_authority_registry(repository_root)?;
     println!("rules: PASS");
     Ok(())
-}
-
-fn verify_harness(repository_root: &Path) -> TaskResult<()> {
-    for relative_path in REQUIRED_HARNESS_FILES {
-        require_non_empty_file(repository_root, relative_path)?;
-    }
-    require_non_empty_file(repository_root, MANDATORY_SKILL)
 }
 
 fn verify_workspace_manifest(manifest: &Value) -> TaskResult<()> {

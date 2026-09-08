@@ -17,12 +17,16 @@ Before backend changes, read `backend/AGENTS.md` and the canonical development
 rules under `.agents/python_dev_harness/rules/`.
 
 The Engineering Harness under `.agents/` is private and intentionally excluded
-from Git, including repository history. Obtain the authorized private bundle and
-place it at `.agents/` before running the canonical root `make ci`. Keep the local
-bundle in place; do not commit it or copy its contents into public artifacts.
-CI runners also require private provisioning before `make ci`; a plain checkout
-does not contain the bundle. Missing provisioning is a blocked prerequisite, not
-permission to skip the Harness checks.
+from Git, including repository history. Keep its local agent rules, skills, and
+documents in place and do not publish them. They guide agent development; they
+are not a prerequisite for running CI.
+
+Run `make ci` from the repository root for the Python and Rust quality gate.
+A plain checkout can run this gate without `.agents/`. The executable Python
+contract checks and their configuration are tracked in
+`backend/scripts/verification/`; Rust checks are tracked in `native/xtask/`.
+These checks remain mandatory. Private bundle-presence and manifest checks
+belong to local Harness maintenance, not repository CI.
 
 ## Pull requests
 
