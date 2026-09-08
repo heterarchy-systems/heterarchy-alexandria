@@ -269,3 +269,8 @@ docs/deprecated/**
 .codex/**
 .codegraph/
 backend/.fastembed_cache
+
+.agents/
+
+# Finder metadata is local-only.
+.DS_Store
