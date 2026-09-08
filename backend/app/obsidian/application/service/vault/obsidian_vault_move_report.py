@@ -5,10 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from pathlib import Path
 
-from app.obsidian.application.notes.obsidian_note_templates import (
-    LIBRARIAN_OPERATIONS_FOLDER,
-    conversation_id,
-)
+from app.obsidian.application.notes.obsidian_note_templates import conversation_id
 from app.obsidian.domain.contracts.obsidian_contracts import (
     ObsidianVaultMoveApplyRequest,
 )
@@ -39,8 +36,7 @@ def vault_move_report_paths(
         Vault-relative path, Alexandria-relative path, absolute report path, and report directory.
     """
     base_path = request.report_path or (
-        f"{alexandria_root}/{LIBRARIAN_OPERATIONS_FOLDER}/Reports/"
-        f"vault-move-{conversation_id()}"
+        f"{alexandria_root}/_Ops/Reports/vault-move-{conversation_id()}"
     )
     report_stem = base_path.removesuffix(".md").removesuffix(".json")
     markdown_relative = f"{report_stem}.md"
@@ -181,7 +177,7 @@ def _vault_move_report_markdown(
     ] or ["- none"]
     return "\n".join(
         [
-            "# Librarian Vault Move Report",
+            "# Vault Move Report",
             "",
             f"- status: `{status}`",
             "- hard_delete_performed: `false`",

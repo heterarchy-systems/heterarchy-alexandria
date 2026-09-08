@@ -6,7 +6,7 @@ from enum import StrEnum
 
 
 class MemoryCompactStatus(StrEnum):
-    """Lifecycle status for durable memory compact artifacts."""
+    """Lifecycle state for one Memory Compact."""
 
     DRAFT = "DRAFT"
     CURRENT = "CURRENT"
@@ -15,7 +15,7 @@ class MemoryCompactStatus(StrEnum):
 
 
 class MemoryCompactReviewVerdict(StrEnum):
-    """Librarian review verdict for Memory Compact quality gates."""
+    """Quality review verdict for Memory Compact gates."""
 
     PASS = "pass"
     NEEDS_REVISION = "needs_revision"

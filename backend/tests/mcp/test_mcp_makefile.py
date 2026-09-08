@@ -1,22 +1,10 @@
-"""MCP/librarian Makefile boundary tests."""
+"""MCP and Makefile boundary tests."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
-OPERATIONAL_TARGETS = (
-    "mcp-smoke-tools",
-    "librarian-check",
-    "librarian-check-summary",
-    "librarian-check-refresh",
-    "librarian-check-refresh-summary",
-    "librarian-preflight",
-    "librarian-preflight-refresh",
-    "librarian-review-queue",
-    "librarian-review-queue-summary",
-    "librarian-review-plan",
-    "librarian-review-apply",
-)
+OPERATIONAL_TARGETS = ("mcp-smoke-tools",)
 
 
 def test_makefile_keeps_only_build_and_ci_targets() -> None:
@@ -25,10 +13,13 @@ def test_makefile_keeps_only_build_and_ci_targets() -> None:
     text = makefile.read_text()
 
     assert (
-        ".PHONY: install-local format_check type_checking cli_smoke guardrails test ci"
+        ".PHONY: install-local format_check type_checking cli_smoke test ci benchmark_check mechanical_check"
         in text
     )
-    assert "ci: format_check type_checking cli_smoke guardrails test" in text
+    assert (
+        "ci: format_check type_checking cli_smoke test benchmark_check mechanical_check"
+        in text
+    )
     assert "cli_smoke:" in text
     assert "uv sync --no-editable --reinstall-package heterarchy-alexandria" in text
     assert "uv run --isolated --with . heterarchy-alexandria --help >/dev/null" in text
@@ -51,10 +42,7 @@ def test_ci_gate_uses_ephemeral_postgres_without_runtime_dns_dependency() -> Non
         repository_root / ".github" / "workflows" / "backend.yml"
     ).read_text()
 
-    assert (
-        "--confcutdir=tests/shared/guardrails tests/shared/guardrails" in makefile_text
-    )
-    assert "./scripts/run-postgres-tests.sh -q" in makefile_text
+    assert "./scripts/run-postgres-tests.sh" in makefile_text
     assert runner.is_file()
     assert runner.stat().st_mode & 0o111
     assert "--publish 127.0.0.1::5432" in runner_text
@@ -83,15 +71,13 @@ def test_package_cli_mcp_modules_are_explicit_packages() -> None:
     assert (cli_root / "mcp_server_commands.py").is_file()
     assert (cli_root / "maintenance_workflow_commands.py").is_file()
     assert (cli_root / "memory_steward_commands.py").is_file()
-    assert (cli_root / "vault_maintenance_commands.py").is_file()
+    assert not (cli_root / "vault_maintenance_commands.py").exists()
     assert (cli_root / "maintenance_command_context.py").is_file()
     assert (cli_root / "maintenance_gateway.py").is_file()
     assert (cli_root / "type_validate" / "command_options.py").is_file()
     assert (cli_root / "type_validate" / "maintenance_payload_schemas.py").is_file()
     assert not (cli_root / "mcp.py").exists()
-    assert not (cli_root / "librarian.py").exists()
     assert not (cli_root / "options.py").exists()
-    assert not (cli_root / "librarian_payloads.py").exists()
     assert (backend_root / "app" / "mcp_server" / "__init__.py").is_file()
     assert (
         backend_root / "app" / "mcp_server" / "type_validate" / "mcp_transport_enums.py"
@@ -100,12 +86,4 @@ def test_package_cli_mcp_modules_are_explicit_packages() -> None:
     assert (backend_root / "app" / "mcp_server" / "server_runtime.py").is_file()
     assert (
         backend_root / "app" / "mcp_server" / "tools" / "backend_gateway_policy.py"
-    ).is_file()
-    assert (
-        backend_root
-        / "app"
-        / "mcp_server"
-        / "tools"
-        / "skills"
-        / "skill_backend_gateway.py"
     ).is_file()

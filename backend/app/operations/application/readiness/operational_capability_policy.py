@@ -56,17 +56,10 @@ def capability_snapshot(
         blockers=tuple(semantic_blockers),
         warnings=tuple(readiness.rag.warnings),
     )
-    librarian = OperationalCapability(
-        state=OperationalCapabilityState.OPTIONAL,
-        ready=True,
-        blockers=(),
-        warnings=("external_oauth_connection_required_for_delegation",),
-    )
     return OperationalCapabilitySnapshot(
         checked_at=readiness.checked_at,
         core_memory=core,
         semantic_retrieval=semantic,
-        librarian=librarian,
     )
 
 

@@ -23,7 +23,6 @@ from app.memory.domain.event_enum.context_enums import (
 )
 from app.memory.domain.types.context_payload_types import ContextMetadataPayload
 from app.obsidian.domain.event_enum.obsidian_enums import (
-    AlexandriaNoteType,
     ObsidianIndexStatus,
 )
 from app.obsidian.infrastructure.models.obsidian_index_models import (
@@ -36,9 +35,7 @@ from app.obsidian.infrastructure.repositories.obsidian_index_mapping import (
 from app.shared.types.types_convert_utils import aware_utc_datetime
 
 OBSIDIAN_CHUNK_ID_PREFIX = "obsidian-chunk:"
-DEFAULT_EXCLUDED_OBSIDIAN_RECALL_TYPES = frozenset(
-    {AlexandriaNoteType.LIBRARIAN_CHAT.value}
-)
+DEFAULT_EXCLUDED_OBSIDIAN_RECALL_TYPES = frozenset()
 DEFAULT_EXCLUDED_OBSIDIAN_RECALL_PREFIXES = ("_Ops/",)
 
 

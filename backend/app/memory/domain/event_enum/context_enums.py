@@ -181,7 +181,6 @@ class ContextAccessActorType(StrEnum):
 
     UI = "UI"
     AGENT = "AGENT"
-    LIBRARIAN = "LIBRARIAN"
     SYSTEM = "SYSTEM"
 
 

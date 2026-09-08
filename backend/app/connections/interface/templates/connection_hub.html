@@ -15,7 +15,7 @@
       <div class="hero-grid">
         <div>
           <h1>연결은 짧게,<br>기억은 오래.</h1>
-          <p class="lede">OpenAI Librarian과 MCP 클라이언트를 한 화면에서 연결하고 상태를 확인합니다.</p>
+          <p class="lede">Alexandria Core 상태와 MCP 클라이언트 연결을 한 화면에서 확인합니다.</p>
         </div>
         <div class="seal" aria-hidden="true">
           <span>AH</span>
@@ -33,41 +33,11 @@
         <span class="status-dot" id="semantic-dot"></span>
         <div><small>SEMANTIC RETRIEVAL</small><strong id="semantic-status">확인 중</strong></div>
       </article>
-      <article>
-        <span class="status-dot" id="librarian-dot"></span>
-        <div><small>LIBRARIAN</small><strong id="librarian-status">확인 중</strong></div>
-      </article>
     </section>
 
     <section class="grid">
-      <article class="card card-openai">
-        <div class="card-number">01</div>
-        <p class="card-kicker">OUTBOUND OAUTH</p>
-        <h2>OpenAI Librarian</h2>
-        <p class="card-copy">Alexandria가 Librarian 작업을 OpenAI에 위임할 수 있도록 기기 인증을 연결합니다. 토큰은 브라우저에 노출하지 않고 백엔드 암호화 저장소에 보관합니다.</p>
-
-        <div class="connection-state">
-          <span class="pill" id="oauth-pill">확인 중</span>
-          <span id="oauth-detail">Provider를 조회하고 있습니다.</span>
-        </div>
-
-        <div class="device-panel" id="device-panel" hidden>
-          <small>OPENAI DEVICE CODE</small>
-          <strong id="device-code">—</strong>
-          <a id="verification-link" href="#" target="_blank" rel="noopener noreferrer">OpenAI 인증 페이지 열기 ↗</a>
-          <span id="device-expiry"></span>
-        </div>
-
-        <div class="actions">
-          <button class="primary" id="oauth-start" type="button">OpenAI 연결 시작</button>
-          <button class="secondary" id="oauth-poll" type="button" disabled>연결 확인</button>
-          <button class="ghost" id="oauth-refresh" type="button">토큰 상태 갱신</button>
-        </div>
-        <p class="message" id="oauth-message" role="status"></p>
-      </article>
-
       <article class="card card-mcp">
-        <div class="card-number">02</div>
+        <div class="card-number">01</div>
         <p class="card-kicker">INBOUND OAUTH</p>
         <h2>MCP 클라이언트</h2>
         <p class="card-copy">ChatGPT 또는 다른 MCP 클라이언트가 Alexandria의 기억 도구를 사용할 수 있도록 OAuth 2.1 + PKCE 연결을 제공합니다.</p>
@@ -78,9 +48,7 @@
           <div><dt>Issuer</dt><dd id="mcp-issuer">—</dd></div>
         </dl>
 
-        <div class="notice" id="mcp-notice">
-          MCP OAuth 설정을 확인하고 있습니다.
-        </div>
+        <div class="notice" id="mcp-notice">MCP OAuth 설정을 확인하고 있습니다.</div>
         <div class="device-panel" id="pairing-panel" hidden>
           <small>ONE-TIME PAIRING CODE</small>
           <strong id="pairing-code">—</strong>

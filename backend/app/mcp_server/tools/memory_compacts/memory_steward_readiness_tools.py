@@ -15,7 +15,6 @@ from app.mcp_server.type_validate.memory.memory_steward_readiness_parsers import
     parse_current_compact,
     parse_rag_status,
     parse_readiness_summary,
-    parse_review_queue,
     result_object,
     source_ref_dicts,
 )
@@ -31,7 +30,6 @@ from app.mcp_server.type_validate.memory.memory_steward_readiness_schemas import
     CurrentCompactReviewPayload,
     NextActionPayload,
     RagStatusPayload,
-    ReadinessReviewQueueOutputPayload,
     ReadinessToolOutputPayload,
     RefreshCurrentCompactOutputPayload,
 )
@@ -49,12 +47,11 @@ async def alexandria_memory_steward_readiness(
 
     Args:
         client: Backend HTTP client.
-        project: Optional project filter for current compact and review queue.
+        project: Optional project filter for the current compact.
         max_compact_age_days: Maximum acceptable age for the current compact.
 
     Returns:
-        Readiness summary composed from RAG health, current Memory Compact, and
-        vault review queue state.
+        Readiness summary composed from RAG health and the current Memory Compact.
     """
     try:
         rag_status = await client.get("/memory/contexts/rag/status")
@@ -66,20 +63,10 @@ async def alexandria_memory_steward_readiness(
         )
     compact_query: JSONObject | None = None if project is None else {"project": project}
     current_compact = await client.get("/memory/compacts/current", params=compact_query)
-    review_payload: JSONObject = {"limit": 20}
-    if project is not None:
-        review_payload["project"] = project
-    review_queue_payload = await client.post(
-        "/obsidian/librarian/review-queue", review_payload
-    )
 
     rag = parse_rag_status(rag_status)
     compact = parse_current_compact(current_compact)
     compact_review = await _current_compact_review(client, compact)
-    review_queue = parse_review_queue(review_queue_payload)
-    review_total = review_queue.total_count()
-    auto_move_candidates = review_queue.auto_move_candidate_count()
-    manual_review_required = review_queue.manual_required_count()
     compact_age_days = compact.calculated_age_days()
     bounded_max_age_days = max(int(max_compact_age_days), 1)
     warnings = readiness_warnings(
@@ -87,15 +74,9 @@ async def alexandria_memory_steward_readiness(
         compact=compact,
         compact_age_days=compact_age_days,
         max_compact_age_days=bounded_max_age_days,
-        review_total=review_total,
     )
     warnings.extend(_compact_review_warnings(compact_review))
-    next_actions = readiness_next_actions(
-        warnings=warnings,
-        auto_move_candidates=auto_move_candidates,
-        manual_review_required=manual_review_required,
-        review_total=review_total,
-    )
+    next_actions = readiness_next_actions(warnings=warnings)
     output = ReadinessToolOutputPayload(
         ready=not warnings,
         status="ready" if not warnings else "needs_attention",
@@ -108,12 +89,6 @@ async def alexandria_memory_steward_readiness(
             }
         ),
         current_memory_compact_review=compact_review,
-        review_queue=ReadinessReviewQueueOutputPayload(
-            total=review_total,
-            auto_move_candidates=auto_move_candidates,
-            manual_review_required=manual_review_required,
-            items=tuple(review_queue.object_items()),
-        ),
         warnings=tuple(warnings),
         next_actions=tuple(
             model_validate_json_value(NextActionPayload, action)
@@ -164,12 +139,7 @@ def _rag_status_unavailable_readiness(
         JSONValue result produced by rag status unavailable readiness.
     """
     warnings = ["rag_status_unavailable"]
-    next_actions = readiness_next_actions(
-        warnings=warnings,
-        auto_move_candidates=0,
-        manual_review_required=0,
-        review_total=0,
-    )
+    next_actions = readiness_next_actions(warnings=warnings)
     bounded_max_age_days = max(int(max_compact_age_days), 1)
     output = ReadinessToolOutputPayload(
         ready=False,
@@ -181,12 +151,6 @@ def _rag_status_unavailable_readiness(
             max_age_days=bounded_max_age_days,
         ),
         current_memory_compact_review=None,
-        review_queue=ReadinessReviewQueueOutputPayload(
-            total=0,
-            auto_move_candidates=0,
-            manual_review_required=0,
-            items=(),
-        ),
         warnings=tuple(warnings),
         next_actions=tuple(
             model_validate_json_value(NextActionPayload, action)
@@ -267,21 +231,16 @@ async def alexandria_memory_steward_refresh_current_compact(
     readiness = parse_readiness_summary(readiness_payload)
     refresh_required = force or needs_current_compact_refresh(readiness.warnings)
     rag_blocked_reasons = rag_health_blocking_warnings(readiness.warnings)
-    review_blocked_reasons = review_blocking_warnings(
-        readiness.warnings,
-        readiness.review_queue.manual_required_count(),
-    )
+    review_blocked_reasons = review_blocking_warnings(readiness.warnings)
     blocked_reasons = rag_blocked_reasons + review_blocked_reasons
     blocked_next_actions = tuple(
-        action
-        for action in readiness.next_actions
-        if action.code in {"repair_rag_index", "review_manual_vault_queue"}
+        action for action in readiness.next_actions if action.code == "repair_rag_index"
     )
     refresh_status = "refresh_required" if refresh_required else "up_to_date"
     if refresh_required and rag_blocked_reasons:
         refresh_status = "blocked_by_rag_health"
     elif refresh_required and review_blocked_reasons:
-        refresh_status = "blocked_by_vault_review"
+        refresh_status = "blocked_by_compact_review"
     compact_draft = refresh_compact_payload(
         project=project,
         readiness=readiness,

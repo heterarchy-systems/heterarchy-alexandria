@@ -10,8 +10,6 @@ from dependency_injector import containers, providers
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.connections.containers import ConnectionsContainer
-from app.librarian.containers import LibrarianContainer
 from app.memory.application.contexts.graph.context_graph_candidate_expansion_service import (
     ContextGraphCandidateExpansionService,
     GraphProjectionSnapshotSource,
@@ -47,8 +45,11 @@ from app.obsidian.domain.repositories.obsidian_graph_projection_repository impor
 from app.obsidian.infrastructure.graph.native_obsidian_graph_candidate_selection_compute_provider import (
     create_native_obsidian_graph_candidate_selection_compute_provider,
 )
-from app.obsidian.infrastructure.graph.neo4j_graph_projection_factory import (
-    optional_neo4j_graph_projection_repository,
+from app.obsidian.infrastructure.graph.native_obsidian_graph_projection_compute_provider import (
+    create_native_obsidian_graph_projection_compute_provider,
+)
+from app.obsidian.infrastructure.graph.postgresql_obsidian_graph_projection_repository import (
+    PostgreSqlObsidianGraphProjectionRepository,
 )
 from app.operations.application.diagnostics.operational_retrieval_diagnostics_service import (
     OperationalRetrievalDiagnosticsService,
@@ -224,42 +225,18 @@ def create_secret_cipher(config: AppConfig) -> SecretCipher:
 
 
 def create_graph_signal_provider(
-    config: AppConfig,
-    repository: IObsidianGraphProjectionRepository | None,
-) -> IContextGraphSignalProvider | None:
-    """Create optional Context graph evidence provider only when enabled.
-
-    Args:
-        config: Typed service configuration.
-        repository: Enabled graph projection repository, or None while disabled.
-
-    Returns:
-        Optional graph signal provider for Context recall enrichment.
-    """
-    if config.graph_read_model == "disabled" or repository is None:
-        return None
+    repository: IObsidianGraphProjectionRepository,
+) -> IContextGraphSignalProvider:
+    """Create Context graph evidence over the active PostgreSQL/Rust projection."""
     return ObsidianGraphContextSignalService(repository=repository)
 
 
 def create_graph_candidate_expansion_provider(
-    config: AppConfig,
-    repository: GraphProjectionSnapshotSource | None,
+    repository: GraphProjectionSnapshotSource,
     selector: IObsidianGraphCandidateSelectionComputeProvider,
     session: AsyncSession,
-) -> IContextGraphCandidateExpansionProvider | None:
-    """Create the measured AUTO-only multi-hop graph expansion provider.
-
-    Args:
-        config: Typed service configuration.
-        repository: Active graph projection snapshot source, or None while disabled.
-        selector: Application-lifetime authoritative Rust graph candidate selector.
-        session: Request-scoped PostgreSQL session used only for candidate hydration.
-
-    Returns:
-        AUTO-only graph expansion provider, or None while graph read model is disabled.
-    """
-    if config.graph_read_model == "disabled" or repository is None:
-        return None
+) -> IContextGraphCandidateExpansionProvider:
+    """Create the measured AUTO-only multi-hop graph expansion provider."""
     return ContextGraphCandidateExpansionService(
         projection_source=repository,
         selector=selector,
@@ -315,7 +292,6 @@ class ApplicationContainer(containers.DeclarativeContainer):
     wiring_config = containers.WiringConfiguration(
         packages=[
             "app.connections.interface.routers",
-            "app.librarian.interface.routers",
             "app.memory.interface.routers",
             "app.obsidian.interface.routers",
             "app.operations.interface.routers",
@@ -355,47 +331,34 @@ class ApplicationContainer(containers.DeclarativeContainer):
         create_index_maintenance_coordinator,
         database=database,
     )
-    graph_projection_repository = providers.Resource(
-        optional_neo4j_graph_projection_repository,
-        config=app_config,
+    graph_projection_compute_provider = providers.Singleton(
+        create_native_obsidian_graph_projection_compute_provider
+    )
+    graph_projection_repository = providers.Singleton(
+        PostgreSqlObsidianGraphProjectionRepository,
+        database=database,
+        compute_provider=graph_projection_compute_provider,
     )
     graph_signal_provider = providers.Factory(
         create_graph_signal_provider,
-        config=app_config,
         repository=graph_projection_repository,
     )
-
     graph_candidate_selection_compute_provider = providers.Singleton(
         create_native_obsidian_graph_candidate_selection_compute_provider
     )
     graph_candidate_expansion_provider = providers.Factory(
         create_graph_candidate_expansion_provider,
-        config=app_config,
         repository=graph_projection_repository,
         selector=graph_candidate_selection_compute_provider,
         session=db_session,
-    )
-    connections = providers.Container(
-        ConnectionsContainer,
-        db_session=db_session,
-        secret_cipher=secret_cipher,
     )
     memory = providers.Container(
         MemoryContainer,
         db_session=db_session,
         app_config=app_config,
-        librarian_provider_repo=connections.librarian_provider_repo,
-        provider_secret_repo=connections.provider_secret_repo,
         graph_signal_provider=graph_signal_provider,
         graph_candidate_expansion_provider=graph_candidate_expansion_provider,
         index_maintenance_coordinator=index_maintenance_coordinator,
-        external_api_rate_limiter=external_api_rate_limiter,
-    )
-    librarian = providers.Container(
-        LibrarianContainer,
-        db_session=db_session,
-        librarian_provider_repo=connections.librarian_provider_repo,
-        provider_secret_repo=connections.provider_secret_repo,
         external_api_rate_limiter=external_api_rate_limiter,
     )
     obsidian = providers.Container(
@@ -403,7 +366,6 @@ class ApplicationContainer(containers.DeclarativeContainer):
         db_session=db_session,
         database=database,
         app_config=app_config,
-        librarian_delegate_service=librarian.hermes_collaboration_service,
         memory_context_service=memory.context_service,
         memory_embedding_recovery_service=memory.context_embedding_recovery_service,
         graph_projection_repository=graph_projection_repository,

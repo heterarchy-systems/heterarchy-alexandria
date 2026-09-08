@@ -8,7 +8,7 @@ from typing import Annotated
 from pydantic import ConfigDict, field_validator
 
 from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
-from app.shared.types.extra_types import JSONObject, JSONValue
+from app.shared.types.extra_types import JSONValue
 
 
 class MemoryStewardReadinessPayload(StrictSchemaModel):
@@ -236,77 +236,8 @@ class CurrentCompactReviewPayload(MemoryStewardReadinessPayload):
         return value
 
 
-class ReviewQueueItemPayload(MemoryStewardReadinessPayload):
-    """Validated review queue item fields used by readiness."""
-
-    suggested_destination_path: JSONValue | None = None
-    requires_human_review: bool | None = None
-
-
-class ReviewQueuePayload(MemoryStewardReadinessPayload):
-    """Validated vault review queue fields used by readiness."""
-
-    total: int | None = None
-    items: Annotated[
-        tuple[ReviewQueueItemPayload, ...],
-        described_field("Items for this review queue payload."),
-    ] = ()
-
-    @field_validator("items", mode="before")
-    @classmethod
-    def _filter_item_objects(cls, value: JSONValue) -> JSONValue:
-        """Execute filter item objects.
-
-        Args:
-            value: Value being processed.
-
-        Returns:
-            JSONValue result produced by filter item objects.
-        """
-        if isinstance(value, list):
-            return tuple(item for item in value if isinstance(item, dict))
-        return value
-
-    def total_count(self) -> int:
-        """Return total queue count with item count fallback.
-
-        Returns:
-            Queue total from payload or validated item count.
-        """
-        return self.total if self.total is not None else len(self.items)
-
-    def auto_move_candidate_count(self) -> int:
-        """Count safe auto-move candidates.
-
-        Returns:
-            Number of queue items with a destination and no manual-review flag.
-        """
-        return sum(
-            1
-            for item in self.items
-            if item.suggested_destination_path
-            and item.requires_human_review is not True
-        )
-
-    def manual_required_count(self) -> int:
-        """Count queue items requiring human/vault review.
-
-        Returns:
-            Number of items whose manual review flag is true.
-        """
-        return sum(1 for item in self.items if item.requires_human_review is True)
-
-    def object_items(self) -> list[JSONObject]:
-        """Return queue items as JSON objects for response payloads.
-
-        Returns:
-            Validated item dictionaries.
-        """
-        return [item.model_dump(mode="json") for item in self.items]
-
-
 class NextActionPayload(MemoryStewardReadinessPayload):
-    """Validated librarian next-action fields."""
+    """Validated Memory Steward next-action fields."""
 
     priority: int | None = None
     code: str | None = None
@@ -329,10 +260,6 @@ class ReadinessSummaryPayload(MemoryStewardReadinessPayload):
         described_field("Current memory compact for this readiness summary payload."),
     ] = CurrentCompactPayload()
     current_memory_compact_review: CurrentCompactReviewPayload | None = None
-    review_queue: Annotated[
-        ReviewQueuePayload,
-        described_field("Review queue for this readiness summary payload."),
-    ] = ReviewQueuePayload()
     warnings: Annotated[
         tuple[str, ...], described_field("Warnings for this readiness summary payload.")
     ] = ()
@@ -395,18 +322,6 @@ class CompactRefreshDraftPayload(MemoryStewardReadinessPayload):
     ] = ()
 
 
-class ReadinessReviewQueueOutputPayload(MemoryStewardReadinessPayload):
-    """Output schema for readiness review queue summary fields."""
-
-    total: int
-    auto_move_candidates: int
-    manual_review_required: int
-    items: Annotated[
-        tuple[JSONObject, ...],
-        described_field("Items for this readiness review queue output payload."),
-    ] = ()
-
-
 class ReadinessToolOutputPayload(MemoryStewardReadinessPayload):
     """Output schema for the Memory Steward readiness MCP tool."""
 
@@ -416,7 +331,6 @@ class ReadinessToolOutputPayload(MemoryStewardReadinessPayload):
     rag: RagStatusPayload
     current_memory_compact: CurrentCompactPayload
     current_memory_compact_review: CurrentCompactReviewPayload | None = None
-    review_queue: ReadinessReviewQueueOutputPayload
     warnings: Annotated[
         tuple[str, ...],
         described_field("Warnings for this readiness tool output payload."),
@@ -428,7 +342,7 @@ class ReadinessToolOutputPayload(MemoryStewardReadinessPayload):
 
 
 class RefreshCurrentCompactOutputPayload(MemoryStewardReadinessPayload):
-    """Output schema for the librarian compact refresh MCP tool."""
+    """Output schema for the Memory Steward compact refresh MCP tool."""
 
     status: str
     apply: bool

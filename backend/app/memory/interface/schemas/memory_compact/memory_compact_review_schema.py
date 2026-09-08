@@ -58,7 +58,7 @@ class MemoryCompactSourceObservationRequest(StrictSchemaModel):
 
 
 class MemoryCompactReviewRequest(StrictSchemaModel):
-    """Request schema for librarian review of a Memory Compact."""
+    """Request schema for quality review of a Memory Compact."""
 
     source_observations: Annotated[
         list[MemoryCompactSourceObservationRequest],
@@ -118,7 +118,7 @@ class MemoryCompactRubricScoreResponse(StrictSchemaModel):
 
 
 class MemoryCompactReviewResponse(StrictSchemaModel):
-    """Response schema for librarian Memory Compact review."""
+    """Response schema for Memory Compact quality review."""
 
     compact_id: Annotated[
         str,

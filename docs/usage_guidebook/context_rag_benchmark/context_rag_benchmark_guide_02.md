@@ -11,8 +11,8 @@ Obsidian Markdown
 PostgreSQL FTS / pgvector / embedding index
 → rebuildable retrieval state
 
-Neo4j
-→ rebuildable graph projection
+PostgreSQL indexed graph source + Rust graph compute
+→ rebuildable graph projection cache
 
 Redis
 → ephemeral maintenance queue/cache/coordination
@@ -20,6 +20,10 @@ Redis
 MCP Python SDK v2
 → GPT/agent protocol boundary
 ```
+
+Benchmark rows named `Neo4j 기능 05 Graph-aware Context Retrieval` retain a
+historical canonical note title from the corpus; they do not describe a current
+Neo4j runtime dependency.
 
 ## 1. CI에서 검증하는 것과 실측하는 것을 분리한다
 
@@ -351,7 +355,7 @@ search hot path
 
 ### 6.8 최종 current-source Golden Query 기준선
 
-모든 최적화를 적용한 current-source one-off server에서 같은 실제 Vault/PostgreSQL/Neo4j를 사용해 warmup 1회 + measured 3회로 `FTS_ONLY`, `VECTOR_ONLY`, `HYBRID`를 측정했다. 모든 전략에서 `Recall@1 = 1.00`, `Recall@3 = 1.00`, `MRR = 1.00`, ranking instability `0`을 유지했다.
+모든 최적화를 적용한 current-source one-off server에서 같은 실제 Vault/PostgreSQL와 Rust graph compute를 사용해 warmup 1회 + measured 3회로 `FTS_ONLY`, `VECTOR_ONLY`, `HYBRID`를 측정했다. 모든 전략에서 `Recall@1 = 1.00`, `Recall@3 = 1.00`, `MRR = 1.00`, ranking instability `0`을 유지했다.
 
 | Query | FTS p50 | Vector p50 | Hybrid p50 |
 | --- | ---: | ---: | ---: |

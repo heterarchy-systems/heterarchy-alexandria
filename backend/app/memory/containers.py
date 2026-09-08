@@ -5,9 +5,6 @@ from __future__ import annotations
 from dependency_injector import containers, providers
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.connections.infrastructure.librarians.memory_relation_proposal_provider import (
-    ConfiguredMemoryRelationProposalProvider,
-)
 from app.memory.application.contexts.embedding.context_embedding_recovery_service import (
     ContextEmbeddingRecoveryService,
 )
@@ -114,8 +111,6 @@ class MemoryContainer(containers.DeclarativeContainer):
 
     db_session = providers.Dependency(instance_of=AsyncSession)
     app_config = providers.Dependency(instance_of=AppConfig)
-    librarian_provider_repo = providers.Dependency()
-    provider_secret_repo = providers.Dependency()
     graph_signal_provider = providers.Dependency(default=None)
     graph_candidate_expansion_provider = providers.Dependency(default=None)
     index_maintenance_coordinator = providers.Dependency(
@@ -219,20 +214,8 @@ class MemoryContainer(containers.DeclarativeContainer):
         recall_source=reconciliation_recall_source,
         repository=reconciliation_repo,
     )
-    reconciliation_model_proposal_provider = providers.Factory(
-        ConfiguredMemoryRelationProposalProvider,
-        provider_repo=librarian_provider_repo,
-        secret_repo=provider_secret_repo,
-        provider_id=app_config.provided.memory_reconciliation_provider_id,
-        default_model=app_config.provided.memory_reconciliation_model,
-        timeout_seconds=(
-            app_config.provided.memory_reconciliation_provider_timeout_seconds
-        ),
-        rate_limiter=external_api_rate_limiter,
-    )
     reconciliation_classifier = providers.Factory(
         MemoryRelationClassifier,
-        proposal_provider=reconciliation_model_proposal_provider,
     )
     reconciliation_plan_service = providers.Factory(MemoryReconciliationPlanService)
     reconciliation_preview_service = providers.Factory(

@@ -1,0 +1,23 @@
+[
+  {
+    "path": "_Ops/Librarian/Requests/omx-agent-adapter command execution compaction request 2026-05-28.md",
+    "before_sha256": "9c959e5f01602ea09bd164c9ad5f426cfeb51071e415e16faa0c3e213575b55b",
+    "after_sha256": "bc1ab32a9ff1c39ea62a5bdae7d5af29b7c4257bc2ef40abb0e0f0fb992d4f07",
+    "body_preserved": true,
+    "backup": "/Users/imhaneul/.cache/heterarchy-alexandria/retired-note-frontmatter-20260908/0.md"
+  },
+  {
+    "path": "_Ops/Migrations/2026-07-10 Librarian Folder Migration.md",
+    "before_sha256": "ac802985380a263eac384aabcb18db1b1da8986a6fdca2e40a183b4e7b5cce89",
+    "after_sha256": "a2e87bbd98bab9f47b66cee5d1e1daba8d5310c193e66962d990bff91bba125b",
+    "body_preserved": true,
+    "backup": "/Users/imhaneul/.cache/heterarchy-alexandria/retired-note-frontmatter-20260908/1.md"
+  },
+  {
+    "path": "_Ops/Migrations/2026-07-12 Vault Folder Tree Migration.md",
+    "before_sha256": "30f07db4a458e77884924efb31b1c5c5803dde3f89940e7138468da2e2af168c",
+    "after_sha256": "77cf8b2b6f6be993baedec163a5aab676c32ee59f4143f1d2915cc617e4c098c",
+    "body_preserved": true,
+    "backup": "/Users/imhaneul/.cache/heterarchy-alexandria/retired-note-frontmatter-20260908/2.md"
+  }
+]

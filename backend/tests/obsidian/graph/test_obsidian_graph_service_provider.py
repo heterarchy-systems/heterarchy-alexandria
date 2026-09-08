@@ -138,7 +138,7 @@ def test_disabled_service_raises_explicit_graph_unavailable_error() -> None:
         anyio.run(service.related_notes, "source")
 
 
-def test_related_route_maps_disabled_graph_to_503() -> None:
+def test_related_route_maps_missing_graph_projection_to_503() -> None:
     service = ObsidianGraphService(
         repository=cast(IObsidianIndexQueryRepository, _IndexNotes((_note("source"),))),
         graph_repository=None,
@@ -151,7 +151,7 @@ def test_related_route_maps_disabled_graph_to_503() -> None:
         anyio.run(scenario)
 
     assert raised.value.status_code == 503
-    assert "disabled" in str(raised.value.detail)
+    assert "projection is unavailable" in str(raised.value.detail)
 
 
 def test_postgres_index_query_api_has_no_related_traversal_surface() -> None:

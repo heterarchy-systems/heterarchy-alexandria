@@ -16,17 +16,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.connections.interface.routers.connection_hub_router import (
     router as connection_hub_router,
 )
-from app.connections.interface.routers.librarian_oauth_router import (
-    router as librarian_oauth_router,
-)
-from app.connections.interface.routers.librarian_router import (
-    router as librarian_router,
-)
 from app.container import ApplicationContainer
-from app.librarian.interface.routers.agent_router import router as agent_router
-from app.librarian.interface.routers.skill_acquisition_router import (
-    router as skill_acquisition_router,
-)
 from app.mcp_server.backend_api_client import AlexandriaApiClient, AlexandriaApiSettings
 from app.mcp_server.http_auth_factory import build_mcp_http_auth_gate
 from app.mcp_server.http_mount import (
@@ -55,9 +45,6 @@ from app.memory.interface.routers.memory_existing_reconciliation_router import (
 )
 from app.memory.interface.routers.memory_reconciliation_router import (
     router as memory_reconciliation_router,
-)
-from app.obsidian.interface.routers.obsidian_librarian_execution_router import (
-    router as obsidian_librarian_execution_router,
 )
 from app.obsidian.interface.routers.obsidian_router import router as obsidian_router
 from app.obsidian.interface.routers.obsidian_settings_router import (
@@ -286,7 +273,6 @@ def create_app(app_config: AppConfig) -> FastAPI:
     container.wire(
         packages=[
             "app.connections.interface.routers",
-            "app.librarian.interface.routers",
             "app.memory.interface.routers",
             "app.obsidian.interface.routers",
             "app.operations.interface.routers",
@@ -314,16 +300,11 @@ def create_app(app_config: AppConfig) -> FastAPI:
     app.include_router(memory_existing_reconciliation_router)
     app.include_router(memory_reconciliation_router)
     app.include_router(obsidian_router)
-    app.include_router(obsidian_librarian_execution_router)
     app.include_router(obsidian_settings_router)
     app.include_router(operational_readiness_router)
     app.include_router(retrieval_diagnostics_router)
     app.include_router(recovery_plan_router)
     app.include_router(recovery_run_router)
-    app.include_router(agent_router)
-    app.include_router(librarian_router)
-    app.include_router(librarian_oauth_router)
-    app.include_router(skill_acquisition_router)
     app.include_router(maintenance_job_router)
 
     @app.get("/")

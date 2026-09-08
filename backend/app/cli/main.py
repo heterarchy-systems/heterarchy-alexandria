@@ -9,7 +9,7 @@ import click
 import typer
 from typer.main import get_command
 
-from app.cli.maintenance_workflow_commands import memory_steward_app, vault_app
+from app.cli.maintenance_workflow_commands import memory_steward_app
 from app.cli.mcp_server_commands import mcp_app
 
 app = typer.Typer(
@@ -19,7 +19,6 @@ app = typer.Typer(
 )
 app.add_typer(mcp_app, name="mcp")
 app.add_typer(memory_steward_app, name="memory-steward")
-app.add_typer(vault_app, name="vault")
 
 
 def main(argv: Sequence[str] | None = None) -> int:

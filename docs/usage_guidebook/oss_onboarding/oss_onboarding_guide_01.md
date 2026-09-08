@@ -54,7 +54,6 @@ docs/usage_guidebook/
   memory_compacts/
   library_assets/
   self_acquisition/
-  librarian_collaboration/
   security_privacy/
   troubleshooting/
   oss_onboarding/

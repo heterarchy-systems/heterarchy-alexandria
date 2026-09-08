@@ -290,6 +290,7 @@ class ObsidianVaultLifecycleService:
                     alexandria_root=config.alexandria_root,
                 )
                 if payload is None:
+                    await self._repository.clear_index_error(relative_path)
                     files_skipped += 1
                     skip_reasons["missing_alexandria_frontmatter"] = (
                         skip_reasons.get("missing_alexandria_frontmatter", 0) + 1
@@ -436,7 +437,9 @@ def index_error_code(
         for error_code in ObsidianIndexErrorCode:
             if error_code.value in message:
                 return error_code
-        if isinstance(error, OSError | ObsidianIndexWriteError):
+        if isinstance(error, OSError):
+            return ObsidianIndexErrorCode.SOURCE_READ_FAILED
+        if isinstance(error, ObsidianIndexWriteError):
             return ObsidianIndexErrorCode.INDEX_WRITE_FAILED
         return ObsidianIndexErrorCode.FRONTMATTER_PARSE_ERROR
 
@@ -452,6 +455,8 @@ def _safe_index_error_message(error_code: ObsidianIndexErrorCode) -> str:
     """
     if error_code is ObsidianIndexErrorCode.INDEX_WRITE_FAILED:
         return "Rebuildable index write failed"
+    if error_code is ObsidianIndexErrorCode.SOURCE_READ_FAILED:
+        return "Canonical Markdown source could not be read"
     if error_code is ObsidianIndexErrorCode.FRONTMATTER_SECRET_DETECTED:
         return "Frontmatter contains a secret-like field"
     if error_code is ObsidianIndexErrorCode.PATH_SECURITY_VIOLATION:

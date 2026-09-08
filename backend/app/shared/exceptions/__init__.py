@@ -20,15 +20,6 @@ from .connections_exceptions import (
     ConnectionsResourceNotFoundError,
 )
 from .exception_decorators import router_exception_status
-from .librarian_exceptions import (
-    LibrarianDomainError,
-    LibrarianProviderUnsupportedError,
-    LibrarianResourceNotFoundError,
-    LibrarianSkillAcquisitionArtifactError,
-    LibrarianSkillAcquisitionExecutionError,
-    LibrarianSkillAcquisitionProviderError,
-    LibrarianValidationError,
-)
 from .memory_compact_exceptions import (
     MemoryCompactDomainError,
     MemoryCompactNotFoundError,
@@ -50,7 +41,6 @@ from .route_exceptions import (
     CONNECTIONS_PROVIDER_TEST_EXCEPTION_MAPPING,
     CONNECTIONS_ROUTE_EXCEPTION_MAPPING,
     CONTEXT_ROUTE_EXCEPTION_MAPPING,
-    LIBRARIAN_ROUTE_EXCEPTION_MAPPING,
     MEMORY_COMPACT_ROUTE_EXCEPTION_MAPPING,
     OBSIDIAN_ROUTE_EXCEPTION_MAPPING,
 )
@@ -59,20 +49,12 @@ __all__ = [
     "CONNECTIONS_PROVIDER_TEST_EXCEPTION_MAPPING",
     "CONNECTIONS_ROUTE_EXCEPTION_MAPPING",
     "CONTEXT_ROUTE_EXCEPTION_MAPPING",
-    "LIBRARIAN_ROUTE_EXCEPTION_MAPPING",
     "MEMORY_COMPACT_ROUTE_EXCEPTION_MAPPING",
     "OBSIDIAN_ROUTE_EXCEPTION_MAPPING",
     "BoundaryValidationError",
     "ConnectionsDomainError",
     "ConnectionsProviderUnsupportedError",
     "ConnectionsResourceNotFoundError",
-    "LibrarianDomainError",
-    "LibrarianProviderUnsupportedError",
-    "LibrarianResourceNotFoundError",
-    "LibrarianSkillAcquisitionArtifactError",
-    "LibrarianSkillAcquisitionExecutionError",
-    "LibrarianSkillAcquisitionProviderError",
-    "LibrarianValidationError",
     "MemoryCompactDomainError",
     "MemoryCompactNotFoundError",
     "MemoryCompactValidationError",

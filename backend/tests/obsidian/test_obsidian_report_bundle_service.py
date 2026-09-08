@@ -124,13 +124,7 @@ def test_report_bundle_is_idempotent_and_verifies_expected_owner_edges(
             )
             graph_repository = _FailingActivationGraphRepository()
             graph_rebuild = ObsidianGraphProjectionRebuildService(
-                config=AppConfig(
-                    _env_file=None,
-                    graph_read_model="neo4j",
-                    neo4j_uri="neo4j://example:7687",
-                    neo4j_username="neo4j",
-                    neo4j_password="local-test-password",
-                ),
+                config=AppConfig(_env_file=None),
                 source_builder=ObsidianGraphProjectionSourceBuilder(
                     compute_provider=create_native_obsidian_graph_projection_compute_provider(),
                     source=SqlAlchemyObsidianGraphProjectionSource(session=session),
@@ -311,7 +305,7 @@ def test_report_bundle_missing_owner_fails_before_source_mutation(
             )
             graph_repository = FakeObsidianGraphProjectionRepository()
             graph_rebuild = ObsidianGraphProjectionRebuildService(
-                config=AppConfig(_env_file=None, graph_read_model="disabled"),
+                config=AppConfig(_env_file=None),
                 source_builder=ObsidianGraphProjectionSourceBuilder(
                     compute_provider=create_native_obsidian_graph_projection_compute_provider(),
                     source=SqlAlchemyObsidianGraphProjectionSource(session=session),

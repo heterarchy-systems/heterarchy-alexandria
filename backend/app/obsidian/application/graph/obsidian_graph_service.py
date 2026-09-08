@@ -88,8 +88,8 @@ class ObsidianGraphService:
         """
         if self._graph_repository is None:
             raise ObsidianGraphUnavailableError(
-                "Obsidian graph read model is disabled; enable Neo4j and rebuild "
-                "the projection before using related-note traversal"
+                "Obsidian graph projection is unavailable; rebuild the PostgreSQL/Rust "
+                "projection before using related-note traversal"
             )
         return self._graph_repository
 

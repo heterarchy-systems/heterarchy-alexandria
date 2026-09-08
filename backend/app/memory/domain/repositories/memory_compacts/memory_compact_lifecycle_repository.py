@@ -25,9 +25,9 @@ class IMemoryCompactLifecycleRepository(ABC):
 
         Args:
             compact_id: Memory Compact identifier.
-            review_verdict: Latest librarian review verdict for the promotion.
-            review_score: Latest librarian review total score.
-            review_max_score: Latest librarian review maximum score.
+            review_verdict: Latest quality review verdict for the promotion.
+            review_score: Latest quality review total score.
+            review_max_score: Latest quality review maximum score.
             reviewed_at: Review timestamp.
 
         Returns:

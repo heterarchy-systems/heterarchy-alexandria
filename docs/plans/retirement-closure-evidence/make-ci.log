@@ -1,0 +1,352 @@
+info: component rustfmt is up to date
+info: component clippy is up to date
+env -u RUSTC -u RUSTC_WRAPPER -u RUSTC_WORKSPACE_WRAPPER -u CARGO_BUILD_RUSTC -u CARGO_BUILD_RUSTC_WRAPPER PATH="$(dirname "$( /opt/homebrew/bin/rustup which --toolchain 1.98.0 rustc )"):${PATH}" RUSTC="$( /opt/homebrew/bin/rustup which --toolchain 1.98.0 rustc )" /opt/homebrew/bin/rustup run 1.98.0 cargo xtask python-ci
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running `native/target/debug/xtask python-ci`
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.13s
+uv run --no-editable ruff format --check . ../.agents/python_dev_harness
+Uninstalled 1 package in 1ms
+Installed 1 package in 20ms
+740 files already formatted
+uv run --no-editable ruff check . ../.agents/python_dev_harness
+All checks passed!
+uv run --no-editable pyrefly check
+ INFO Checking project configured at `/Users/imhaneul/Documents/herterarchy/heterarchy-alexandria/backend/pyproject.toml`
+ INFO 0 errors (51 warnings not shown)
+uv run --isolated --with . heterarchy-alexandria --help >/dev/null
+Installed 81 packages in 165ms
+./scripts/run-postgres-tests.sh
+[postgres-tests] Starting temporary PostgreSQL container from pgvector/pgvector:pg17.
+[postgres-tests] Waiting for PostgreSQL readiness (timeout: 60s).
+[postgres-tests] PostgreSQL is still starting... 1/60s
+[postgres-tests] PostgreSQL ready in 1s on 127.0.0.1:57499.
+[postgres-tests] Starting pytest; dots show completed tests.
+[pytest-setup] Creating isolated PostgreSQL test database...
+[pytest-setup] Test database created in 0.1s.
+[pytest-setup] Applying Alembic migrations to head...
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 202605121240_initial_uuid_archive, Initial backend-owned archive schema with UUID identifiers.
+INFO  [alembic.runtime.migration] Running upgrade 202605121240_initial_uuid_archive -> 202605141904_add_context_vault, Add Context Vault storage and retrieval tables.
+INFO  [alembic.runtime.migration] Running upgrade 202605141904_add_context_vault -> 202605150930_remove_default_minio_smoke_provider, Remove legacy default MINIO smoke provider.
+INFO  [alembic.runtime.migration] Running upgrade 202605150930_remove_default_minio_smoke_provider -> 202605151438_allow_prompt_library_item_type, Allow prompt records in library_items.
+INFO  [alembic.runtime.migration] Running upgrade 202605151438_allow_prompt_library_item_type -> 202605161020, Add librarian agent profile configuration fields.
+INFO  [alembic.runtime.migration] Running upgrade 202605161020 -> 202605161930, Add Context Vault recall scopes and library review statuses.
+INFO  [alembic.runtime.migration] Running upgrade 202605161930 -> 202605161945, Add librarian profile routing fields.
+INFO  [alembic.runtime.migration] Running upgrade 202605161945 -> 202605162010, Add context chunk embedding storage for vector retrieval.
+INFO  [alembic.runtime.migration] Running upgrade 202605162010 -> 202605171845_add_memory_compacts, Add Memory Compact artifacts.
+INFO  [alembic.runtime.migration] Running upgrade 202605171845_add_memory_compacts -> 202605172010_add_context_access_events, Add Context Vault access event history.
+INFO  [alembic.runtime.migration] Running upgrade 202605172010_add_context_access_events -> 202605181430_remove_workflow_library_item_type, Remove legacy workflow library item type.
+INFO  [alembic.runtime.migration] Running upgrade 202605181430_remove_workflow_library_item_type -> 202605181650_add_harness_context_kind, Add harness context kind.
+INFO  [alembic.runtime.migration] Running upgrade 202605181650_add_harness_context_kind -> 202605181720_create_skill_acquisition_jobs, Create durable skill acquisition jobs.
+INFO  [alembic.runtime.migration] Running upgrade 202605181720_create_skill_acquisition_jobs -> 202605191840_remove_minio_providers, Remove legacy MINIO providers.
+INFO  [alembic.runtime.migration] Running upgrade 202605191840_remove_minio_providers -> 202605192115_remove_knowledge_library_item_type, Remove legacy knowledge library item type.
+INFO  [alembic.runtime.migration] Running upgrade 202605192115_remove_knowledge_library_item_type -> 202605201020_normalize_legacy_sqlite_datetimes, Normalize legacy SQLite datetimes to explicit UTC.
+INFO  [alembic.runtime.migration] Running upgrade 202605201020_normalize_legacy_sqlite_datetimes -> 202605201030_reject_legacy_provider_secret_storage, Reject legacy provider secret storage values.
+INFO  [alembic.runtime.migration] Running upgrade 202605201030_reject_legacy_provider_secret_storage -> 202605251030_drop_library_crud_and_harness_kind, Drop SQLite library CRUD tables and harness context kind.
+INFO  [alembic.runtime.migration] Running upgrade 202605251030_drop_library_crud_and_harness_kind -> 202605251130_drop_memory_compact_sqlite_storage, Drop SQLite Memory Compact storage tables.
+INFO  [alembic.runtime.migration] Running upgrade 202605251130_drop_memory_compact_sqlite_storage -> 202605251420_add_obsidian_index_cache, Add Obsidian Markdown index cache tables.
+INFO  [alembic.runtime.migration] Running upgrade 202605251420_add_obsidian_index_cache -> 202605261030_add_obsidian_graph_and_workflows, Add Obsidian graph edges and librarian workflow checkpoints.
+INFO  [alembic.runtime.migration] Running upgrade 202605261030_add_obsidian_graph_and_workflows -> 202605281230_add_obsidian_chunk_embeddings, Add Obsidian chunk embedding storage for Context RAG retrieval.
+INFO  [alembic.runtime.migration] Running upgrade 202605281230_add_obsidian_chunk_embeddings -> 202606020050_add_embedding_fingerprints, Add embedding fingerprint metadata to context and Obsidian chunks.
+INFO  [alembic.runtime.migration] Running upgrade 202606020050_add_embedding_fingerprints -> 202606021130_add_skill_acquisition_handoff_fields, Add skill-acquisition stage and handoff fields.
+INFO  [alembic.runtime.migration] Running upgrade 202606021130_add_skill_acquisition_handoff_fields -> 202606021145_add_skill_acquisition_search_audit_fields, Add skill-acquisition search audit fields.
+INFO  [alembic.runtime.migration] Running upgrade 202606021145_add_skill_acquisition_search_audit_fields -> 38a1eeb8d848, add memory reconciliation tables.
+INFO  [alembic.runtime.migration] Running upgrade 38a1eeb8d848 -> 714900e7251c, add local mcp oauth tables.
+INFO  [alembic.runtime.migration] Running upgrade 714900e7251c -> 9e4d7b6c2a10, add mcp oauth pairing codes.
+INFO  [alembic.runtime.migration] Running upgrade 9e4d7b6c2a10 -> 202607281750, Hard-delete MCP OAuth clients left by legacy soft disconnect.
+INFO  [alembic.runtime.migration] Running upgrade 202607281750 -> 202607281805, Delete orphaned MCP OAuth state left without a client registration.
+INFO  [alembic.runtime.migration] Running upgrade 202607281805 -> 202608062130_pg_search, Add PostgreSQL vector and lexical search storage.
+INFO  [alembic.runtime.migration] Running upgrade 202608062130_pg_search -> 202608070100_credential_text, Allow encrypted provider credential payloads beyond legacy VARCHAR limits.
+INFO  [alembic.runtime.migration] Running upgrade 202608070100_credential_text -> cabdf60a1fee, add context projection integrity snapshot.
+INFO  [alembic.runtime.migration] Running upgrade cabdf60a1fee -> 202609071940_librarian_drop, Drop retired Librarian runtime tables.
+[pytest-setup] Alembic migrations completed in 0.6s.
+[pytest-setup] Collecting tests...
+[pytest-setup] Collected 842 tests in 1.75s; running tests now.
+........................................................................ [  8%]
+........................................................................ [ 17%]
+........................................................................ [ 25%]
+........................................................................ [ 34%]
+........................................................................ [ 42%]
+........................................................................ [ 51%]
+........................................................................ [ 59%]
+........................................................................ [ 68%]
+........................................................................ [ 76%]
+........................................................................ [ 85%]
+........................................................................ [ 94%]
+..................................................                       [100%][pytest-setup] Per-test PostgreSQL cleanup: 842 truncations in 13.95s (average 0.017s, max 0.108s).
+[pytest-setup] Dropping isolated PostgreSQL test database...
+[pytest-setup] PostgreSQL test database cleanup complete.
+
+============================= slowest 10 durations =============================
+4.99s call     tests/obsidian/test_note_index_import_lifecycle.py::test_application_import_defers_native_loading_until_note_indexing
+2.42s call     tests/memory/concurrency/test_memory_compact_creation_atomicity.py::test_identical_compact_creation_is_atomic_across_processes
+2.27s call     tests/memory/interface/test_context_router.py::test_context_api_hard_deletes_context_rows_chunks_access_events_and_search_index
+1.55s call     tests/memory/interface/test_context_router.py::test_context_api_filters_list_by_created_and_updated_dates
+1.23s call     tests/platform/test_cli_package_entrypoint.py::test_cli_package_is_executable_from_backend_directory
+0.99s call     tests/memory/test_context_repository.py::test_native_hybrid_fusion_matches_python_authority_on_real_postgresql_retrieval
+0.97s call     tests/mcp/test_local_mcp_oauth.py::test_local_oauth_provider_issues_rotates_and_revokes_hashed_tokens
+0.90s call     tests/obsidian/graph/test_obsidian_graph_note_diagnostics.py::test_graph_note_diagnostics_rest_contract_reports_validation_only_status
+0.74s call     tests/memory/concurrency/test_memory_compact_creation_atomicity.py::test_identical_compact_creation_completes_at_high_same_loop_concurrency
+0.69s call     tests/mcp/test_local_mcp_oauth.py::test_local_oauth_http_flow_enforces_pkce_and_bearer_auth
+842 passed in 67.76s (0:01:07)
+[postgres-tests] pytest completed successfully.
+[postgres-tests] Stopping temporary PostgreSQL container.
+uv run --no-editable pytest -q --confcutdir=tests/benchmark_tools tests/benchmark_tools
+..................................                                       [100%]
+34 passed in 0.54s
+uv run --no-editable python -m benchmarks.context_rag_api_benchmark --help >/dev/null
+uv run --no-editable python -m benchmarks.graph_ablation_suite --help >/dev/null
+uv run --no-editable python -m benchmarks.graph_production_closure_suite --help >/dev/null
+uv run --no-editable python -m benchmarks.memory_evaluation_suite --help >/dev/null
+uv run --no-editable python -m benchmarks.mcp_readonly_benchmark --help >/dev/null
+uv run python ../.agents/python_dev_harness/verify_mechanical_contracts.py
+Uninstalled 1 package in 68ms
+Installed 1 package in 7ms
+manifest-contracts: PASS (46 files)
+type-contracts: PASS
+dynamic-attribute-contracts: PASS
+async-contracts: PASS
+schema-contracts: PASS
+fastapi-contracts: PASS
+dependency-injector-contracts: PASS
+mechanical-contracts: PASS (7 enabled verifiers)
+python-ci: PASS
+env -u RUSTC -u RUSTC_WRAPPER -u RUSTC_WORKSPACE_WRAPPER -u CARGO_BUILD_RUSTC -u CARGO_BUILD_RUSTC_WRAPPER PATH="$(dirname "$( /opt/homebrew/bin/rustup which --toolchain 1.98.0 rustc )"):${PATH}" RUSTC="$( /opt/homebrew/bin/rustup which --toolchain 1.98.0 rustc )" /opt/homebrew/bin/rustup run 1.98.0 cargo xtask ci
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.11s
+     Running `native/target/debug/xtask ci`
+rules: PASS
+fmt: PASS
+   Compiling pyo3-ffi v0.29.2
+   Compiling pyo3 v0.29.2
+   Compiling heterarchy-alexandria-py v0.1.0 (/Users/imhaneul/Documents/herterarchy/heterarchy-alexandria/native/crates/heterarchy-alexandria-py)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.70s
+   Compiling heterarchy-alexandria-py v0.1.0 (/Users/imhaneul/Documents/herterarchy/heterarchy-alexandria/native/crates/heterarchy-alexandria-py)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.16s
+check: PASS
+   Compiling pyo3-ffi v0.29.2
+   Compiling pyo3 v0.29.2
+   Compiling heterarchy-alexandria-py v0.1.0 (/Users/imhaneul/Documents/herterarchy/heterarchy-alexandria/native/crates/heterarchy-alexandria-py)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.14s
+     Running unittests src/lib.rs (native/target/debug/deps/heterarchy_alexandria_core-8b1a3f1e3ea66b78)
+
+running 43 tests
+test bulk_embedding::tests::empty_requests_produce_empty_preparation_and_result ... ok
+test bulk_embedding::tests::preserves_input_order_and_deterministic_batch_boundaries ... ok
+test document_integrity::tests::logical_lines_match_python_splitlines_for_lf_crlf_and_cr ... ok
+test document_analysis::tests::no_frontmatter_preserves_original_body_bytes ... ok
+test bulk_embedding::tests::rejects_dimension_and_non_finite_runtime_outputs ... ok
+test document_integrity::tests::number_scalar_detection_matches_frozen_python_regex_semantics ... ok
+test document_analysis::tests::headings_inside_fences_are_not_structural_events ... ok
+test document_analysis::tests::unterminated_frontmatter_does_not_abort_other_batch_items ... ok
+test bulk_embedding::tests::prepares_python_compatible_metadata_text_and_e5_input ... ok
+test graph_compute::candidate_selection::tests::compares_similarity_before_distance_support_and_stable_order ... ok
+test bulk_embedding::tests::validates_runtime_vectors_without_mathematical_renormalization ... ok
+test document_integrity::tests::legacy_tuple_detection_requires_python_string_tuple_shape ... ok
+test document_analysis::tests::duplicate_key_is_a_document_local_structured_failure ... ok
+test document_analysis::tests::parses_python_compatible_frontmatter_types_and_normalizes_crlf_body ... ok
+test graph_compute::tests::traverses_active_projection_without_rebuilding_and_respects_depth_relation_and_cycles ... ok
+test hash_fingerprint::tests::sha256_preserves_exact_utf8_and_line_ending_bytes ... ok
+test graph_compute::candidate_selection::tests::normalizes_multilingual_text_into_stable_character_trigrams ... ok
+test hash_fingerprint::tests::fingerprint_key_matches_sorted_compact_json ... ok
+test hash_fingerprint::tests::change_components_are_ordered_and_set_comparison_is_order_independent ... ok
+test reconciliation_candidates::tests::exact_duplicates_use_a_linear_representative_expansion ... ok
+test reconciliation_candidates::tests::hard_negative_in_the_same_block_is_not_returned_without_evidence ... ok
+test reconciliation_candidates::tests::oversized_blocks_fail_closed_before_quadratic_expansion ... ok
+test graph_compute::tests::rejects_nfc_colliding_paths_as_ambiguous ... ok
+test graph_compute::tests::resolves_windows_separator_and_unicode_equivalent_exact_paths ... ok
+test graph_compute::tests::resolves_nfc_and_nfd_equivalent_paths_without_changing_case_semantics ... ok
+test graph_compute::tests::computes_projection_cycles_orphans_traversal_lineage_and_diff ... ok
+test reconciliation_candidates::tests::per_item_caps_are_deterministic ... ok
+test reconciliation_candidates::tests::vector_graph_temporal_and_lineage_evidence_remain_separate_from_policy ... ok
+test retrieval_kernel::tests::candidate_limit_matches_the_bounded_python_policy ... ok
+test retrieval_kernel::tests::cosine_similarity_matches_python_vector_edges ... ok
+test retrieval_kernel::tests::duplicate_lane_rows_consume_rank_but_keep_first_evidence ... ok
+test retrieval_kernel::tests::best_match_dedup_keeps_first_equal_score_and_stable_ties ... ok
+test retrieval_kernel::tests::best_lane_fusion_prefers_vector_without_double_counting ... ok
+test retrieval_kernel::tests::hybrid_fusion_trace_reports_duplicates_cross_lane_and_representatives ... ok
+test tests::current_contract_version_is_stable ... ok
+test text_compat::tests::matches_python_split_and_strip_whitespace_contracts ... ok
+test markdown_chunking::tests::uses_title_fallback_for_empty_content ... ok
+test markdown_chunking::tests::current_regex_semantics_treat_fenced_atx_lines_as_sections ... ok
+test markdown_chunking::tests::bounds_a_single_unbroken_section_by_python_characters ... ok
+test markdown_chunking::tests::preserves_current_leaf_heading_and_derives_hierarchy ... ok
+test reference_extraction::tests::frontmatter_order_precedes_deduplicated_body_edges ... ok
+test reference_extraction::tests::extracts_alias_heading_embed_and_source_ranges ... ok
+test reference_extraction::tests::ignores_comments_inline_code_fences_and_indented_code ... ok
+
+test result: ok. 43 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/bulk_embedding_golden.rs (native/target/debug/deps/bulk_embedding_golden-440df363cb048952)
+
+running 1 test
+test bulk_embedding_matches_the_frozen_python_baseline ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/context_reindex_manifest_golden.rs (native/target/debug/deps/context_reindex_manifest_golden-371a60a1cdbdef0a)
+
+running 1 test
+test context_reindex_manifest_matches_the_frozen_python_oracle ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/document_analysis_golden.rs (native/target/debug/deps/document_analysis_golden-48b574ee766a5471)
+
+running 1 test
+test document_analysis_matches_the_frozen_python_baseline ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/graph_compute_golden.rs (native/target/debug/deps/graph_compute_golden-1acf233273d093ae)
+
+running 1 test
+test graph_compute_matches_frozen_pre_cutover_corpus ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/graph_read_semantics.rs (native/target/debug/deps/graph_read_semantics-cd927efb35f9bf44)
+
+running 4 tests
+test read_projection_rejects_invalid_limits_confidence_and_graph_endpoints ... ok
+test related_notes_match_weight_direction_dedup_and_stable_order ... ok
+test missing_related_seed_and_empty_evidence_are_empty_successes ... ok
+test context_evidence_maps_all_signal_categories_and_filters_recalled_endpoints ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/hash_fingerprint_golden.rs (native/target/debug/deps/hash_fingerprint_golden-742238fd0169c3d4)
+
+running 1 test
+test hash_and_fingerprint_results_match_the_frozen_python_baseline ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/markdown_chunking_golden.rs (native/target/debug/deps/markdown_chunking_golden-7f766ab03993a081)
+
+running 1 test
+test markdown_chunking_matches_the_frozen_python_baseline ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/raw_data_integrity_golden.rs (native/target/debug/deps/raw_data_integrity_golden-823d9c0d658326b6)
+
+running 1 test
+test raw_data_integrity_matches_frozen_python_warning_semantics ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/reconciliation_candidates_golden.rs (native/target/debug/deps/reconciliation_candidates_golden-72789df098469606)
+
+running 1 test
+test reconciliation_candidates_match_the_frozen_python_baseline ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/reference_extraction_golden.rs (native/target/debug/deps/reference_extraction_golden-423d1d9baf07192d)
+
+running 1 test
+test reference_extraction_matches_the_frozen_python_graph_baseline ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/retrieval_kernel_golden.rs (native/target/debug/deps/retrieval_kernel_golden-b58af03afabdd612)
+
+running 1 test
+test retrieval_kernel_matches_the_frozen_python_baseline ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/bulk_embedding_perf.rs (native/target/debug/examples/bulk_embedding_perf-3afc1df163a17c16)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/reconciliation_candidates_perf.rs (native/target/debug/examples/reconciliation_candidates_perf-9366a18dc8f10196)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/retrieval_kernel_perf.rs (native/target/debug/examples/retrieval_kernel_perf-1ce20ca9604d8ee4)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (native/target/debug/deps/heterarchy_alexandria_native-ca7fcaf526ae05b8)
+
+running 43 tests
+test bulk_embedding_wire::tests::adapter_rejects_unknown_bulk_embedding_versions ... ok
+test embedding_runtime_registry::tests::failed_initialization_is_retried_on_the_next_call ... ok
+test embedding_runtime_registry::tests::rejects_invalid_runtime_identity_configuration ... ok
+test bulk_embedding_runtime_wire::tests::rejects_zero_runtime_threads_before_model_initialization ... ok
+test context_reindex_manifest_wire::tests::adapter_rejects_unknown_manifest_versions_and_fields ... ok
+test fastembed_runtime::tests::rejects_query_input_without_e5_prefix_before_model_initialization ... ok
+test fastembed_runtime::tests::accepts_the_multilingual_e5_contract_without_initializing_the_model ... ok
+test fastembed_runtime::tests::rejects_wrong_dimensions_before_model_initialization ... ok
+test fastembed_runtime::tests::rejects_disabled_normalization_before_model_initialization ... ok
+test graph_traversal_wire::tests::adapter_rejects_projection_read_unknown_fields_and_versions ... ok
+test embedding_runtime_registry::tests::distinct_identities_may_initialize_concurrently ... ok
+test bulk_embedding_wire::tests::adapter_prepares_one_coarse_bulk_embedding_request ... ok
+test bulk_embedding_wire::tests::adapter_finalizes_one_coarse_bulk_embedding_request ... ok
+test graph_traversal_wire::tests::adapter_rejects_unknown_fields_and_graph_versions ... ok
+test raw_data_integrity_compact::tests::compact_warning_ordinals_are_stable ... ok
+test raw_data_integrity_wire::tests::wire_rejects_unknown_fields_fail_closed ... ok
+test reconciliation_candidate_wire::tests::adapter_rejects_unknown_candidate_versions_and_fields ... ok
+test context_reindex_manifest_wire::tests::adapter_runs_one_coarse_manifest_validation_request ... ok
+test graph_traversal_wire::tests::adapter_traverses_active_projection_in_one_coarse_request ... ok
+test graph_traversal_wire::tests::adapter_reads_related_notes_and_context_evidence_with_strict_versions ... ok
+test retrieval_kernel_compact::tests::compact_lane_names_are_stable ... ok
+test retrieval_kernel_compact::tests::compact_trace_field_order_is_stable ... ok
+test document_index_wire::tests::preserves_empty_body_index_chunk_contract ... ok
+test tests::adapter_exposes_core_contract_version ... ok
+test retrieval_kernel_wire::tests::adapter_rejects_unknown_retrieval_versions_and_fields ... ok
+test tests::adapter_exposes_runtime_provenance_contract ... ok
+test graph_traversal_wire::tests::adapter_selects_a_small_title_relevant_graph_candidate_set ... ok
+test reconciliation_candidate_wire::tests::adapter_runs_one_coarse_candidate_discovery_request ... ok
+test tests::adapter_rejects_unknown_contract_versions ... ok
+test retrieval_kernel_wire::tests::adapter_runs_one_coarse_best_lane_fusion_request ... ok
+test tests::adapter_rejects_unknown_graph_compute_versions ... ok
+test tests::adapter_rejects_unknown_hashing_versions ... ok
+test tests::adapter_rejects_unknown_reference_extraction_versions ... ok
+test retrieval_kernel_wire::tests::adapter_runs_candidate_limit_best_match_and_cosine_requests ... ok
+test tests::adapter_rejects_unknown_chunking_versions ... ok
+test tests::adapter_runs_one_coarse_document_batch ... ok
+test tests::adapter_runs_one_coarse_hash_fingerprint_batch ... ok
+test tests::adapter_runs_one_coarse_graph_compute_request ... ok
+test raw_data_integrity_wire::tests::wire_runs_one_coarse_raw_integrity_batch ... ok
+test document_index_wire::tests::computes_analysis_title_chunks_and_hashes_in_one_payload ... ok
+test tests::adapter_runs_one_coarse_markdown_chunk_batch ... ok
+test tests::adapter_runs_one_coarse_reference_extraction_batch ... ok
+test embedding_runtime_registry::tests::concurrent_same_identity_initializes_one_shared_session ... ok
+
+test result: ok. 43 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/main.rs (native/target/debug/deps/xtask-d10e2ea3f9894a2b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Compiling pyo3-ffi v0.29.2
+   Compiling pyo3 v0.29.2
+   Compiling heterarchy-alexandria-py v0.1.0 (/Users/imhaneul/Documents/herterarchy/heterarchy-alexandria/native/crates/heterarchy-alexandria-py)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.43s
+Uninstalled 1 package in 0.94ms
+Installed 1 package in 14ms
+ffi-parity: PASS cases=16 call_count=1
+chunk-ffi-parity: PASS cases=20 call_count=5
+reference-ffi-parity: PASS cases=15 accepted_targets=29 edges=42 call_count=1
+hash-ffi-parity: PASS cases=13 bytes=94414 call_count=1
+graph-ffi-parity: PASS cases=4 nodes=16 edges=13 call_count=4
+graph-traversal-ffi-parity: PASS cases=3 call_count=1
+graph-candidate-selection-ffi-parity: PASS cases=1 call_count=1
+bulk-embedding-ffi-parity: PASS cases=5 items=8 finalized=3 call_count=8
+retrieval-kernel-ffi-parity: PASS candidate_limit=5 fusion=8 compact_fusion=8 compact_trace_fusion=8 best=5 cosine=7 call_count=41
+reconciliation-candidate-ffi-parity: PASS cases=7 call_count=7
+context-reindex-manifest-ffi-parity: PASS cases=16
+raw-integrity-ffi-parity: PASS cases=18 call_count=1
+test: PASS
+ci: PASS

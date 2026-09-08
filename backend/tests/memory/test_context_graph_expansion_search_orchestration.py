@@ -135,7 +135,7 @@ class _RecordingExpansion(IContextGraphCandidateExpansionProvider):
             (query, tuple(match.context.id for match in matches), limit, graph_depth)
         )
         if self.fail:
-            raise RuntimeError("neo4j://reader:super-secret@example.test")
+            raise RuntimeError("graphdb://reader:super-secret@example.test")
         return ContextGraphCandidateExpansionResult(matches=tuple(matches[:limit]))
 
 
@@ -199,7 +199,7 @@ def test_auto_graph_expansion_failure_preserves_primary_and_sanitizes_warning() 
     assert "GRAPH_EXPANSION_UNAVAILABLE" in rendered
     assert "RuntimeError" in rendered
     assert "super-secret" not in rendered
-    assert "neo4j://" not in rendered
+    assert "graphdb://" not in rendered
 
 
 async def _search(

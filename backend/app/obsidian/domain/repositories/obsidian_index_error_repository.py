@@ -19,6 +19,14 @@ class IObsidianIndexErrorRepository(ABC):
         """
 
     @abstractmethod
+    async def clear_index_error(self, note_path: str) -> None:
+        """Remove a resolved structured error for one canonical note path.
+
+        Args:
+            note_path: Vault-relative Markdown path whose source is readable again.
+        """
+
+    @abstractmethod
     async def list_index_errors(self, limit: int = 20) -> list[ObsidianIndexError]:
         """Return recent structured reindex errors.
 

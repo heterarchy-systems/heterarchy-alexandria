@@ -193,7 +193,7 @@ class ObsidianReindexResponse(StrictSchemaModel):
         """Create schema from a public composite reindex report.
 
         Args:
-            report: Combined PostgreSQL and optional graph projection report.
+            report: Combined PostgreSQL and PostgreSQL graph projection report.
 
         Returns:
             HTTP response schema with fresh graph projection evidence.

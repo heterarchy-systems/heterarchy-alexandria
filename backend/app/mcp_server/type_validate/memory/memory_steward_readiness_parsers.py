@@ -7,7 +7,6 @@ from app.mcp_server.type_validate.memory.memory_steward_readiness_schemas import
     CurrentCompactPayload,
     RagStatusPayload,
     ReadinessSummaryPayload,
-    ReviewQueuePayload,
 )
 from app.shared.type_validation.strict_json_value import model_validate_json_value
 from app.shared.types.extra_types import JSONObject, JSONValue
@@ -51,18 +50,6 @@ def parse_current_compact(payload: JSONValue) -> CurrentCompactPayload:
         Validated compact fields.
     """
     return model_validate_json_value(CurrentCompactPayload, result_object(payload))
-
-
-def parse_review_queue(payload: JSONValue) -> ReviewQueuePayload:
-    """Validate vault review queue payload.
-
-    Args:
-        payload: Backend review queue payload.
-
-    Returns:
-        Validated review queue fields.
-    """
-    return model_validate_json_value(ReviewQueuePayload, result_object(payload))
 
 
 def parse_readiness_summary(payload: JSONValue) -> ReadinessSummaryPayload:

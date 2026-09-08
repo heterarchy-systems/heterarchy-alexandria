@@ -55,9 +55,6 @@ def test_cli_type_contracts_use_str_enums() -> None:
     assert [tool.value for tool in RequiredMcpTool] == [
         "alexandria_memory_steward_readiness",
         "alexandria_memory_steward_refresh_current_compact",
-        "alexandria_vault_review_queue",
-        "alexandria_vault_review_move_plan",
-        "alexandria_vault_review_apply_moves",
     ]
 
 
@@ -112,7 +109,7 @@ def test_cli_mcp_smoke_tools_returns_zero_when_required_tools_exist(
 
     async def fake_smoke(*, settings, mcp_url, required_tools: Sequence[str]):
         received.append((mcp_url, tuple(required_tools)))
-        return {"ok": True, "missing_tools": [], "tool_count": 5}
+        return {"ok": True, "missing_tools": [], "tool_count": 2}
 
     monkeypatch.setattr(cli_mcp, "_mcp_smoke_tools", fake_smoke)
 
@@ -125,16 +122,13 @@ def test_cli_mcp_smoke_tools_returns_zero_when_required_tools_exist(
             (
                 "alexandria_memory_steward_readiness",
                 "alexandria_memory_steward_refresh_current_compact",
-                "alexandria_vault_review_queue",
-                "alexandria_vault_review_move_plan",
-                "alexandria_vault_review_apply_moves",
             ),
         )
     ]
     assert loads_json(capsys.readouterr().out) == {
         "ok": True,
         "missing_tools": [],
-        "tool_count": 5,
+        "tool_count": 2,
     }
 
 
@@ -197,7 +191,7 @@ def test_cli_mcp_tools_response_parser_accepts_json_and_sse_payloads() -> None:
 
 
 def test_cli_memory_steward_prints_gateway_payload(monkeypatch, capsys) -> None:
-    """Librarian readiness CLI should expose the MCP readiness workflow locally."""
+    """Memory Steward readiness CLI should expose the MCP readiness workflow locally."""
     received: list[tuple[str | None, int]] = []
 
     async def fake_readiness(
@@ -228,331 +222,6 @@ def test_cli_memory_steward_prints_gateway_payload(monkeypatch, capsys) -> None:
     assert exit_code == 0
     assert received == [("heterarchy-alexandria", 14)]
     assert loads_json(capsys.readouterr().out) == {"ready": True, "warnings": []}
-
-
-def test_cli_vault_review_queue_summary_maps_scope_options(
-    monkeypatch,
-    capsys,
-) -> None:
-    """Review queue CLI should expose compact curation counts and top candidate."""
-    received: list[tuple[str | None, str | None, int]] = []
-
-    async def fake_review_queue(
-        client,
-        project: str | None = None,
-        scope_path: str | None = None,
-        limit: int = 20,
-    ):
-        received.append((project, scope_path, limit))
-        return {
-            "total": 2,
-            "items": [
-                {
-                    "id": "ctx-inbox",
-                    "path": "Alexandria/_Inbox/Captures/Captured.md",
-                    "reason": "inbox_capture",
-                    "recommended_action": "classify_and_promote",
-                    "suggested_destination_path": (
-                        "Alexandria/Contexts/Projects/Captured.md"
-                    ),
-                    "confidence": 0.85,
-                    "requires_human_review": False,
-                },
-                {
-                    "id": "skill-draft",
-                    "path": "Alexandria/Skills/Drafts/Draft.md",
-                    "reason": "skill_draft",
-                    "recommended_action": "promote_to_active_or_mark_deprecated",
-                    "suggested_destination_path": "Alexandria/Skills/Active/Draft.md",
-                    "confidence": 0.70,
-                    "requires_human_review": True,
-                },
-            ],
-        }
-
-    monkeypatch.setattr(
-        cli_maintenance_gateway.backend_tool_gateway,
-        "alexandria_vault_review_queue",
-        fake_review_queue,
-    )
-
-    exit_code = cli.main(
-        [
-            "vault",
-            "review-queue",
-            "--project",
-            "heterarchy-alexandria",
-            "--scope-path",
-            "Alexandria/_Inbox",
-            "--limit",
-            "5",
-            "--summary",
-        ]
-    )
-
-    assert exit_code == 0
-    assert received == [("heterarchy-alexandria", "Alexandria/_Inbox", 5)]
-    assert loads_json(capsys.readouterr().out) == {
-        "total": 2,
-        "auto_move_candidates": 1,
-        "manual_review_required": 1,
-        "top_item_id": "ctx-inbox",
-        "top_item_path": "Alexandria/_Inbox/Captures/Captured.md",
-        "top_item_reason": "inbox_capture",
-        "top_item_action": "classify_and_promote",
-        "top_item_confidence": 0.85,
-        "top_item_requires_human_review": False,
-    }
-
-
-def test_cli_vault_review_move_plan_maps_scope_options(
-    monkeypatch,
-    capsys,
-) -> None:
-    """Review move-plan CLI should call the non-mutating safe plan gateway."""
-    received: list[tuple[str | None, str | None, int]] = []
-
-    async def fake_move_plan(
-        client,
-        project: str | None = None,
-        scope_path: str | None = None,
-        limit: int = 20,
-    ):
-        received.append((project, scope_path, limit))
-        return {
-            "status": "ready",
-            "moves": [
-                {
-                    "source_path": "Alexandria/_Inbox/Captures/Captured.md",
-                    "destination_path": "Alexandria/Contexts/Projects/Captured.md",
-                }
-            ],
-        }
-
-    monkeypatch.setattr(
-        cli_maintenance_gateway.backend_tool_gateway,
-        "alexandria_vault_review_move_plan",
-        fake_move_plan,
-    )
-
-    exit_code = cli.main(
-        [
-            "vault",
-            "review-move-plan",
-            "--project",
-            "heterarchy-alexandria",
-            "--scope-path",
-            "Alexandria/_Inbox",
-            "--limit",
-            "5",
-        ]
-    )
-
-    assert exit_code == 0
-    assert received == [("heterarchy-alexandria", "Alexandria/_Inbox", 5)]
-    assert loads_json(capsys.readouterr().out) == {
-        "status": "ready",
-        "moves": [
-            {
-                "source_path": "Alexandria/_Inbox/Captures/Captured.md",
-                "destination_path": "Alexandria/Contexts/Projects/Captured.md",
-            }
-        ],
-    }
-
-
-def test_cli_vault_review_apply_moves_maps_safety_options(
-    monkeypatch,
-    capsys,
-) -> None:
-    """Review apply CLI should pass explicit report/reindex/verification controls."""
-    received: list[
-        tuple[str | None, str | None, int, str | None, bool, str | None, bool]
-    ] = []
-
-    async def fake_apply_moves(
-        client,
-        project: str | None = None,
-        scope_path: str | None = None,
-        limit: int = 20,
-        report_path: str | None = None,
-        reindex: bool = True,
-        verification_query: str | None = None,
-        confirm_apply: bool = False,
-    ):
-        received.append(
-            (
-                project,
-                scope_path,
-                limit,
-                report_path,
-                reindex,
-                verification_query,
-                confirm_apply,
-            )
-        )
-        return {
-            "status": "applied",
-            "hard_delete_performed": False,
-            "moved": [],
-        }
-
-    monkeypatch.setattr(
-        cli_maintenance_gateway.backend_tool_gateway,
-        "alexandria_vault_review_apply_moves",
-        fake_apply_moves,
-    )
-
-    exit_code = cli.main(
-        [
-            "vault",
-            "review-apply-moves",
-            "--project",
-            "heterarchy-alexandria",
-            "--scope-path",
-            "Alexandria/_Inbox",
-            "--limit",
-            "5",
-            "--report-path",
-            "Alexandria/_Ops/Librarian/Reports/cli-apply",
-            "--confirm-apply",
-            "--no-reindex",
-            "--verification-query",
-            "Captured",
-        ]
-    )
-
-    assert exit_code == 0
-    assert received == [
-        (
-            "heterarchy-alexandria",
-            "Alexandria/_Inbox",
-            5,
-            "Alexandria/_Ops/Librarian/Reports/cli-apply",
-            False,
-            "Captured",
-            True,
-        )
-    ]
-    assert loads_json(capsys.readouterr().out) == {
-        "status": "applied",
-        "hard_delete_performed": False,
-        "moved": [],
-    }
-
-
-def test_cli_vault_review_apply_moves_requires_confirm_when_plan_has_moves(
-    monkeypatch,
-    capsys,
-) -> None:
-    """Review apply CLI should not mutate when a non-empty plan lacks confirmation."""
-
-    async def fake_apply_moves(*args, **kwargs):
-        return {
-            "status": "confirmation_required",
-            "hard_delete_performed": False,
-            "moved": [],
-            "skipped": [],
-            "ambiguous": [],
-            "apply_skipped_reason": "confirm_apply_required",
-            "move_plan": {
-                "status": "ready",
-                "hard_delete_performed": False,
-                "moves": [
-                    {
-                        "source_path": "Alexandria/_Inbox/Captures/Captured.md",
-                        "destination_path": (
-                            "Alexandria/Contexts/Projects/Captured.md"
-                        ),
-                    }
-                ],
-                "skipped": [],
-                "ambiguous": [],
-            },
-        }
-
-    monkeypatch.setattr(
-        cli_maintenance_gateway.backend_tool_gateway,
-        "alexandria_vault_review_apply_moves",
-        fake_apply_moves,
-    )
-
-    exit_code = cli.main(["vault", "review-apply-moves"])
-
-    assert exit_code == 2
-    assert loads_json(capsys.readouterr().out) == {
-        "status": "confirmation_required",
-        "hard_delete_performed": False,
-        "moved": [],
-        "skipped": [],
-        "ambiguous": [],
-        "apply_skipped_reason": "confirm_apply_required",
-        "move_plan": {
-            "status": "ready",
-            "hard_delete_performed": False,
-            "moves": [
-                {
-                    "source_path": "Alexandria/_Inbox/Captures/Captured.md",
-                    "destination_path": "Alexandria/Contexts/Projects/Captured.md",
-                }
-            ],
-            "skipped": [],
-            "ambiguous": [],
-        },
-    }
-
-
-def test_cli_vault_review_apply_moves_skips_apply_when_plan_is_empty(
-    monkeypatch,
-    capsys,
-) -> None:
-    """Review apply CLI should print gateway no-op payloads as success."""
-    gateway_called = False
-
-    async def fake_apply_moves(*args, **kwargs):
-        nonlocal gateway_called
-        gateway_called = True
-        return {
-            "status": "no_op",
-            "hard_delete_performed": False,
-            "moved": [],
-            "skipped": [],
-            "ambiguous": [],
-            "apply_skipped_reason": "review_move_plan_empty",
-            "move_plan": {
-                "status": "empty",
-                "hard_delete_performed": False,
-                "moves": [],
-                "skipped": [],
-                "ambiguous": [],
-            },
-        }
-
-    monkeypatch.setattr(
-        cli_maintenance_gateway.backend_tool_gateway,
-        "alexandria_vault_review_apply_moves",
-        fake_apply_moves,
-    )
-
-    exit_code = cli.main(["vault", "review-apply-moves"])
-
-    assert exit_code == 0
-    assert gateway_called is True
-    assert loads_json(capsys.readouterr().out) == {
-        "status": "no_op",
-        "hard_delete_performed": False,
-        "moved": [],
-        "skipped": [],
-        "ambiguous": [],
-        "apply_skipped_reason": "review_move_plan_empty",
-        "move_plan": {
-            "status": "empty",
-            "hard_delete_performed": False,
-            "moves": [],
-            "skipped": [],
-            "ambiguous": [],
-        },
-    }
 
 
 def test_cli_memory_steward_refresh_current_compact_maps_apply_options(
@@ -788,9 +457,6 @@ def test_cli_memory_steward_check_combines_mcp_smoke_and_preflight(
             (
                 "alexandria_memory_steward_readiness",
                 "alexandria_memory_steward_refresh_current_compact",
-                "alexandria_vault_review_queue",
-                "alexandria_vault_review_move_plan",
-                "alexandria_vault_review_apply_moves",
             ),
         )
     ]
@@ -861,9 +527,6 @@ def test_cli_memory_steward_check_summary_prints_compact_status(
             "required_tools": [
                 "alexandria_memory_steward_readiness",
                 "alexandria_memory_steward_refresh_current_compact",
-                "alexandria_vault_review_queue",
-                "alexandria_vault_review_move_plan",
-                "alexandria_vault_review_apply_moves",
             ],
             "missing_tools": [],
             "tool_count": 39,
@@ -890,15 +553,17 @@ def test_cli_memory_steward_check_summary_prints_compact_status(
                     "vector": "HEALTHY",
                     "embedding": "HEALTHY",
                 },
-                "review_queue": {
-                    "total": 0,
-                    "auto_move_candidates": 0,
-                    "manual_review_required": 0,
-                },
                 "current_memory_compact": {
                     "id": "compact-current",
                     "age_days": 0,
                     "max_age_days": 30,
+                },
+                "current_memory_compact_review": {
+                    "compact_id": "compact-current",
+                    "verdict": "pass",
+                    "total_score": 10,
+                    "max_score": 10,
+                    "recommended_actions": [],
                 },
                 "next_actions": [],
             },
@@ -918,13 +583,10 @@ def test_cli_memory_steward_check_summary_prints_compact_status(
         "ok": True,
         "mcp_url": "http://backend:8000/mcp/",
         "mcp_tool_count": 39,
-        "mcp_required_tools_count": 5,
+        "mcp_required_tools_count": 2,
         "mcp_required_tools": [
             "alexandria_memory_steward_readiness",
             "alexandria_memory_steward_refresh_current_compact",
-            "alexandria_vault_review_queue",
-            "alexandria_vault_review_move_plan",
-            "alexandria_vault_review_apply_moves",
         ],
         "mcp_missing_tools": [],
         "preflight_status": "up_to_date",
@@ -939,9 +601,10 @@ def test_cli_memory_steward_check_summary_prints_compact_status(
         "rag_fts": "HEALTHY",
         "rag_vector": "HEALTHY",
         "rag_embedding": "HEALTHY",
-        "review_queue_total": 0,
-        "review_auto_move_candidates": 0,
-        "review_manual_required": 0,
+        "current_compact_review_verdict": "pass",
+        "current_compact_review_total_score": 10,
+        "current_compact_review_max_score": 10,
+        "current_compact_review_recommended_actions": [],
         "next_actions_count": 0,
         "next_action": None,
         "next_action_tool": None,
@@ -961,9 +624,6 @@ def test_cli_memory_steward_check_summary_fails_with_compact_status_fields(
             "required_tools": [
                 "alexandria_memory_steward_readiness",
                 "alexandria_memory_steward_refresh_current_compact",
-                "alexandria_vault_review_queue",
-                "alexandria_vault_review_move_plan",
-                "alexandria_vault_review_apply_moves",
             ],
             "missing_tools": ["alexandria_memory_steward_refresh_current_compact"],
             "tool_count": 38,
@@ -989,15 +649,17 @@ def test_cli_memory_steward_check_summary_fails_with_compact_status_fields(
                     "vector": "HEALTHY",
                     "embedding": "HEALTHY",
                 },
-                "review_queue": {
-                    "total": 1,
-                    "auto_move_candidates": 0,
-                    "manual_review_required": 1,
-                },
                 "current_memory_compact": {
                     "id": "compact-stale",
                     "age_days": 45,
                     "max_age_days": 30,
+                },
+                "current_memory_compact_review": {
+                    "compact_id": "compact-stale",
+                    "verdict": "needs_revision",
+                    "total_score": 5,
+                    "max_score": 10,
+                    "recommended_actions": ["refresh_current_memory_compact"],
                 },
                 "next_actions": [
                     {
@@ -1025,13 +687,10 @@ def test_cli_memory_steward_check_summary_fails_with_compact_status_fields(
         "ok": False,
         "mcp_url": "http://backend:8000/mcp/",
         "mcp_tool_count": 38,
-        "mcp_required_tools_count": 5,
+        "mcp_required_tools_count": 2,
         "mcp_required_tools": [
             "alexandria_memory_steward_readiness",
             "alexandria_memory_steward_refresh_current_compact",
-            "alexandria_vault_review_queue",
-            "alexandria_vault_review_move_plan",
-            "alexandria_vault_review_apply_moves",
         ],
         "mcp_missing_tools": ["alexandria_memory_steward_refresh_current_compact"],
         "preflight_status": "refresh_required",
@@ -1046,9 +705,12 @@ def test_cli_memory_steward_check_summary_fails_with_compact_status_fields(
         "rag_fts": "HEALTHY",
         "rag_vector": "HEALTHY",
         "rag_embedding": "HEALTHY",
-        "review_queue_total": 1,
-        "review_auto_move_candidates": 0,
-        "review_manual_required": 1,
+        "current_compact_review_verdict": "needs_revision",
+        "current_compact_review_total_score": 5,
+        "current_compact_review_max_score": 10,
+        "current_compact_review_recommended_actions": [
+            "refresh_current_memory_compact"
+        ],
         "next_actions_count": 1,
         "next_action": "refresh_current_memory_compact",
         "next_action_tool": "alexandria_memory_steward_refresh_current_compact",
@@ -1068,9 +730,6 @@ def test_cli_memory_steward_check_summary_reports_created_compact_without_body(
             "required_tools": [
                 "alexandria_memory_steward_readiness",
                 "alexandria_memory_steward_refresh_current_compact",
-                "alexandria_vault_review_queue",
-                "alexandria_vault_review_move_plan",
-                "alexandria_vault_review_apply_moves",
             ],
             "missing_tools": [],
             "tool_count": 39,
@@ -1099,15 +758,17 @@ def test_cli_memory_steward_check_summary_reports_created_compact_without_body(
                     "vector": "HEALTHY",
                     "embedding": "HEALTHY",
                 },
-                "review_queue": {
-                    "total": 0,
-                    "auto_move_candidates": 0,
-                    "manual_review_required": 0,
-                },
                 "current_memory_compact": {
                     "id": "compact-new",
                     "age_days": 0,
                     "max_age_days": 30,
+                },
+                "current_memory_compact_review": {
+                    "compact_id": "compact-new",
+                    "verdict": "pass",
+                    "total_score": 10,
+                    "max_score": 10,
+                    "recommended_actions": [],
                 },
                 "next_actions": [],
             },
@@ -1130,13 +791,10 @@ def test_cli_memory_steward_check_summary_reports_created_compact_without_body(
         "ok": True,
         "mcp_url": "http://backend:8000/mcp/",
         "mcp_tool_count": 39,
-        "mcp_required_tools_count": 5,
+        "mcp_required_tools_count": 2,
         "mcp_required_tools": [
             "alexandria_memory_steward_readiness",
             "alexandria_memory_steward_refresh_current_compact",
-            "alexandria_vault_review_queue",
-            "alexandria_vault_review_move_plan",
-            "alexandria_vault_review_apply_moves",
         ],
         "mcp_missing_tools": [],
         "preflight_status": "refreshed",
@@ -1151,9 +809,10 @@ def test_cli_memory_steward_check_summary_reports_created_compact_without_body(
         "rag_fts": "HEALTHY",
         "rag_vector": "HEALTHY",
         "rag_embedding": "HEALTHY",
-        "review_queue_total": 0,
-        "review_auto_move_candidates": 0,
-        "review_manual_required": 0,
+        "current_compact_review_verdict": "pass",
+        "current_compact_review_total_score": 10,
+        "current_compact_review_max_score": 10,
+        "current_compact_review_recommended_actions": [],
         "next_actions_count": 0,
         "next_action": None,
         "next_action_tool": None,

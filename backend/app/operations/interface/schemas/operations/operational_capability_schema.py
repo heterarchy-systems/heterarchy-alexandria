@@ -41,14 +41,7 @@ class OperationalCapabilityResponse(StrictSchemaModel):
         cls,
         item: OperationalCapability,
     ) -> OperationalCapabilityResponse:
-        """Build this schema from a domain entity.
-
-        Args:
-            item: Domain item to serialize into the response schema.
-
-        Returns:
-            Schema populated from the domain entity.
-        """
+        """Build this schema from a domain entity."""
         return cls(
             state=item.state,
             ready=item.ready,
@@ -58,7 +51,7 @@ class OperationalCapabilityResponse(StrictSchemaModel):
 
 
 class OperationalCapabilitySnapshotResponse(StrictSchemaModel):
-    """Core, semantic, and optional Librarian readiness."""
+    """Core and semantic readiness."""
 
     checked_at: Annotated[
         AwareTimestamp,
@@ -78,29 +71,17 @@ class OperationalCapabilitySnapshotResponse(StrictSchemaModel):
             "Semantic retrieval for this operational capability snapshot response."
         ),
     ]
-    librarian: Annotated[
-        OperationalCapabilityResponse,
-        described_field("Librarian for this operational capability snapshot response."),
-    ]
 
     @classmethod
     def from_entity(
         cls,
         snapshot: OperationalCapabilitySnapshot,
     ) -> OperationalCapabilitySnapshotResponse:
-        """Build this schema from a domain entity.
-
-        Args:
-            snapshot: Operational snapshot to serialize or verify.
-
-        Returns:
-            Schema populated from the domain entity.
-        """
+        """Build this schema from a domain entity."""
         return cls(
             checked_at=snapshot.checked_at,
             core_memory=OperationalCapabilityResponse.from_entity(snapshot.core_memory),
             semantic_retrieval=OperationalCapabilityResponse.from_entity(
                 snapshot.semantic_retrieval
             ),
-            librarian=OperationalCapabilityResponse.from_entity(snapshot.librarian),
         )

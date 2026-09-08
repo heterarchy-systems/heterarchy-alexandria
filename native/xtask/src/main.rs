@@ -22,42 +22,35 @@ const EXPECTED_FEATURES: [&str; 9] = [
     "reconciliation_candidates",
     "context_reindex_manifest",
 ];
-const REQUIRED_HARNESS_FILES: [&str; 13] = [
+const REQUIRED_HARNESS_FILES: [&str; 9] = [
     ".agents/rust_dev_harness/PROJECT_PROFILE.md",
+    ".agents/rust_dev_harness/HARNESS.toml",
+    ".agents/rust_dev_harness/HARNESS_MANIFEST.toml",
     ".agents/rust_dev_harness/README.md",
     ".agents/rust_dev_harness/rules/README.md",
-    ".agents/rust_dev_harness/rules/00-overview.md",
-    ".agents/rust_dev_harness/rules/01-boundary.md",
-    ".agents/rust_dev_harness/rules/02-workspace-crate-rules.md",
-    ".agents/rust_dev_harness/rules/03-typed-domain-rules.md",
-    ".agents/rust_dev_harness/rules/04-deterministic-compute-rules.md",
-    ".agents/rust_dev_harness/rules/05-ffi-python-boundary-rules.md",
-    ".agents/rust_dev_harness/rules/06-error-panic-rules.md",
-    ".agents/rust_dev_harness/rules/07-testing-verification-rules.md",
-    ".agents/rust_dev_harness/rules/08-performance-memory-rules.md",
-    ".agents/rust_dev_harness/rules/09-observability-operations-rules.md",
+    ".agents/rust_dev_harness/rules/normal_dev_rules/README.md",
+    ".agents/rust_dev_harness/rules/type_dev_rules/README.md",
+    ".agents/rust_dev_harness/rules/async_dev_rules/README.md",
+    ".agents/rust_dev_harness/skills/rust-engineering/SKILL.md",
 ];
-const MANDATORY_SKILL: &str =
-    ".agents/rust_dev_harness/skills/rust-alexandria-compute-engineering/SKILL.md";
-const FORBIDDEN_CORE_DEPENDENCIES: [&str; 9] = [
+const MANDATORY_SKILL: &str = ".agents/rust_dev_harness/skills/rust-engineering/SKILL.md";
+const FORBIDDEN_CORE_DEPENDENCIES: [&str; 8] = [
     "pyo3",
     "sqlx",
     "postgres",
     "tokio-postgres",
     "diesel",
-    "neo4j",
     "redis",
     "reqwest",
     "ureq",
 ];
-const FORBIDDEN_CORE_SOURCE_MARKERS: [&str; 8] = [
+const FORBIDDEN_CORE_SOURCE_MARKERS: [&str; 7] = [
     "pyo3::",
     "std::fs",
     "std::net",
     "std::process::Command",
     "sqlx::",
     "redis::",
-    "neo4j",
     "reqwest::",
 ];
 

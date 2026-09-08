@@ -81,44 +81,11 @@ services:
     networks:
       - alexandria-network
 
-  alexandria-graph:
-    container_name: alexandria-graph
-    image: neo4j:5-community
-    env_file:
-      - ./runtime-performance.env
-    environment:
-      ALEXANDRIA_NEO4J_PASSWORD: "${ALEXANDRIA_NEO4J_PASSWORD}"
-    entrypoint: ["/bin/sh", "/usr/local/bin/alexandria-neo4j-start.sh"]
-    ports:
-      - "127.0.0.1:7474:7474"
-      - "127.0.0.1:7687:7687"
-    volumes:
-      - ./scripts/neo4j-start.sh:/usr/local/bin/alexandria-neo4j-start.sh:ro
-      - neo4j-data:/data
-      - neo4j-logs:/logs
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "cypher-shell --non-interactive --format plain -u neo4j -p \"$${ALEXANDRIA_NEO4J_PASSWORD:?}\" 'RETURN 1;' >/dev/null",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-    restart: unless-stopped
-    networks:
-      alexandria-network:
-        aliases:
-          - neo4j
-
 volumes:
   embedding-model-cache:
     name: heterarchy-alexandria_embedding-model-cache-v2
   postgres-data:
   redis-data:
-  neo4j-data:
-  neo4j-logs:
 
 networks:
   alexandria-network:

@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        heterarchy-alexandria is a local-first agent-native library/control plane for context, memory compacts, skill-acquisition jobs, and optional librarian curation. It is not an autonomous agent runtime, prompt marketplace, MCP marketplace, or generic hosted memory API.
+        heterarchy-alexandria is a local-first agent-native library/control plane for context, Memory Steward compacts, reconciliation, and Obsidian-backed notes. It is not an autonomous agent runtime, prompt marketplace, MCP marketplace, or generic hosted memory API.
   - type: textarea
     id: problem
     attributes:
@@ -32,7 +32,7 @@ body:
         - Context Vault / RAG
         - Memory Compacts
         - Library skills/prompts
-        - Librarian delegation
+        - Memory Steward / reconciliation
         - Install / Docker / CI
         - Documentation
         - Other

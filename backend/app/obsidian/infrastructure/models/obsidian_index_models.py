@@ -126,27 +126,3 @@ class ObsidianEdgeORM(Base):
     source_kind: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
     indexed_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
-
-
-class ObsidianLibrarianWorkflowORM(Base):
-    """Persisted checkpoint for an Obsidian librarian workflow."""
-
-    __tablename__ = "obsidian_librarian_workflows"
-
-    thread_id: Mapped[str] = mapped_column(String(255), primary_key=True)
-    status: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
-    query: Mapped[str] = mapped_column(Text, nullable=False)
-    active_note_path: Mapped[str | None] = mapped_column(String(1024), nullable=True)
-    project: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
-    provider_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    profile_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    delegate_requested: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False
-    )
-    state_json: Mapped[dict[str, JSONValue]] = mapped_column(
-        JSON,
-        nullable=False,
-        default=dict,
-    )
-    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)

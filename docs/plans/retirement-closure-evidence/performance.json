@@ -1,0 +1,28 @@
+{
+  "collection_before": {
+    "seconds": 195.04,
+    "collected": 0,
+    "outcome": "interrupted at first module; OS sample blocked in read; dependencies and source bytecode dataless"
+  },
+  "baseline_suite": {
+    "seconds": 85.49,
+    "passed": 826,
+    "failed": 16,
+    "cleanup_seconds": 36.42,
+    "cleanup_count": 842
+  },
+  "final_suite": {
+    "seconds": 67.76,
+    "passed": 842,
+    "failed": 0,
+    "collection_seconds": 1.75,
+    "cleanup_seconds": 13.95,
+    "cleanup_count": 842
+  },
+  "fixture_only_intermediate": {
+    "seconds": 60.53,
+    "passed": 842,
+    "cleanup_seconds": 11.43
+  },
+  "isolation": "All mutable public tables TRUNCATE RESTART IDENTITY CASCADE after every test; cleanup-only session loop and one pooled connection"
+}

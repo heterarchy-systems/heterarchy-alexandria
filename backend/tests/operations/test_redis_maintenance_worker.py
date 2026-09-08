@@ -7,8 +7,10 @@ from inspect import getsource
 from typing import cast
 
 import anyio
-import app.operations.workers.redis_maintenance_worker as worker_module
 import pytest
+from dependency_injector import providers
+
+import app.operations.workers.redis_maintenance_worker as worker_module
 from app.container import ApplicationContainer
 from app.operations.application.maintenance_job_queue import (
     MaintenanceJobDelivery,
@@ -31,7 +33,7 @@ from app.shared.infrastructure.database import Database
 
 
 def test_worker_container_defers_unrelated_process_resources() -> None:
-    """Worker construction must not eagerly allocate API Redis or Neo4j clients."""
+    """Worker construction must not eagerly allocate unrelated API or graph resources."""
     config = MaintenanceQueueConfig(_env_file=None).model_copy(
         update={"embedding_threads": 1}
     )
@@ -41,7 +43,7 @@ def test_worker_container_defers_unrelated_process_resources() -> None:
     assert container.memory.graph_signal_provider() is None
     assert container.database.initialized is False
     assert container.redis_client.initialized is False
-    assert container.graph_projection_repository.initialized is False
+    assert isinstance(container.graph_projection_repository, providers.Singleton)
 
 
 def test_worker_startup_does_not_initialize_every_application_resource() -> None:

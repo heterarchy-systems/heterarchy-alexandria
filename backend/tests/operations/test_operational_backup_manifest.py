@@ -21,7 +21,6 @@ def _manifest_payload() -> dict[str, object]:
         "vault_source_path": "/vault/Alexandria",
         "alexandria_root": "Alexandria",
         "operational_database_source_path": "/data/postgres.dump",
-        "librarian_checkpoint_source_path": None,
         "artifacts": [
             {
                 "kind": "canonical_vault",

@@ -185,29 +185,8 @@ class ObsidianVaultInventoryRequest:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class ObsidianLibrarianReviewQueueRequest:
-    """Request to list notes that need librarian curation."""
-
-    scope_path: str | None = None
-    project: str | None = None
-    limit: int = 50
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class ObsidianLibrarianReviewApplyRequest:
-    """Request to apply safe moves generated from librarian review candidates."""
-
-    scope_path: str | None = None
-    project: str | None = None
-    limit: int = 50
-    report_path: str | None = None
-    reindex: bool = True
-    verification_query: str | None = None
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
 class ObsidianVaultMoveRequest:
-    """One safe vault move requested by a librarian workflow."""
+    """One explicit safe vault move request."""
 
     source_path: str
     destination_path: str
@@ -237,44 +216,3 @@ class ObsidianVaultMoveApplyRequest:
     def __post_init__(self) -> None:
         """Normalize applied moves to an immutable sequence."""
         self.moves = tuple(self.moves)
-
-
-@dataclass(slots=True, kw_only=True)
-class ObsidianLibrarianAsk:
-    """Obsidian-side librarian ask payload."""
-
-    query: str
-    active_note_path: str | None = None
-    selection: str | None = None
-    project: str | None = None
-    preferred_alexandria_types: tuple[AlexandriaNoteType, ...] = field(
-        default_factory=tuple
-    )
-    max_source_refs: int = 12
-    save_transcript: bool = False
-    delegate_to_librarian: bool = False
-    provider_id: str | None = None
-    profile_id: str | None = None
-
-    def __post_init__(self) -> None:
-        """Normalize preferred note types to an immutable sequence."""
-        self.preferred_alexandria_types = tuple(self.preferred_alexandria_types)
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class ObsidianLibrarianWorkflowStart:
-    """Start request for a resumable Obsidian librarian workflow."""
-
-    ask: ObsidianLibrarianAsk
-
-
-@dataclass(slots=True, kw_only=True)
-class ObsidianLibrarianWorkflowResume:
-    """Resume request with approved workflow action ids."""
-
-    thread_id: str
-    approved_actions: tuple[str, ...] = field(default_factory=tuple)
-
-    def __post_init__(self) -> None:
-        """Normalize approved action identifiers to an immutable sequence."""
-        self.approved_actions = tuple(self.approved_actions)

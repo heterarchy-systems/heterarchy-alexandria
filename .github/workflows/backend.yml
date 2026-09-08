@@ -45,7 +45,7 @@ jobs:
           python-version: "3.13"
 
       - name: Set up Rust
-        uses: dtolnay/rust-toolchain@1.97.1
+        uses: dtolnay/rust-toolchain@1.98
         with:
           components: rustfmt, clippy
 

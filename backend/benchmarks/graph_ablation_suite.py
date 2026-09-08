@@ -27,13 +27,17 @@ from app.obsidian.domain.repositories.obsidian_graph_projection_repository impor
 from app.obsidian.domain.repositories.obsidian_graph_traversal_compute_provider import (
     IObsidianGraphTraversalComputeProvider,
 )
+from app.obsidian.infrastructure.graph.native_obsidian_graph_projection_compute_provider import (
+    create_native_obsidian_graph_projection_compute_provider,
+)
 from app.obsidian.infrastructure.graph.native_obsidian_graph_traversal_compute_provider import (
     create_native_obsidian_graph_traversal_compute_provider,
 )
-from app.obsidian.infrastructure.graph.neo4j_graph_projection_factory import (
-    optional_neo4j_graph_projection_repository,
+from app.obsidian.infrastructure.graph.postgresql_obsidian_graph_projection_repository import (
+    PostgreSqlObsidianGraphProjectionRepository,
 )
-from app.platform.config.app_config import AppConfig
+from app.platform.config.database_config import DatabaseConfig
+from app.shared.infrastructure.database import Database
 from benchmarks.graph_ablation_contracts import (
     GraphAblationCaseObservation,
     GraphAblationReport,
@@ -367,13 +371,16 @@ async def _run(config: _GraphAblationConfig) -> GraphAblationReport:
         primary = tuple(
             [await _primary_observation(client, case, config) for case in config.cases]
         )
-    app_config = AppConfig()
-    async with optional_neo4j_graph_projection_repository(app_config) as repository:
-        if repository is None:
-            raise RuntimeError(
-                "GRAPH_ABLATION_UNAVAILABLE: Neo4j graph read model is disabled"
-            )
+    database = Database(DatabaseConfig().url)
+    await database.initialize()
+    try:
+        repository = PostgreSqlObsidianGraphProjectionRepository(
+            database=database,
+            compute_provider=create_native_obsidian_graph_projection_compute_provider(),
+        )
         projection, snapshot_ms = await _projection_snapshot(repository)
+    finally:
+        await database.shutdown()
     provider = create_native_obsidian_graph_traversal_compute_provider()
     cases = tuple(
         GraphAblationCaseObservation(

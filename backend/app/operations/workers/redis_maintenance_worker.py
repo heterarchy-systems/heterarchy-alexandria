@@ -70,7 +70,7 @@ def _create_worker_container(config: MaintenanceQueueConfig) -> ApplicationConta
 
     Embedding reindexing uses the embedding service and index coordinator, but it
     does not consume graph recall signals. Overriding that dependency prevents a
-    Neo4j driver from being initialized when graph projection is enabled. Resource
+    graph projection resources from being initialized for embedding-only work. Resource
     initialization stays lazy so the worker does not also allocate the API Redis
     pool or unrelated application resources.
 

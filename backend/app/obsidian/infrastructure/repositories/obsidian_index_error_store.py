@@ -69,6 +69,19 @@ class ObsidianIndexErrorStore:
         model.indexed_at = error.detected_at
         await self._session.flush()
 
+    async def clear_index_error(self, note_path: str) -> None:
+        """Remove a resolved failed-note row without touching indexed content.
+
+        Args:
+            note_path: Vault-relative Markdown path whose source is readable again.
+        """
+        model = await get_obsidian_file_by_path(self._session, note_path)
+        if model is None or model.index_status != ObsidianIndexStatus.ERROR.value:
+            return
+        await discard_obsidian_note_index(self._session, model.note_id)
+        await self._session.delete(model)
+        await self._session.flush()
+
     async def list_index_errors(
         self,
         limit: int = 20,

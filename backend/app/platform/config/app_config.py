@@ -69,60 +69,6 @@ class AppConfig(AppConfigFields):
         normalized = value.strip()
         return normalized or None
 
-    @field_validator("neo4j_uri", "neo4j_username", mode="before")
-    @classmethod
-    def normalize_optional_neo4j_text(cls, value: str | None) -> str | None:
-        """Normalize optional Neo4j connection text before fail-closed checks.
-
-        Args:
-            value: Optional Neo4j connection field value.
-
-        Returns:
-            Trimmed value, or None when blank.
-        """
-        if isinstance(value, str):
-            normalized = value.strip()
-            return normalized or None
-        return value
-
-    @field_validator("neo4j_password", mode="before")
-    @classmethod
-    def normalize_optional_neo4j_password(
-        cls,
-        value: str | SecretStr | None,
-    ) -> str | SecretStr | None:
-        """Normalize optional Neo4j password without leaking the value.
-
-        Args:
-            value: Raw secret string or already parsed secret.
-
-        Returns:
-            Trimmed secret value, or None when blank.
-        """
-        if isinstance(value, SecretStr):
-            normalized = value.get_secret_value().strip()
-            return SecretStr(normalized) if normalized else None
-        if isinstance(value, str):
-            normalized = value.strip()
-            return normalized or None
-        return value
-
-    @field_validator("neo4j_database")
-    @classmethod
-    def normalize_neo4j_database(cls, value: str) -> str:
-        """Normalize and reject blank Neo4j database names.
-
-        Args:
-            value: Configured Neo4j database name.
-
-        Returns:
-            Trimmed database name.
-        """
-        normalized = value.strip()
-        if not normalized:
-            raise ValueError("neo4j_database must not be blank")
-        return normalized
-
     @field_validator("memory_reconciliation_model")
     @classmethod
     def normalize_memory_reconciliation_model(cls, value: str) -> str:
@@ -169,35 +115,6 @@ class AppConfig(AppConfigFields):
                 "MCP local OAuth approval key must contain at least 24 characters"
             )
         return self
-
-    @model_validator(mode="after")
-    def validate_graph_read_model_configuration(self) -> AppConfig:
-        """Require only the connection values consumed by the enabled adapter.
-
-        Returns:
-            AppConfig: Validated service configuration.
-        """
-        if self.graph_read_model == "disabled":
-            return self
-        _require_values(
-            "Neo4j graph read model",
-            (
-                ("neo4j_uri", self.neo4j_uri),
-                ("neo4j_username", self.neo4j_username),
-                ("neo4j_password", self.neo4j_password),
-            ),
-        )
-        return self
-
-    def neo4j_password_value(self) -> str:
-        """Return the Neo4j password only at the driver-construction boundary.
-
-        Returns:
-            str: Configured Neo4j credential, or an empty value when disabled.
-        """
-        if self.neo4j_password is None:
-            return ""
-        return self.neo4j_password.get_secret_value()
 
     def mcp_oauth_required_scopes(self) -> tuple[str, ...]:
         """Return normalized MCP OAuth scopes from configuration.

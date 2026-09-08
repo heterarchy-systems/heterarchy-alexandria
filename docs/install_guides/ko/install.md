@@ -8,10 +8,9 @@
 
 ```bash
 cd backend
-uv sync
-uv run heterarchy-alexandria setup --mode backend-daemon --apply --write-guidebook --run-migrations
-uv run heterarchy-alexandria serve \
-  --env-file "$HOME/.hermes/heterarchy-alexandria/.env" \
+uv sync --locked --no-editable
+uv run alembic upgrade head
+uv run uvicorn app.main:app \
   --host 127.0.0.1 \
   --port 8000
 ```
@@ -20,8 +19,8 @@ uv run heterarchy-alexandria serve \
 
 ```bash
 cd backend
-uv run heterarchy-alexandria obsidian init
-uv run heterarchy-alexandria obsidian reindex
+curl -fsS -X POST http://127.0.0.1:8000/obsidian/init
+curl -fsS -X POST http://127.0.0.1:8000/obsidian/index/rebuild
 ```
 
 Obsidian에서 다음 vault를 엽니다.
@@ -36,39 +35,22 @@ Obsidian에서 이미 `~/Desktop/Alexandria` vault를 만들었다면 이렇게 
 
 ```bash
 cd backend
-uv sync
-uv run heterarchy-alexandria setup \
-  --mode backend-daemon \
-  --apply \
-  --write-guidebook \
-  --run-migrations \
-  --obsidian-vault-path "$HOME/Desktop/Alexandria" \
-  --alexandria-obsidian-root "."
+export SERVICE_OBSIDIAN_VAULT_PATH="$HOME/Desktop/Alexandria"
+export SERVICE_ALEXANDRIA_OBSIDIAN_ROOT="."
+uv sync --locked --no-editable
+uv run alembic upgrade head
+uv run uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
 `--alexandria-obsidian-root "."`는 vault 자체를 Alexandria 작업공간으로 쓰겠다는 뜻입니다. 그래서 `Alexandria/Alexandria` 중첩 폴더가 생기지 않습니다.
 
-그 다음 생성된 env 파일로 backend를 실행합니다.
-
-```bash
-uv run heterarchy-alexandria serve \
-  --env-file "$HOME/.hermes/heterarchy-alexandria/.env" \
-  --host 127.0.0.1 \
-  --port 8000
-```
-
-
-## Obsidian 설치와 사서 side pane 연결
+## Backend와 MCP surface 확인
 
 ```bash
 brew install --cask obsidian
-cd backend
-uv run heterarchy-alexandria obsidian install-local \
-  --vault-path "$HOME/Desktop/Alexandria" \
-  --plugin-install-mode copy
+curl -fsS http://127.0.0.1:8000/operations/readiness | jq
+curl -fsS -X POST http://127.0.0.1:8000/obsidian/index/rebuild | jq
 ```
-
-Obsidian에서 Community plugins를 켜고 **Alexandria Librarian**을 활성화하세요. pane을 쓰기 전 backend는 켜져 있어야 합니다.
 
 ## Docker Compose
 

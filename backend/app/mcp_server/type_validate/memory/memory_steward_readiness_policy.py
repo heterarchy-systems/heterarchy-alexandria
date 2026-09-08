@@ -54,23 +54,17 @@ def rag_health_blocking_warnings(warnings: tuple[str, ...]) -> tuple[str, ...]:
 
 def review_blocking_warnings(
     warnings: tuple[str, ...],
-    manual_review_required: int,
 ) -> tuple[str, ...]:
-    """Return review warnings that block automatic compact refresh apply.
+    """Return compact-review warnings that block automatic refresh apply.
 
     Args:
         warnings: Readiness warning codes.
-        manual_review_required: Count of queue items requiring manual review.
 
     Returns:
-        Review warning codes that require librarian judgment before auto-apply.
+        Compact quality-review warnings that require explicit repair.
     """
-    blockers: list[str] = []
-    if "vault_review_queue_not_empty" in warnings and manual_review_required > 0:
-        blockers.append("vault_manual_review_required")
     if "current_memory_compact_review_blocked" in warnings:
-        blockers.append("current_memory_compact_review_blocked")
-    return tuple(blockers)
+        return ("current_memory_compact_review_blocked",)
     return ()
 
 
@@ -79,7 +73,6 @@ def readiness_warnings(
     compact: CurrentCompactPayload,
     compact_age_days: int | None,
     max_compact_age_days: int,
-    review_total: int,
 ) -> list[str]:
     """Build deterministic readiness warning codes.
 
@@ -88,7 +81,6 @@ def readiness_warnings(
         compact: Validated current compact fields.
         compact_age_days: Calculated compact age in days.
         max_compact_age_days: Maximum acceptable compact age.
-        review_total: Total review queue count.
 
     Returns:
         Readiness warning codes.
@@ -110,8 +102,6 @@ def readiness_warnings(
         warnings.append("current_memory_compact_timestamp_missing")
     elif compact_age_days > max_compact_age_days:
         warnings.append("current_memory_compact_stale")
-    if review_total > 0:
-        warnings.append("vault_review_queue_not_empty")
     return warnings
 
 
@@ -134,19 +124,11 @@ def _compact_timestamp_missing(compact: CurrentCompactPayload) -> bool:
     )
 
 
-def readiness_next_actions(
-    warnings: list[str],
-    auto_move_candidates: int,
-    manual_review_required: int,
-    review_total: int,
-) -> list[JSONObject]:
+def readiness_next_actions(warnings: list[str]) -> list[JSONObject]:
     """Build deterministic next actions from readiness warnings.
 
     Args:
         warnings: Readiness warning codes.
-        auto_move_candidates: Count of safe auto-move candidates.
-        manual_review_required: Count of manual-review candidates.
-        review_total: Total review queue count.
 
     Returns:
         JSON next-action objects ordered by priority.
@@ -176,41 +158,6 @@ def readiness_next_actions(
                 "code": "refresh_current_memory_compact",
                 "tool": "alexandria_memory_steward_refresh_current_compact",
                 "summary": "Refresh the CURRENT Memory Compact from readiness evidence.",
-                "dry_run_first": True,
-            }
-        )
-    if "vault_review_queue_not_empty" in warning_set and auto_move_candidates > 0:
-        actions.append(
-            {
-                "priority": 30,
-                "code": "curate_vault_review_queue",
-                "tool": "alexandria_vault_review_move_plan",
-                "summary": "Plan safe vault moves for automatic review candidates.",
-                "dry_run_first": True,
-            }
-        )
-    if "vault_review_queue_not_empty" in warning_set and manual_review_required > 0:
-        actions.append(
-            {
-                "priority": 40,
-                "code": "review_manual_vault_queue",
-                "tool": "alexandria_vault_review_queue",
-                "summary": "Inspect queue items that require human judgment.",
-                "dry_run_first": True,
-            }
-        )
-    if (
-        "vault_review_queue_not_empty" in warning_set
-        and review_total > 0
-        and auto_move_candidates == 0
-        and manual_review_required == 0
-    ):
-        actions.append(
-            {
-                "priority": 30,
-                "code": "inspect_vault_review_queue",
-                "tool": "alexandria_vault_review_queue",
-                "summary": "Inspect review queue candidates before planning curation.",
                 "dry_run_first": True,
             }
         )

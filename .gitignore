@@ -259,8 +259,6 @@ backend/data/
 .comx-agent/
 .chatgpt2codex/
 .playwright-mcp/
-# Local Obsidian plugin settings may include the operator API key.
-integrations/obsidian/alexandria-librarian/data.json
 # Playwright demo recordings (generated locally)
 docs/assets/demo/recordings/
 backend/.smoke/
@@ -268,4 +266,5 @@ docs/jobs/**
 
 docs/deprecated/**
 .codex/**
+.codegraph/
 backend/.fastembed_cache

@@ -9,9 +9,6 @@ from pathlib import Path
 from app.obsidian.application.graph.relations.native_obsidian_graph_edge_builder import (
     create_native_obsidian_graph_edge_builder,
 )
-from app.obsidian.application.graph.relations.obsidian_graph_edge_compute_contracts import (
-    ObsidianGraphEdgeComputeProvider,
-)
 from app.obsidian.application.notes.frontmatter.obsidian_context_frontmatter_mapper import (
     context_content_hash,
     context_identity_from_frontmatter,
@@ -33,16 +30,6 @@ from app.obsidian.infrastructure.markdown.frontmatter import (
 )
 from app.obsidian.infrastructure.markdown.native_note_index_compute import (
     create_native_note_index_compute_provider,
-)
-from app.obsidian.infrastructure.markdown.note_index_compute_contracts import (
-    NoteIndexComputeProvider,
-)
-
-_NOTE_INDEX_COMPUTE_PROVIDER: NoteIndexComputeProvider = (
-    create_native_note_index_compute_provider()
-)
-_GRAPH_EDGE_COMPUTE_PROVIDER: ObsidianGraphEdgeComputeProvider = (
-    create_native_obsidian_graph_edge_builder()
 )
 
 
@@ -66,7 +53,7 @@ def note_index_from_path(
         raise ValueError(
             "FRONTMATTER_SECRET_DETECTED: frontmatter contains a secret-like field"
         )
-    computed = _NOTE_INDEX_COMPUTE_PROVIDER.compute(text, relative_path)
+    computed = create_native_note_index_compute_provider().compute(text, relative_path)
     note_type = _note_type_from_frontmatter(computed.frontmatter)
     note_id = frontmatter_text(computed.frontmatter, "id")
     if note_type is None:
@@ -108,7 +95,7 @@ def note_index_from_path(
         modified_at=datetime.fromtimestamp(stat.st_mtime, tz=UTC),
         chunks=computed.chunks,
         edges=tuple(
-            _GRAPH_EDGE_COMPUTE_PROVIDER.build(
+            create_native_obsidian_graph_edge_builder().build(
                 note_id=note_id,
                 relative_path=relative_path,
                 alexandria_root=alexandria_root,

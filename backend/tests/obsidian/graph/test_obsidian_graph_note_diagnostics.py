@@ -8,7 +8,6 @@ from pathlib import Path
 
 import anyio
 import pytest
-from dependency_injector import providers
 from fastapi.testclient import TestClient
 
 from app.main import app as default_app, create_app
@@ -39,7 +38,6 @@ _OBSIDIAN_MODELS_LOADED = _obsidian_index_models
 _NOW = datetime(2026, 8, 3, tzinfo=UTC)
 _ROUTER_PACKAGES = [
     "app.connections.interface.routers",
-    "app.librarian.interface.routers",
     "app.memory.interface.routers",
     "app.obsidian.interface.routers",
     "app.operations.interface.routers",
@@ -130,9 +128,9 @@ class _Source:
 class _ProjectionStatusService:
     async def status(self) -> ObsidianGraphProjectionStatusReport:
         return ObsidianGraphProjectionStatusReport(
-            status="disabled",
-            graph_read_model="disabled",
-            enabled=False,
+            status="ready",
+            graph_read_model="postgresql",
+            enabled=True,
             node_count=0,
             edge_count=0,
             errors=(),
@@ -198,7 +196,7 @@ def test_validate_note_links_reports_outgoing_resolution_details() -> None:
     )
     assert unresolved["edge-4"].code == "target_not_indexed"
     assert unresolved["edge-4"].candidate_paths == ("Alexandria/Stale.md",)
-    assert report.projection_status.status == "disabled"
+    assert report.projection_status.status == "ready"
 
 
 def test_validate_note_links_reports_missing_note_without_error() -> None:
@@ -314,21 +312,14 @@ def test_graph_note_diagnostics_rest_contract_reports_validation_only_status(
     app = create_app(
         AppConfig(
             _env_file=None,
-            graph_read_model="disabled",
             obsidian_vault_path=str(tmp_path / "vault"),
             obsidian_vault_config_path=str(tmp_path / "vault-config.json"),
             operational_backup_root=str(tmp_path / "backups"),
         )
     )
-    root_container = app.state.container
 
     try:
-        with (
-            root_container.librarian.hermes_collaboration_service.override(
-                providers.Object(None)
-            ),
-            TestClient(app, raise_server_exceptions=False) as client,
-        ):
+        with TestClient(app, raise_server_exceptions=False) as client:
             build_status = client.get("/obsidian/graph/build/status")
             validation = client.get(
                 "/obsidian/graph/notes/validate-links",
@@ -349,4 +340,4 @@ def test_graph_note_diagnostics_rest_contract_reports_validation_only_status(
     assert payload["outgoing"]["unresolved_count"] == 1
     assert payload["outgoing"]["unresolved_targets"][0]["edge_id"] == "edge-missing"
     assert payload["outgoing"]["unresolved_targets"][0]["code"] == "missing_target_note"
-    assert payload["projection"]["status"] == "disabled"
+    assert payload["projection"]["status"] == "ready"

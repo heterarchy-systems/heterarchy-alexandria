@@ -6,8 +6,8 @@
 
 heterarchy-alexandria는 **로그인 없는 single-operator/local-first** 시스템이다.
 기본 온보딩에는 GPT/Codex OAuth나 provider credential이 필요하지 않으며,
-`ALEXANDRIA_OPERATOR_API_KEY` 하나만 settings/provider/OAuth/librarian delegation 같은
-control-plane 작업을 보호한다.
+`ALEXANDRIA_OPERATOR_API_KEY` 하나가 보호된 MCP local-approval과 vault
+maintenance control-plane 작업을 보호한다.
 
 ## 전제
 
@@ -29,26 +29,22 @@ export ALEXANDRIA_API_URL="${ALEXANDRIA_API_URL:-http://localhost:8000}"
 export HERMES_HOME="${HERMES_HOME:-$HOME/.hermes}"
 export ALEXANDRIA_OPERATOR_API_KEY="${ALEXANDRIA_OPERATOR_API_KEY:-}"
 
-heterarchy-alexandria --base-url "$ALEXANDRIA_API_URL" --json health
-
-heterarchy-alexandria --json hermes onboard   --hermes-home "$HERMES_HOME"   --api-url "$ALEXANDRIA_API_URL"   --operator-api-key "${ALEXANDRIA_OPERATOR_API_KEY:-}"   --install-prompts   --install-mcp
+curl -fsS "$ALEXANDRIA_API_URL/health/live"
+curl -fsS "$ALEXANDRIA_API_URL/operations/readiness" | jq
+heterarchy-alexandria memory-steward check --project heterarchy-alexandria
 ```
 
 ## 확인
 
 ```bash
-heterarchy-alexandria --json hermes doctor   --hermes-home "$HERMES_HOME"   --api-url "$ALEXANDRIA_API_URL"   --operator-api-key "${ALEXANDRIA_OPERATOR_API_KEY:-}"
-
-heterarchy-alexandria --json hermes policy status --hermes-home "$HERMES_HOME"
+heterarchy-alexandria mcp smoke-tools --mcp-url "$ALEXANDRIA_API_URL/mcp/"
 ```
 
 성공 기준:
 
-- `skill_installed: true`
-- `mcp_config_installed: true`
-- `policy_installed: true`
-- policy `enabled: true`
-- policy `mode: local_first_library_when_needed`
+- `/health/live` returns `{"status":"ok"}`
+- `/operations/readiness` reports the current PostgreSQL/vault/RAG state
+- `memory-steward check` completes with an actionable result
 
 ## Runtime 사용 계약
 
@@ -59,7 +55,7 @@ heterarchy-alexandria --json hermes policy status --hermes-home "$HERMES_HOME"
 3. 부족하거나 이전 작업을 이어가거나 durable/shared context가 필요하면 current Memory Compact를 먼저 읽는다.
 4. 그래도 빈틈이 있으면 Context Vault recall/RAG로 필요한 결정/핸드오프/버그 원인/compact detail만 좁게 찾는다.
 5. START_HERE는 unfamiliar agent가 로컬 맥락이 부족할 때 보는 도서관 입구다.
-6. librarian은 optional이며 기본적으로 사용자의 명시 요청이 있을 때만 사용한다. Memory Compact/Context Vault 조회는 사서 위임과 별개다.
+6. Memory Compact와 reconciliation은 Memory Steward boundary를 사용한다.
 
 ## Hermes MCP runtime 등록
 
@@ -77,13 +73,10 @@ hermes mcp test alexandria
 ## 흔한 오해
 
 - `mcp-config.json`만 있으면 Hermes가 tool을 자동 발견한다고 생각하면 안 된다.
-- operator key는 OAuth token이 아니다. protected librarian/settings route에는 operator header가 필요하다.
-- 사서가 없어도 설치는 성공할 수 있다. Hermes self-acquisition이 fallback이다.
+- operator key는 OAuth token이 아니다. MCP local-approval과 protected maintenance route에만 사용한다.
 - Alexandria는 local memory 대체물이 아니다. local-first, Alexandria-when-needed가 기본 계약이다.
-- 장기기억 조회는 사서 호출이 아니다. 사서는 사용자가 위임을 요청했거나 별도 정책이 있을 때만 쓴다.
+- 장기기억 조회는 Memory Steward와 Context Vault MCP boundary를 사용한다.
 
-## 선택 사항: 외부 사서 provider / GPT-Codex OAuth
-
-ChatGPT/Codex OAuth와 OpenAI API key provider는 기본 설치가 아니라 선택 사서 위임 기능이다.
-Settings → Librarians에서 provider를 연결한 뒤에만 external librarian delegation이 해당 provider를 사용할 수 있다.
-OAuth token은 브라우저 상태나 문서에 남기지 않고 backend provider secret store에만 저장한다.
+MCP client OAuth가 필요하면 `/connect`의 local MCP client 관리와 pairing-code
+흐름을 사용한다. provider delegation이나 외부 Librarian 설정은 현재 제품 표면에
+포함되지 않는다.

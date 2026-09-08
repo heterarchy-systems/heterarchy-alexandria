@@ -1,6 +1,6 @@
 ---
 name: operational-sync
-description: Use when heterarchy-alexandria needs operational recovery planning, PostgreSQL/Obsidian index synchronization, queued embedding reindex, Neo4j graph projection rebuild, RAG status repair, or proof that library search and optional graph discovery are healthy.
+description: Use when heterarchy-alexandria needs operational recovery planning, PostgreSQL/Obsidian index synchronization, queued embedding reindex, Rust graph projection rebuild, RAG status repair, or proof that library search and graph discovery are healthy.
 ---
 
 # Operational Sync
@@ -10,11 +10,11 @@ Use this skill to restore heterarchy-alexandria retrieval health without modifyi
 ## Invariants
 
 - Treat Obsidian Markdown as the source of truth.
-- Treat PostgreSQL FTS, pgvector, embedding rows, and the Neo4j projection as rebuildable cache/index state.
+- Treat PostgreSQL FTS, pgvector, embedding rows, and the bounded graph projection cache as rebuildable index state; Rust owns deterministic graph projection and traversal compute.
 - Runtime persistence is PostgreSQL-only. Do not add or operate a SQLite runtime, compatibility path, fallback, or direct SQLite cleanup procedure.
-- Preserve PostgreSQL indexed graph-edge state as projection source cache; do not use it as a graph traversal fallback.
+- Preserve PostgreSQL indexed graph-edge state as the graph source; do not introduce a second graph database or compute authority.
 - Treat vault reindex, queued embedding reindex, and graph rebuild as one fail-fast maintenance lane; run them sequentially and retry an HTTP `409` only after the active operation finishes.
-- Prefer non-destructive sync first: status check → Obsidian reindex → queued embedding reindex when needed → graph projection rebuild when enabled → verification.
+- Prefer non-destructive sync first: status check → Obsidian reindex → queued embedding reindex when needed → PostgreSQL/Rust graph projection rebuild → verification.
 - Use the persisted recovery plan/run workflow before manual repair. Do not mutate PostgreSQL or copy files behind the API.
 - Preserve recovery manifests and exact blockers when automatic recovery is not allowed.
 - Never hard-delete Obsidian Markdown as part of this procedure.
@@ -90,7 +90,7 @@ Use a stable `source_id` for duplicate suppression and keep `limit` bounded to `
 
 After every vault reindex, re-check RAG status. Vault reindex can create new missing embedding rows, so enqueue another bounded embedding job if needed.
 
-Vault reindex now projects the current indexed graph when Neo4j projection is enabled.
+Vault reindex now projects the current indexed graph through PostgreSQL and Rust.
 Treat the returned `graph_projection` object as the primary projection result. Run the
 dedicated rebuild only when projection is missing, stale, failed, intentionally skipped,
 or an explicit diagnostic rebuild is required:
@@ -102,14 +102,12 @@ curl -fsS \
   http://127.0.0.1:8000/obsidian/graph/projection/status | jq
 ```
 
-Require `status=ready`, `graph_read_model=neo4j`, no errors, and node/edge counts consistent with the
+Require `status=ready`, `graph_read_model=postgresql`, no errors, and node/edge counts consistent with the
 current indexed vault. Read `issue_total`/`issue_counts` from rebuild and
 `last_run_issue_total`/`last_run_issue_counts` from status as non-fatal source
 diagnostics. Missing or ambiguous targets are excluded from the active graph.
 Only when investigating, request a bounded sample with
-`?include_issue_details=true&issue_limit=100` (maximum 500). When graph
-projection is disabled, skip this step and verify that core RAG remains healthy;
-do not fall back to PostgreSQL edge-cache traversal.
+`?include_issue_details=true&issue_limit=100` (maximum 500).
 
 For a missing-target detail, use `note_id` as the source note to repair,
 `relative_path` as the unresolved target, and `edge_id` as the indexed
@@ -221,11 +219,11 @@ curl -fsS \
 
 Expected:
 
-- projection `status=ready` and `graph_read_model=neo4j`;
+- projection `status=ready` and `graph_read_model=postgresql`;
 - rebuild `errors` is empty; any `issue_total` is explained by its counted source diagnostics rather than mistaken for an operation failure;
 - each related item exposes its relation, source kind, direction, score, and edge id;
 - returned notes can be read back from canonical Obsidian Markdown;
-- disabled mode returns 503 for related-note traversal while core RAG remains usable.
+- related-note traversal reads the active PostgreSQL/Rust projection while core RAG remains usable.
 
 ## Code repair note
 
@@ -238,4 +236,3 @@ If `/operations/readiness` returns 500 with a Pydantic validation error for `Con
 ## Related Alexandria skills
 
 - [[Skills/Active/Alexandria Library]] — scoped recall, safe writes, and graph-aware discovery.
-- [[Skills/Active/Librarian Operator]] — search-first operation and related-note expansion.

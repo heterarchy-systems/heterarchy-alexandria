@@ -441,6 +441,8 @@ def _index_error_actions(
         actions.append("resolve_duplicate_context_identity")
     if ObsidianIndexErrorCode.PATH_SECURITY_VIOLATION in codes:
         actions.append("inspect_obsidian_path_security")
+    if ObsidianIndexErrorCode.SOURCE_READ_FAILED in codes:
+        actions.append("inspect_obsidian_source_storage")
     if ObsidianIndexErrorCode.INDEX_WRITE_FAILED in codes:
         actions.append("inspect_obsidian_index_storage")
     repairable = codes - {
@@ -448,6 +450,7 @@ def _index_error_actions(
         ObsidianIndexErrorCode.DUPLICATE_CONTEXT_ID,
         ObsidianIndexErrorCode.DUPLICATE_CONTEXT_CONTENT,
         ObsidianIndexErrorCode.PATH_SECURITY_VIOLATION,
+        ObsidianIndexErrorCode.SOURCE_READ_FAILED,
         ObsidianIndexErrorCode.INDEX_WRITE_FAILED,
     }
     if repairable:

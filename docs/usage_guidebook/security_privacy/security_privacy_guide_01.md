@@ -14,10 +14,9 @@ heterarchy-alexandria는 로그인/RBAC SaaS가 아니라 **local-first single-o
 
 ## 보호되는 기능 예
 
-- provider/settings 변경
-- OAuth start/poll/refresh/status
-- librarian delegation/job 조회
-- 외부 provider credential이 필요한 control-plane 작업
+- MCP local OAuth pairing/client 관리
+- Memory Steward refresh와 reconciliation control-plane 작업
+- Obsidian vault move-plan/apply 작업
 
 ## 네트워크 노출 규칙
 
@@ -50,8 +49,8 @@ heterarchy-alexandria는 로그인/RBAC SaaS가 아니라 **local-first single-o
 ## 점검 명령
 
 ```bash
-heterarchy-alexandria context doctor-rag
-heterarchy-heterarchy-alexandria policy status --hermes-home "$HOME/.hermes"
+heterarchy-alexandria memory-steward readiness --project heterarchy-alexandria
+curl -fsS http://127.0.0.1:8000/operations/readiness | jq
 ```
 
 operator key 값 자체는 출력하지 않는다. presence, command success, 401 여부로만 확인한다.

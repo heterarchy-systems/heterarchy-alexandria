@@ -1,7 +1,7 @@
 ARG ALEXANDRIA_BUILD_REVISION
 ARG ALEXANDRIA_BUILD_TIMESTAMP=unknown
 
-FROM rust:1.97-slim-trixie AS native-builder
+FROM rust:1.98-slim-trixie AS native-builder
 
 WORKDIR /src
 

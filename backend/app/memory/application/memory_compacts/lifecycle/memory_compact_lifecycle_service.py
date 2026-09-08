@@ -96,7 +96,7 @@ class MemoryCompactLifecycleService:
         compact_id: str,
         source_observations: tuple[MemoryCompactSourceObservation, ...] = (),
     ) -> MemoryCompactReviewResult:
-        """Review one Memory Compact against the librarian rubric.
+        """Review one Memory Compact against the quality rubric.
 
         Args:
             compact_id: Memory Compact identifier.

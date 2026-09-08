@@ -171,6 +171,14 @@ class ObsidianIndexErrorRepositoryDelegate:
         """
         await self._error_store.record_index_error(error)
 
+    async def clear_index_error(self, note_path: str) -> None:
+        """Remove one resolved structured reindex error.
+
+        Args:
+            note_path: Vault-relative Markdown path whose source is readable again.
+        """
+        await self._error_store.clear_index_error(note_path)
+
     async def list_index_errors(self, limit: int = 20) -> list[ObsidianIndexError]:
         """Return recent structured reindex errors.
 

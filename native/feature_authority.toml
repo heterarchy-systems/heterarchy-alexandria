@@ -104,6 +104,7 @@ legacy_inventory_complete = true
 golden_corpora = ["native/corpora/graph_compute/v1/cases.json"]
 forbidden_python_imports_when_rust = [
     "app.obsidian.application.graph.projection.python_obsidian_graph_projection_compute_provider",
+    "app.obsidian.infrastructure.graph.obsidian_graph_projection_read_semantics",
 ]
 
 [[features.graph_compute.legacy_python_markers]]

@@ -16,36 +16,32 @@ context 저장
 ## 전제
 
 - backend가 `http://localhost:8000`에서 실행 중이다.
-- `heterarchy-alexandria` CLI 또는 `./bin/heterarchy-alexandria`를 실행할 수 있다.
+- Hermes runtime에서 Alexandria MCP tools를 호출할 수 있다.
 - 실제 secret/API key/token 값은 예제에 넣지 않는다.
 
 ## 1. 첫 context 저장
 
-```bash
-cat > /tmp/alexandria-first-context.md <<'MD'
-# First Alexandria context
-
-heterarchy-alexandria is a local-first agent library.
-Use Context Vault for durable decisions, handoffs, plans, memory compacts, and reusable agent context.
-MD
-
-heterarchy-alexandria --base-url http://localhost:8000 context save \
-  --title "First Alexandria context" \
-  --kind DECISION \
-  --project heterarchy-alexandria \
-  --content-file /tmp/alexandria-first-context.md
+```text
+alexandria_create_note(
+  title="First Alexandria context",
+  body="Use Context Vault for durable decisions and handoffs.",
+  alexandria_type="context",
+  project="heterarchy-alexandria",
+  context_kind="DECISION",
+)
 ```
 
 ## 2. recall 확인
 
 처음 smoke test는 embedding/model 상태와 무관하게 재현되도록 `FTS_ONLY`를 사용한다.
 
-```bash
-heterarchy-alexandria --base-url http://localhost:8000 context recall \
-  "durable decisions handoffs memory compacts" \
-  --strategy FTS_ONLY \
-  --project heterarchy-alexandria \
-  --limit 3
+```text
+alexandria_search(
+  query="durable decisions handoffs memory compacts",
+  strategy="FTS_ONLY",
+  project="heterarchy-alexandria",
+  limit=3,
+)
 ```
 
 성공 기준:
@@ -56,7 +52,7 @@ heterarchy-alexandria --base-url http://localhost:8000 context recall \
 ## 3. RAG 상태 확인
 
 ```bash
-heterarchy-alexandria --base-url http://localhost:8000 context doctor-rag
+curl -fsS http://127.0.0.1:8000/memory/contexts/rag/status | jq
 ```
 
 해석:
@@ -69,11 +65,12 @@ heterarchy-alexandria --base-url http://localhost:8000 context doctor-rag
 
 브라우저에서 확인한다.
 
-```text
-heterarchy-alexandria context recall "<query>" --json
+```bash
+curl -fsS http://127.0.0.1:8000/operations/readiness | jq
 ```
 
-`/contexts`에서 저장된 context가 보여야 한다. FTS/vector/RAG 상태는 `context doctor-rag`로 확인한다.
+`/memory/contexts` API에서 저장된 context가 보여야 한다. FTS/vector/RAG 상태는
+`/memory/contexts/rag/status` 또는 `alexandria_rag_status`로 확인한다.
 
 ## 흔한 실패
 
@@ -81,5 +78,5 @@ heterarchy-alexandria context recall "<query>" --json
 | --- | --- | --- |
 | backend 연결 실패 | `/health/ready` 확인 | backend 실행 또는 `--base-url` 수정 |
 | recall 결과 없음 | 저장 project/kind/query 확인 | `--project`를 빼고 다시 검색 |
-| vector degraded | `context doctor-rag` 확인 | FTS_ONLY로 smoke test 후 embedding 설정 점검 |
+| vector degraded | `/memory/contexts/rag/status` 확인 | FTS_ONLY로 smoke test 후 embedding/pgvector 상태 점검 |
 | recall 결과가 비어 있음 | project/kind/filter 확인 | 더 좁은 query 또는 RAG 상태 확인 |

@@ -20,9 +20,6 @@ from app.mcp_server.tools.obsidian.vault_maintenance_backend_gateway import (
     alexandria_vault_inventory,
     alexandria_vault_move_plan,
     alexandria_vault_path_search,
-    alexandria_vault_review_apply_moves,
-    alexandria_vault_review_move_plan,
-    alexandria_vault_review_queue,
 )
 from app.shared.types.extra_types import JSONValue
 
@@ -49,7 +46,7 @@ def register_vault_maintenance_tools(
 
     @server.tool(name="alexandria_get_graph_projection_status")
     async def _tool_get_graph_projection_status() -> JSONValue:
-        """Return optional graph projection status.
+        """Return PostgreSQL graph projection status.
 
         Returns:
             JSONValue result produced by tool get graph projection status.
@@ -58,7 +55,7 @@ def register_vault_maintenance_tools(
 
     @server.tool(name="alexandria_rebuild_graph_projection")
     async def _tool_rebuild_graph_projection() -> JSONValue:
-        """Rebuild the optional graph projection from the current PostgreSQL index.
+        """Rebuild the PostgreSQL graph projection from the current PostgreSQL index.
 
         Returns:
             JSONValue result produced by tool rebuild graph projection.
@@ -142,81 +139,6 @@ def register_vault_maintenance_tools(
         """
         return await alexandria_search_vault(
             api_client, query, limit, alexandria_type, project, tags
-        )
-
-    @server.tool(name="alexandria_vault_review_queue")
-    async def _tool_vault_review_queue(
-        project: str | None = None,
-        scope_path: str | None = None,
-        limit: int = 20,
-    ) -> JSONValue:
-        """List managed notes that need vault curation.
-
-        Args:
-            project: Project used by this operation.
-            scope_path: Scope path used by this operation.
-            limit: Maximum number of items to process or return.
-
-        Returns:
-            JSONValue result produced by tool vault review queue.
-        """
-        return await alexandria_vault_review_queue(
-            api_client, project, scope_path, limit
-        )
-
-    @server.tool(name="alexandria_vault_review_move_plan")
-    async def _tool_vault_review_move_plan(
-        project: str | None = None,
-        scope_path: str | None = None,
-        limit: int = 20,
-    ) -> JSONValue:
-        """Build a dry-run move plan from vault review candidates.
-
-        Args:
-            project: Project used by this operation.
-            scope_path: Scope path used by this operation.
-            limit: Maximum number of items to process or return.
-
-        Returns:
-            JSONValue result produced by tool vault review move plan.
-        """
-        return await alexandria_vault_review_move_plan(
-            api_client, project, scope_path, limit
-        )
-
-    @server.tool(name="alexandria_vault_review_apply_moves")
-    async def _tool_vault_review_apply_moves(
-        project: str | None = None,
-        scope_path: str | None = None,
-        limit: int = 20,
-        report_path: str | None = None,
-        reindex: bool = True,
-        verification_query: str | None = None,
-        confirm_apply: bool = False,
-    ) -> JSONValue:
-        """Apply safe moves generated from vault review candidates.
-
-        Args:
-            project: Project used by this operation.
-            scope_path: Scope path used by this operation.
-            limit: Maximum number of items to process or return.
-            report_path: Report path used by this operation.
-            reindex: Reindex used by this operation.
-            verification_query: Verification query used by this operation.
-            confirm_apply: Confirm apply used by this operation.
-
-        Returns:
-            JSONValue result produced by tool vault review apply moves.
-        """
-        return await alexandria_vault_review_apply_moves(
-            api_client,
-            project,
-            scope_path,
-            limit,
-            report_path,
-            reindex,
-            verification_query,
-            confirm_apply,
         )
 
     @server.tool(name="alexandria_vault_inventory")

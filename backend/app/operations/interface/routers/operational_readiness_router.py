@@ -57,8 +57,7 @@ async def operational_readiness(
     status_code=status.HTTP_200_OK,
     summary="Get independently assessed platform capabilities",
     description=(
-        "Assess durable core memory independently from semantic retrieval and "
-        "the optional external Librarian connection."
+        "Assess durable core memory independently from optional semantic retrieval."
     ),
 )
 @inject
@@ -68,7 +67,7 @@ async def operational_capabilities(
         Depends(Provide[ApplicationContainer.operational_readiness_service]),
     ],
 ) -> OperationalCapabilitySnapshotResponse:
-    """Return independently classified core, semantic, and Librarian states.
+    """Return independently classified core and semantic states.
 
     Args:
         service: Request-scoped operational readiness application service.

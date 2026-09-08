@@ -410,7 +410,7 @@ def test_memory_compact_service_preserves_source_hash_evidence(
 def test_memory_compact_service_review_returns_passing_rubric(
     tmp_path: Path,
 ) -> None:
-    """Librarian review should return scores, pass verdict, and next action."""
+    """Memory Compact review should return scores, pass verdict, and next action."""
 
     async def scenario() -> tuple[MemoryCompactReviewVerdict, int, list[str], int]:
         service = _service(tmp_path / "vault")

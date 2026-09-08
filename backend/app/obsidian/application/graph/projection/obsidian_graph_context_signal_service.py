@@ -1,4 +1,4 @@
-"""Graph evidence enrichment through the optional Neo4j projection provider."""
+"""Graph evidence enrichment through the PostgreSQL/Rust projection provider."""
 
 from __future__ import annotations
 

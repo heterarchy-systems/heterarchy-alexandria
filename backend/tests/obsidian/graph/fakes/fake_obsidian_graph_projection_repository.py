@@ -219,7 +219,7 @@ def _relation_weight(relation: ObsidianRelationType) -> float:
         ObsidianRelationType.EXTENDS: 0.7,
         ObsidianRelationType.CONTRADICTS: 0.4,
         ObsidianRelationType.DUPLICATES: 0.8,
-        ObsidianRelationType.CONTAINS: 0.6,
+        ObsidianRelationType.CONTAINS: 0.4,
     }[relation]
 
 

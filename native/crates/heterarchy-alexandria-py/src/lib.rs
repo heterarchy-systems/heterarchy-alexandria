@@ -21,7 +21,8 @@ use context_reindex_manifest_wire::compute_context_reindex_manifest_payload;
 use document_index_wire::compute_document_index_batch_payload;
 use fastembed_runtime::infer_query_input;
 use graph_traversal_wire::{
-    compute_graph_candidate_selection_payload, compute_graph_traversal_payload,
+    compute_graph_candidate_selection_payload, compute_graph_projection_read_payload,
+    compute_graph_traversal_payload,
 };
 use heterarchy_alexandria_core::ComputeContractVersion;
 use heterarchy_alexandria_core::document_analysis::{
@@ -365,6 +366,18 @@ fn traverse_graph_projection_json<'python>(
     let owned_payload = payload.to_vec();
     let encoded = python
         .detach(move || compute_graph_traversal_payload(&owned_payload))
+        .map_err(PyValueError::new_err)?;
+    Ok(PyBytes::new(python, &encoded))
+}
+
+#[pyfunction]
+fn read_graph_projection_json<'python>(
+    python: Python<'python>,
+    payload: &[u8],
+) -> PyResult<Bound<'python, PyBytes>> {
+    let owned_payload = payload.to_vec();
+    let encoded = python
+        .detach(move || compute_graph_projection_read_payload(&owned_payload))
         .map_err(PyValueError::new_err)?;
     Ok(PyBytes::new(python, &encoded))
 }
@@ -848,6 +861,7 @@ fn heterarchy_alexandria_native(module: &Bound<'_, PyModule>) -> PyResult<()> {
         traverse_graph_projection_json,
         module
     )?)?;
+    module.add_function(pyo3::wrap_pyfunction!(read_graph_projection_json, module)?)?;
     module.add_function(pyo3::wrap_pyfunction!(
         select_graph_projection_candidates_json,
         module

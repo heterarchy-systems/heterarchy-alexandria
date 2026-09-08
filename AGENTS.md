@@ -1,167 +1,76 @@
-# heterarchy-alexandria Agent Entry
+# Repository Guidelines
 
-This file is the mandatory entrypoint for agents modifying heterarchy-alexandria.
+## Execution and Approval
+- For requested repository changes, perform reversible in-scope local edits and relevant non-destructive validation without unnecessary confirmation.
+- Preserve unrelated dirty worktree changes. Do not use broad reset, clean, revert, checkout, or stash as routine cleanup.
+- Ask before external publication/deployment, credential mutation, destructive data actions not already requested, commit/push, or irreversible scope expansion.
 
-Before modifying Python backend code, read the following files in order:
+## Applicable Instructions
+Precedence: platform/safety → current user task → closest `AGENTS.md` → broader repository instructions → adopted Engineering Harness profile/rules → task-relevant Skills → live code conventions.
 
-1. `.agents/python_dev_harness/docs/rule/규칙.md`
-2. `.agents/python_dev_harness/docs/rule/README.md`
-3. The detailed rule documents directly related to the current task
-4. Any PRD, meeting note, or requirements document explicitly designated for the current task
+Load only the rule families relevant to the touched surface. PRDs and notes are task inputs, not engineering-rule authority unless explicitly designated.
 
-The source of truth for backend development rules is:
+## Engineering Harness
+Engineering testing, verification, change discipline, solution minimality, and language invariants follow the repository Harness under `.agents/`.
 
-```text
-.agents/python_dev_harness/docs/rule/
-```
+Shared contracts:
+- `.agents/shared/contracts/00-harness-authority-and-layering.md`
+- `.agents/shared/contracts/01-testing-and-verification.md`
+- `.agents/shared/contracts/02-agent-execution.md`
+- `.agents/shared/contracts/04-solution-minimality.md`
+- `.agents/shared/skills/minimal-engineering/SKILL.md`
 
-Before modifying Rust code, read in order:
+Python work:
+- `.agents/python_dev_harness/PROJECT_PROFILE.md`
+- `.agents/python_dev_harness/HARNESS.toml`
+- `.agents/python_dev_harness/rules/README.md`
+- load only applicable normal/type/async/Pydantic/framework profile rules and Skills.
 
-1. `.agents/rust_dev_harness/PROJECT_PROFILE.md`
-2. `.agents/rust_dev_harness/rules/00-overview.md`
-3. `.agents/rust_dev_harness/rules/README.md`
-4. The numbered Rust rules matching the touched compute boundary
-5. `.agents/rust_dev_harness/skills/rust-alexandria-compute-engineering/SKILL.md`
+Rust work:
+- `.agents/rust_dev_harness/PROJECT_PROFILE.md`
+- `.agents/rust_dev_harness/HARNESS.toml`
+- `.agents/rust_dev_harness/rules/README.md`
+- `.agents/rust_dev_harness/skills/rust-engineering/SKILL.md`
 
-Rust harness rules are the source of truth for Rust compute work. Rust reference material is not active authority.
+Python↔Rust boundary work additionally loads:
+- `.agents/python_rust_dev_harness/CROSS_LANGUAGE_PROFILE.md`
+- `.agents/python_rust_dev_harness/CROSS_LANGUAGE.toml`
+- `.agents/python_rust_dev_harness/rules/README.md`
 
-PRDs, meeting notes, and functional requirements are not development rules.
+Do not duplicate Harness doctrine in AGENTS. If a mechanical verifier is stricter than its governing rule/profile, treat it as Harness drift before distorting production design.
 
-Do not automatically treat an attached or discovered PRD as an implementation request. Use it as task input only when the user explicitly requests its application or the repository explicitly links it to the current task.
+## Repository Architecture
+- Python owns MCP/FastAPI/Pydantic/DI, lifecycle/policy, PostgreSQL/Redis/filesystem effects and external I/O.
+- PostgreSQL is the persistent runtime authority for indexed graph source and memory data.
+- Rust is the single production authority for declared deterministic compute, including graph projection/traversal/candidate selection and retrieval kernels.
+- PyO3 adapter code stays thin; Rust core has no Python/PyO3/database/effect ownership.
+- Permanent Python/Rust dual compute authority and SQLite compatibility fallbacks are forbidden.
+- `backend/app/shared/` is for genuinely shared contracts/infrastructure, not a generic utility bucket.
 
-When repository conventions and a task-specific document conflict, do not silently choose one. Identify the conflict before expanding the change scope.
+## Build and Verification
+Canonical entrypoints:
+- backend focused work: `cd backend && uv run ruff check .`, `uv run pyrefly check`, relevant `uv run pytest ...`
+- Rust/native: `cargo xtask rules`, `cargo xtask ci`
+- repository closure: `make ci`
 
----
+Only checks actually executed are VERIFIED. Report exact failures/blockers and unexecuted lanes.
 
-# Project Structure and Module Organization
+## Subagent Routing
+Repository-local Codex topology:
+- Main/Coordinator: GPT-6 Astra with `high` reasoning.
+- All actual subagents: GPT-5.6 Luna with `max` reasoning.
+- Canonical roles: `context_steward`, `exploration_steward`, `implementation_steward`, `integration_steward`, `verification_steward`.
+- No separate technical-lead model tier is active; Astra Main owns architecture and authority decisions.
 
-This repository is a backend and CLI service for heterarchy-alexandria.
+Use the fewest agents that materially improve correctness, evidence, or elapsed time; zero-worker routing is valid. Parallelize only independent work with disjoint ownership. Never run overlapping writers.
 
-## Repository Structure
+Astra Main owns user intent, scope interpretation, architecture/authority decisions, root-cause and contract freeze, decomposition, acceptance criteria, conflict resolution, and final semantic acceptance. Luna workers own bounded context gathering, exploration, implementation, integration, and verification evidence.
 
-* `.agents/`
+Luna must escalate architecture/authority ambiguity, concurrency or race semantics, recovery, persistence, security, unsafe/FFI, protocol semantics, or cross-boundary lifecycle questions directly to Astra Main rather than designing a new authority locally.
 
-  * Repository-root development harness router
-  * `.agents/python_dev_harness/`
+`context_steward` and `exploration_steward` are read-only. `implementation_steward` and `integration_steward` are bounded writers after contract freeze. `verification_steward` is an independent evidence producer and must not modify tracked production source, tests, fixtures, golden files, configuration, expected outputs, or acceptance criteria.
 
-    * Active Python rules, FastAPI/DI skills, manifest, and mechanical verifiers
-  * `.agents/rust_dev_harness/`
+When Forge is used, Goal/DAG truth, Writer Lease, source/worktree mutation, Approval/Execution, ChangeSet/Diff and evidence provenance remain Forge-owned. Do not duplicate Activity/Goal/DAG state, overlap writers, or retry an unknown mutation outcome before durable read-back.
 
-    * Active Rust compute-core rules, project profile, skill, and reference provenance
-* `backend/`
-
-  * Python FastAPI service with CLI and MCP integration
-  * `backend/AGENTS.md`
-
-    * Mandatory backend agent entrypoint
-  * `.agents/python_dev_harness/docs/rule/`
-
-    * Source of truth for backend development rules
-  * `backend/app/`
-
-    * Backend application code
-    * Application entrypoint: `backend/app/main.py`
-  * `backend/app/platform/`
-
-    * Platform-level concerns such as routing, middleware, lifecycle, configuration, and logging
-  * `backend/app/shared/`
-
-    * Definitions and guardrails genuinely reused across multiple concepts
-    * Must not become a generic utility bucket
-  * `backend/tests/`
-
-    * Backend tests named `test_*.py`
-* `docker-compose.yml`
-
-  * Runs the backend service by default
-  * Includes an optional `graph` profile for local Neo4j graph read-model projection
-* `README.md`
-
-  * High-level setup and startup instructions
-
-The previous Next.js `frontend/` service has been removed.
-
-Do not add npm, Node.js, React, Next.js, or frontend workflows unless the product direction changes explicitly.
-
-Preserve the existing heterarchy-alexandria directory structure unless the current task provides a concrete reason to change it.
-
-Do not create generic modules or directories such as:
-
-* `util`
-* `utils`
-* `helpers`
-* `common`
-* `misc`
-
-Prefer purpose-specific names such as:
-
-* `frontmatter_parser.py`
-* `scope_identity_validator.py`
-* `context_recall_filter.py`
-* `compact_promotion_service.py`
-* `graph_edge_indexer.py`
-
----
-
-# Build, Test, and Development Commands
-
-## Required Rule Reading
-
-Before changing backend code, read:
-
-1. `AGENTS.md`
-2. `backend/AGENTS.md`
-3. `.agents/python_dev_harness/docs/rule/규칙.md`
-4. `.agents/python_dev_harness/docs/rule/README.md`
-5. The detailed rule documents relevant to the current task
-6. Task-specific documents explicitly designated by the user or repository
-
-Do not read every detailed rule file automatically when only a subset is relevant.
-
-## Backend Commands
-
-Run backend commands from the `backend/` directory.
-
-```bash
-cd backend
-uv sync
-uv run ruff check .
-uv run ruff format .
-uv run pyrefly check
-uv run pytest -q
-```
-
-A backend change is not `VERIFIED` unless the relevant formatting, linting, type checking, and tests have actually completed successfully.
-
-When only part of the verification suite was executed, report:
-
-* The exact commands executed
-* Their exit status
-* The scope actually verified
-* Any checks that were not executed
-
-## Rust Commands
-
-Run Rust migration harness commands from the repository root.
-
-```bash
-cargo xtask rules
-cargo xtask fmt
-cargo xtask check
-cargo xtask test
-cargo xtask ci
-cargo xtask perf
-cargo xtask extended
-cargo xtask doctor
-cargo xtask deps
-```
-
-`cargo xtask deps` may report `BLOCKED` until a dependency-audit policy/tool is explicitly configured; do not report it as PASS when it was not run.
-
-## Aggregate Repository Gate
-
-```bash
-make ci
-```
-
-The root `make ci` preserves the canonical Python `backend/Makefile` gate and then runs `cargo xtask ci`. A Rust scaffold does not imply that any production compute feature has migrated.
+## Final Report
+Report only meaningful changes, affected authority/runtime surfaces, exact validation outcomes, and unresolved risks or unverified lanes.

@@ -35,8 +35,9 @@ uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ### 확인
 
 ```bash
-heterarchy-alexandria context recall "your query" --strategy FTS_ONLY --limit 5
-heterarchy-alexandria context recall "your query" --strategy FTS_ONLY --project <project> --limit 5
+curl -fsS -X POST http://127.0.0.1:8000/memory/contexts/retrieval/search \
+  -H 'Content-Type: application/json' \
+  --data '{"query":"your query","strategy":"FTS_ONLY","limit":5}' | jq
 ```
 
 ### 조치
@@ -50,13 +51,13 @@ heterarchy-alexandria context recall "your query" --strategy FTS_ONLY --project 
 ### 확인
 
 ```bash
-heterarchy-alexandria context doctor-rag
+curl -fsS http://127.0.0.1:8000/memory/contexts/rag/status | jq
 ```
 
 ### 조치
 
 - smoke test는 `FTS_ONLY`로 먼저 통과시킨다.
-- vector를 쓰려면 backend config의 FastEmbed/sqlite-vec 설정을 확인한다.
+- vector를 쓰려면 backend의 FastEmbed/pgvector 상태와 `/operations/readiness`를 확인한다.
 - migration 후 backend를 재시작한다.
 
 ## MCP snippet은 있는데 Hermes tool이 안 보임

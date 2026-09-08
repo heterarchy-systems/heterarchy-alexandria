@@ -18,7 +18,6 @@ from app.memory.infrastructure.repositories.contexts.records.scope_recall_filter
     scope_recall_clause,
 )
 from app.obsidian.domain.event_enum.obsidian_enums import (
-    AlexandriaNoteType,
     ObsidianIndexStatus,
 )
 from app.obsidian.infrastructure.models.obsidian_index_models import (
@@ -103,7 +102,6 @@ def _recall_visibility_conditions(
     )
     return (
         ObsidianFileORM.index_status == ObsidianIndexStatus.INDEXED.value,
-        ObsidianFileORM.alexandria_type != AlexandriaNoteType.LIBRARIAN_CHAT.value,
         normalized_status.in_(
             ContextRecallLifecycleStatus.obsidian_values(include_lifecycle_statuses)
         ),

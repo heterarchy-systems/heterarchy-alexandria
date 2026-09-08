@@ -1,4 +1,4 @@
-"""Explicit rebuild/status operations for the optional graph projection."""
+"""Explicit rebuild/status operations for the PostgreSQL graph projection."""
 
 from __future__ import annotations
 
@@ -23,8 +23,8 @@ from app.shared.application.index_maintenance_coordinator import (
     IndexMaintenanceCoordinator,
 )
 
-GraphProjectionRebuildStatus = Literal["completed", "disabled", "failed"]
-GraphProjectionStatus = Literal["disabled", "uninitialized", "ready", "unavailable"]
+GraphProjectionRebuildStatus = Literal["completed", "failed"]
+GraphProjectionStatus = Literal["uninitialized", "ready", "unavailable"]
 PROJECTION_VERSION = 1
 
 
@@ -56,7 +56,7 @@ class ObsidianGraphProjectionRebuildReport:
     """Stable result contract for one explicit projection rebuild request."""
 
     status: GraphProjectionRebuildStatus
-    graph_read_model: Literal["disabled", "neo4j"]
+    graph_read_model: Literal["postgresql"]
     run_id: str
     scanned: int
     indexed: int
@@ -84,10 +84,10 @@ class ObsidianGraphProjectionRebuildReport:
 
 @dataclass(slots=True, kw_only=True)
 class ObsidianGraphProjectionStatusReport:
-    """Stable status contract for the optional graph projection."""
+    """Stable status contract for the PostgreSQL graph projection."""
 
     status: GraphProjectionStatus
-    graph_read_model: Literal["disabled", "neo4j"]
+    graph_read_model: Literal["postgresql"]
     enabled: bool
     node_count: int
     edge_count: int
@@ -108,13 +108,13 @@ class ObsidianGraphProjectionStatusReport:
 
 
 class ObsidianGraphProjectionRebuildService:
-    """Coordinate read-only source building with the optional projection adapter."""
+    """Coordinate read-only source building with the PostgreSQL projection adapter."""
 
     def __init__(
         self,
         config: AppConfig,
         source_builder: ObsidianGraphProjectionSourceBuilderProtocol,
-        repository: IObsidianGraphProjectionRepository | None,
+        repository: IObsidianGraphProjectionRepository,
         run_id_factory: Callable[[], str] | None = None,
         monotonic_seconds: Callable[[], float] | None = None,
         index_maintenance_coordinator: IndexMaintenanceCoordinator | None = None,
@@ -124,7 +124,7 @@ class ObsidianGraphProjectionRebuildService:
         Args:
             config: Typed application configuration.
             source_builder: Read-only builder over the current relational index/cache.
-            repository: Optional graph projection adapter; absent when disabled.
+            repository: Required PostgreSQL graph projection adapter.
             run_id_factory: Optional deterministic run id source for tests.
             monotonic_seconds: Optional monotonic clock for duration measurement.
             index_maintenance_coordinator: Index maintenance coordinator used by this operation.
@@ -143,7 +143,7 @@ class ObsidianGraphProjectionRebuildService:
         include_issue_details: bool = False,
         issue_limit: int = 100,
     ) -> ObsidianGraphProjectionRebuildReport:
-        """Run one explicit rebuild or return an explicit disabled response.
+        """Run one explicit PostgreSQL graph projection rebuild.
 
         Args:
             include_issue_details: Include a bounded sample of non-fatal issues.
@@ -155,8 +155,6 @@ class ObsidianGraphProjectionRebuildService:
         if issue_limit < 1:
             raise ValueError("issue_limit must be greater than zero")
         repository = self._repository
-        if self._config.graph_read_model == "disabled" or repository is None:
-            return self._disabled_report()
         async with self._index_maintenance_coordinator.operation(
             "graph_projection_rebuild"
         ):
@@ -165,25 +163,6 @@ class ObsidianGraphProjectionRebuildService:
                 include_issue_details=include_issue_details,
                 issue_limit=issue_limit,
             )
-
-    def _disabled_report(self) -> ObsidianGraphProjectionRebuildReport:
-        """Execute disabled report.
-
-        Returns:
-            ObsidianGraphProjectionRebuildReport result produced by disabled report.
-        """
-        run_id = self._run_id_factory()
-        started_at = self._monotonic_seconds()
-        return ObsidianGraphProjectionRebuildReport(
-            status="disabled",
-            graph_read_model=self._config.graph_read_model,
-            run_id=run_id,
-            scanned=0,
-            indexed=0,
-            updated=0,
-            skipped=0,
-            duration_seconds=_duration(started_at, self._monotonic_seconds()),
-        )
 
     async def _rebuild_enabled(
         self,
@@ -286,15 +265,6 @@ class ObsidianGraphProjectionRebuildService:
         Returns:
             Typed projection status report.
         """
-        if self._config.graph_read_model == "disabled" or self._repository is None:
-            return ObsidianGraphProjectionStatusReport(
-                status="disabled",
-                graph_read_model=self._config.graph_read_model,
-                enabled=False,
-                node_count=0,
-                edge_count=0,
-                errors=(),
-            )
         try:
             state = await self._repository.state()
         except Exception as exc:
@@ -361,7 +331,7 @@ def _operation_failure(
     """
     return ObsidianGraphProjectionOperationError(
         code=code,
-        detail=f"{type(exc).__name__} while updating optional graph projection",
+        detail=f"{type(exc).__name__} while updating PostgreSQL graph projection",
     )
 
 

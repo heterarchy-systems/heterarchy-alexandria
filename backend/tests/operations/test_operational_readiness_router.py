@@ -36,7 +36,6 @@ from fastapi.testclient import TestClient
 
 _ROUTER_PACKAGES = [
     "app.connections.interface.routers",
-    "app.librarian.interface.routers",
     "app.memory.interface.routers",
     "app.obsidian.interface.routers",
     "app.operations.interface.routers",
@@ -247,8 +246,6 @@ def test_operational_capabilities_keep_core_ready_without_embeddings(
     assert payload["semantic_retrieval"]["state"] == "DEGRADED"
     assert payload["semantic_retrieval"]["ready"] is False
     assert "rag_embedding_not_healthy" in payload["semantic_retrieval"]["blockers"]
-    assert payload["librarian"]["state"] == "OPTIONAL"
-    assert payload["librarian"]["ready"] is True
 
 
 def test_fastapi_resolves_readiness_and_recovery_dependencies(

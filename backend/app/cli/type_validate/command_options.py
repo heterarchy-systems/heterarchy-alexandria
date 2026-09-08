@@ -31,7 +31,7 @@ RequiredToolOption = Annotated[
     list[str] | None,
     typer.Option(
         "--required-tool",
-        help="Required tool name. Defaults to Memory Steward/Vault maintenance tools.",
+        help="Required tool name. Defaults to Memory Steward tools.",
     ),
 ]
 ProjectOption = Annotated[
@@ -46,14 +46,6 @@ MaxCompactAgeDaysOption = Annotated[
         "--max-compact-age-days",
         help="Maximum acceptable age for the CURRENT Memory Compact.",
     ),
-]
-ScopePathOption = Annotated[
-    str | None,
-    typer.Option("--scope-path", help="Optional vault-relative scope path."),
-]
-LimitOption = Annotated[
-    int,
-    typer.Option("--limit", help="Maximum review candidates to return or plan."),
 ]
 SummaryOption = Annotated[
     bool,
@@ -94,25 +86,6 @@ ForceOption = Annotated[
         help="Create a compact even when readiness is already fresh.",
     ),
 ]
-ReportPathOption = Annotated[
-    str | None,
-    typer.Option("--report-path", help="Optional vault-relative report path stem."),
-]
-ConfirmApplyOption = Annotated[
-    bool,
-    typer.Option(
-        "--confirm-apply",
-        help="Required when the review move plan contains moves.",
-    ),
-]
-NoReindexOption = Annotated[
-    bool,
-    typer.Option("--no-reindex", help="Skip Obsidian index rebuild after applying."),
-]
-VerificationQueryOption = Annotated[
-    str | None,
-    typer.Option("--verification-query", help="Optional query used after apply."),
-]
 
 
 @dataclass(frozen=True, slots=True)
@@ -126,21 +99,6 @@ class MemoryStewardReadinessOptions:
 
     project: str | None
     max_compact_age_days: int
-
-
-@dataclass(frozen=True, slots=True)
-class VaultReviewOptions:
-    """Options shared by vault review queue and move planning commands.
-
-    Args:
-        project: Optional project filter.
-        scope_path: Optional vault-relative scope path.
-        limit: Maximum candidate count to fetch or plan.
-    """
-
-    project: str | None
-    scope_path: str | None
-    limit: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -160,22 +118,3 @@ class MemoryCompactRefreshOptions:
     apply: bool
     force: bool
     covered_to: str | None
-
-
-@dataclass(frozen=True, slots=True)
-class VaultReviewApplyOptions:
-    """Options for confirmation-gated vault move application.
-
-    Args:
-        review: Shared review queue scope and limit options.
-        report_path: Optional vault-relative operation report path stem.
-        reindex: Whether to rebuild the Obsidian index after applying moves.
-        verification_query: Optional query used after apply.
-        confirm_apply: Explicit confirmation required for non-empty plans.
-    """
-
-    review: VaultReviewOptions
-    report_path: str | None
-    reindex: bool
-    verification_query: str | None
-    confirm_apply: bool

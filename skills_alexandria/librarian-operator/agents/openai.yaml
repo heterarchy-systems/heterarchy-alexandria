@@ -1,4 +1,0 @@
-interface:
-  display_name: "Librarian Operator"
-  short_description: "Use Alexandria Librarian capabilities safely and search-first."
-  default_prompt: "Use the Alexandria Librarian operator workflow to choose search, memory compact, vault curation, skill acquisition, or delegated librarian guidance for this task."

@@ -8,10 +8,9 @@ Terminal 1:
 
 ```bash
 cd backend
-uv sync
-uv run heterarchy-alexandria setup --mode backend-daemon --apply --write-guidebook --run-migrations
-uv run heterarchy-alexandria serve \
-  --env-file "$HOME/.hermes/heterarchy-alexandria/.env" \
+uv sync --locked --no-editable
+uv run alembic upgrade head
+uv run uvicorn app.main:app \
   --host 127.0.0.1 \
   --port 8000
 ```
@@ -20,8 +19,8 @@ Terminal 2:
 
 ```bash
 cd backend
-uv run heterarchy-alexandria obsidian init
-uv run heterarchy-alexandria obsidian reindex
+curl -fsS -X POST http://127.0.0.1:8000/obsidian/init
+curl -fsS -X POST http://127.0.0.1:8000/obsidian/index/rebuild
 ```
 
 Open `~/.hermes/heterarchy-alexandria/data/obsidian-vault` in Obsidian.
@@ -30,38 +29,22 @@ Open `~/.hermes/heterarchy-alexandria/data/obsidian-vault` in Obsidian.
 
 ```bash
 cd backend
-uv sync
-uv run heterarchy-alexandria setup \
-  --mode backend-daemon \
-  --apply \
-  --write-guidebook \
-  --run-migrations \
-  --obsidian-vault-path "$HOME/Desktop/Alexandria" \
-  --alexandria-obsidian-root "."
+export SERVICE_OBSIDIAN_VAULT_PATH="$HOME/Desktop/Alexandria"
+export SERVICE_ALEXANDRIA_OBSIDIAN_ROOT="."
+uv sync --locked --no-editable
+uv run alembic upgrade head
+uv run uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
 Use root `.` when the vault itself is the Alexandria workspace; this avoids `Alexandria/Alexandria` nesting.
 
-Then start the backend with the generated env file:
-
-```bash
-uv run heterarchy-alexandria serve \
-  --env-file "$HOME/.hermes/heterarchy-alexandria/.env" \
-  --host 127.0.0.1 \
-  --port 8000
-```
-
-## Obsidian side pane
+## Verify the backend and MCP surface
 
 ```bash
 brew install --cask obsidian
-cd backend
-uv run heterarchy-alexandria obsidian install-local \
-  --vault-path "$HOME/Desktop/Alexandria" \
-  --plugin-install-mode copy
+curl -fsS http://127.0.0.1:8000/operations/readiness | jq
+curl -fsS -X POST http://127.0.0.1:8000/obsidian/index/rebuild | jq
 ```
-
-Enable **Alexandria Librarian** in Obsidian Community plugins while the backend is running.
 
 ## Docker Compose
 

@@ -27,12 +27,6 @@ from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild
 from app.obsidian.application.graph.projection.obsidian_graph_projection_source_builder import (
     ObsidianGraphProjectionSourceBuilder,
 )
-from app.obsidian.application.librarian.workflow.obsidian_librarian_job_service import (
-    ObsidianLibrarianJobService,
-)
-from app.obsidian.application.librarian.workflow.obsidian_librarian_workflow_service import (
-    ObsidianLibrarianWorkflowService,
-)
 from app.obsidian.application.service.notes.obsidian_canonical_identity_service import (
     ObsidianCanonicalIdentityService,
 )
@@ -57,9 +51,6 @@ from app.obsidian.infrastructure.obsidian_vault_config_store import (
 )
 from app.obsidian.infrastructure.repositories.obsidian_index_repository import (
     SqlAlchemyObsidianIndexRepository,
-)
-from app.obsidian.infrastructure.repositories.obsidian_workflow_repository import (
-    SqlAlchemyObsidianWorkflowRepository,
 )
 from app.platform.config.app_config import AppConfig
 from app.shared.application.index_maintenance_coordinator import (
@@ -101,7 +92,6 @@ class ObsidianContainer(containers.DeclarativeContainer):
     db_session = providers.Dependency(instance_of=AsyncSession)
     database = providers.Dependency(instance_of=Database)
     app_config = providers.Dependency(instance_of=AppConfig)
-    librarian_delegate_service = providers.Dependency(default=None)
     memory_context_service = providers.Dependency(
         instance_of=ContextService,
         default=None,
@@ -110,7 +100,7 @@ class ObsidianContainer(containers.DeclarativeContainer):
         instance_of=ContextEmbeddingRecoveryService,
         default=None,
     )
-    graph_projection_repository = providers.Dependency(default=None)
+    graph_projection_repository = providers.Dependency()
     index_maintenance_coordinator = providers.Dependency(
         instance_of=IndexMaintenanceCoordinator
     )
@@ -168,7 +158,6 @@ class ObsidianContainer(containers.DeclarativeContainer):
         repository=index_repo,
         vault_config_store=vault_config_store,
         context_reindex_manifest_validator=context_reindex_manifest_validator,
-        delegate_service=librarian_delegate_service,
         context_reindex_hook=providers.Factory(
             _build_context_reindex_hook,
             enabled=app_config.provided.rag_embedding_recovery_on_vault_reindex,
@@ -200,20 +189,4 @@ class ObsidianContainer(containers.DeclarativeContainer):
         ObsidianCanonicalIdentityService,
         obsidian_service=obsidian_service,
         vault_config_store=vault_config_store,
-    )
-    job_service = providers.Singleton(
-        ObsidianLibrarianJobService,
-        database=database,
-        vault_config_store=vault_config_store,
-        context_reindex_manifest_validator=context_reindex_manifest_validator,
-        delegate_service=librarian_delegate_service,
-    )
-    workflow_repo = providers.Factory(
-        SqlAlchemyObsidianWorkflowRepository, session=db_session
-    )
-    workflow_service = providers.Factory(
-        ObsidianLibrarianWorkflowService.from_services,
-        workflow_repository=workflow_repo,
-        obsidian_service=obsidian_service,
-        delegate_service=librarian_delegate_service,
     )

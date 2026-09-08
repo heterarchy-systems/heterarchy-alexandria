@@ -1,6 +1,6 @@
 # Memory Compacts Guide 01 — Coverage Window and Rollups
 
-Memory Compacts are durable summaries that help Hermes and librarian agents resume long-running work without replaying every chat or raw log.
+Memory Compacts are durable summaries that help Hermes and Memory Steward resume long-running work without replaying every chat or raw log.
 
 ## Recommended window
 
@@ -30,7 +30,7 @@ Compact before the 24-hour window ends when:
 - a user explicitly asks for a handoff or summary;
 - a long-running coding/research task reaches a coherent checkpoint;
 - an implementation decision, bug root cause, or migration state must be preserved;
-- a session is ending and future Hermes/librarian agents need restore context.
+- a session is ending and future Hermes/Memory Steward runs need restore context.
 
 ## What to include
 
@@ -48,21 +48,23 @@ Do not include raw secrets, full transcripts, or noisy progress logs.
 
 ## Storage contract
 
-Memory Compacts are stored as Obsidian Markdown notes, not SQLite rows. The backend writes notes under:
+Memory Compacts are stored as Obsidian Markdown notes. PostgreSQL owns their
+indexed source and lifecycle state; the backend writes notes under:
 
 ```text
 SERVICE_OBSIDIAN_VAULT_PATH/Alexandria/Memory Compacts/
 ```
 
-Override the folder with `SERVICE_MEMORY_COMPACT_NOTE_DIR` when the vault needs a different layout. Each note includes YAML frontmatter with `alexandria_type: memory_compact`, stable `id`, lifecycle `status`, coverage timestamps, and source refs. SQLite should not be treated as the canonical store for Memory Compact content.
+Override the folder with `SERVICE_MEMORY_COMPACT_NOTE_DIR` when the vault needs a different layout. Each note includes YAML frontmatter with `alexandria_type: memory_compact`, stable `id`, lifecycle `status`, coverage timestamps, and source refs.
 
-After manual vault edits or SQLite cache recreation, rebuild search rows with:
+After manual vault edits, rebuild the PostgreSQL index with the registered MCP
+maintenance tool or HTTP route:
 
 ```bash
-heterarchy-alexandria obsidian reindex
+curl -fsS -X POST http://127.0.0.1:8000/obsidian/index/rebuild | jq
 ```
 
-For migration-only imports that do not need the Memory Compact lifecycle API,
-`heterarchy-alexandria obsidian capture --type memory_compact` can create an
-Alexandria-managed Markdown note with artifact frontmatter. Use the lifecycle
-API/CLI for normal current/superseded compact management.
+Use `alexandria_get_current_memory_compact`,
+`alexandria_memory_steward_readiness`, and
+`alexandria_memory_steward_refresh_current_compact` for the Memory Steward
+lifecycle.

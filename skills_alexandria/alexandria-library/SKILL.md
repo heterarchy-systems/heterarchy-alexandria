@@ -1,6 +1,6 @@
 ---
 name: alexandria-library
-description: Use when current/local Hermes context, memory, skills, prompts, graph-related notes, or librarian-backed self-acquisition may help the task, especially when agents must search or safely update scoped Obsidian-backed memory without overwriting another agent.
+description: Use when current/local Hermes context, memory, skills, prompts, graph-related notes, or Memory Steward state may help the task, especially when agents must search or safely update scoped Obsidian-backed memory without overwriting another agent.
 ---
 
 # Alexandria Library
@@ -12,20 +12,19 @@ Use Alexandria as an optional local-first knowledge library for Hermes.
 - When local/current context is insufficient, read the current Memory Compact
   before deeper Context Vault recall/RAG.
 - Recall project decisions, compact handoffs, skill candidates, prompts, and usage notes.
-- Expand from a relevant seed note through the optional Neo4j related-note graph when direct search is not enough.
-- Acquire a missing skill through Hermes-alone fallback first; ask a librarian only on explicit user request.
+- Expand from a relevant seed note through the PostgreSQL/Rust related-note graph when direct search is not enough.
+- Create or update reusable skills through the current MCP note-write boundary.
 
 ## Availability and opt-out contract
 - Honor an explicit user instruction to avoid Alexandria for the current task/session.
-- Do not claim a `policy` or `doctor` CLI command exists; the current CLI surface exposes `mcp`, `memory-steward`, and `vault` command groups.
+- Do not claim a `policy`, `doctor`, or `vault` CLI command exists; the current CLI surface exposes `mcp` and `memory-steward` command groups.
 - Prefer `alexandria_operational_readiness`, `alexandria_rag_status`, and other current `alexandria_*` MCP tools for runtime status.
 - If MCP is unavailable, use the live HTTP readiness/RAG endpoints or the supported CLI command groups instead of inventing a legacy policy command.
-- Librarian delegation is optional and should require explicit user request unless a stricter current task contract says otherwise.
 
 ## Status/diagnostics
 - Primary readiness: `alexandria_operational_readiness()` or `GET /operations/readiness`.
 - RAG health: `alexandria_rag_status()` or `GET /memory/contexts/rag/status`.
-- Graph status: `alexandria_get_graph_projection_status()` when graph expansion matters.
+- Graph status: `alexandria_get_graph_projection_status()` when graph expansion matters; PostgreSQL is the graph source and Rust owns deterministic graph compute.
 - CLI fallback is limited to commands actually shown by `heterarchy-alexandria --help`.
 
 ## Procedure
@@ -33,8 +32,6 @@ Use Alexandria as an optional local-first knowledge library for Hermes.
 - Long-term memory lookup order: current conversation and Hermes local memory
   first, then current Memory Compact, then Context Vault recall/RAG, then
   library skill/prompt search, then Hermes self-acquisition.
-- Treat librarian delegation as separate from memory lookup; use a librarian only
-  on explicit user request or stricter local policy.
 - Keep writes compact and durable: decisions, root causes, reusable plans, and skill candidates.
 - Do not store secrets, transient task logs, or private credentials.
 
@@ -48,11 +45,10 @@ Use search to find a relevant seed note before traversing the graph:
 4. Use `alexandria_get_related_notes(note_id=... | path=...)` to inspect related notes.
 5. Read and cite the returned notes before using them as evidence.
 
-The graph is a rebuildable Neo4j read model, not a source of truth. Obsidian
-Markdown remains canonical, while PostgreSQL indexed edge state remains
-projection source-cache state. If graph projection is disabled or unavailable,
-continue with normal scoped RAG and do not simulate graph traversal from the
-PostgreSQL edge cache.
+The graph source is PostgreSQL indexed edge state, while Rust owns deterministic
+projection, traversal, and candidate-selection compute. The application keeps a
+rebuildable projection cache and does not simulate graph traversal in a second
+runtime authority.
 Missing or ambiguous targets are reported as counted, non-fatal rebuild issues
 and are excluded from the active projection. Use detailed issue output only as a
 bounded repair sample, not as the normal graph status payload.
@@ -106,6 +102,5 @@ not perform an implicit vault reindex.
 
 ## Related Alexandria skills
 
-- [[Skills/Active/Librarian Operator]] — search-first curation, note-aware synthesis, and graph expansion.
 - [[Skills/Active/Alexandria Operational Sync]] — vault, embedding, and graph projection recovery.
 - `skills_alexandria/safe-markdown-storage/SKILL.md` — canonical Markdown write, integrity, path, and concurrency rules.

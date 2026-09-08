@@ -10,8 +10,6 @@ from app.obsidian.domain.event_enum.obsidian_enums import (
     ObsidianEdgeSourceKind,
     ObsidianIndexErrorCode,
     ObsidianIndexStatus,
-    ObsidianLibrarianJobStatus,
-    ObsidianLibrarianWorkflowStatus,
     ObsidianRelationType,
     ObsidianReportBundleCompletionStatus,
     ObsidianWriteMatchBy,
@@ -173,23 +171,6 @@ class ObsidianRelatedNote:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class ObsidianLibrarianWorkflow:
-    """Persisted Obsidian librarian workflow checkpoint."""
-
-    thread_id: str
-    status: ObsidianLibrarianWorkflowStatus
-    query: str
-    active_note_path: str | None
-    project: str | None
-    provider_id: str | None
-    profile_id: str | None
-    delegate_requested: bool
-    state: JSONObject
-    created_at: datetime
-    updated_at: datetime
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
 class ObsidianSearchHit:
     """One Obsidian search result with path and snippet metadata."""
 
@@ -272,30 +253,6 @@ class ObsidianVaultInventoryItem:
     modified_at: datetime
 
 
-@dataclass(slots=True, kw_only=True)
-class ObsidianLibrarianReviewQueueItem:
-    """One note that should be reviewed by the librarian curation loop."""
-
-    note_id: str
-    relative_path: str
-    alexandria_type: AlexandriaNoteType
-    title: str
-    status: str
-    tags: tuple[str, ...]
-    project: str | None
-    reason: str
-    recommended_action: str
-    suggested_destination_path: str | None
-    priority: int
-    confidence: float
-    requires_human_review: bool
-    verification_query: str | None
-
-    def __post_init__(self) -> None:
-        """Normalize curation tags to an immutable sequence."""
-        self.tags = tuple(self.tags)
-
-
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ObsidianVaultMoveCandidate:
     """One planned vault move after safety validation."""
@@ -316,7 +273,7 @@ class ObsidianVaultMoveSkip:
 
 @dataclass(slots=True, kw_only=True)
 class ObsidianVaultMovePlan:
-    """Dry-run move plan for a librarian vault operation."""
+    """Dry-run plan for a safe vault move operation."""
 
     status: str
     hard_delete_performed: bool
@@ -351,7 +308,7 @@ class ObsidianVaultMoveVerification:
 
 @dataclass(slots=True, kw_only=True)
 class ObsidianVaultMoveReport:
-    """Final report for a safe librarian vault move operation."""
+    """Final report for a safe vault move operation."""
 
     status: str
     hard_delete_performed: bool
@@ -367,16 +324,3 @@ class ObsidianVaultMoveReport:
         self.moved = tuple(self.moved)
         self.skipped = tuple(self.skipped)
         self.ambiguous = tuple(self.ambiguous)
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class ObsidianLibrarianJob:
-    """Typed status snapshot for one librarian execution job."""
-
-    job_id: str
-    status: ObsidianLibrarianJobStatus
-    operation: str
-    report: ObsidianVaultMoveReport | None
-    error_message: str | None
-    created_at: datetime
-    updated_at: datetime

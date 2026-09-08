@@ -5,18 +5,9 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 
-from app.obsidian.application.librarian.delegation.obsidian_librarian_delegation import (
-    ObsidianLibrarianDelegateService,
-)
 from app.obsidian.application.notes.lifecycle.obsidian_context_reindex_manifest import (
     UNCONFIGURED_CONTEXT_REINDEX_MANIFEST_VALIDATOR,
     ContextReindexManifestValidator,
-)
-from app.obsidian.application.service.librarian.obsidian_librarian_conversation_service import (
-    ObsidianLibrarianConversationService,
-)
-from app.obsidian.application.service.librarian.obsidian_librarian_review_service import (
-    ObsidianLibrarianReviewService,
 )
 from app.obsidian.application.service.notes.obsidian_context_lifecycle_service import (
     ObsidianContextLifecycleService,
@@ -47,7 +38,6 @@ from app.obsidian.application.service.vault.obsidian_vault_operations import (
     ObsidianVaultOperations,
 )
 from app.obsidian.domain.contracts.obsidian_contracts import (
-    ObsidianLibrarianAsk,
     ObsidianSaveNote,
     ObsidianSearchQuery,
     ObsidianWriteNote,
@@ -69,7 +59,6 @@ from app.shared.application.index_maintenance_coordinator import (
 from app.shared.exceptions.obsidian_exceptions import (
     ObsidianValidationError,
 )
-from app.shared.types.extra_types import JSONObject
 
 
 class ObsidianService(
@@ -87,7 +76,6 @@ class ObsidianService(
         vault_path: str | None = None,
         alexandria_root: str = "Alexandria",
         vault_config_store: ObsidianVaultConfigStore | None = None,
-        delegate_service: ObsidianLibrarianDelegateService | None = None,
         context_reindex_hook: Callable[[], Awaitable[None]] | None = None,
         index_maintenance_coordinator: IndexMaintenanceCoordinator | None = None,
         context_reindex_manifest_validator: ContextReindexManifestValidator = (
@@ -101,7 +89,6 @@ class ObsidianService(
             vault_path: Obsidian vault root.
             alexandria_root: Managed folder inside the vault.
             vault_config_store: Optional runtime vault override store.
-            delegate_service: Optional provider-backed librarian delegate service.
             context_reindex_hook: Callback invoked for context reindex.
             index_maintenance_coordinator: Index maintenance coordinator used by this operation.
             context_reindex_manifest_validator: Cross-note manifest validation authority.
@@ -158,18 +145,6 @@ class ObsidianService(
         self._vault_move_service = ObsidianVaultMoveService(
             vault_config_store=self._vault_config_store,
             reindex=self.reindex,
-            search=self.search,
-        )
-        self._librarian_review_service = ObsidianLibrarianReviewService(
-            vault_config_store=self._vault_config_store,
-            inventory_service=self._vault_inventory_service,
-            move_service=self._vault_move_service,
-        )
-        self._librarian_conversation_service = ObsidianLibrarianConversationService(
-            vault_config_store=self._vault_config_store,
-            delegate_service=delegate_service,
-            read_note_by_path=self.read_note_by_path,
-            save_note=self.save_note,
             search=self.search,
         )
 
@@ -298,25 +273,6 @@ class ObsidianService(
             replacement_context_id=replacement_context_id,
         )
 
-    async def apply_librarian_graph_links(
-        self,
-        active_note_path: str,
-        response: JSONObject,
-    ) -> ObsidianNote:
-        """Apply approved librarian source refs to an active note.
-
-        Args:
-            active_note_path: Vault-relative note path approved for mutation.
-            response: Librarian response containing source references.
-
-        Returns:
-            Updated active note.
-        """
-        return await self._librarian_conversation_service.apply_graph_links(
-            active_note_path=active_note_path,
-            response=response,
-        )
-
     def _note_id_from_existing_file(self, path: Path) -> str | None:
         """Execute note id from existing file.
 
@@ -327,14 +283,3 @@ class ObsidianService(
             str | None result produced by note id from existing file.
         """
         return self._note_service.note_id_from_existing_file(path)
-
-    async def ask_librarian(self, payload: ObsidianLibrarianAsk) -> JSONObject:
-        """Return an Obsidian-grounded librarian answer payload.
-
-        Args:
-            payload: Librarian question and optional active-note context.
-
-        Returns:
-            JSON-compatible answer, evidence, and transcript metadata.
-        """
-        return await self._librarian_conversation_service.ask(payload)

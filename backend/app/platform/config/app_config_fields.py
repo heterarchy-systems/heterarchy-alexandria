@@ -215,30 +215,9 @@ class AppConfigFields(BaseSettings):
         ),
     ] = DEFAULT_MEMORY_RECONCILIATION_PROVIDER_TIMEOUT_SECONDS
     graph_read_model: Annotated[
-        Literal["disabled", "neo4j"],
+        Literal["postgresql"],
         described_field("Graph read model for this app config."),
-    ] = "disabled"
-    neo4j_uri: Annotated[
-        str | None,
-        StringConstraints(strict=True, min_length=1),
-        described_field("Neo4j URI for this app config.", repr=False),
-    ] = None
-    neo4j_username: Annotated[
-        str | None,
-        StringConstraints(strict=True, min_length=1),
-        described_field("Neo4j username for this app config.", repr=False),
-    ] = None
-    neo4j_password: Annotated[
-        SecretStr | None,
-        described_field(
-            "Neo4j password for this app config.", min_length=1, repr=False
-        ),
-    ] = None
-    neo4j_database: Annotated[
-        str,
-        StringConstraints(strict=True, min_length=1),
-        described_field("Neo4j database for this app config.", repr=False),
-    ] = "neo4j"
+    ] = "postgresql"
     rag_vector_enabled: Annotated[
         bool, described_field("RAG vector enabled for this app config.")
     ] = True

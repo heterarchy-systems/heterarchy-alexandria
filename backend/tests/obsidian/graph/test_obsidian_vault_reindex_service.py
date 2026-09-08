@@ -99,12 +99,12 @@ class _GraphAfterVaultReindex:
     async def rebuild(self) -> ObsidianGraphProjectionRebuildReport:
         self._events.append(("graph", self._coordinator.active_operation))
         return ObsidianGraphProjectionRebuildReport(
-            status="disabled",
-            graph_read_model="disabled",
-            run_id="graph-disabled",
-            scanned=0,
-            indexed=0,
-            updated=0,
+            status="completed",
+            graph_read_model="postgresql",
+            run_id="graph-completed",
+            scanned=2,
+            indexed=2,
+            updated=2,
             skipped=0,
             duration_seconds=0.0,
         )
@@ -129,8 +129,8 @@ def test_composite_reindex_runs_graph_after_vault_index_lease_is_released() -> N
 
     assert events == [("vault_index", "vault_reindex"), ("graph", None)]
     assert report.vault_index.files_indexed == 2
-    assert report.graph_projection.status == "disabled"
-    assert report.graph_projection.graph_read_model == "disabled"
+    assert report.graph_projection.status == "completed"
+    assert report.graph_projection.graph_read_model == "postgresql"
 
 
 def test_composite_reindex_refreshes_graph_from_new_canonical_markdown(
@@ -152,13 +152,7 @@ def test_composite_reindex_refreshes_graph_from_new_canonical_markdown(
             )
             graph_repository = FakeObsidianGraphProjectionRepository()
             graph_service = ObsidianGraphProjectionRebuildService(
-                config=AppConfig(
-                    _env_file=None,
-                    graph_read_model="neo4j",
-                    neo4j_uri="neo4j://example:7687",
-                    neo4j_username="neo4j",
-                    neo4j_password="local-test-password",
-                ),
+                config=AppConfig(_env_file=None),
                 source_builder=ObsidianGraphProjectionSourceBuilder(
                     compute_provider=create_native_obsidian_graph_projection_compute_provider(),
                     source=SqlAlchemyObsidianGraphProjectionSource(session=session),
@@ -241,13 +235,7 @@ def test_report_bundle_order_always_materializes_expected_incoming_edges(
             )
             graph_repository = FakeObsidianGraphProjectionRepository()
             graph_service = ObsidianGraphProjectionRebuildService(
-                config=AppConfig(
-                    _env_file=None,
-                    graph_read_model="neo4j",
-                    neo4j_uri="neo4j://example:7687",
-                    neo4j_username="neo4j",
-                    neo4j_password="local-test-password",
-                ),
+                config=AppConfig(_env_file=None),
                 source_builder=ObsidianGraphProjectionSourceBuilder(
                     compute_provider=create_native_obsidian_graph_projection_compute_provider(),
                     source=SqlAlchemyObsidianGraphProjectionSource(session=session),

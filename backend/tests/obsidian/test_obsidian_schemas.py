@@ -4,9 +4,6 @@ from __future__ import annotations
 
 import pytest
 from app.obsidian.domain.event_enum.obsidian_enums import AlexandriaNoteType
-from app.obsidian.interface.schemas.obsidian.librarian.obsidian_librarian_workflow_schema import (
-    ObsidianLibrarianAskRequest,
-)
 from app.obsidian.interface.schemas.obsidian.obsidian_note_write_schema import (
     ObsidianSaveNoteRequest,
 )
@@ -34,14 +31,6 @@ def test_obsidian_request_schemas_restore_enum_contracts() -> None:
             }
         )
     )
-    ask = ObsidianLibrarianAskRequest.model_validate_json(
-        dumps_json(
-            {
-                "query": "cache",
-                "preferred_alexandria_types": ["context", "skill"],
-            }
-        )
-    )
 
     assert search.to_query().alexandria_type is AlexandriaNoteType.CONTEXT
     assert search.refresh is False
@@ -58,27 +47,6 @@ def test_obsidian_request_schemas_restore_enum_contracts() -> None:
         is None
     )
     assert save.to_command().alexandria_type is AlexandriaNoteType.JOB_PLAN
-    assert ask.to_command().preferred_alexandria_types == (
-        AlexandriaNoteType.CONTEXT,
-        AlexandriaNoteType.SKILL,
-    )
-
-
-def test_obsidian_librarian_request_accepts_agent_type_aliases() -> None:
-    """Agent-facing librarian calls should accept common shelf/type aliases."""
-    ask = ObsidianLibrarianAskRequest.model_validate_json(
-        dumps_json(
-            {
-                "query": "compact the index",
-                "preferred_alexandria_types": ["index", "memory"],
-            }
-        )
-    )
-
-    assert ask.to_command().preferred_alexandria_types == (
-        AlexandriaNoteType.CONTEXT,
-        AlexandriaNoteType.MEMORY_COMPACT,
-    )
 
 
 def test_obsidian_save_schema_normalizes_metadata_at_http_boundary() -> None:

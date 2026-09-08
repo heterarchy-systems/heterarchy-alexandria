@@ -3,6 +3,12 @@
 mod algorithms;
 mod candidate_selection;
 mod projection;
+mod read_semantics;
+
+pub use read_semantics::{
+    GraphContextEvidence, GraphContextSignal, GraphProjectionReadResult, GraphReadDirection,
+    GraphRelatedNote, read_projection,
+};
 
 use std::collections::BTreeSet;
 use std::error::Error;

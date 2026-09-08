@@ -74,7 +74,7 @@ class ObsidianGraphNoteDiagnosticsService:
         """Return the current snapshot projection status without rebuilding.
 
         Returns:
-            Existing optional graph projection status report.
+            Existing PostgreSQL graph projection status report.
         """
         return await self._projection_service.status()
 

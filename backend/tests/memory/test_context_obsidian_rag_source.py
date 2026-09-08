@@ -473,10 +473,10 @@ def test_obsidian_embedding_input_includes_title_heading_and_content(
     )
 
 
-def test_context_rag_excludes_librarian_ops_and_superseded_notes_by_default(
+def test_context_rag_excludes_ops_and_noncurrent_notes_by_default(
     tmp_path: Path,
 ) -> None:
-    """Default Obsidian RAG should avoid operational and superseded recall noise."""
+    """Default Obsidian RAG should avoid operational and non-current recall noise."""
 
     async def scenario() -> list[str]:
         async with (
@@ -491,10 +491,10 @@ def test_context_rag_excludes_librarian_ops_and_superseded_notes_by_default(
             )
             await obsidian_service.save_note(
                 ObsidianSaveNote(
-                    title="Canonical Librarian Policy",
-                    body="# Canonical\n\nlibrarian-curation-policy durable guidance.",
+                    title="Canonical Recall Policy",
+                    body="# Canonical\n\nrecall-visibility-policy durable guidance.",
                     alexandria_type=AlexandriaNoteType.CONTEXT,
-                    note_id="canonical_librarian_policy",
+                    note_id="canonical_recall_policy",
                     project="heterarchy-alexandria",
                     status="active",
                     frontmatter={"scope": "PROJECT"},
@@ -502,21 +502,22 @@ def test_context_rag_excludes_librarian_ops_and_superseded_notes_by_default(
             )
             await obsidian_service.save_note(
                 ObsidianSaveNote(
-                    title="Librarian Chat Noise",
-                    body="# Chat\n\nlibrarian-curation-policy operational transcript.",
-                    alexandria_type=AlexandriaNoteType.LIBRARIAN_CHAT,
-                    note_id="librarian_chat_noise",
-                    relative_path="_Ops/Librarian/Chats/librarian_chat_noise.md",
+                    title="Operational Recall Noise",
+                    body="# Operational\n\nrecall-visibility-policy operational transcript.",
+                    alexandria_type=AlexandriaNoteType.CONTEXT,
+                    note_id="operational_recall_noise",
+                    relative_path="_Ops/Chats/operational_recall_noise.md",
                     project="heterarchy-alexandria",
                     status="active",
+                    frontmatter={"scope": "PROJECT"},
                 )
             )
             await obsidian_service.save_note(
                 ObsidianSaveNote(
-                    title="Superseded Librarian Policy",
-                    body="# Superseded\n\nlibrarian-curation-policy outdated draft.",
+                    title="Superseded Recall Policy",
+                    body="# Superseded\n\nrecall-visibility-policy outdated draft.",
                     alexandria_type=AlexandriaNoteType.CONTEXT,
-                    note_id="superseded_librarian_policy",
+                    note_id="superseded_recall_policy",
                     project="heterarchy-alexandria",
                     status="superseded",
                     frontmatter={"scope": "PROJECT"},
@@ -524,10 +525,10 @@ def test_context_rag_excludes_librarian_ops_and_superseded_notes_by_default(
             )
             await obsidian_service.save_note(
                 ObsidianSaveNote(
-                    title="Archived Librarian Policy",
-                    body="# Archived\n\nlibrarian-curation-policy archived note.",
+                    title="Archived Recall Policy",
+                    body="# Archived\n\nrecall-visibility-policy archived note.",
                     alexandria_type=AlexandriaNoteType.CONTEXT,
-                    note_id="archived_librarian_policy",
+                    note_id="archived_recall_policy",
                     project="heterarchy-alexandria",
                     status="archived",
                     frontmatter={"scope": "PROJECT"},
@@ -541,7 +542,7 @@ def test_context_rag_excludes_librarian_ops_and_superseded_notes_by_default(
                 ],
             )
             pack = await service.search(
-                query="librarian-curation-policy",
+                query="recall-visibility-policy",
                 strategy=RagStrategy.FTS_ONLY,
                 limit=10,
                 project="heterarchy-alexandria",
@@ -550,7 +551,7 @@ def test_context_rag_excludes_librarian_ops_and_superseded_notes_by_default(
 
     context_ids = anyio.run(scenario)
 
-    assert context_ids == ["obsidian:canonical_librarian_policy"]
+    assert context_ids == ["obsidian:canonical_recall_policy"]
 
 
 def test_obsidian_context_scope_identity_round_trip_filters_recall(
@@ -1629,24 +1630,24 @@ def test_context_rag_returns_one_best_chunk_per_obsidian_note(
             )
             await obsidian_service.save_note(
                 ObsidianSaveNote(
-                    title="Multi Chunk Librarian Playbook",
+                    title="Multi Chunk Recall Playbook",
                     body=(
                         "# First\n\ncontext-dedupe-token first guidance.\n\n"
                         "# Second\n\ncontext-dedupe-token second guidance.\n\n"
                         "# Third\n\ncontext-dedupe-token third guidance."
                     ),
                     alexandria_type=AlexandriaNoteType.CONTEXT,
-                    note_id="multi_chunk_librarian_playbook",
+                    note_id="multi_chunk_recall_playbook",
                     project="heterarchy-alexandria",
                     frontmatter={"scope": "PROJECT"},
                 )
             )
             await obsidian_service.save_note(
                 ObsidianSaveNote(
-                    title="Single Chunk Librarian Playbook",
+                    title="Single Chunk Recall Playbook",
                     body="# Single\n\ncontext-dedupe-token separate guidance.",
                     alexandria_type=AlexandriaNoteType.CONTEXT,
-                    note_id="single_chunk_librarian_playbook",
+                    note_id="single_chunk_recall_playbook",
                     project="heterarchy-alexandria",
                     frontmatter={"scope": "PROJECT"},
                 )
@@ -1668,8 +1669,8 @@ def test_context_rag_returns_one_best_chunk_per_obsidian_note(
 
     context_ids = anyio.run(scenario)
 
-    assert context_ids.count("obsidian:multi_chunk_librarian_playbook") == 1
-    assert context_ids.count("obsidian:single_chunk_librarian_playbook") == 1
+    assert context_ids.count("obsidian:multi_chunk_recall_playbook") == 1
+    assert context_ids.count("obsidian:single_chunk_recall_playbook") == 1
     assert len(context_ids) == 2
 
 

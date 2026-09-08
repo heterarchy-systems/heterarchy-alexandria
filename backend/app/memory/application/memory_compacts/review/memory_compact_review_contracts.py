@@ -31,7 +31,7 @@ class MemoryCompactRubricScore:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class MemoryCompactReviewResult:
-    """Structured librarian review result for a Memory Compact."""
+    """Structured quality review result for a Memory Compact."""
 
     compact_id: str
     verdict: MemoryCompactReviewVerdict

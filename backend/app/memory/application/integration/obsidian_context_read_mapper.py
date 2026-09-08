@@ -324,7 +324,6 @@ def _kind_from_note(note: ObsidianNote) -> ContextKind:
         return ContextKind.USAGE
     if note.alexandria_type in {
         AlexandriaNoteType.JOB_PLAN,
-        AlexandriaNoteType.LIBRARIAN_BRIEF,
     }:
         return ContextKind.PLAN
     return ContextKind.MEMORY

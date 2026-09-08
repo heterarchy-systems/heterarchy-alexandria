@@ -242,7 +242,7 @@ async def mark_memory_compact_current(
     status_code=status.HTTP_200_OK,
     summary="Review Memory Compact quality",
     description=(
-        "Run the librarian quality rubric and return item scores, verdict, "
+        "Run the quality rubric and return item scores, verdict, "
         "missing refs, contradictions, stale reasons, and recommended actions."
     ),
 )
@@ -259,7 +259,7 @@ async def review_memory_compact(
         Depends(Provide[ApplicationContainer.memory.memory_compact_service]),
     ],
 ) -> MemoryCompactReviewResponse:
-    """Review one Memory Compact against the librarian rubric.
+    """Review one Memory Compact against the quality rubric.
 
     Args:
         compact_id: Memory Compact identifier.
@@ -267,7 +267,7 @@ async def review_memory_compact(
         service: Memory Compact application service.
 
     Returns:
-        Structured librarian review result.
+        Structured quality review result.
     """
     observations = () if request is None else request.to_observations()
     result = await service.review(compact_id, source_observations=observations)

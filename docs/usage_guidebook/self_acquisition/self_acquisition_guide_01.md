@@ -1,8 +1,8 @@
-# Self-Acquisition Guide 01 — 사서 없이 Hermes가 직접 후보 만들기
+# Self-Acquisition Guide 01 — Hermes가 직접 reusable asset 만들기
 
 ## 목적
 
-사서(librarian)가 없거나 쓰지 않는 상황에서도 Hermes가 heterarchy-alexandria를 활용해 reusable asset 후보를 만들 수 있게 한다.
+Hermes가 외부 위임 없이 heterarchy-alexandria를 활용해 reusable asset 후보를 만들 수 있게 한다.
 
 ## 기본 흐름
 
@@ -11,9 +11,9 @@ local Hermes skill 확인
 → Alexandria search/recall
 → 관련 asset 없음
 → Hermes가 직접 docs/web/source 조사
-→ skill/prompt/context candidate 작성
-→ Alexandria에 DRAFT/PENDING_REVIEW로 제출
-→ job id, result status, evidence, resume context id 보고
+→ skill/prompt/context Markdown candidate 작성
+→ Alexandria MCP note-write boundary로 저장
+→ read-back과 evidence refs 확인
 ```
 
 ## 테스트 프롬프트 예
@@ -31,7 +31,7 @@ pytest fixture cleanup strategy
 4. 적절한 항목이 없으면 직접 reusable skill candidate를 작성하세요.
 5. evidence_urls 최소 1개와 source_summary를 포함하세요.
 6. job id, result status, evidence, resume context id를 알려주세요.
-7. librarian tool은 호출하지 마세요.
+7. 외부 provider나 등록되지 않은 acquisition job은 호출하지 마세요.
 ```
 
 ## MCP tool 예
@@ -41,7 +41,7 @@ pytest fixture cleanup strategy
 ```text
 mcp_alexandria_alexandria_rag_status
 mcp_alexandria_alexandria_search
-mcp_alexandria_alexandria_start_skill_acquisition / mcp_alexandria_alexandria_complete_skill_acquisition
+alexandria_create_note / alexandria_upsert_note
 ```
 
 ## 후보에 포함할 내용
@@ -66,9 +66,9 @@ mcp_alexandria_alexandria_start_skill_acquisition / mcp_alexandria_alexandria_co
 ```text
 - RAG status: FTS healthy, vector disabled
 - 검색 결과: 직접 맞는 skill 없음
-- self-acquisition: 수행함
-- job id: <job-id>
-- resume context id: <context-id>
+- note write: 수행함
+- note id/path: <note-id-or-path>
+- read-back: <verified>
 - evidence URLs: <url 목록>
-- 확인 위치: Obsidian Markdown note 또는 skill-acquisition job detail
+- 확인 위치: Obsidian Markdown note
 ```

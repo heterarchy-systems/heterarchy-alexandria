@@ -7,14 +7,7 @@ from app.shared.types.extra_types import JSONValue
 
 
 def alexandria_note_type_input(value: JSONValue) -> JSONValue:
-    """Normalize user/legacy note type aliases into public enum values.
-
-    Args:
-        value: Raw type value from request payloads or Markdown frontmatter.
-
-    Returns:
-        Normalized enum value string when recognized, otherwise the original value.
-    """
+    """Normalize user/legacy note type aliases into public enum values."""
     note_type = normalized_alexandria_note_type(value)
     if note_type is None:
         return value
@@ -24,14 +17,7 @@ def alexandria_note_type_input(value: JSONValue) -> JSONValue:
 def normalized_alexandria_note_type(
     value: JSONValue | AlexandriaNoteType,
 ) -> AlexandriaNoteType | None:
-    """Return an Alexandria note type for canonical values and known aliases.
-
-    Args:
-        value: Raw type value from request payloads or Markdown frontmatter.
-
-    Returns:
-        Alexandria note type when the value is recognized; otherwise ``None``.
-    """
+    """Return an Alexandria note type for canonical values and known aliases."""
     if isinstance(value, AlexandriaNoteType):
         return value
     if not isinstance(value, str):
@@ -46,20 +32,11 @@ def normalized_alexandria_note_type(
 
 
 def _normalized_type_token(value: str) -> str:
-    """Execute normalized type token.
-
-    Args:
-        value: Value being processed.
-
-    Returns:
-        str result produced by normalized type token.
-    """
+    """Normalize a note-type token."""
     return value.strip().casefold().replace("-", "_").replace(" ", "_")
 
 
 _NOTE_TYPE_ALIASES = {
-    "brief": AlexandriaNoteType.LIBRARIAN_BRIEF,
-    "chat": AlexandriaNoteType.LIBRARIAN_CHAT,
     "context_note": AlexandriaNoteType.CONTEXT,
     "decision": AlexandriaNoteType.CONTEXT,
     "decisions": AlexandriaNoteType.CONTEXT,
@@ -70,8 +47,6 @@ _NOTE_TYPE_ALIASES = {
     "histories": AlexandriaNoteType.IMPLEMENTATION_HISTORY,
     "implementation_histories": AlexandriaNoteType.IMPLEMENTATION_HISTORY,
     "job": AlexandriaNoteType.JOB_PLAN,
-    "librarian_briefs": AlexandriaNoteType.LIBRARIAN_BRIEF,
-    "librarian_chats": AlexandriaNoteType.LIBRARIAN_CHAT,
     "memory": AlexandriaNoteType.MEMORY_COMPACT,
     "memory_compacts": AlexandriaNoteType.MEMORY_COMPACT,
     "plan": AlexandriaNoteType.JOB_PLAN,

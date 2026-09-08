@@ -1,0 +1,16 @@
+{
+  "schema_version": 2,
+  "status": "VERIFIED",
+  "backup_id": "20260908T075634Z-77389",
+  "created_at": "2026-09-08T07:57:38Z",
+  "container": "alexandria-postgres",
+  "source_database": "alexandria",
+  "restored_revision": "cabdf60a1fee",
+  "expected_revision": "cabdf60a1fee",
+  "revision_matches_manifest": true,
+  "public_table_count": 23,
+  "expected_public_table_count": 23,
+  "table_count_matches_manifest": true,
+  "vector_extension_present": true,
+  "temporary_database_removed": true
+}

@@ -95,7 +95,7 @@ async def initialize_obsidian_vault(
     summary="Reindex Obsidian vault",
     description=(
         "Scan Alexandria Markdown notes, rebuild the relational search cache, "
-        "then refresh the optional graph projection."
+        "then refresh the PostgreSQL graph projection."
     ),
 )
 @router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)

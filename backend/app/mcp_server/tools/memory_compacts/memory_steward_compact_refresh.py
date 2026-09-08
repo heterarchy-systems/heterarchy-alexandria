@@ -73,13 +73,10 @@ def refresh_source_refs(
     """
     refs: list[CompactSourceRefPayload] = [
         CompactSourceRefPayload(
-            source_type="librarian_readiness",
+            source_type="memory_steward_readiness",
             source_id=f"readiness-refresh-{covered_to}",
             title="Memory Steward readiness refresh evidence",
-            detail_path=(
-                "/memory/contexts/rag/status + /memory/compacts/current"
-                " + /obsidian/librarian/review-queue"
-            ),
+            detail_path="/memory/contexts/rag/status + /memory/compacts/current",
         )
     ]
     if isinstance(previous_id, str) and previous_id:
@@ -116,17 +113,16 @@ def refresh_markdown_body(
     warning_text = ", ".join(readiness.warnings) if readiness.warnings else "none"
     action_lines = next_action_markdown_lines(readiness.next_actions)
     compact = readiness.current_memory_compact
-    queue = readiness.review_queue
     rag = readiness.rag
     source_refs = refresh_source_refs(previous_id=compact.id, covered_to=covered_to)
     return "\n".join(
         [
-            "# heterarchy-alexandria Current Memory Compact — Librarian Refresh",
+            "# heterarchy-alexandria Current Memory Compact — Steward Refresh",
             "",
             "## Durable Decisions",
             "- Obsidian Markdown remains the durable source of truth.",
             "- RAG/index readiness gates must pass before trusting refreshed memory.",
-            "- Vault review queues are handled through safe plan/apply workflows.",
+            "- Explicit vault moves use safe plan/apply workflows.",
             "",
             "## Current State",
             f"- Project: `{project_text}`",
@@ -135,15 +131,6 @@ def refresh_markdown_body(
             f"- RAG FTS: `{rag.fts}`",
             f"- RAG vector: `{rag.vector}`",
             f"- RAG embedding: `{rag.embedding}`",
-            f"- Review queue total: `{queue.total_count()}`",
-            (
-                "- Review queue auto-move candidates: "
-                f"`{queue.auto_move_candidate_count()}`"
-            ),
-            (
-                "- Review queue manual review required: "
-                f"`{queue.manual_required_count()}`"
-            ),
             f"- Previous compact id: `{compact.id}`",
             f"- Previous compact updated_at: `{compact.updated_at}`",
             f"- Previous compact age_days: `{compact.age_days}`",
@@ -210,7 +197,7 @@ def next_action_markdown_lines(
         Markdown bullet lines.
     """
     if not next_actions:
-        return ["- No immediate librarian actions required."]
+        return ["- No immediate Memory Steward actions required."]
     return [
         (
             "- "

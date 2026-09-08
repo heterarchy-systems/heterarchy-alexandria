@@ -38,9 +38,6 @@ from app.mcp_server.tools.operations.operations_registration import (
 from app.mcp_server.tools.reconciliation.memory_reconciliation_registration import (
     register_memory_reconciliation_tools,
 )
-from app.mcp_server.tools.skills.skill_acquisition_registration import (
-    register_skill_acquisition_tools,
-)
 from app.mcp_server.type_validate.mcp_transport_enums import McpTransport
 
 DEFAULT_MCP_TRANSPORT_HOST = "0.0.0.0"
@@ -67,8 +64,8 @@ def build_mcp_server(
         else client
     )
     instructions = (
-        "Use these tools for Context Vault, Memory Steward operations, focused "
-        "skill acquisition, and Alexandria vault maintenance through the backend "
+        "Use these tools for Context Vault, Memory Steward operations, "
+        "and Alexandria vault maintenance through the backend "
         "HTTP API. Do not hard delete unless "
         "a tool name explicitly says delete. Submit embedding reindex work "
         "through the maintenance queue and poll its job id. For incidents, "
@@ -95,7 +92,6 @@ def build_mcp_server(
     register_context_recall_tools(server, api_client)
     register_memory_compact_tools(server, api_client)
     register_memory_steward_tools(server, api_client)
-    register_skill_acquisition_tools(server, api_client)
     register_context_lifecycle_tools(server, api_client)
     register_operations_tools(server, api_client)
     register_maintenance_tools(server, api_client)

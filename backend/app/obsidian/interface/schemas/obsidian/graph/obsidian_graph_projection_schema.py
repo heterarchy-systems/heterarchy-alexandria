@@ -1,4 +1,4 @@
-"""Pydantic schemas for optional graph projection operations."""
+"""Pydantic schemas for PostgreSQL graph projection operations."""
 
 from __future__ import annotations
 
@@ -109,11 +109,11 @@ class ObsidianGraphProjectionRebuildResponse(StrictSchemaModel):
     """Response body for one explicit graph projection rebuild."""
 
     status: Annotated[
-        Literal["completed", "disabled", "failed"],
+        Literal["completed", "failed"],
         described_field("Status for this Obsidian graph projection rebuild response."),
     ]
     graph_read_model: Annotated[
-        Literal["disabled", "neo4j"],
+        Literal["postgresql"],
         described_field(
             "Graph read model for this Obsidian graph projection rebuild response."
         ),
@@ -226,11 +226,11 @@ class ObsidianGraphProjectionStatusResponse(StrictSchemaModel):
     """Response body for graph projection status."""
 
     status: Annotated[
-        Literal["disabled", "uninitialized", "ready", "unavailable"],
+        Literal["uninitialized", "ready", "unavailable"],
         described_field("Status for this Obsidian graph projection status response."),
     ]
     graph_read_model: Annotated[
-        Literal["disabled", "neo4j"],
+        Literal["postgresql"],
         described_field(
             "Graph read model for this Obsidian graph projection status response."
         ),

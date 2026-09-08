@@ -21,7 +21,7 @@ def test_connection_hub_page_has_secure_external_assets() -> None:
     assert "<script src=" in response.text
     assert "<script>" not in response.text
     assert "operator_key" not in response.text
-    assert "OpenAI Librarian" in response.text
+    assert "OpenAI Librarian" not in response.text
     assert "MCP 클라이언트 관리" in response.text
     assert "목록 새로고침" not in response.text
     assert script.status_code == 200

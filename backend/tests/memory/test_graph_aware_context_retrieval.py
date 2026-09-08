@@ -146,7 +146,7 @@ class _UnavailableGraphSignals(IContextGraphSignalProvider):
         self, matches: list[ContextSearchMatch]
     ) -> ContextGraphEnrichmentResult:
         raise RuntimeError(
-            "graph unavailable at neo4j://reader:super-secret@example.test"
+            "graph unavailable at graphdb://reader:super-secret@example.test"
         )
 
 
@@ -192,7 +192,7 @@ def test_hybrid_scores_and_order_survive_unavailable_graph_lane() -> None:
         "primary Context recall preserved.",
     )
     assert "super-secret" not in " ".join(degraded.warnings)
-    assert "neo4j://" not in " ".join(degraded.warnings)
+    assert "graphdb://" not in " ".join(degraded.warnings)
 
 
 def test_available_graph_lane_explains_lineage_and_curation_evidence() -> None:

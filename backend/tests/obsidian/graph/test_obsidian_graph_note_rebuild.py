@@ -90,13 +90,7 @@ def test_rebuild_note_graph_replaces_cached_edges_and_activates_projection(
             coordinator = IndexMaintenanceCoordinator()
             source = SqlAlchemyObsidianGraphProjectionSource(session=session)
             projection = ObsidianGraphProjectionRebuildService(
-                config=AppConfig(
-                    _env_file=None,
-                    graph_read_model="neo4j",
-                    neo4j_uri="neo4j://example:7687",
-                    neo4j_username="neo4j",
-                    neo4j_password="local-test-password",
-                ),
+                config=AppConfig(_env_file=None),
                 source_builder=ObsidianGraphProjectionSourceBuilder(
                     compute_provider=create_native_obsidian_graph_projection_compute_provider(),
                     source=source,

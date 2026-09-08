@@ -9,7 +9,7 @@
 - [ ] Context Vault / RAG
 - [ ] Memory Compacts
 - [ ] Library skills/prompts
-- [ ] Librarian delegation
+- [ ] Memory Steward / reconciliation
 - [ ] Install / Docker / CI
 - [ ] Documentation
 

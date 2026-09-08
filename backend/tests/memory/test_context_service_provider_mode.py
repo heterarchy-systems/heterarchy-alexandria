@@ -6,13 +6,16 @@ from inspect import isawaitable
 from typing import cast
 
 import anyio
+from dependency_injector import providers
+
 from app.container import create_graph_signal_provider
 from app.main import app
+from app.obsidian.application.graph.projection.obsidian_graph_context_signal_service import (
+    ObsidianGraphContextSignalService,
+)
 from app.obsidian.domain.repositories.obsidian_graph_projection_repository import (
     IObsidianGraphProjectionRepository,
 )
-from app.platform.config.app_config import AppConfig
-from dependency_injector import providers
 
 
 async def _exercise_synchronous_context_service_override() -> None:
@@ -40,13 +43,10 @@ def test_embedding_provider_is_process_scoped_singleton() -> None:
     )
 
 
-def test_disabled_graph_mode_discards_even_a_supplied_projection_repository() -> None:
-    """Disabled mode must never construct a Context graph evidence provider."""
+def test_graph_signal_provider_uses_postgresql_projection_repository() -> None:
+    """Context graph evidence must use the canonical PostgreSQL projection."""
     repository = cast(IObsidianGraphProjectionRepository, object())
 
-    provider = create_graph_signal_provider(
-        config=AppConfig(_env_file=None, graph_read_model="disabled"),
-        repository=repository,
-    )
+    provider = create_graph_signal_provider(repository=repository)
 
-    assert provider is None
+    assert isinstance(provider, ObsidianGraphContextSignalService)

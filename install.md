@@ -8,13 +8,44 @@ heterarchy-alexandria installs as a backend/CLI/MCP service. The old frontend ru
 - macOS Homebrew Cask only if you want Codex to install Obsidian locally
 - Obsidian for the human-facing Markdown vault
 
+## Development checkout hygiene
+
+Keep the `uv` project environment and Python bytecode outside a synced checkout
+so stale filesystem entries do not slow collection. The repository Makefiles
+and PostgreSQL test runner use the bytecode path below when
+`PYTHONPYCACHEPREFIX` is unset.
+
+```bash
+export UV_PROJECT_ENVIRONMENT="${XDG_CACHE_HOME:-$HOME/.cache}/heterarchy-alexandria/venv"
+export PYTHONPYCACHEPREFIX="${XDG_CACHE_HOME:-$HOME/.cache}/heterarchy-alexandria/pycache"
+cd backend
+uv sync --locked --no-editable
+```
+
+Run the local repository gate from the checkout root:
+
+```bash
+cd ..
+make ci
+```
+
+The GitHub Actions backend job uses the same repository gate after syncing
+dependencies with:
+
+```bash
+cd backend
+uv sync --group dev --reinstall-package heterarchy-alexandria
+cd ..
+make ci
+```
+
 ## Backend daemon with generated vault
 
 Terminal 1:
 
 ```bash
 cd backend
-uv sync
+uv sync --locked --no-editable
 uv run heterarchy-alexandria setup --mode backend-daemon --apply --write-guidebook --run-migrations
 uv run heterarchy-alexandria serve \
   --env-file "$HOME/.hermes/heterarchy-alexandria/.env" \
@@ -42,7 +73,7 @@ Use this when you already created `~/Desktop/Alexandria` in Obsidian:
 
 ```bash
 cd backend
-uv sync
+uv sync --locked --no-editable
 uv run heterarchy-alexandria setup \
   --mode backend-daemon \
   --apply \
@@ -63,17 +94,13 @@ uv run heterarchy-alexandria serve \
   --port 8000
 ```
 
-## Install Obsidian and the side-pane plugin
+## Install Obsidian
 
 ```bash
 brew install --cask obsidian
-cd backend
-uv run heterarchy-alexandria obsidian install-local \
-  --vault-path "$HOME/Desktop/Alexandria" \
-  --plugin-install-mode copy
 ```
 
-Enable **Alexandria Librarian** in Obsidian Community plugins. Keep the backend running before using the pane.
+Keep the backend running while using Alexandria HTTP/MCP and explicit vault-maintenance operations.
 
 ## Capture memory, skill, and prompt artifacts
 

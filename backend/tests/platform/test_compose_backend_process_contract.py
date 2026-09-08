@@ -12,7 +12,6 @@ ENV_COMPOSE_PATH = REPOSITORY_ROOT / "env-compose.yml"
 DOCKERFILE_PATH = REPOSITORY_ROOT / "backend" / "Dockerfile"
 ROOT_MAKEFILE_PATH = REPOSITORY_ROOT / "Makefile"
 PERFORMANCE_ENV_PATH = REPOSITORY_ROOT / "runtime-performance.env"
-NEO4J_START_PATH = REPOSITORY_ROOT / "scripts" / "neo4j-start.sh"
 REDIS_START_PATH = REPOSITORY_ROOT / "scripts" / "redis-start.sh"
 
 
@@ -108,11 +107,6 @@ def test_runtime_tuning_is_explicit_and_separate_from_credentials() -> None:
         "SERVICE_REDIS_MAINTENANCE_RETRY_IDLE_SECONDS",
         "SERVICE_REDIS_MAINTENANCE_DEDUP_COOLDOWN_SECONDS",
         "ALEXANDRIA_REDIS_MAXMEMORY",
-        "ALEXANDRIA_NEO4J_HEAP_INITIAL_SIZE",
-        "ALEXANDRIA_NEO4J_HEAP_MAX_SIZE",
-        "ALEXANDRIA_NEO4J_PAGECACHE_SIZE",
-        "ALEXANDRIA_NEO4J_TX_LOG_ROTATION_SIZE",
-        "ALEXANDRIA_NEO4J_TX_LOG_RETENTION_POLICY",
     )
 
     assert ":-" not in compose_sources
@@ -133,11 +127,6 @@ def test_performance_profile_matches_the_measured_single_user_host() -> None:
     assert "SERVICE_REDIS_MAINTENANCE_BATCH_LIMIT=250\n" in performance
     assert "SERVICE_REDIS_MAINTENANCE_RETRY_IDLE_SECONDS=120\n" in performance
     assert "SERVICE_REDIS_MAINTENANCE_DEDUP_COOLDOWN_SECONDS=300\n" in performance
-    assert "ALEXANDRIA_NEO4J_HEAP_INITIAL_SIZE=512m\n" in performance
-    assert "ALEXANDRIA_NEO4J_HEAP_MAX_SIZE=512m\n" in performance
-    assert "ALEXANDRIA_NEO4J_PAGECACHE_SIZE=512m\n" in performance
-    assert "ALEXANDRIA_NEO4J_TX_LOG_ROTATION_SIZE=16M\n" in performance
-    assert "ALEXANDRIA_NEO4J_TX_LOG_RETENTION_POLICY=128M size\n" in performance
 
 
 def test_compose_uses_postgres_as_the_runtime_database() -> None:
@@ -164,7 +153,7 @@ def test_compose_runs_redis_as_a_bounded_queue_safe_store() -> None:
     compose = _read(COMPOSE_PATH)
     script = _read(REDIS_START_PATH)
     redis_start = compose.index("  alexandria-redis:")
-    redis_end = compose.index("\n  alexandria-graph:", redis_start)
+    redis_end = compose.index("\nvolumes:", redis_start)
     redis_service = compose[redis_start:redis_end]
 
     assert "image: redis:8.8.1-alpine" in redis_service
@@ -202,49 +191,3 @@ def test_redis_start_script_fails_closed_for_blank_memory_budget() -> None:
 
     assert result.returncode != 0
     assert "ALEXANDRIA_REDIS_MAXMEMORY must not be blank" in result.stderr
-
-
-def test_neo4j_uses_the_default_topology_and_script_owned_tuning() -> None:
-    """Neo4j should start normally with validated tuning exported by its script."""
-    compose = _read(COMPOSE_PATH)
-    script = _read(NEO4J_START_PATH)
-    graph_start = compose.index("  alexandria-graph:")
-    graph_end = compose.index("\nvolumes:", graph_start)
-    graph_service = compose[graph_start:graph_end]
-
-    assert "profiles:" not in graph_service
-    assert "      - ./runtime-performance.env\n" in graph_service
-    assert (
-        'entrypoint: ["/bin/sh", "/usr/local/bin/alexandria-neo4j-start.sh"]'
-        in graph_service
-    )
-    assert (
-        "./scripts/neo4j-start.sh:/usr/local/bin/alexandria-neo4j-start.sh:ro"
-        in graph_service
-    )
-    assert 'ALEXANDRIA_NEO4J_PASSWORD: "${ALEXANDRIA_NEO4J_PASSWORD}"' in graph_service
-    assert "NEO4J_server_memory_heap_initial__size:" not in graph_service
-    assert "NEO4J_server_memory_heap_max__size:" not in graph_service
-    assert "NEO4J_server_memory_pagecache_size:" not in graph_service
-    assert (
-        'export NEO4J_server_memory_heap_initial__size="${ALEXANDRIA_NEO4J_HEAP_INITIAL_SIZE}"'
-        in script
-    )
-    assert (
-        'export NEO4J_server_memory_heap_max__size="${ALEXANDRIA_NEO4J_HEAP_MAX_SIZE}"'
-        in script
-    )
-    assert (
-        'export NEO4J_server_memory_pagecache_size="${ALEXANDRIA_NEO4J_PAGECACHE_SIZE}"'
-        in script
-    )
-    assert (
-        'export NEO4J_db_tx__log_rotation_size="${ALEXANDRIA_NEO4J_TX_LOG_ROTATION_SIZE}"'
-        in script
-    )
-    assert (
-        "export NEO4J_db_tx__log_rotation_retention__policy="
-        '"${ALEXANDRIA_NEO4J_TX_LOG_RETENTION_POLICY}"' in script
-    )
-    assert "command:\n      - |" not in graph_service
-    assert "exec /startup/docker-entrypoint.sh neo4j" in script

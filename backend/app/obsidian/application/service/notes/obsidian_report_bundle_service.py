@@ -223,9 +223,7 @@ class ObsidianReportBundleService:
             return result
 
         projection_status = reindex_report.graph_projection.status
-        if projection_status == "failed" or (
-            projection_status == "disabled" and normalized.verify.incoming_edges
-        ):
+        if projection_status == "failed":
             projection_error_items: list[JSONObject] = [
                 {
                     "function": "graph_projection_rebuild",

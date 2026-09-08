@@ -13,7 +13,7 @@ class OperationalBackupArtifact(StrictSchemaModel):
     """One hash-verified file stored under a backup directory."""
 
     kind: Annotated[
-        Literal["canonical_vault", "operational_database", "librarian_checkpoint"],
+        Literal["canonical_vault", "operational_database"],
         described_field("Kind for this operational backup artifact."),
     ]
     relative_path: Annotated[
@@ -63,12 +63,6 @@ class OperationalBackupManifest(StrictSchemaModel):
             "Operational database source path for this operational backup manifest."
         ),
     ]
-    librarian_checkpoint_source_path: Annotated[
-        str | None,
-        described_field(
-            "Librarian checkpoint source path for this operational backup manifest."
-        ),
-    ]
     artifacts: Annotated[
         list[OperationalBackupArtifact],
         described_field("Artifacts for this operational backup manifest."),
@@ -76,18 +70,10 @@ class OperationalBackupManifest(StrictSchemaModel):
 
     @property
     def total_bytes(self) -> int:
-        """Return the total content bytes represented by the manifest.
-
-        Returns:
-            Sum of all artifact sizes.
-        """
+        """Return the total content bytes represented by the manifest."""
         return sum(item.size_bytes for item in self.artifacts)
 
     @property
     def created_datetime(self) -> datetime:
-        """Expose the validated aware timestamp as a datetime.
-
-        Returns:
-            Aware backup creation time.
-        """
+        """Expose the validated aware timestamp as a datetime."""
         return self.created_at

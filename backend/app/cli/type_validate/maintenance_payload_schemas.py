@@ -22,43 +22,6 @@ class CliPayloadSchema(StrictSchemaModel):
     )
 
 
-class ReviewQueueItemPayload(CliPayloadSchema):
-    """Validated subset of a vault review queue item."""
-
-    id: JSONValue | None = None
-    path: JSONValue | None = None
-    reason: JSONValue | None = None
-    recommended_action: JSONValue | None = None
-    suggested_destination_path: JSONValue | None = None
-    confidence: JSONValue | None = None
-    requires_human_review: bool | None = None
-
-
-class ReviewQueuePayload(CliPayloadSchema):
-    """Validated subset of a vault review queue payload."""
-
-    total: JSONValue | None = None
-    items: Annotated[
-        tuple[ReviewQueueItemPayload, ...],
-        described_field("Items for this review queue payload."),
-    ] = ()
-
-    @field_validator("items", mode="before")
-    @classmethod
-    def _filter_item_objects(cls, value: JSONValue) -> JSONValue:
-        """Execute filter item objects.
-
-        Args:
-            value: Value being processed.
-
-        Returns:
-            JSONValue result produced by filter item objects.
-        """
-        if isinstance(value, list):
-            return tuple(item for item in value if isinstance(item, dict))
-        return value
-
-
 class McpSmokePayload(CliPayloadSchema):
     """Validated subset of an MCP smoke-check payload."""
 
@@ -91,12 +54,25 @@ class CurrentCompactPayload(CliPayloadSchema):
     max_age_days: JSONValue | None = None
 
 
-class ReadinessReviewQueuePayload(CliPayloadSchema):
-    """Validated subset of readiness review queue counts."""
+class CurrentCompactReviewPayload(CliPayloadSchema):
+    """Validated subset of the CURRENT Memory Compact review."""
 
-    total: JSONValue | None = None
-    auto_move_candidates: JSONValue | None = None
-    manual_review_required: JSONValue | None = None
+    compact_id: str | None = None
+    verdict: str | None = None
+    total_score: int | None = None
+    max_score: int | None = None
+    recommended_actions: Annotated[
+        tuple[str, ...],
+        described_field("Recommended actions for this compact review payload."),
+    ] = ()
+
+    @field_validator("recommended_actions", mode="before")
+    @classmethod
+    def _filter_recommended_actions(cls, value: JSONValue) -> JSONValue:
+        """Keep only string review actions at the CLI boundary."""
+        if isinstance(value, list):
+            return tuple(item for item in value if isinstance(item, str))
+        return value
 
 
 class NextActionPayload(CliPayloadSchema):
@@ -116,14 +92,11 @@ class ReadinessPayload(CliPayloadSchema):
     rag: Annotated[
         RagStatusPayload, described_field("RAG for this readiness payload.")
     ] = RagStatusPayload()
-    review_queue: Annotated[
-        ReadinessReviewQueuePayload,
-        described_field("Review queue for this readiness payload."),
-    ] = ReadinessReviewQueuePayload()
     current_memory_compact: Annotated[
         CurrentCompactPayload,
         described_field("Current memory compact for this readiness payload."),
     ] = CurrentCompactPayload()
+    current_memory_compact_review: CurrentCompactReviewPayload | None = None
     next_actions: Annotated[
         tuple[NextActionPayload, ...],
         described_field("Next actions for this readiness payload."),
@@ -132,14 +105,7 @@ class ReadinessPayload(CliPayloadSchema):
     @field_validator("next_actions", mode="before")
     @classmethod
     def _filter_next_action_objects(cls, value: JSONValue) -> JSONValue:
-        """Execute filter next action objects.
-
-        Args:
-            value: Value being processed.
-
-        Returns:
-            JSONValue result produced by filter next action objects.
-        """
+        """Keep object-shaped next actions at the CLI boundary."""
         if isinstance(value, list):
             return tuple(item for item in value if isinstance(item, dict))
         return value
@@ -161,18 +127,8 @@ class PreflightPayload(CliPayloadSchema):
     readiness: ReadinessPayload | None = None
 
     def current_readiness(self) -> ReadinessPayload:
-        """Return the strongest readiness payload embedded in the response.
-
-        Returns:
-            Post-refresh readiness, direct readiness, or an empty readiness schema.
-        """
+        """Return the strongest readiness payload embedded in the response."""
         return self.post_refresh_readiness or self.readiness or ReadinessPayload()
-
-
-class ApplyStatusPayload(CliPayloadSchema):
-    """Validated subset of maintenance apply status payloads."""
-
-    status: str | None = None
 
 
 class CombinedCheckPayload(CliPayloadSchema):
@@ -181,92 +137,26 @@ class CombinedCheckPayload(CliPayloadSchema):
     ok: bool = False
 
 
-def validate_review_queue_payload(payload: JSONValue) -> ReviewQueuePayload:
-    """Validate a review queue payload.
-
-    Args:
-        payload: JSON payload returned by the backend gateway.
-
-    Returns:
-        Validated review queue payload subset.
-    """
-    return model_validate_json_value(ReviewQueuePayload, _object_or_empty(payload))
-
-
 def validate_mcp_smoke_payload(payload: JSONValue) -> McpSmokePayload:
-    """Validate an MCP smoke payload.
-
-    Args:
-        payload: JSON payload returned by MCP smoke execution.
-
-    Returns:
-        Validated MCP smoke payload subset.
-    """
+    """Validate an MCP smoke payload."""
     return model_validate_json_value(McpSmokePayload, _object_or_empty(payload))
 
 
 def validate_preflight_payload(payload: JSONValue) -> PreflightPayload:
-    """Validate a Memory Steward preflight payload.
-
-    Args:
-        payload: JSON payload returned by compact refresh/preflight execution.
-
-    Returns:
-        Validated preflight payload subset.
-    """
+    """Validate a Memory Steward preflight payload."""
     return model_validate_json_value(PreflightPayload, _object_or_empty(payload))
 
 
-def validate_apply_status_payload(payload: JSONValue) -> ApplyStatusPayload:
-    """Validate a maintenance apply status payload.
-
-    Args:
-        payload: JSON payload returned by review apply execution.
-
-    Returns:
-        Validated apply status payload subset.
-    """
-    return model_validate_json_value(ApplyStatusPayload, _object_or_empty(payload))
-
-
 def validate_combined_check_payload(payload: JSONValue) -> CombinedCheckPayload:
-    """Validate a combined maintenance check payload.
-
-    Args:
-        payload: JSON payload returned by combined check execution.
-
-    Returns:
-        Validated combined check payload subset.
-    """
+    """Validate a combined maintenance check payload."""
     return model_validate_json_value(CombinedCheckPayload, _object_or_empty(payload))
 
 
 def _object_or_empty(payload: JSONValue) -> JSONObject:
-    """Execute object or empty.
-
-    Args:
-        payload: Validated payload for this operation.
-
-    Returns:
-        JSONObject result produced by object or empty.
-    """
+    """Return an object payload or an empty object."""
     if isinstance(payload, dict):
         return payload
     return {}
-
-
-class ReviewQueueSummaryPayload(CliPayloadSchema):
-    """Output schema for compact review queue summaries."""
-
-    total: JSONValue | None = None
-    auto_move_candidates: int
-    manual_review_required: int
-    top_item_id: JSONValue | None = None
-    top_item_path: JSONValue | None = None
-    top_item_reason: JSONValue | None = None
-    top_item_action: JSONValue | None = None
-    top_item_confidence: JSONValue | None = None
-    top_item_requires_human_review: bool | None = None
 
 
 class MaintenanceCheckSummaryPayload(CliPayloadSchema):
@@ -303,9 +193,13 @@ class MaintenanceCheckSummaryPayload(CliPayloadSchema):
     rag_fts: JSONValue | None = None
     rag_vector: JSONValue | None = None
     rag_embedding: JSONValue | None = None
-    review_queue_total: JSONValue | None = None
-    review_auto_move_candidates: JSONValue | None = None
-    review_manual_required: JSONValue | None = None
+    current_compact_review_verdict: str | None = None
+    current_compact_review_total_score: int | None = None
+    current_compact_review_max_score: int | None = None
+    current_compact_review_recommended_actions: Annotated[
+        tuple[str, ...],
+        described_field("Recommended actions from the current compact review."),
+    ] = ()
     next_actions_count: int
     next_action: JSONValue | None = None
     next_action_tool: JSONValue | None = None

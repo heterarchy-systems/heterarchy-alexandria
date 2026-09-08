@@ -14,21 +14,20 @@
 </p>
 
 # heterarchy-alexandria
-`heterarchy-alexandria` is the durable memory and knowledge layer of the HETERARCHY platform: a FastAPI + MCP backend for agent long-term memory, memory compaction, Obsidian Markdown storage, retrieval, graph projection, and librarian collaboration.
+`heterarchy-alexandria` is the durable memory and knowledge layer of the HETERARCHY platform: a FastAPI + MCP backend for agent long-term memory, memory compaction, Obsidian Markdown storage, retrieval, and PostgreSQL-backed graph projection with Rust compute.
 
-The previous Next.js frontend, standalone product CLI, and SQLite-backed skill/prompt/harness CRUD surfaces have been removed. Obsidian Markdown is the human-facing source of truth; PostgreSQL is the operational, lexical-search, and pgvector retrieval store.
+Removed product surfaces stay removed. Obsidian Markdown is the human-facing source of truth; PostgreSQL is the operational, lexical-search, pgvector retrieval, and persistent graph store.
 
 ```text
 Obsidian Markdown = canonical notes people can read and edit
-PostgreSQL = operational state + rebuildable lexical/vector search indexes
-Neo4j = rebuildable graph projection
+PostgreSQL = operational state + rebuildable lexical/vector indexes + persistent graph rows
+Rust graph compute = deterministic graph projection, traversal, and candidate selection
 heterarchy-alexandria = HETERARCHY memory/knowledge service + FastAPI backend + MCP endpoint
-Librarian = optional Obsidian-aware collaborator/chat pane
 ```
 
 ## Role in HETERARCHY
 
-`heterarchy-alexandria` owns durable agent memory, human-readable knowledge, recall/search indexes, memory compaction, graph projection, and librarian workflows. It is intentionally a memory/knowledge service rather than a general agent orchestrator or model runtime, so other HETERARCHY components can depend on it through explicit interfaces instead of sharing its storage internals.
+`heterarchy-alexandria` owns durable agent memory, human-readable knowledge, recall/search indexes, memory compaction, and graph projection. It is intentionally a memory/knowledge service rather than a general agent orchestrator or model runtime, so other HETERARCHY components can depend on it through explicit interfaces instead of sharing its storage internals.
 
 ### Naming
 
@@ -40,11 +39,10 @@ The repository, Python distribution, CLI, runtime identity, and persistent inter
 
 - FastAPI backend on `127.0.0.1:8000`
 - Streamable HTTP MCP endpoint at `POST /mcp/`
-- Minimal package CLI for launching MCP and checking librarian readiness
-- MCP tools for Context Vault recall, RAG Context Packs, Memory Compact lookup, librarian collaboration, Obsidian note search/read/save, and skill-acquisition jobs
-- PostgreSQL-backed operational storage for provider profiles, OAuth state, librarian jobs, workflow checkpoints, and rebuildable Obsidian/Context lexical and pgvector indexes
+- Minimal package CLI for launching MCP and checking memory readiness
+- MCP tools for Context Vault recall, RAG Context Packs, Memory Compact lifecycle, and Obsidian note/vault search, read, save, reindex, and safe move operations
+- PostgreSQL-backed operational storage for memory/reconciliation state, Local MCP OAuth, rebuildable Obsidian/Context lexical and pgvector indexes, and persistent graph rows
 - Obsidian-backed Markdown notes under `SERVICE_OBSIDIAN_VAULT_PATH`
-- Optional local Obsidian plugin at `integrations/obsidian/alexandria-librarian/`
 
 Removed legacy surfaces stay removed by contract tests:
 
@@ -104,29 +102,19 @@ before publishing a `VERIFIED` report. This archive covers PostgreSQL only;
 back up the canonical Obsidian Vault and `backend/data/.alexandria-recovery`
 with the host filesystem policy as separate durable assets.
 
-Neo4j graph read-model support is optional and disabled by the default Compose
-profile. To start the backend plus local-only Neo4j for graph projection work,
-add `ALEXANDRIA_NEO4J_PASSWORD` with a private local value to the gitignored
-project `.env`, then enable the `graph` profile. Compose intentionally provides
-no password fallback and refuses to start the graph profile when the variable
-is absent:
+Graph projection has no separate database service or credential profile. PostgreSQL `obsidian_files` and `obsidian_edges` are the persistent graph source, while Rust owns deterministic projection, traversal, and candidate-selection compute. The application keeps only a bounded rebuildable projection cache and lazily reconstructs it from PostgreSQL after restart.
+
+After schema changes or vault-wide link changes, rebuild the canonical index first and then refresh the graph projection:
 
 ```bash
-docker compose --profile graph up --build
+cd backend
+uv run alembic upgrade head
+curl -X POST http://127.0.0.1:8000/obsidian/index/rebuild
+curl -X POST http://127.0.0.1:8000/obsidian/graph/projection/rebuild
+curl http://127.0.0.1:8000/obsidian/graph/projection/status
 ```
 
-Stop the optional graph profile with:
-
-```bash
-docker compose --profile graph down
-```
-
-Neo4j is a rebuildable graph projection target, not canonical storage. Obsidian
-Markdown remains the human-editable source of truth, while PostgreSQL stores
-operational state and the rebuildable note, edge, lexical, and pgvector indexes.
-PostgreSQL `obsidian_edges` rows are only a source cache for explicit Neo4j
-projection rebuilds; graph evidence, lineage, traversal, and impact reads are
-Neo4j-only.
+Graph evidence, lineage, related-note reads, traversal, and impact analysis all derive from this PostgreSQL + Rust path; there is no optional graph read-model mode.
 
 ### Redis operational acceleration
 
@@ -151,33 +139,9 @@ seconds. Redis failure disables queued maintenance and, by default, fails closed
 for outbound provider calls, while canonical Markdown and PostgreSQL-backed core
 memory remain independent.
 
-The backend config selector `SERVICE_GRAPH_READ_MODEL` defaults to `disabled`
-and also accepts `neo4j`. Disabled mode does not create a driver, verify
-connectivity, open a session, or add graph-lane warnings to Context search
-responses. PostgreSQL search and RAG remain available in disabled mode, but contain
-no graph evidence, and related-note reads return service unavailable rather
-than falling back to PostgreSQL or reporting a misleading empty graph. To opt into
-the rebuildable projection adapter, store
-the connection values it consumes in the gitignored project `.env`:
+Graph retrieval is backed by PostgreSQL `obsidian_files`/`obsidian_edges` and the Rust graph compute layer. There is no separate graph database or opt-in graph runtime. The application keeps a bounded projection cache and lazily rebuilds it from PostgreSQL through the Rust projection compute provider when needed.
 
-```dotenv
-ALEXANDRIA_NEO4J_PASSWORD=replace-with-a-private-local-password
-SERVICE_GRAPH_READ_MODEL=neo4j
-SERVICE_NEO4J_URI=bolt://neo4j:7687
-SERVICE_NEO4J_USERNAME=neo4j
-SERVICE_NEO4J_PASSWORD=replace-with-the-same-private-local-password
-SERVICE_NEO4J_DATABASE=neo4j
-```
-
-Keep the password in the gitignored project `.env`; never place it in tracked
-Compose or documentation files. The adapter owns one async driver for its
-application lifetime and creates a short-lived session for each explicit graph
-operation. It does not run connectivity checks during default startup or
-readiness, and no existing RAG path depends on it.
-
-After enabling the graph profile, make sure the PostgreSQL schema is current, then
-rebuild the canonical Obsidian/PostgreSQL index before rebuilding the optional Neo4j
-projection:
+Keep the PostgreSQL schema and canonical Obsidian index current before graph diagnostics or explicit graph rebuilds:
 
 ```bash
 cd backend
@@ -187,33 +151,14 @@ curl -X POST http://127.0.0.1:8000/obsidian/graph/projection/rebuild
 curl http://127.0.0.1:8000/obsidian/graph/projection/status
 ```
 
-The Neo4j projection reads from the PostgreSQL note/edge cache produced by Obsidian
-reindexing. Running graph rebuild against a stale index can produce a technically
-`ready` projection from stale source rows, so keep the `reindex -> graph rebuild
--> status` sequence together in local operations.
-
-Graph rebuild responses are concise by default: `issue_total` and
-`issue_counts` summarize non-fatal source diagnostics, while `errors` contains
-only operation failures. Missing or ambiguous link targets are skipped instead
-of being written into the active projection. Request a bounded sample only when
-investigating diagnostics:
+Graph rebuild responses are concise by default: `issue_total` and `issue_counts` summarize non-fatal source diagnostics, while `errors` contains only operation failures. Missing or ambiguous link targets are skipped instead of entering the active projection. Request a bounded sample only when investigating diagnostics:
 
 ```bash
 curl -X POST \
   'http://127.0.0.1:8000/obsidian/graph/projection/rebuild?include_issue_details=true&issue_limit=100'
 ```
 
-Vault reindex, embedding rebuild/reindex, and graph projection rebuild share one
-fail-fast maintenance lane. A competing maintenance request returns HTTP `409`;
-retry it after the active operation finishes rather than running rebuilds in
-parallel.
-
-Neo4j stores the initially configured password in the `neo4j-data` named volume.
-If you later change `ALEXANDRIA_NEO4J_PASSWORD` in `.env`, the container may fail
-authentication against the existing volume. Either restore the previous local
-password, or intentionally reset only the rebuildable Neo4j projection volume and
-then run the reindex/rebuild sequence again. Do not delete the Obsidian vault or
-PostgreSQL operational volume when resetting the optional graph projection.
+Vault reindex, embedding rebuild/reindex, and graph projection rebuild share one fail-fast maintenance lane. A competing maintenance request returns HTTP `409`; retry it after the active operation finishes rather than running rebuilds in parallel.
 
 Or run it locally from `backend/`:
 
@@ -334,20 +279,13 @@ uv run --no-sync --no-editable heterarchy-alexandria mcp smoke-tools
 ```text
 alexandria_memory_steward_readiness
 alexandria_memory_steward_refresh_current_compact
-alexandria_vault_review_queue
-alexandria_vault_review_move_plan
-alexandria_vault_review_apply_moves
+alexandria_vault_inventory
+alexandria_vault_path_search
+alexandria_vault_move_plan
+alexandria_vault_apply_moves
 ```
 
-The Librarian agent-facing surface is intentionally smaller and capability-focused:
-
-```text
-alexandria_search_skills
-alexandria_start_skill_acquisition
-alexandria_skill_acquisition_job_status
-```
-
-Provider/profile selection, OAuth lifecycle, generic delegation, and manual skill completion are internal implementation details rather than requesting-agent MCP controls.
+Memory maintenance and explicit vault operations are exposed as narrow MCP capabilities. Provider/profile selection, external delegation, and autonomous skill-acquisition runtime are not part of the current requesting-agent surface.
 
 To check both MCP tool exposure and Memory Steward readiness in one script-friendly
 JSON result, run:
@@ -496,21 +434,9 @@ is already fresh (`refresh_required: false`, `created: null`). It only creates a
 new CURRENT compact when readiness reports a missing, stale, or timestamp-less
 compact. Use `--max-compact-age-days 14` to tighten freshness during a check.
 
-## Obsidian plugin: librarian side pane
-
-The optional local plugin lives at:
-
-```text
-integrations/obsidian/alexandria-librarian/
-```
-
-Copy or symlink that plugin into the target vault's `.obsidian/plugins/` folder during local plugin development. Then open Obsidian, enable Community plugins, enable **Alexandria Librarian**, and run the command palette action `Ask Alexandria Librarian`.
-
-The pane defaults to **Whole vault** scope so the librarian searches indexed memory, skills, prompts, plans, and context notes before citing source notes. OAuth tokens remain in backend provider storage, not in Obsidian.
-
 ## Canonical memory, skills, and prompts
 
-Reusable artifacts live as Obsidian notes, not database library rows. PostgreSQL keeps operational job and retrieval metadata, while the human-editable source of truth remains Markdown in the vault.
+Reusable artifacts live as Obsidian notes, not database library rows. PostgreSQL keeps operational memory/reconciliation and retrieval metadata, while the human-editable source of truth remains Markdown in the vault.
 
 Memory Compact lifecycle APIs write Markdown under `SERVICE_MEMORY_COMPACT_NOTE_DIR`. Rebuild the Obsidian index with:
 
@@ -518,28 +444,20 @@ Memory Compact lifecycle APIs write Markdown under `SERVICE_MEMORY_COMPACT_NOTE_
 curl -sS -X POST http://127.0.0.1:8000/obsidian/index/rebuild
 ```
 
-If PostgreSQL retrieval indexes are rebuilt, Markdown can repopulate note, chunk, edge, lexical, and vector projections. Provider profiles, OAuth state, and job/workflow operational state are not derived from Markdown and require normal PostgreSQL backups.
+If PostgreSQL retrieval indexes are rebuilt, Markdown can repopulate note, chunk, edge, lexical, and vector projections. Local MCP OAuth and other operational state that is not derived from Markdown require normal PostgreSQL backups.
 
-## Graph edges, related notes, and workflows
+## Graph edges and related notes
 
-Reindex rebuilds a PostgreSQL `obsidian_edges` source cache from relation frontmatter and body wikilinks. Obsidian Markdown remains canonical, and a full reindex can reconstruct the derived cache. This table does not serve graph traversal. Related-note traversal and graph evidence/lineage/impact reads use only the active Neo4j projection produced by the explicit graph rebuild endpoint. With `SERVICE_GRAPH_READ_MODEL=disabled`, PostgreSQL lexical/vector search and RAG still work without graph evidence and related-note endpoints return `503 Service Unavailable`.
+Reindex rebuilds PostgreSQL `obsidian_files` and `obsidian_edges` from canonical Markdown. Rust computes the deterministic projection, traversal, and graph candidate selection from those typed rows; related-note and graph evidence/lineage/impact reads use the active rebuildable projection backed by that PostgreSQL source.
 
-HTTP/MCP additions include related-note retrieval and resumable LangGraph librarian workflows:
+HTTP additions include related-note retrieval:
 
 ```text
 GET  /obsidian/notes/by-path/related?path=<path>
 GET  /obsidian/notes/{note_id}/related
-POST /obsidian/librarian/workflows
-GET  /obsidian/librarian/workflows/{thread_id}
-POST /obsidian/librarian/workflows/{thread_id}/resume
-POST /obsidian/librarian/workflows/{thread_id}/cancel
 ```
 
-The workflow runtime uses stateless `langgraph` `StateGraph` phases around a
-durable `obsidian_librarian_workflows` PostgreSQL row. Planning persists the
-complete approval state before side effects; resume reconstructs the graph
-state from that row and executes only approved actions. No separate LangGraph
-SQLite checkpoint database is used.
+Vault maintenance is exposed separately through explicit inventory, path-search, move-plan, and apply-moves operations under `/obsidian/vault/...`. No separate collaboration workflow runtime or SQLite checkpoint database is part of the current product.
 
 ## Local development
 

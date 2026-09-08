@@ -18,7 +18,6 @@ from fastapi.testclient import TestClient
 
 _ROUTER_PACKAGES = [
     "app.connections.interface.routers",
-    "app.librarian.interface.routers",
     "app.memory.interface.routers",
     "app.obsidian.interface.routers",
     "app.operations.interface.routers",

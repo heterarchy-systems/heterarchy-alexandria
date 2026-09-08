@@ -50,7 +50,7 @@ async def _services(
 def test_reindex_builds_postgres_edge_source_cache_from_markdown(
     tmp_path: Path,
 ) -> None:
-    """Reindex should retain PostgreSQL edge rows as the Neo4j rebuild source."""
+    """Reindex should retain PostgreSQL edge rows as the graph projection source."""
 
     async def scenario() -> tuple[list[tuple[str, str, str]], str]:
         database, session, obsidian = await _services(tmp_path)

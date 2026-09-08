@@ -1,4 +1,4 @@
-"""Independent readiness states for core and optional platform capabilities."""
+"""Independent readiness states for platform capabilities."""
 
 from __future__ import annotations
 
@@ -22,9 +22,8 @@ class OperationalCapability:
 
 @dataclass(frozen=True, slots=True)
 class OperationalCapabilitySnapshot:
-    """Core memory is assessed independently from semantic and Librarian layers."""
+    """Core memory and semantic retrieval are assessed independently."""
 
     checked_at: datetime
     core_memory: OperationalCapability
     semantic_retrieval: OperationalCapability
-    librarian: OperationalCapability

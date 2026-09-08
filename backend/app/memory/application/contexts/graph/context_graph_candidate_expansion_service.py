@@ -75,7 +75,7 @@ class ContextGraphCandidateExpansionService(IContextGraphCandidateExpansionProvi
         """Initialize graph expansion dependencies.
 
         Args:
-            projection_source: Active Neo4j projection snapshot source.
+            projection_source: Active PostgreSQL/Rust projection snapshot source.
             selector: Authoritative Rust graph candidate selector.
             hydrator: PostgreSQL-backed canonical Context candidate hydrator.
         """

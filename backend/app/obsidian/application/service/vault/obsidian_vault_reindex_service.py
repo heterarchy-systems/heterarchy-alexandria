@@ -1,4 +1,4 @@
-"""Composite Obsidian vault and optional graph projection reindex service."""
+"""Composite Obsidian vault and PostgreSQL graph projection reindex service."""
 
 from __future__ import annotations
 
@@ -32,13 +32,13 @@ class ObsidianVaultReindexService:
 
         Args:
             obsidian_service: Canonical Markdown to PostgreSQL reindex service.
-            graph_projection_rebuild_service: Optional graph projection rebuild service.
+            graph_projection_rebuild_service: PostgreSQL graph projection rebuild service.
         """
         self._obsidian_service = obsidian_service
         self._graph_projection_rebuild_service = graph_projection_rebuild_service
 
     async def rebuild(self) -> ObsidianVaultReindexReport:
-        """Rebuild the PostgreSQL index first, then rebuild the optional graph projection.
+        """Rebuild the PostgreSQL index first, then rebuild the PostgreSQL graph projection.
 
         The underlying services each own their maintenance lease. Calling them
         sequentially here ensures the graph projection reads the fresh PostgreSQL index

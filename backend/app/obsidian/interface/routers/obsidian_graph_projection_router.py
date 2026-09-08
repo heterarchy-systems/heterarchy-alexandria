@@ -31,8 +31,8 @@ router = APIRouter()
     "/graph/projection/status",
     response_model=ObsidianGraphProjectionStatusResponse,
     status_code=status.HTTP_200_OK,
-    summary="Get optional graph projection status",
-    description="Return status for the rebuildable optional Neo4j graph projection.",
+    summary="Get graph projection status",
+    description="Return status for the PostgreSQL/Rust graph projection.",
 )
 @inject
 async def graph_projection_status(
@@ -73,7 +73,7 @@ async def graph_build_status(
         Depends(Provide[ApplicationContainer.obsidian.graph_note_diagnostics_service]),
     ],
 ) -> ObsidianGraphBuildStatusResponse:
-    """Return graph build status without mutating Markdown or Neo4j.
+    """Return graph build status without mutating canonical Markdown.
 
     Args:
         service: Per-note graph diagnostics service.
@@ -93,7 +93,7 @@ async def graph_build_status(
     description=(
         "Report note index existence, outgoing cached edge resolution, explicit "
         "unresolved targets, and current graph projection status. This endpoint "
-        "does not mutate Markdown, PostgreSQL, or Neo4j."
+        "does not mutate Markdown or PostgreSQL."
     ),
 )
 @router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
@@ -170,9 +170,9 @@ async def rebuild_note_graph(
     "/graph/projection/rebuild",
     response_model=ObsidianGraphProjectionRebuildResponse,
     status_code=status.HTTP_200_OK,
-    summary="Rebuild optional graph projection",
+    summary="Rebuild graph projection",
     description=(
-        "Explicitly rebuild the optional Neo4j graph projection from the "
+        "Explicitly rebuild the PostgreSQL/Rust graph projection from the "
         "existing read-only Obsidian relational-index state."
     ),
 )

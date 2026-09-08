@@ -8,9 +8,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.obsidian.application.service.librarian.obsidian_librarian_review_service import (
-    ObsidianLibrarianReviewService,
-)
 from app.obsidian.application.service.notes.obsidian_index_error_repair_service import (
     ObsidianIndexErrorRepairService,
 )
@@ -31,8 +28,6 @@ from app.obsidian.application.service.vault.obsidian_vault_move_service import (
     ObsidianVaultMoveService,
 )
 from app.obsidian.domain.contracts.obsidian_contracts import (
-    ObsidianLibrarianReviewApplyRequest,
-    ObsidianLibrarianReviewQueueRequest,
     ObsidianVaultInventoryRequest,
     ObsidianVaultMoveApplyRequest,
     ObsidianVaultMovePlanRequest,
@@ -47,7 +42,6 @@ from app.obsidian.domain.entities.obsidian_legacy_metadata_repair import (
     ObsidianLegacyMetadataRepairReport,
 )
 from app.obsidian.domain.entities.obsidian_note import (
-    ObsidianLibrarianReviewQueueItem,
     ObsidianNote,
     ObsidianReindexResult,
     ObsidianVaultInventoryItem,
@@ -62,11 +56,10 @@ from app.obsidian.infrastructure.obsidian_vault_config_store import (
 
 
 class ObsidianVaultOperations(ObsidianReadinessPort, ObsidianDataIntegrityPort):
-    """Expose the stable vault/repair/curation facade over focused services."""
+    """Expose the stable vault and repair facade over focused services."""
 
     _index_error_repair_service: ObsidianIndexErrorRepairService
     _legacy_metadata_repair_service: ObsidianLegacyMetadataRepairService
-    _librarian_review_service: ObsidianLibrarianReviewService
     _vault_config_store: ObsidianVaultConfigStore
     _vault_inventory_service: ObsidianVaultInventoryService
     _vault_lifecycle_service: ObsidianVaultLifecycleService
@@ -230,48 +223,6 @@ class ObsidianVaultOperations(ObsidianReadinessPort, ObsidianDataIntegrityPort):
             query=query,
             scope_path=scope_path,
         )
-
-    async def librarian_review_queue(
-        self,
-        request: ObsidianLibrarianReviewQueueRequest,
-    ) -> list[ObsidianLibrarianReviewQueueItem]:
-        """List managed notes that need librarian curation.
-
-        Args:
-            request: Review queue scope, project, and limit contract.
-
-        Returns:
-            Prioritized librarian review candidates.
-        """
-        return await self._librarian_review_service.review_queue(request)
-
-    async def plan_librarian_review_moves(
-        self,
-        request: ObsidianLibrarianReviewQueueRequest,
-    ) -> ObsidianVaultMovePlan:
-        """Build a dry-run move plan from librarian review candidates.
-
-        Args:
-            request: Review queue scope, project, and limit contract.
-
-        Returns:
-            Safety-validated move plan.
-        """
-        return await self._librarian_review_service.plan_moves(request)
-
-    async def apply_librarian_review_moves(
-        self,
-        request: ObsidianLibrarianReviewApplyRequest,
-    ) -> ObsidianVaultMoveReport:
-        """Apply safe moves generated from librarian review candidates.
-
-        Args:
-            request: Review queue and report application contract.
-
-        Returns:
-            Applied move report and verification metadata.
-        """
-        return await self._librarian_review_service.apply_moves(request)
 
     async def plan_vault_moves(
         self,

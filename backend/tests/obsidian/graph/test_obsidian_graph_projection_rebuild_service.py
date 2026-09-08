@@ -1,4 +1,4 @@
-"""Projection rebuild/status operation contracts for optional graph read models."""
+"""PostgreSQL/Rust graph projection rebuild/status operation contracts."""
 
 from __future__ import annotations
 
@@ -6,6 +6,9 @@ from collections.abc import Callable
 from pathlib import Path
 
 import anyio
+import pytest
+from pydantic import ValidationError
+
 from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild_service import (
     ObsidianGraphProjectionRebuildService,
 )
@@ -20,20 +23,15 @@ from app.obsidian.domain.contracts.obsidian_graph_projection_contracts import (
     ObsidianGraphProjectionSourceSnapshot,
     ObsidianGraphProjectionState,
 )
-from app.obsidian.domain.event_enum.obsidian_graph_enums import (
-    ObsidianGraphProjectionIssueCode,
-)
 from app.obsidian.domain.event_enum.obsidian_enums import (
     AlexandriaNoteType,
     ObsidianEdgeSourceKind,
     ObsidianRelationType,
 )
+from app.obsidian.domain.event_enum.obsidian_graph_enums import (
+    ObsidianGraphProjectionIssueCode,
+)
 from app.platform.config.app_config import AppConfig
-
-
-class _FailingSourceBuilder:
-    async def build(self) -> ObsidianGraphProjectionSourceSnapshot:
-        raise AssertionError("disabled graph projection must not read source rows")
 
 
 class _StaticSourceBuilder:
@@ -68,7 +66,7 @@ class _RecordingProjectionRepository:
         batch_index = len(self._staged[run_id])
         self.calls.append(("batch", run_id, batch))
         if self._fail_batch_index == batch_index:
-            raise RuntimeError("neo4j write failed")
+            raise RuntimeError("graph adapter write failed")
         self._staged[run_id].append(batch)
 
     async def complete_rebuild(
@@ -169,36 +167,10 @@ def _projection_snapshot() -> ObsidianGraphProjectionSourceSnapshot:
     )
 
 
-def test_disabled_rebuild_and_status_do_not_build_source_or_require_repository() -> (
-    None
-):
-    """Default-disabled mode should return explicit non-mutating responses."""
-
-    async def scenario() -> tuple[object, object]:
-        service = ObsidianGraphProjectionRebuildService(
-            config=AppConfig(_env_file=None, graph_read_model="disabled"),
-            source_builder=_FailingSourceBuilder(),
-            repository=None,
-            run_id_factory=lambda: "run-disabled",
-            monotonic_seconds=_clock((100.0, 100.0)),
-        )
-        return await service.rebuild(include_issue_details=True), await service.status()
-
-    report, status = anyio.run(scenario)
-
-    assert report.status == "disabled"
-    assert report.graph_read_model == "disabled"
-    assert report.run_id == "run-disabled"
-    assert report.scanned == 0
-    assert report.indexed == 0
-    assert report.updated == 0
-    assert report.skipped == 0
-    assert report.errors == ()
-    assert report.duration_seconds == 0.0
-    assert status.status == "disabled"
-    assert status.enabled is False
-    assert status.node_count == 0
-    assert status.edge_count == 0
+def test_retired_graph_read_model_is_rejected_before_rebuild() -> None:
+    """The retired disabled selector cannot bypass PostgreSQL graph projection."""
+    with pytest.raises(ValidationError):
+        AppConfig(_env_file=None, graph_read_model="disabled")
 
 
 def test_enabled_rebuild_uses_builder_snapshot_and_reports_counts(
@@ -211,13 +183,7 @@ def test_enabled_rebuild_uses_builder_snapshot_and_reports_counts(
 
     async def scenario() -> tuple[object, object]:
         service = ObsidianGraphProjectionRebuildService(
-            config=AppConfig(
-                _env_file=None,
-                graph_read_model="neo4j",
-                neo4j_uri="neo4j://example:7687",
-                neo4j_username="neo4j",
-                neo4j_password="local-test-password",
-            ),
+            config=AppConfig(_env_file=None),
             source_builder=builder,
             repository=repository,
             run_id_factory=lambda: "run-enabled",
@@ -236,7 +202,7 @@ def test_enabled_rebuild_uses_builder_snapshot_and_reports_counts(
     ]
     assert {call[1] for call in repository.calls} == {"run-enabled"}
     assert report.status == "completed"
-    assert report.graph_read_model == "neo4j"
+    assert report.graph_read_model == "postgresql"
     assert report.run_id == "run-enabled"
     assert report.scanned == 5
     assert report.indexed == 3
@@ -272,13 +238,7 @@ def test_enabled_rebuild_surfaces_adapter_failure_without_markdown_mutation(
 
     async def scenario() -> object:
         service = ObsidianGraphProjectionRebuildService(
-            config=AppConfig(
-                _env_file=None,
-                graph_read_model="neo4j",
-                neo4j_uri="neo4j://example:7687",
-                neo4j_username="neo4j",
-                neo4j_password="local-test-password",
-            ),
+            config=AppConfig(_env_file=None),
             source_builder=builder,
             repository=repository,
             run_id_factory=lambda: "run-failed",
@@ -306,13 +266,7 @@ def test_enabled_status_distinguishes_uninitialized_from_successful_empty() -> N
 
     async def scenario() -> tuple[object, object]:
         service = ObsidianGraphProjectionRebuildService(
-            config=AppConfig(
-                _env_file=None,
-                graph_read_model="neo4j",
-                neo4j_uri="neo4j://example:7687",
-                neo4j_username="neo4j",
-                neo4j_password="local-test-password",
-            ),
+            config=AppConfig(_env_file=None),
             source_builder=_StaticSourceBuilder(
                 ObsidianGraphProjectionSourceSnapshot(
                     projection=ObsidianGraphProjection(),
@@ -342,17 +296,11 @@ def test_source_failure_returns_redacted_typed_failed_report() -> None:
 
     class _SecretFailingBuilder:
         async def build(self) -> ObsidianGraphProjectionSourceSnapshot:
-            raise RuntimeError("password=do-not-report neo4j://secret")
+            raise RuntimeError("password=do-not-report graphdb://secret")
 
     async def scenario() -> object:
         return await ObsidianGraphProjectionRebuildService(
-            config=AppConfig(
-                _env_file=None,
-                graph_read_model="neo4j",
-                neo4j_uri="neo4j://example:7687",
-                neo4j_username="neo4j",
-                neo4j_password="local-test-password",
-            ),
+            config=AppConfig(_env_file=None),
             source_builder=_SecretFailingBuilder(),
             repository=_RecordingProjectionRepository(),
             run_id_factory=lambda: "run-source-failed",
@@ -374,13 +322,7 @@ def test_adapter_failure_preserves_primary_error_and_reports_abort_failure() -> 
 
     async def scenario() -> object:
         return await ObsidianGraphProjectionRebuildService(
-            config=AppConfig(
-                _env_file=None,
-                graph_read_model="neo4j",
-                neo4j_uri="neo4j://example:7687",
-                neo4j_username="neo4j",
-                neo4j_password="local-test-password",
-            ),
+            config=AppConfig(_env_file=None),
             source_builder=_StaticSourceBuilder(_projection_snapshot()),
             repository=repository,
             run_id_factory=lambda: "run-dual-failure",
@@ -403,13 +345,7 @@ def test_rebuild_defaults_to_counted_diagnostics_without_large_detail_payload() 
 
     async def scenario() -> object:
         service = ObsidianGraphProjectionRebuildService(
-            config=AppConfig(
-                _env_file=None,
-                graph_read_model="neo4j",
-                neo4j_uri="neo4j://example:7687",
-                neo4j_username="neo4j",
-                neo4j_password="local-test-password",
-            ),
+            config=AppConfig(_env_file=None),
             source_builder=_StaticSourceBuilder(_projection_snapshot()),
             repository=_RecordingProjectionRepository(),
             run_id_factory=lambda: "run-summary",

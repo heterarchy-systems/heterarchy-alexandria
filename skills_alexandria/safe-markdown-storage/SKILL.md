@@ -11,7 +11,7 @@ The primary rule is:
 
 > Prefer the Alexandria MCP/API write boundary. Treat direct filesystem editing as a constrained human/import fallback, not the normal agent write path.
 
-Obsidian Markdown is canonical storage. PostgreSQL indexes, embeddings, and Neo4j are rebuildable projections, so malformed canonical Markdown can contaminate every downstream read model even when those services are healthy.
+Obsidian Markdown is canonical storage. PostgreSQL indexes, embeddings, and the bounded graph projection cache are rebuildable projections; Rust owns deterministic graph compute, so malformed canonical Markdown can contaminate every downstream read model even when infrastructure is healthy.
 
 ## Procedure
 1. Choose the correct managed note type and the narrowest valid Context scope.
@@ -28,8 +28,6 @@ Use one of these `alexandria_type` values:
 - `memory_compact` — compact current state for bounded recall.
 - `skill` — reusable operating procedure or capability.
 - `prompt` — reusable prompt/template with explicit trust boundaries.
-- `librarian_brief` — librarian research or curation brief.
-- `librarian_chat` — librarian transcript.
 - `job_plan` — bounded execution plan.
 - `implementation_history` — implementation log, migration evidence, benchmark history.
 
@@ -191,7 +189,7 @@ After a write that changes links or graph-relevant metadata:
 
 ## 9. Verify downstream read models instead of editing them
 
-If a canonical Markdown write succeeds but downstream indexing fails, preserve the Markdown and use the repair/reindex path. Do not mutate PostgreSQL, Redis, or Neo4j behind the API to make status look healthy.
+If a canonical Markdown write succeeds but downstream indexing fails, preserve the Markdown and use the repair/reindex path. Do not mutate PostgreSQL, Redis, or the graph projection cache behind the API to make status look healthy.
 
 Healthy closure should normally show:
 
@@ -302,4 +300,3 @@ When identity, integrity, path, trust, or concurrency is uncertain, fail closed 
 
 - `skills_alexandria/alexandria-library/SKILL.md` — recall and safe agent memory use.
 - `skills_alexandria/operational-sync/SKILL.md` — reindex, embedding, graph, and recovery synchronization.
-- `skills_alexandria/librarian-operator/SKILL.md` — librarian-assisted curation and publication.

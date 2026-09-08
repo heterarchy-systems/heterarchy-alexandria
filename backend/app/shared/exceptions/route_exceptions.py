@@ -13,11 +13,6 @@ from app.shared.exceptions.connections_exceptions import (
     ConnectionsResourceNotFoundError,
 )
 from app.shared.exceptions.exception_decorators import RouteExceptionStatusMapping
-from app.shared.exceptions.librarian_exceptions import (
-    LibrarianProviderUnsupportedError,
-    LibrarianResourceNotFoundError,
-    LibrarianValidationError,
-)
 from app.shared.exceptions.memory_compact_exceptions import (
     MemoryCompactNotFoundError,
     MemoryCompactValidationError,
@@ -81,11 +76,4 @@ OBSIDIAN_SAVE_ROUTE_EXCEPTION_MAPPING: RouteExceptionStatusMapping = {
 
 OPERATIONS_ROUTE_EXCEPTION_MAPPING: RouteExceptionStatusMapping = {
     BoundaryValidationError: status.HTTP_400_BAD_REQUEST,
-}
-
-LIBRARIAN_ROUTE_EXCEPTION_MAPPING: RouteExceptionStatusMapping = {
-    BoundaryValidationError: status.HTTP_400_BAD_REQUEST,
-    LibrarianProviderUnsupportedError: status.HTTP_400_BAD_REQUEST,
-    LibrarianResourceNotFoundError: status.HTTP_404_NOT_FOUND,
-    LibrarianValidationError: status.HTTP_400_BAD_REQUEST,
 }

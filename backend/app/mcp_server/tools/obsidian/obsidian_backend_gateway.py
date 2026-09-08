@@ -1,4 +1,4 @@
-"""Obsidian search, note, graph, and librarian MCP HTTP gateway functions."""
+"""Obsidian search, note, graph, and vault MCP HTTP gateway functions."""
 
 from __future__ import annotations
 

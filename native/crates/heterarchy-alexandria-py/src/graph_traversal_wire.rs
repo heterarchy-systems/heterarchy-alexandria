@@ -2,9 +2,10 @@
 
 use heterarchy_alexandria_core::ComputeContractVersion;
 use heterarchy_alexandria_core::graph_compute::{
-    GRAPH_COMPUTE_VERSION, GraphProjection, GraphProjectionEdge, GraphProjectionNode,
-    GraphSelectedCandidate, GraphTitleRelevance, GraphTraversalRequest, GraphTraversalResult,
-    TraversalDirection, select_projection_candidates, traverse_projection,
+    GRAPH_COMPUTE_VERSION, GraphContextEvidence, GraphProjection, GraphProjectionEdge,
+    GraphProjectionNode, GraphProjectionReadResult, GraphRelatedNote, GraphSelectedCandidate,
+    GraphTitleRelevance, GraphTraversalRequest, GraphTraversalResult, TraversalDirection,
+    read_projection, select_projection_candidates, traverse_projection,
 };
 use serde::{Deserialize, Serialize};
 
@@ -28,6 +29,17 @@ struct GraphCandidateSelectionBatchWire {
     query: String,
     max_candidates: usize,
     min_shared_trigrams: usize,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct GraphProjectionReadWire {
+    contract_version: u16,
+    graph_compute_version: u16,
+    projection: GraphProjectionWire,
+    related_note_id: Option<String>,
+    limit: usize,
+    evidence_note_ids: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -86,6 +98,14 @@ struct GraphCandidateSelectionBatchResult {
     traversals: Vec<GraphTraversalResult>,
     candidates: Vec<GraphSelectedCandidate>,
     primary_title_relevance: Vec<GraphTitleRelevance>,
+}
+
+#[derive(Debug, Serialize)]
+struct GraphProjectionReadResultWire {
+    contract_version: u16,
+    graph_compute_version: u16,
+    related_notes: Vec<GraphRelatedNote>,
+    context_evidence: Vec<GraphContextEvidence>,
 }
 
 /// Traverse one already-built graph projection without rebuilding projection state.
@@ -167,6 +187,42 @@ pub(crate) fn compute_graph_candidate_selection_payload(payload: &[u8]) -> Resul
     .map_err(|error| format!("NATIVE_GRAPH_CANDIDATE_SELECTION_OUTPUT_ERROR: {error}"))
 }
 
+/// Read weighted one-hop relationships and recalled-edge evidence from an active projection.
+///
+/// # Errors
+///
+/// Returns a stable machine-readable error when the strict wire shape, version, projection
+/// invariants, confidence values, or bounded read arguments are invalid.
+pub(crate) fn compute_graph_projection_read_payload(payload: &[u8]) -> Result<Vec<u8>, String> {
+    let wire: GraphProjectionReadWire = serde_json::from_slice(payload)
+        .map_err(|error| format!("NATIVE_GRAPH_PROJECTION_READ_INPUT_ERROR: {error}"))?;
+    crate::validate_contract_version(
+        wire.contract_version,
+        "NATIVE_GRAPH_PROJECTION_READ_CONTRACT_ERROR",
+    )?;
+    if wire.graph_compute_version != GRAPH_COMPUTE_VERSION {
+        return Err(format!(
+            "NATIVE_GRAPH_PROJECTION_READ_CONTRACT_ERROR: expected graph compute version {GRAPH_COMPUTE_VERSION}, found {}",
+            wire.graph_compute_version
+        ));
+    }
+    let projection = projection_from_wire(wire.projection)?;
+    let result: GraphProjectionReadResult = read_projection(
+        &projection,
+        wire.related_note_id.as_deref(),
+        wire.limit,
+        &wire.evidence_note_ids,
+    )
+    .map_err(|error| format!("NATIVE_GRAPH_PROJECTION_READ_INVARIANT_ERROR: {error}"))?;
+    serde_json::to_vec(&GraphProjectionReadResultWire {
+        contract_version: ComputeContractVersion::CURRENT.value(),
+        graph_compute_version: GRAPH_COMPUTE_VERSION,
+        related_notes: result.related_notes,
+        context_evidence: result.context_evidence,
+    })
+    .map_err(|error| format!("NATIVE_GRAPH_PROJECTION_READ_OUTPUT_ERROR: {error}"))
+}
+
 fn projection_from_wire(wire: GraphProjectionWire) -> Result<GraphProjection, String> {
     let edges = wire
         .edges
@@ -235,7 +291,10 @@ fn direction_from_wire(value: &str) -> Result<TraversalDirection, String> {
 mod tests {
     use serde_json::Value;
 
-    use super::{compute_graph_candidate_selection_payload, compute_graph_traversal_payload};
+    use super::{
+        compute_graph_candidate_selection_payload, compute_graph_projection_read_payload,
+        compute_graph_traversal_payload,
+    };
 
     const VALID_PAYLOAD: &[u8] = br#"{
         "contract_version":1,
@@ -347,5 +406,69 @@ mod tests {
                 .is_some_and(|value| value >= 3)
         );
         assert_eq!(decoded["primary_title_relevance"][0]["note_id"], "seed");
+    }
+
+    #[test]
+    fn adapter_reads_related_notes_and_context_evidence_with_strict_versions() {
+        let payload = br#"{
+            "contract_version":1,
+            "graph_compute_version":1,
+            "projection":{
+                "nodes":[
+                    {"note_id":"source","relative_path":"Contexts/source.md","alexandria_type":"context","title":"Source","status":"active","project":null},
+                    {"note_id":"target","relative_path":"Memory/target.md","alexandria_type":"memory_compact","title":"Target","status":"active","project":null}
+                ],
+                "edges":[
+                    {"edge_id":"edge-1","source_note_id":"source","source_path":"Contexts/source.md","target_note_id":"target","target_path":"Memory/target.md","relation":"related","confidence":0.4,"source_kind":"wikilink"}
+                ]
+            },
+            "related_note_id":"source",
+            "limit":10,
+            "evidence_note_ids":["source","target"]
+        }"#;
+        let encoded = match compute_graph_projection_read_payload(payload) {
+            Ok(value) => value,
+            Err(error) => unreachable!("valid graph projection read failed: {error}"),
+        };
+        let decoded: Value = match serde_json::from_slice(&encoded) {
+            Ok(value) => value,
+            Err(error) => unreachable!("graph projection read emitted invalid JSON: {error}"),
+        };
+        assert_eq!(decoded["contract_version"], 1);
+        assert_eq!(decoded["graph_compute_version"], 1);
+        assert_eq!(decoded["related_notes"][0]["direction"], "outgoing");
+        assert_eq!(decoded["related_notes"][0]["score"], 1.0);
+        assert_eq!(decoded["context_evidence"][0]["signal"], "resume_path");
+        assert_eq!(decoded["context_evidence"][0]["target_title"], "Target");
+    }
+
+    #[test]
+    fn adapter_rejects_projection_read_unknown_fields_and_versions() {
+        let payload = br#"{
+            "contract_version":1,
+            "graph_compute_version":1,
+            "projection":{"nodes":[],"edges":[]},
+            "related_note_id":null,
+            "limit":1,
+            "evidence_note_ids":[],
+            "extra":true
+        }"#;
+        let Err(field_error) = compute_graph_projection_read_payload(payload) else {
+            unreachable!("unknown graph projection read field must fail");
+        };
+        assert!(field_error.contains("unknown field"));
+
+        let version_payload = br#"{
+            "contract_version":1,
+            "graph_compute_version":2,
+            "projection":{"nodes":[],"edges":[]},
+            "related_note_id":null,
+            "limit":1,
+            "evidence_note_ids":[]
+        }"#;
+        let Err(version_error) = compute_graph_projection_read_payload(version_payload) else {
+            unreachable!("unknown graph projection read version must fail");
+        };
+        assert!(version_error.contains("expected graph compute version 1, found 2"));
     }
 }

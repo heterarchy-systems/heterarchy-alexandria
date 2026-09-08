@@ -1,0 +1,174 @@
+{
+  "transport": "stdio in deployed container -> live HTTP backend",
+  "tool_count": 46,
+  "exact_source_match": true,
+  "retired_absent": true,
+  "create_note_librarian_absent": true,
+  "graph": {
+    "meta": null,
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"status\": \"ready\",\n  \"graph_read_model\": \"postgresql\",\n  \"enabled\": true,\n  \"node_count\": 1887,\n  \"edge_count\": 6463,\n  \"run_id\": \"55441228-6a9c-404b-959d-b427b17a16b1\",\n  \"projection_version\": 1,\n  \"last_run_issue_total\": 5,\n  \"last_run_issue_counts\": [\n    {\n      \"code\": \"missing_target_note\",\n      \"count\": 5\n    }\n  ],\n  \"errors\": []\n}",
+        "annotations": null,
+        "meta": null
+      }
+    ],
+    "structured_content": {
+      "result": {
+        "status": "ready",
+        "graph_read_model": "postgresql",
+        "enabled": true,
+        "node_count": 1887,
+        "edge_count": 6463,
+        "run_id": "55441228-6a9c-404b-959d-b427b17a16b1",
+        "projection_version": 1,
+        "last_run_issue_total": 5,
+        "last_run_issue_counts": [
+          {
+            "code": "missing_target_note",
+            "count": 5
+          }
+        ],
+        "errors": []
+      }
+    },
+    "is_error": false,
+    "result_type": "complete"
+  },
+  "memory_steward": {
+    "meta": null,
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"ready\": true,\n  \"status\": \"ready\",\n  \"project\": \"heterarchy-alexandria\",\n  \"rag\": {\n    \"fts\": \"HEALTHY\",\n    \"vector\": \"HEALTHY\",\n    \"embedding\": \"HEALTHY\",\n    \"warnings\": []\n  },\n  \"current_memory_compact\": {\n    \"id\": \"2ff06edf-5164-49d6-8f57-9c1b98d1f408\",\n    \"project\": \"heterarchy-alexandria\",\n    \"status\": \"CURRENT\",\n    \"updated_at\": \"2026-09-05T05:10:51.096908Z\",\n    \"age_days\": 3,\n    \"max_age_days\": 30,\n    \"warnings\": [],\n    \"source_refs\": [\n      {\n        \"source_id\": \"e46e6503-f03c-4bb4-aee7-4ef6fff51c7a\",\n        \"detail_path\": \"/memory/compacts/e46e6503-f03c-4bb4-aee7-4ef6fff51c7a\",\n        \"source_hash\": null,\n        \"current_source_hash\": null\n      },\n      {\n        \"source_id\": \"readiness-refresh-2026-08-30T20:15:00+09:00\",\n        \"detail_path\": \"/memory/contexts/rag/status + /memory/compacts/current + /obsidian/librarian/review-queue\",\n        \"source_hash\": null,\n        \"current_source_hash\": null\n      }\n    ]\n  },\n  \"current_memory_compact_review\": {\n    \"compact_id\": \"2ff06edf-5164-49d6-8f57-9c1b98d1f408\",\n    \"verdict\": \"pass\",\n    \"total_score\": 20,\n    \"max_score\": 20,\n    \"scores\": [\n      {\n        \"code\": \"durable_decisions\",\n        \"label\": \"Durable Decisions\",\n        \"score\": 2,\n        \"required\": true,\n        \"reasons\": []\n      },\n      {\n        \"code\": \"current_state\",\n        \"label\": \"Current State\",\n        \"score\": 2,\n        \"required\": true,\n        \"reasons\": []\n      },\n      {\n        \"code\": \"risks_blockers\",\n        \"label\": \"Risks and Blockers\",\n        \"score\": 2,\n        \"required\": true,\n        \"reasons\": []\n      },\n      {\n        \"code\": \"next_actions\",\n        \"label\": \"Next Actions\",\n        \"score\": 2,\n        \"required\": true,\n        \"reasons\": []\n      },\n      {\n        \"code\": \"evidence_completeness\",\n        \"label\": \"Evidence Completeness\",\n        \"score\": 2,\n        \"required\": true,\n        \"reasons\": []\n      },\n      {\n        \"code\": \"project_isolation\",\n        \"label\": \"Project Isolation\",\n        \"score\": 2,\n        \"required\": true,\n        \"reasons\": []\n      },\n      {\n        \"code\": \"freshness\",\n        \"label\": \"Freshness\",\n        \"score\": 2,\n        \"required\": true,\n        \"reasons\": []\n      },\n      {\n        \"code\": \"concision\",\n        \"label\": \"Concision\",\n        \"score\": 2,\n        \"required\": false,\n        \"reasons\": []\n      },\n      {\n        \"code\": \"contradiction_handling\",\n        \"label\": \"Contradiction Handling\",\n        \"score\": 2,\n        \"required\": true,\n        \"reasons\": []\n      },\n      {\n        \"code\": \"actionability\",\n        \"label\": \"Actionability\",\n        \"score\": 2,\n        \"required\": false,\n        \"reasons\": []\n      }\n    ],\n    \"missing_refs\": [],\n    \"contradictions\": [],\n    \"stale_reasons\": [],\n    \"recommended_actions\": [\n      \"promote_or_keep_current\"\n    ]\n  },\n  \"warnings\": [],\n  \"next_actions\": []\n}",
+        "annotations": null,
+        "meta": null
+      }
+    ],
+    "structured_content": {
+      "result": {
+        "ready": true,
+        "status": "ready",
+        "project": "heterarchy-alexandria",
+        "rag": {
+          "fts": "HEALTHY",
+          "vector": "HEALTHY",
+          "embedding": "HEALTHY",
+          "warnings": []
+        },
+        "current_memory_compact": {
+          "id": "2ff06edf-5164-49d6-8f57-9c1b98d1f408",
+          "project": "heterarchy-alexandria",
+          "status": "CURRENT",
+          "updated_at": "2026-09-05T05:10:51.096908Z",
+          "age_days": 3,
+          "max_age_days": 30,
+          "warnings": [],
+          "source_refs": [
+            {
+              "source_id": "e46e6503-f03c-4bb4-aee7-4ef6fff51c7a",
+              "detail_path": "/memory/compacts/e46e6503-f03c-4bb4-aee7-4ef6fff51c7a",
+              "source_hash": null,
+              "current_source_hash": null
+            },
+            {
+              "source_id": "readiness-refresh-2026-08-30T20:15:00+09:00",
+              "detail_path": "/memory/contexts/rag/status + /memory/compacts/current + /obsidian/librarian/review-queue",
+              "source_hash": null,
+              "current_source_hash": null
+            }
+          ]
+        },
+        "current_memory_compact_review": {
+          "compact_id": "2ff06edf-5164-49d6-8f57-9c1b98d1f408",
+          "verdict": "pass",
+          "total_score": 20,
+          "max_score": 20,
+          "scores": [
+            {
+              "code": "durable_decisions",
+              "label": "Durable Decisions",
+              "score": 2,
+              "required": true,
+              "reasons": []
+            },
+            {
+              "code": "current_state",
+              "label": "Current State",
+              "score": 2,
+              "required": true,
+              "reasons": []
+            },
+            {
+              "code": "risks_blockers",
+              "label": "Risks and Blockers",
+              "score": 2,
+              "required": true,
+              "reasons": []
+            },
+            {
+              "code": "next_actions",
+              "label": "Next Actions",
+              "score": 2,
+              "required": true,
+              "reasons": []
+            },
+            {
+              "code": "evidence_completeness",
+              "label": "Evidence Completeness",
+              "score": 2,
+              "required": true,
+              "reasons": []
+            },
+            {
+              "code": "project_isolation",
+              "label": "Project Isolation",
+              "score": 2,
+              "required": true,
+              "reasons": []
+            },
+            {
+              "code": "freshness",
+              "label": "Freshness",
+              "score": 2,
+              "required": true,
+              "reasons": []
+            },
+            {
+              "code": "concision",
+              "label": "Concision",
+              "score": 2,
+              "required": false,
+              "reasons": []
+            },
+            {
+              "code": "contradiction_handling",
+              "label": "Contradiction Handling",
+              "score": 2,
+              "required": true,
+              "reasons": []
+            },
+            {
+              "code": "actionability",
+              "label": "Actionability",
+              "score": 2,
+              "required": false,
+              "reasons": []
+            }
+          ],
+          "missing_refs": [],
+          "contradictions": [],
+          "stale_reasons": [],
+          "recommended_actions": [
+            "promote_or_keep_current"
+          ]
+        },
+        "warnings": [],
+        "next_actions": []
+      }
+    },
+    "is_error": false,
+    "result_type": "complete"
+  }
+}

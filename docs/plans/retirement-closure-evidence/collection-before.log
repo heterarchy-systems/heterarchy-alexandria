@@ -1,0 +1,57 @@
+[postgres-tests] Starting temporary PostgreSQL container from pgvector/pgvector:pg17.
+[postgres-tests] Waiting for PostgreSQL readiness (timeout: 60s).
+[postgres-tests] PostgreSQL is still starting... 1/60s
+[postgres-tests] PostgreSQL ready in 2s on 127.0.0.1:63929.
+[postgres-tests] Starting pytest; dots show completed tests and collection files are visible.
+[pytest-setup] Creating isolated PostgreSQL test database...
+[pytest-setup] Test database created in 0.1s.
+[pytest-setup] Applying Alembic migrations to head...
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 202605121240_initial_uuid_archive, Initial backend-owned archive schema with UUID identifiers.
+INFO  [alembic.runtime.migration] Running upgrade 202605121240_initial_uuid_archive -> 202605141904_add_context_vault, Add Context Vault storage and retrieval tables.
+INFO  [alembic.runtime.migration] Running upgrade 202605141904_add_context_vault -> 202605150930_remove_default_minio_smoke_provider, Remove legacy default MINIO smoke provider.
+INFO  [alembic.runtime.migration] Running upgrade 202605150930_remove_default_minio_smoke_provider -> 202605151438_allow_prompt_library_item_type, Allow prompt records in library_items.
+INFO  [alembic.runtime.migration] Running upgrade 202605151438_allow_prompt_library_item_type -> 202605161020, Add librarian agent profile configuration fields.
+INFO  [alembic.runtime.migration] Running upgrade 202605161020 -> 202605161930, Add Context Vault recall scopes and library review statuses.
+INFO  [alembic.runtime.migration] Running upgrade 202605161930 -> 202605161945, Add librarian profile routing fields.
+INFO  [alembic.runtime.migration] Running upgrade 202605161945 -> 202605162010, Add context chunk embedding storage for vector retrieval.
+INFO  [alembic.runtime.migration] Running upgrade 202605162010 -> 202605171845_add_memory_compacts, Add Memory Compact artifacts.
+INFO  [alembic.runtime.migration] Running upgrade 202605171845_add_memory_compacts -> 202605172010_add_context_access_events, Add Context Vault access event history.
+INFO  [alembic.runtime.migration] Running upgrade 202605172010_add_context_access_events -> 202605181430_remove_workflow_library_item_type, Remove legacy workflow library item type.
+INFO  [alembic.runtime.migration] Running upgrade 202605181430_remove_workflow_library_item_type -> 202605181650_add_harness_context_kind, Add harness context kind.
+INFO  [alembic.runtime.migration] Running upgrade 202605181650_add_harness_context_kind -> 202605181720_create_skill_acquisition_jobs, Create durable skill acquisition jobs.
+INFO  [alembic.runtime.migration] Running upgrade 202605181720_create_skill_acquisition_jobs -> 202605191840_remove_minio_providers, Remove legacy MINIO providers.
+INFO  [alembic.runtime.migration] Running upgrade 202605191840_remove_minio_providers -> 202605192115_remove_knowledge_library_item_type, Remove legacy knowledge library item type.
+INFO  [alembic.runtime.migration] Running upgrade 202605192115_remove_knowledge_library_item_type -> 202605201020_normalize_legacy_sqlite_datetimes, Normalize legacy SQLite datetimes to explicit UTC.
+INFO  [alembic.runtime.migration] Running upgrade 202605201020_normalize_legacy_sqlite_datetimes -> 202605201030_reject_legacy_provider_secret_storage, Reject legacy provider secret storage values.
+INFO  [alembic.runtime.migration] Running upgrade 202605201030_reject_legacy_provider_secret_storage -> 202605251030_drop_library_crud_and_harness_kind, Drop SQLite library CRUD tables and harness context kind.
+INFO  [alembic.runtime.migration] Running upgrade 202605251030_drop_library_crud_and_harness_kind -> 202605251130_drop_memory_compact_sqlite_storage, Drop SQLite Memory Compact storage tables.
+INFO  [alembic.runtime.migration] Running upgrade 202605251130_drop_memory_compact_sqlite_storage -> 202605251420_add_obsidian_index_cache, Add Obsidian Markdown index cache tables.
+INFO  [alembic.runtime.migration] Running upgrade 202605251420_add_obsidian_index_cache -> 202605261030_add_obsidian_graph_and_workflows, Add Obsidian graph edges and librarian workflow checkpoints.
+INFO  [alembic.runtime.migration] Running upgrade 202605261030_add_obsidian_graph_and_workflows -> 202605281230_add_obsidian_chunk_embeddings, Add Obsidian chunk embedding storage for Context RAG retrieval.
+INFO  [alembic.runtime.migration] Running upgrade 202605281230_add_obsidian_chunk_embeddings -> 202606020050_add_embedding_fingerprints, Add embedding fingerprint metadata to context and Obsidian chunks.
+INFO  [alembic.runtime.migration] Running upgrade 202606020050_add_embedding_fingerprints -> 202606021130_add_skill_acquisition_handoff_fields, Add skill-acquisition stage and handoff fields.
+INFO  [alembic.runtime.migration] Running upgrade 202606021130_add_skill_acquisition_handoff_fields -> 202606021145_add_skill_acquisition_search_audit_fields, Add skill-acquisition search audit fields.
+INFO  [alembic.runtime.migration] Running upgrade 202606021145_add_skill_acquisition_search_audit_fields -> 38a1eeb8d848, add memory reconciliation tables.
+INFO  [alembic.runtime.migration] Running upgrade 38a1eeb8d848 -> 714900e7251c, add local mcp oauth tables.
+INFO  [alembic.runtime.migration] Running upgrade 714900e7251c -> 9e4d7b6c2a10, add mcp oauth pairing codes.
+INFO  [alembic.runtime.migration] Running upgrade 9e4d7b6c2a10 -> 202607281750, Hard-delete MCP OAuth clients left by legacy soft disconnect.
+INFO  [alembic.runtime.migration] Running upgrade 202607281750 -> 202607281805, Delete orphaned MCP OAuth state left without a client registration.
+INFO  [alembic.runtime.migration] Running upgrade 202607281805 -> 202608062130_pg_search, Add PostgreSQL vector and lexical search storage.
+INFO  [alembic.runtime.migration] Running upgrade 202608062130_pg_search -> 202608070100_credential_text, Allow encrypted provider credential payloads beyond legacy VARCHAR limits.
+INFO  [alembic.runtime.migration] Running upgrade 202608070100_credential_text -> cabdf60a1fee, add context projection integrity snapshot.
+INFO  [alembic.runtime.migration] Running upgrade cabdf60a1fee -> 202609071940_librarian_drop, Drop retired Librarian runtime tables.
+[pytest-setup] Alembic migrations completed in 0.6s.
+[pytest-setup] Collecting tests...
+[pytest-collect] tests/archive/interface/test_minio_archive_pruning_contract.py
+[pytest-setup] Collected 0 tests; running now.
+[pytest-setup] Dropping isolated PostgreSQL test database...
+[pytest-setup] PostgreSQL test database cleanup complete.
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! KeyboardInterrupt !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+<frozen importlib._bootstrap_external>:951: KeyboardInterrupt
+(to show a full traceback on KeyboardInterrupt use --full-trace)
+no tests collected in 195.04s (0:03:15)
+[postgres-tests] pytest failed with exit status 2.
+[postgres-tests] Stopping temporary PostgreSQL container.

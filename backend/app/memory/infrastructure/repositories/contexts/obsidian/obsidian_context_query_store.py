@@ -37,9 +37,6 @@ from app.memory.infrastructure.repositories.contexts.search.obsidian_recall_poli
     _obsidian_scope_recall_clause,
     _recall_visibility_conditions,
 )
-from app.obsidian.domain.event_enum.obsidian_enums import (
-    AlexandriaNoteType,
-)
 from app.obsidian.infrastructure.models.obsidian_index_models import (
     ObsidianChunkORM,
     ObsidianFileORM,
@@ -80,7 +77,6 @@ class ObsidianContextQueryStore:
         fts_query = build_obsidian_fts_query(
             recall.query,
             limit=_candidate_limit(recall_filter.limit),
-            excluded_alexandria_types=[AlexandriaNoteType.LIBRARIAN_CHAT],
             included_statuses=list(
                 ContextRecallLifecycleStatus.obsidian_values(
                     recall_filter.lifecycle_statuses

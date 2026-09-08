@@ -1,4 +1,4 @@
-"""Deterministic Memory Compact librarian review rubric."""
+"""Deterministic Memory Compact quality review rubric."""
 
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ def review_memory_compact(
     compact: MemoryCompact,
     source_observations: tuple[MemoryCompactSourceObservation, ...] = (),
 ) -> MemoryCompactReviewResult:
-    """Review a compact using the PRD-required librarian rubric.
+    """Review a compact using the required quality rubric.
 
     Args:
         compact: Compact under review.

@@ -7,6 +7,10 @@ from datetime import UTC, datetime, timedelta
 
 import anyio
 import httpx
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from starlette.requests import Request
+
 from app.mcp_server.http_auth_gate import McpHttpAuthGate
 from app.mcp_server.oauth_bearer_verifier import (
     OAuthBearerTokenVerifier,
@@ -16,9 +20,6 @@ from app.mcp_server.protected_resource_metadata import protected_resource_metada
 from app.mcp_server.type_validate.oauth.mcp_auth_enums import McpAuthMode
 from app.platform.config.app_config import AppConfig
 from app.shared.serialization.orjson_codec import dumps_json
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import padding, rsa
-from starlette.requests import Request
 
 
 def _base64url(value: bytes) -> str:
@@ -142,5 +143,8 @@ def test_mcp_protected_resource_metadata_uses_injected_oauth_config() -> None:
         "authorization_servers": ["https://auth.example.com"],
         "scopes_supported": ["alexandria:mcp"],
         "bearer_methods_supported": ["header"],
-        "resource_documentation": "heterarchy-alexandria MCP server for librarian tools.",
+        "resource_documentation": (
+            "heterarchy-alexandria MCP server for memory, vault, graph, and "
+            "operations tools."
+        ),
     }

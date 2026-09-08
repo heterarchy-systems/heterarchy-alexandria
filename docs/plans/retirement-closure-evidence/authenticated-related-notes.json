@@ -1,0 +1,26 @@
+{
+  "total": 3,
+  "items": [
+    {
+      "id": "e46e6503-f03c-4bb4-aee7-4ef6fff51c7a",
+      "edge_id": "1a10759ff1fe003ab8466122b614713c44e2837eee55ae27a0671928e091b549",
+      "score": 1,
+      "direction": "outgoing",
+      "relation": "wikilink"
+    },
+    {
+      "id": "054c3ab3-d457-42a1-b407-f77b1bf77770",
+      "edge_id": "1fbdab870853a0a4e116b26ef84712b67a0da6dbebd3eca7defbabc962974dee",
+      "score": 1,
+      "direction": "incoming",
+      "relation": "wikilink"
+    },
+    {
+      "id": "d4391c73-a6b8-4d0c-b7fb-cd6a90c204b7",
+      "edge_id": "20fbfb17a3aef18141c4e8ba2242bbea73071352c56fb0e99e4b6e388b13f556",
+      "score": 1,
+      "direction": "outgoing",
+      "relation": "wikilink"
+    }
+  ]
+}
