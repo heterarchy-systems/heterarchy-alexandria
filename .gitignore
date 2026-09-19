@@ -274,3 +274,6 @@ backend/.fastembed_cache
 
 # Finder metadata is local-only.
 .DS_Store
+
+# build target symlinks (SSD cache convention)
+native/target
