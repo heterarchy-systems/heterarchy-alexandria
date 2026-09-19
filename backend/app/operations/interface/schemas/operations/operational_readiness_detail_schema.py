@@ -27,6 +27,7 @@ from app.operations.interface.schemas.operations.operational_memory_path_schema 
     OperationalRuntimeProvenanceResponse,
 )
 from app.operations.interface.schemas.operations.operational_readiness_schema import (
+    OperationalCompileReceiptSnapshotResponse,
     OperationalDatabaseSnapshotResponse,
     OperationalGraphSnapshotResponse,
     OperationalRagSnapshotResponse,
@@ -174,6 +175,10 @@ class OperationalReadinessSnapshotResponse(StrictSchemaModel):
             "Persisted full Obsidian-to-Context projection integrity state."
         ),
     ]
+    compile_receipt: Annotated[
+        OperationalCompileReceiptSnapshotResponse,
+        described_field("Latest knowledge compile receipt evidence for this snapshot."),
+    ]
     graph: Annotated[
         OperationalGraphSnapshotResponse,
         described_field("Graph projection evidence for this readiness snapshot."),
@@ -242,6 +247,9 @@ class OperationalReadinessSnapshotResponse(StrictSchemaModel):
             ),
             projection_integrity=ContextProjectionIntegritySnapshotResponse.from_entity(
                 snapshot.projection_integrity
+            ),
+            compile_receipt=OperationalCompileReceiptSnapshotResponse.from_entity(
+                snapshot.compile_receipt
             ),
             graph=OperationalGraphSnapshotResponse.from_entity(snapshot.graph),
             active_recovery_run_id=snapshot.active_recovery_run_id,

@@ -15,6 +15,7 @@ from app.obsidian.domain.entities.obsidian_note import (
     ObsidianVaultLocation,
     ObsidianVaultStatus,
 )
+from app.shared.types.extra_types import JSONObject
 
 
 class ObsidianReadinessPort(ABC):
@@ -31,6 +32,17 @@ class ObsidianReadinessPort(ABC):
         Returns:
             Current Obsidian vault and index status.
         """
+
+    async def latest_compile_receipt(self) -> JSONObject | None:
+        """Return the latest knowledge compile receipt, when persisted.
+
+        Optional readiness evidence: sources that do not persist compile
+        receipts return ``None`` without failing readiness.
+
+        Returns:
+            Raw compile receipt record, or ``None``.
+        """
+        return None
 
 
 class ObsidianDataIntegrityPort(ABC):

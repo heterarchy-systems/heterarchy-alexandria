@@ -105,6 +105,33 @@ class OperationalReconciliationSnapshot:
     latest_failure_at: datetime | None
 
 
+def unchecked_compile_receipt_snapshot() -> OperationalCompileReceiptSnapshot:
+    """Return the unchecked default for vaults without a persisted receipt.
+
+    Returns:
+        Snapshot marked unavailable with the unchecked warning.
+    """
+    return OperationalCompileReceiptSnapshot(
+        available=False,
+        warnings=("compile_receipt_unchecked",),
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class OperationalCompileReceiptSnapshot:
+    """Latest knowledge compile receipt surfaced as readiness evidence."""
+
+    available: bool = False
+    applied_at: datetime | None = None
+    plan_fingerprint: str | None = None
+    policy_version: str | None = None
+    changed_documents: int | None = None
+    removed_documents: int | None = None
+    embedding_invalidated_documents: int | None = None
+    diagnostic_count: int | None = None
+    warnings: tuple[str, ...] = ("compile_receipt_unchecked",)
+
+
 @dataclass(slots=True)
 class OperationalReadinessSnapshot:
     """Read-only operational readiness snapshot."""
@@ -144,6 +171,9 @@ class OperationalReadinessSnapshot:
             projection_revision=None,
             warnings=("graph_projection_unchecked",),
         )
+    )
+    compile_receipt: OperationalCompileReceiptSnapshot = field(
+        default_factory=unchecked_compile_receipt_snapshot
     )
 
     def __post_init__(self) -> None:

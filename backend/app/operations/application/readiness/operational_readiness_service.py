@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from functools import partial
@@ -70,6 +71,7 @@ from app.operations.domain.entities.operational_data_integrity import (
     unchecked_data_integrity_snapshot,
 )
 from app.operations.domain.entities.operational_readiness import (
+    OperationalCompileReceiptSnapshot,
     OperationalReadinessSnapshot,
     OperationalVaultSnapshot,
 )
@@ -85,6 +87,7 @@ from app.operations.domain.event_enum.operational_readiness_enums import (
 from app.shared.exceptions.memory_context_exceptions import MemoryContextDomainError
 from app.shared.exceptions.obsidian_exceptions import ObsidianDomainError
 from app.shared.infrastructure.database import Database
+from app.shared.types.extra_types import JSONValue
 
 __all__ = (
     "ContextReadinessPort",
@@ -399,6 +402,29 @@ class OperationalReadinessService:
                     reconciliation_diagnostics,
                     configured=True,
                 )
+        try:
+            raw_receipt = await self._obsidian_service.latest_compile_receipt()
+            if not isinstance(raw_receipt, dict):
+                raise ValueError("compile receipt is not an object")
+            applied_at = raw_receipt.get("applied_at")
+            compile_receipt = OperationalCompileReceiptSnapshot(
+                available=True,
+                applied_at=_receipt_applied_at(applied_at),
+                plan_fingerprint=_receipt_str(raw_receipt, "plan_fingerprint"),
+                policy_version=_receipt_str(raw_receipt, "policy_version"),
+                changed_documents=_receipt_int(raw_receipt, "changed_documents"),
+                removed_documents=_receipt_int(raw_receipt, "removed_documents"),
+                embedding_invalidated_documents=_receipt_int(
+                    raw_receipt, "embedding_invalidated_documents"
+                ),
+                diagnostic_count=_receipt_int(raw_receipt, "diagnostic_count"),
+                warnings=(),
+            )
+        except (AttributeError, OSError, TypeError, ValueError):
+            compile_receipt = OperationalCompileReceiptSnapshot(
+                available=False,
+                warnings=("compile_receipt_unavailable",),
+            )
         last_successful_recovery_run_id = _last_successful_recovery_run_id()
         warnings = _warnings(
             database=database,
@@ -450,5 +476,53 @@ class OperationalReadinessService:
             retrieval_canary=retrieval_canary,
             projection_integrity=projection_integrity,
             graph=graph,
+            compile_receipt=compile_receipt,
         )
         return snapshot
+
+
+def _receipt_str(record: Mapping[str, object], key: str) -> str | None:
+    """Narrow one compile receipt field to a non-empty string.
+
+    Args:
+        record: Raw receipt record.
+        key: Field name.
+
+    Returns:
+        String value, or None when absent or mistyped.
+    """
+    value = record.get(key)
+    return value if isinstance(value, str) and value else None
+
+
+def _receipt_int(record: Mapping[str, object], key: str) -> int | None:
+    """Narrow one compile receipt field to a non-boolean integer.
+
+    Args:
+        record: Raw receipt record.
+        key: Field name.
+
+    Returns:
+        Integer value, or None when absent or mistyped.
+    """
+    value = record.get(key)
+    if isinstance(value, bool) or not isinstance(value, int):
+        return None
+    return value
+
+
+def _receipt_applied_at(value: JSONValue) -> datetime | None:
+    """Parse the receipt applied-at ISO string into a datetime.
+
+    Args:
+        value: Raw field value.
+
+    Returns:
+        Parsed datetime, or None when absent or malformed.
+    """
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        return None

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Annotated
 
 from app.memory.interface.schemas.context.context_mapping import source_status_payload
@@ -9,6 +10,7 @@ from app.memory.interface.schemas.context.context_retrieval_schema import (
     ContextEmbeddingSourceStatusResponse,
 )
 from app.operations.domain.entities.operational_readiness import (
+    OperationalCompileReceiptSnapshot,
     OperationalDatabaseSnapshot,
     OperationalGraphSnapshot,
     OperationalRagSnapshot,
@@ -162,6 +164,57 @@ class OperationalGraphSnapshotResponse(StrictSchemaModel):
             edge_count=snapshot.edge_count,
             run_id=snapshot.run_id,
             projection_revision=snapshot.projection_revision,
+            warnings=list(snapshot.warnings),
+        )
+
+
+class OperationalCompileReceiptSnapshotResponse(StrictSchemaModel):
+    """Latest knowledge compile receipt evidence."""
+
+    available: Annotated[bool, described_field("Whether a receipt is persisted.")]
+    applied_at: Annotated[
+        datetime | None,
+        described_field("Timestamp of the last successful compile application."),
+    ] = None
+    plan_fingerprint: Annotated[
+        str | None,
+        described_field("Fingerprint of the applied compile plan."),
+    ] = None
+    policy_version: Annotated[
+        str | None, described_field("Compile policy version fingerprint.")
+    ] = None
+    changed_documents: Annotated[
+        int | None, described_field("Documents changed by the applied plan.")
+    ] = None
+    removed_documents: Annotated[
+        int | None, described_field("Documents removed by the applied plan.")
+    ] = None
+    embedding_invalidated_documents: Annotated[
+        int | None,
+        described_field("Documents whose chunks must re-embed."),
+    ] = None
+    diagnostic_count: Annotated[
+        int | None, described_field("Diagnostics emitted by the compile.")
+    ] = None
+    warnings: Annotated[list[str], described_field("Receipt warnings.")] = (
+        schema_list_default()
+    )
+
+    @classmethod
+    def from_entity(
+        cls,
+        snapshot: OperationalCompileReceiptSnapshot,
+    ) -> OperationalCompileReceiptSnapshotResponse:
+        """Map the readiness entity to the HTTP contract."""
+        return cls(
+            available=snapshot.available,
+            applied_at=snapshot.applied_at,
+            plan_fingerprint=snapshot.plan_fingerprint,
+            policy_version=snapshot.policy_version,
+            changed_documents=snapshot.changed_documents,
+            removed_documents=snapshot.removed_documents,
+            embedding_invalidated_documents=(snapshot.embedding_invalidated_documents),
+            diagnostic_count=snapshot.diagnostic_count,
             warnings=list(snapshot.warnings),
         )
 
