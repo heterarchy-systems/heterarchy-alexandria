@@ -40,6 +40,9 @@ from app.obsidian.application.service.managed_spec.managed_spec_adapters import 
 from app.obsidian.application.service.managed_spec.managed_spec_execution_service import (
     ManagedSpecExecutionService,
 )
+from app.obsidian.application.service.notes.obsidian_batch_note_service import (
+    ObsidianBatchNoteService,
+)
 from app.obsidian.application.service.notes.obsidian_canonical_identity_service import (
     ObsidianCanonicalIdentityService,
 )
@@ -213,6 +216,11 @@ class ObsidianContainer(containers.DeclarativeContainer):
         ObsidianVaultReindexService,
         obsidian_service=obsidian_service,
         graph_projection_rebuild_service=graph_projection_rebuild_service,
+    )
+    batch_note_service = providers.Factory(
+        ObsidianBatchNoteService,
+        obsidian_service=obsidian_service,
+        diagnostics_service=graph_note_diagnostics_service,
     )
     graph_service = providers.Factory(
         ObsidianGraphService,
