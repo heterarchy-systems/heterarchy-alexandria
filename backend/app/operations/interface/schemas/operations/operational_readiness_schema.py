@@ -150,6 +150,10 @@ class OperationalGraphSnapshotResponse(StrictSchemaModel):
     warnings: Annotated[list[str], described_field("Graph status warnings.")] = (
         schema_list_default()
     )
+    recommended_operation: Annotated[
+        str | None,
+        described_field("Detail API that lists the exact graph issues."),
+    ] = None
 
     @classmethod
     def from_entity(
@@ -165,6 +169,7 @@ class OperationalGraphSnapshotResponse(StrictSchemaModel):
             run_id=snapshot.run_id,
             projection_revision=snapshot.projection_revision,
             warnings=list(snapshot.warnings),
+            recommended_operation=snapshot.recommended_operation,
         )
 
 

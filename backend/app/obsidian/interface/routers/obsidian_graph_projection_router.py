@@ -3,9 +3,12 @@
 from typing import Annotated
 
 from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.container import ApplicationContainer
+from app.obsidian.application.graph.diagnostics.obsidian_graph_issue_list_service import (
+    ObsidianGraphIssueListService,
+)
 from app.obsidian.application.graph.diagnostics.obsidian_graph_note_diagnostics_service import (
     ObsidianGraphNoteDiagnosticsService,
 )
@@ -18,6 +21,7 @@ from app.obsidian.interface.schemas.obsidian.graph.obsidian_graph_projection_sch
     ObsidianGraphProjectionStatusResponse,
 )
 from app.obsidian.interface.schemas.obsidian.graph.obsidian_graph_query_schema import (
+    ObsidianGraphIssueListResponse,
     ObsidianGraphNoteLinkValidationResponse,
     ObsidianGraphNoteRebuildResponse,
 )
@@ -124,6 +128,65 @@ async def validate_note_graph_links(
         include_resolved_targets=include_resolved_targets,
     )
     return ObsidianGraphNoteLinkValidationResponse.from_entity(report)
+
+
+@router.get(
+    "/graph/issues",
+    response_model=ObsidianGraphIssueListResponse,
+    status_code=status.HTTP_200_OK,
+    summary="List graph projection issues with exact source detail",
+    description=(
+        "Recompute the projection from the current index state and list every "
+        "non-fatal issue with its exact source note, target path, and relation. "
+        "Read-only: this endpoint never creates notes, repairs links, or "
+        "mutates Markdown, PostgreSQL, or the active projection."
+    ),
+)
+@router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
+@inject
+async def list_graph_issues(
+    service: Annotated[
+        ObsidianGraphIssueListService,
+        Depends(Provide[ApplicationContainer.obsidian.graph_issue_list_service]),
+    ],
+    code: str | None = Query(default=None, min_length=1),
+    source_note_id: str | None = Query(default=None, min_length=1),
+    source_path: str | None = Query(default=None, min_length=1),
+    limit: int = Query(default=50, ge=1, le=200),
+    cursor: str | None = Query(default=None, min_length=1),
+) -> ObsidianGraphIssueListResponse:
+    """List graph projection issues with bounded keyset pagination.
+
+    Args:
+        service: Graph issue list service.
+        code: Optional issue code filter.
+        source_note_id: Optional source note id filter.
+        source_path: Optional source path filter.
+        limit: Page size bound.
+        cursor: Keyset cursor from the previous page.
+
+    Returns:
+        One bounded page of graph issue detail.
+    """
+    from app.obsidian.domain.contracts.obsidian_graph_issue_contracts import (
+        ObsidianGraphIssueListQuery,
+        ObsidianGraphIssueListValidationError,
+    )
+
+    try:
+        query = ObsidianGraphIssueListQuery(
+            code=code,
+            source_note_id=source_note_id,
+            source_path=source_path,
+            limit=limit,
+            cursor=cursor,
+        )
+    except ObsidianGraphIssueListValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
+        ) from exc
+    result = await service.list_issues(query)
+    return ObsidianGraphIssueListResponse.from_entity(result)
 
 
 @router.post(

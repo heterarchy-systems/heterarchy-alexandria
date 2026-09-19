@@ -35,6 +35,41 @@ async def alexandria_get_graph_projection_status(
     return await client.get("/obsidian/graph/projection/status")
 
 
+async def alexandria_graph_list_issues(
+    client: AlexandriaApiClient,
+    code: str | None = None,
+    source_note_id: str | None = None,
+    source_path: str | None = None,
+    limit: int = 50,
+    cursor: str | None = None,
+) -> JSONValue:
+    """List graph projection issues with exact source and target detail.
+
+    Args:
+        client: Backend HTTP client.
+        code: Optional issue code filter.
+        source_note_id: Optional source note id filter.
+        source_path: Optional source path filter.
+        limit: Page size bound.
+        cursor: Keyset cursor from the previous page.
+
+    Returns:
+        Backend graph issue list response.
+    """
+    params: JSONObject = {}
+    if code is not None:
+        params["code"] = code
+    if source_note_id is not None:
+        params["source_note_id"] = source_note_id
+    if source_path is not None:
+        params["source_path"] = source_path
+    if limit != 50:
+        params["limit"] = str(limit)
+    if cursor is not None:
+        params["cursor"] = cursor
+    return await client.get("/obsidian/graph/issues", params=params)
+
+
 async def alexandria_rebuild_graph_projection(
     client: AlexandriaApiClient,
 ) -> JSONValue:

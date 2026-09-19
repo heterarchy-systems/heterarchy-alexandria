@@ -11,6 +11,7 @@ from app.mcp_server.tools.obsidian.obsidian_backend_gateway import (
     alexandria_create_note,
     alexandria_get_related_notes,
     alexandria_read_note,
+    alexandria_read_note_raw,
     alexandria_resolve_canonical_identity,
     alexandria_update_note,
     alexandria_upsert_note,
@@ -49,6 +50,22 @@ def register_obsidian_note_tools(
             JSONValue result produced by tool read note.
         """
         return await alexandria_read_note(api_client, note_id, path)
+
+    @server.tool(name="alexandria_read_note_raw")
+    async def _tool_read_note_raw(
+        note_id: str | None = None,
+        path: str | None = None,
+    ) -> JSONValue:
+        """Read one note's raw source even when frontmatter fails to parse.
+
+        Args:
+            note_id: Identifier for note.
+            path: Path used by this operation.
+
+        Returns:
+            JSONValue result produced by tool read note raw.
+        """
+        return await alexandria_read_note_raw(api_client, note_id, path)
 
     @server.tool(name="alexandria_check_path_exists")
     async def _tool_check_path_exists(path: str) -> JSONValue:

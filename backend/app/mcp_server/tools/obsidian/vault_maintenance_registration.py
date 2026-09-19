@@ -12,6 +12,7 @@ from app.mcp_server.tools.obsidian.obsidian_backend_gateway import (
 from app.mcp_server.tools.obsidian.vault_maintenance_backend_gateway import (
     alexandria_get_graph_build_status,
     alexandria_get_graph_projection_status,
+    alexandria_graph_list_issues,
     alexandria_rebuild_graph_projection,
     alexandria_rebuild_note_graph,
     alexandria_reindex_vault,
@@ -52,6 +53,35 @@ def register_vault_maintenance_tools(
             JSONValue result produced by tool get graph projection status.
         """
         return await alexandria_get_graph_projection_status(api_client)
+
+    @server.tool(name="alexandria_graph_list_issues")
+    async def _tool_graph_list_issues(
+        code: str | None = None,
+        source_note_id: str | None = None,
+        source_path: str | None = None,
+        limit: int = 50,
+        cursor: str | None = None,
+    ) -> JSONValue:
+        """List graph projection issues with exact source and target detail.
+
+        Args:
+            code: Optional issue code filter.
+            source_note_id: Optional source note id filter.
+            source_path: Optional source path filter.
+            limit: Page size bound between 1 and 200.
+            cursor: Keyset cursor from the previous page.
+
+        Returns:
+            JSONValue result produced by tool graph list issues.
+        """
+        return await alexandria_graph_list_issues(
+            api_client,
+            code=code,
+            source_note_id=source_note_id,
+            source_path=source_path,
+            limit=limit,
+            cursor=cursor,
+        )
 
     @server.tool(name="alexandria_rebuild_graph_projection")
     async def _tool_rebuild_graph_projection() -> JSONValue:

@@ -8,12 +8,20 @@ from app.obsidian.application.graph.diagnostics.obsidian_graph_note_diagnostics_
     ObsidianGraphNoteLinkValidationReport,
     ObsidianGraphNoteRebuildReport,
 )
+from app.obsidian.domain.contracts.obsidian_graph_issue_contracts import (
+    ObsidianGraphIssueDetail,
+    ObsidianGraphIssueListResult,
+)
 from app.obsidian.interface.schemas.obsidian.graph.obsidian_graph_projection_schema import (
     ObsidianGraphNoteSelectorResponse,
     ObsidianGraphProjectionRebuildResponse,
     ObsidianGraphProjectionStatusResponse,
 )
-from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
+from app.shared.schemas.common_schemas import (
+    StrictSchemaModel,
+    described_field,
+    schema_list_default,
+)
 
 
 class ObsidianGraphNoteIndexDiagnosticResponse(StrictSchemaModel):
@@ -313,4 +321,82 @@ class ObsidianGraphNoteRebuildResponse(StrictSchemaModel):
             projection=ObsidianGraphProjectionRebuildResponse.from_entity(
                 report.projection
             ),
+        )
+
+
+class ObsidianGraphIssueDetailResponse(StrictSchemaModel):
+    """One graph projection issue with exact source and target detail."""
+
+    issue_id: Annotated[
+        str,
+        described_field(
+            "Stable deterministic issue identity, stable across projection runs."
+        ),
+    ]
+    code: Annotated[str, described_field("Graph projection issue code.")]
+    edge_id: Annotated[str, described_field("Canonical edge identifier.")]
+    source_note_id: Annotated[
+        str, described_field("Source note identifier of the broken link.")
+    ]
+    source_path: Annotated[str, described_field("Source note vault-relative path.")]
+    source_title: Annotated[
+        str | None, described_field("Source note title when known.")
+    ] = None
+    target_path: Annotated[str, described_field("Unresolved or ambiguous target path.")]
+    relation: Annotated[str, described_field("Edge relation name.")]
+    detail: Annotated[str | None, described_field("Bounded diagnostic detail.")] = None
+    projection_run_id: Annotated[
+        str | None,
+        described_field("Projection run that produced the issue."),
+    ] = None
+
+    @classmethod
+    def from_entity(
+        cls,
+        entity: ObsidianGraphIssueDetail,
+    ) -> ObsidianGraphIssueDetailResponse:
+        """Map one issue detail entity to the HTTP contract."""
+        return cls(
+            issue_id=entity.issue_id,
+            code=entity.code,
+            edge_id=entity.edge_id,
+            source_note_id=entity.source_note_id,
+            source_path=entity.source_path,
+            source_title=entity.source_title,
+            target_path=entity.target_path,
+            relation=entity.relation,
+            detail=entity.detail,
+            projection_run_id=entity.projection_run_id,
+        )
+
+
+class ObsidianGraphIssueListResponse(StrictSchemaModel):
+    """One bounded page of graph projection issues."""
+
+    issues: Annotated[
+        list[ObsidianGraphIssueDetailResponse],
+        described_field("Issues in edge-id order for this page."),
+    ] = schema_list_default()
+    next_cursor: Annotated[
+        str | None,
+        described_field("Cursor for the next page; None when exhausted."),
+    ] = None
+    run_id: Annotated[
+        str | None,
+        described_field("Projection run id backing this issue listing."),
+    ] = None
+
+    @classmethod
+    def from_entity(
+        cls,
+        entity: ObsidianGraphIssueListResult,
+    ) -> ObsidianGraphIssueListResponse:
+        """Map an issue list result to the HTTP contract."""
+        return cls(
+            issues=[
+                ObsidianGraphIssueDetailResponse.from_entity(item)
+                for item in entity.issues
+            ],
+            next_cursor=entity.next_cursor,
+            run_id=entity.run_id,
         )

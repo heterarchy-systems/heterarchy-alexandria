@@ -20,6 +20,9 @@ from app.memory.infrastructure.repositories.contexts.records.obsidian_context_ch
 from app.memory.infrastructure.repositories.projection_integrity.projection_integrity_store import (
     ContextProjectionIntegrityStore,
 )
+from app.obsidian.application.graph.diagnostics.obsidian_graph_issue_list_service import (
+    ObsidianGraphIssueListService,
+)
 from app.obsidian.application.graph.diagnostics.obsidian_graph_note_diagnostics_service import (
     ObsidianGraphNoteDiagnosticsService,
 )
@@ -157,7 +160,6 @@ class ObsidianContainer(containers.DeclarativeContainer):
     graph_projection_compute_provider = providers.Singleton(
         create_native_obsidian_graph_projection_compute_provider,
     )
-    context_reindex_manifest_validator = providers.Singleton()
     graph_projection_source_builder = providers.Factory(
         ObsidianGraphProjectionSourceBuilder,
         source=graph_projection_source,
@@ -169,6 +171,12 @@ class ObsidianContainer(containers.DeclarativeContainer):
         source_builder=graph_projection_source_builder,
         repository=graph_projection_repository,
         index_maintenance_coordinator=index_maintenance_coordinator,
+    )
+    graph_issue_list_service = providers.Factory(
+        ObsidianGraphIssueListService,
+        source=graph_projection_source,
+        compute_provider=graph_projection_compute_provider,
+        projection_status=graph_projection_rebuild_service.provided.status,
     )
     vault_config_store = providers.Singleton(
         ObsidianVaultConfigStore,

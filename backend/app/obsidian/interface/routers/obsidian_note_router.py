@@ -31,7 +31,10 @@ from app.obsidian.interface.schemas.obsidian.obsidian_path_identity_schema impor
     ObsidianCanonicalIdentityResponse,
     ObsidianExactPathStatusResponse,
 )
-from app.obsidian.interface.schemas.obsidian.obsidian_schema import ObsidianNoteResponse
+from app.obsidian.interface.schemas.obsidian.obsidian_schema import (
+    ObsidianNoteRawReadResponse,
+    ObsidianNoteResponse,
+)
 from app.obsidian.interface.schemas.obsidian.obsidian_search_schema import (
     ObsidianRelatedNoteResponse,
     ObsidianRelatedNotesResponse,
@@ -217,6 +220,42 @@ async def resolve_obsidian_canonical_identity(
         edition=request.edition,
     )
     return ObsidianCanonicalIdentityResponse.from_entity(result)
+
+
+@router.get(
+    "/notes/raw",
+    response_model=ObsidianNoteRawReadResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Read raw Obsidian note source",
+    description=(
+        "Read one note's raw source text even when its frontmatter fails to parse."
+    ),
+)
+@router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
+@inject
+async def read_obsidian_note_raw(
+    request: Request,
+    service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
+    path: str | None = Query(default=None, min_length=1),
+    note_id: str | None = Query(default=None, min_length=1),
+) -> ObsidianNoteRawReadResponse:
+    """Read one note's raw source for minimal repair inspection.
+
+    Args:
+        request: Read-only HTTP request whose projection transaction is discarded.
+        path: Vault-relative Markdown path.
+        note_id: Stable note id.
+        service: Obsidian application service.
+
+    Returns:
+        Raw note read response.
+    """
+    mark_database_transaction_read_only(request)
+    read = await service.read_note_raw(path=path, note_id=note_id)
+    return ObsidianNoteRawReadResponse.from_entity(read)
 
 
 @router.get(

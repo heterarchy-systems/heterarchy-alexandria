@@ -109,6 +109,22 @@ class ObsidianExactPathStatus:
     index_status: ObsidianIndexStatus | None = None
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ObsidianNoteRawRead:
+    """Raw malformed-note read result for operator repair inspection."""
+
+    relative_path: str
+    raw_text: str | None
+    content_hash: str | None
+    byte_length: int | None
+    parse_status: str
+    parse_error: str | None
+    frontmatter: JSONObject | None
+    body: str | None
+    note_id: str | None
+    index_status: str | None
+
+
 @dataclass(slots=True, kw_only=True)
 class ObsidianCanonicalIdentityResult:
     """Generic frontmatter-backed canonical report identity resolution."""

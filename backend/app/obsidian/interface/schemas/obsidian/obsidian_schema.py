@@ -10,6 +10,7 @@ from app.obsidian.application.service.vault.obsidian_vault_reindex_service impor
 from app.obsidian.domain.entities.obsidian_note import (
     ObsidianIndexError,
     ObsidianNote,
+    ObsidianNoteRawRead,
     ObsidianReindexResult,
     ObsidianVaultStatus,
 )
@@ -293,4 +294,70 @@ class ObsidianNoteResponse(StrictSchemaModel):
             modified_at=note.modified_at,
             indexed_at=note.indexed_at,
             wikilink=f"[[{note.relative_path.removesuffix('.md')}]]",
+        )
+
+
+class ObsidianNoteRawReadResponse(StrictSchemaModel):
+    """Raw malformed-note read response for operator repair inspection."""
+
+    relative_path: Annotated[
+        str, described_field("Path for this Obsidian note raw read response.")
+    ]
+    raw_text: Annotated[
+        str | None,
+        described_field("Raw text for this Obsidian note raw read response."),
+    ]
+    content_hash: Annotated[
+        str | None,
+        described_field("Content hash for this Obsidian note raw read response."),
+    ]
+    byte_length: Annotated[
+        int | None,
+        described_field("Byte length for this Obsidian note raw read response."),
+    ]
+    parse_status: Annotated[
+        str,
+        described_field("Parse status for this Obsidian note raw read response."),
+    ]
+    parse_error: Annotated[
+        str | None,
+        described_field("Parse error for this Obsidian note raw read response."),
+    ]
+    frontmatter: Annotated[
+        JSONObject | None,
+        described_field("Frontmatter for this Obsidian note raw read response."),
+    ]
+    body: Annotated[
+        str | None, described_field("Body for this Obsidian note raw read response.")
+    ]
+    note_id: Annotated[
+        str | None,
+        described_field("Note id for this Obsidian note raw read response."),
+    ]
+    index_status: Annotated[
+        str | None,
+        described_field("Index status for this Obsidian note raw read response."),
+    ]
+
+    @classmethod
+    def from_entity(cls, read: ObsidianNoteRawRead) -> ObsidianNoteRawReadResponse:
+        """Create schema from entity.
+
+        Args:
+            read: Domain raw read entity.
+
+        Returns:
+            HTTP response schema.
+        """
+        return cls(
+            relative_path=read.relative_path,
+            raw_text=read.raw_text,
+            content_hash=read.content_hash,
+            byte_length=read.byte_length,
+            parse_status=read.parse_status,
+            parse_error=read.parse_error,
+            frontmatter=read.frontmatter,
+            body=read.body,
+            note_id=read.note_id,
+            index_status=read.index_status,
         )

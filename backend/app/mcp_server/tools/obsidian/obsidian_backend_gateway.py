@@ -75,6 +75,29 @@ async def alexandria_read_note(
     return await client.get(f"/obsidian/notes/{_path_segment(note_id)}")
 
 
+async def alexandria_read_note_raw(
+    client: AlexandriaApiClient,
+    note_id: str | None = None,
+    path: str | None = None,
+) -> JSONValue:
+    """Read one note's raw source even when its frontmatter fails to parse.
+
+    Args:
+        client: Backend HTTP client.
+        note_id: Stable note id.
+        path: Vault-relative path.
+
+    Returns:
+        Backend raw note read response.
+    """
+    params: JSONObject = {}
+    if path is not None:
+        params["path"] = path
+    if note_id is not None:
+        params["note_id"] = note_id
+    return await client.get("/obsidian/notes/raw", params=params)
+
+
 async def alexandria_check_path_exists(
     client: AlexandriaApiClient,
     path: str,

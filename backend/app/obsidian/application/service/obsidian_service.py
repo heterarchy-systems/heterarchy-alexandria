@@ -42,6 +42,7 @@ from app.obsidian.domain.contracts.obsidian_contracts import (
 )
 from app.obsidian.domain.entities.obsidian_note import (
     ObsidianNote,
+    ObsidianNoteRawRead,
     ObsidianNoteWriteResult,
     ObsidianSearchHit,
 )
@@ -183,6 +184,23 @@ class ObsidianService(
             Authoritative note loaded from Markdown.
         """
         return await self._note_service.read_note_by_path(relative_path)
+
+    async def read_note_raw(
+        self,
+        *,
+        path: str | None = None,
+        note_id: str | None = None,
+    ) -> ObsidianNoteRawRead:
+        """Read one note's raw source even when its frontmatter fails to parse.
+
+        Args:
+            path: Vault-relative Markdown path.
+            note_id: Stable note id from frontmatter.
+
+        Returns:
+            Raw source read result with bounded, secret-free diagnostics.
+        """
+        return await self._note_service.read_note_raw(path=path, note_id=note_id)
 
     async def read_note_by_path_verified(
         self,

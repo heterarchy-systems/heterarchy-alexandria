@@ -79,6 +79,7 @@ def graph_snapshot_from_status(
         None if projection_version is None else str(projection_version)
     )
     warnings = ("graph_projection_status_error",) if status.errors else ()
+    issue_total = status.last_run_issue_total
     return OperationalGraphSnapshot(
         status=str(status_value),
         enabled=enabled,
@@ -87,6 +88,9 @@ def graph_snapshot_from_status(
         run_id=run_id,
         projection_revision=projection_revision,
         warnings=warnings,
+        recommended_operation=(
+            "alexandria_graph_list_issues" if issue_total > 0 else None
+        ),
     )
 
 
