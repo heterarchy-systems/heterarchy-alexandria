@@ -108,7 +108,7 @@ class BatchValidateResult:
 class BatchWriteItemResult:
     """Independent per-item write outcome."""
 
-    path: str | None
+    path: str
     note_id: str | None
     status: str
     content_hash: str | None = None

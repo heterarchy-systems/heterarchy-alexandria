@@ -26,6 +26,7 @@ from app.shared.schemas.common_schemas import (
     StrictSchemaModel,
     described_field,
     schema_dict_default,
+    schema_list_default,
 )
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 from app.shared.types.extra_types import JSONObject
@@ -361,3 +362,112 @@ class ObsidianNoteRawReadResponse(StrictSchemaModel):
             note_id=read.note_id,
             index_status=read.index_status,
         )
+
+
+class ObsidianBatchReadSelectorRequest(StrictSchemaModel):
+    """One selector in a batch read request."""
+
+    path: Annotated[str | None, described_field("Vault-relative path selector.")] = None
+    note_id: Annotated[str | None, described_field("Stable note id selector.")] = None
+
+
+class ObsidianBatchReadRequest(StrictSchemaModel):
+    """Batch read request with independent exact selectors."""
+
+    selectors: Annotated[
+        list[ObsidianBatchReadSelectorRequest],
+        described_field("Exact per-item selectors; each needs path or note_id."),
+    ] = schema_list_default()
+
+
+class ObsidianBatchReadResponse(StrictSchemaModel):
+    """Batch read response with per-item results."""
+
+    items: Annotated[
+        list[ObsidianNoteResponse],
+        described_field("Successfully read notes in selector order."),
+    ] = schema_list_default()
+    errors: Annotated[
+        list[dict[str, str | None]],
+        described_field("Per-item errors for selectors that failed."),
+    ] = schema_list_default()
+    total: Annotated[int, described_field("Total selectors processed.")]
+
+
+class ObsidianBatchValidateLinkItem(StrictSchemaModel):
+    """Per-item link validation outcome."""
+
+    path: Annotated[str | None, described_field("Vault-relative path.")] = None
+    note_id: Annotated[str | None, described_field("Stable note id.")] = None
+    status: Annotated[str, described_field("validated / not_found.")]
+    exists: Annotated[bool, described_field("Whether the note exists.")] = False
+    parsed_count: Annotated[int, described_field("Outgoing edge count.")] = 0
+    resolved_count: Annotated[int, described_field("Resolved edge count.")] = 0
+    unresolved_count: Annotated[int, described_field("Unresolved edge count.")] = 0
+
+
+class ObsidianBatchValidateLinksRequest(StrictSchemaModel):
+    """Batch outgoing-link validation request with exact selectors."""
+
+    selectors: Annotated[
+        list[ObsidianBatchReadSelectorRequest],
+        described_field("Exact per-item selectors; each needs path or note_id."),
+    ] = schema_list_default()
+
+
+class ObsidianBatchValidateLinksResponse(StrictSchemaModel):
+    """Batch link validation response."""
+
+    items: Annotated[
+        list[ObsidianBatchValidateLinkItem],
+        described_field("Per-item validation outcomes."),
+    ] = schema_list_default()
+
+
+class ObsidianBatchWriteOperationRequest(StrictSchemaModel):
+    """One CAS write operation in a batch."""
+
+    op: Annotated[str, described_field("Operation type: create or update.")]
+    title: Annotated[str, described_field("Note title.")]
+    body: Annotated[str, described_field("Note body content.")]
+    relative_path: Annotated[str, described_field("Vault-relative path.")]
+    note_id: Annotated[str | None, described_field("Stable note id.")] = None
+    expected_content_hash: Annotated[
+        str | None, described_field("CAS content hash for update.")
+    ] = None
+    frontmatter: Annotated[
+        JSONObject, described_field("Frontmatter key-value pairs.")
+    ] = schema_dict_default()
+
+
+class ObsidianBatchWriteRequest(StrictSchemaModel):
+    """Batch CAS write request with independent operations."""
+
+    operations: Annotated[
+        list[ObsidianBatchWriteOperationRequest],
+        described_field("Independent per-item write operations."),
+    ] = schema_list_default()
+
+
+class ObsidianBatchWriteItemResult(StrictSchemaModel):
+    """Per-item write outcome."""
+
+    relative_path: Annotated[str, described_field("Vault-relative path.")]
+    note_id: Annotated[str | None, described_field("Stable note id.")] = None
+    status: Annotated[str, described_field("Operation outcome status.")]
+    content_hash: Annotated[
+        str | None, described_field("Content hash after write.")
+    ] = None
+    error: Annotated[str | None, described_field("Error detail.")] = None
+
+
+class ObsidianBatchWriteResponse(StrictSchemaModel):
+    """Batch write response with per-item CAS results."""
+
+    results: Annotated[
+        list[ObsidianBatchWriteItemResult],
+        described_field("Per-item write outcomes in request order."),
+    ] = schema_list_default()
+    succeeded: Annotated[int, described_field("Successful write count.")] = 0
+    conflicted: Annotated[int, described_field("CAS conflict count.")] = 0
+    failed: Annotated[int, described_field("Failed item count.")] = 0
