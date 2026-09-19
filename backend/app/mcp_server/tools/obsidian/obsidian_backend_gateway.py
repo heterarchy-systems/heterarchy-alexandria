@@ -452,3 +452,66 @@ async def alexandria_upsert_report_bundle(
         },
     }
     return await client.post("/obsidian/report-bundles/upsert", payload)
+
+
+async def alexandria_batch_read_notes(
+    client: AlexandriaApiClient,
+    selectors: list[dict[str, str | None]],
+) -> JSONValue:
+    """Read many notes independently by path or note_id.
+
+    Args:
+        client: Backend HTTP client.
+        selectors: List of note selectors.
+
+    Returns:
+        Batch read response from the backend.
+    """
+    from typing import cast
+
+    return await client.post(
+        "/obsidian/notes/batch-read",
+        cast(JSONObject, {"selectors": selectors}),
+    )
+
+
+async def alexandria_batch_validate_note_links(
+    client: AlexandriaApiClient,
+    selectors: list[dict[str, str | None]],
+) -> JSONValue:
+    """Validate outgoing links for many notes independently.
+
+    Args:
+        client: Backend HTTP client.
+        selectors: List of note selectors.
+
+    Returns:
+        Batch link validation response from the backend.
+    """
+    from typing import cast
+
+    return await client.post(
+        "/obsidian/notes/batch-validate-links",
+        cast(JSONObject, {"selectors": selectors}),
+    )
+
+
+async def alexandria_batch_write_notes(
+    client: AlexandriaApiClient,
+    operations: list[dict[str, object]],
+) -> JSONValue:
+    """Execute many independent CAS writes with per-item outcomes.
+
+    Args:
+        client: Backend HTTP client.
+        operations: List of write operations.
+
+    Returns:
+        Batch write response from the backend.
+    """
+    from typing import cast
+
+    return await client.post(
+        "/obsidian/notes/batch-write",
+        cast(JSONObject, {"operations": operations}),
+    )

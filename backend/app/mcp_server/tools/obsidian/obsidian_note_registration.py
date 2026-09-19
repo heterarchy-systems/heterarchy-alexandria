@@ -7,6 +7,9 @@ from mcp.server import MCPServer
 from app.mcp_server.backend_api_client import AlexandriaApiClient
 from app.mcp_server.tools.backend_gateway_policy import DEFAULT_CONTEXT_SEARCH_LIMIT
 from app.mcp_server.tools.obsidian.obsidian_backend_gateway import (
+    alexandria_batch_read_notes,
+    alexandria_batch_validate_note_links,
+    alexandria_batch_write_notes,
     alexandria_check_path_exists,
     alexandria_create_note,
     alexandria_get_related_notes,
@@ -316,3 +319,45 @@ def register_obsidian_note_tools(
             verify_incoming_edges,
             verify_duplicates,
         )
+
+    @server.tool(name="alexandria_batch_read_notes")
+    async def _tool_batch_read_notes(
+        selectors: list[dict[str, str | None]],
+    ) -> JSONValue:
+        """Read many notes independently by path or note_id.
+
+        Args:
+            selectors: List of note selectors, each with path or note_id.
+
+        Returns:
+            Per-item read results. One item's failure does not fail the batch.
+        """
+        return await alexandria_batch_read_notes(api_client, selectors)
+
+    @server.tool(name="alexandria_batch_validate_note_links")
+    async def _tool_batch_validate_note_links(
+        selectors: list[dict[str, str | None]],
+    ) -> JSONValue:
+        """Validate outgoing links for many notes independently.
+
+        Args:
+            selectors: List of note selectors.
+
+        Returns:
+            Per-item validation outcomes. One item's failure does not fail the batch.
+        """
+        return await alexandria_batch_validate_note_links(api_client, selectors)
+
+    @server.tool(name="alexandria_batch_write_notes")
+    async def _tool_batch_write_notes(
+        operations: list[dict[str, object]],
+    ) -> JSONValue:
+        """Execute many independent CAS writes with per-item outcomes.
+
+        Args:
+            operations: List of write operations with per-item CAS.
+
+        Returns:
+            Per-item write outcomes. One item's conflict does not fail the batch.
+        """
+        return await alexandria_batch_write_notes(api_client, operations)

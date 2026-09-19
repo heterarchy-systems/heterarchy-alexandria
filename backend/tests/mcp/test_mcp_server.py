@@ -1640,7 +1640,7 @@ def test_fastmcp_server_registers_required_alexandria_tools() -> None:
     tools = anyio.run(server.list_tools)
     names = {tool.name for tool in tools}
 
-    assert len(names) == 57
+    assert len(names) == 60
     composite_names = {
         "alexandria_recall",
         "alexandria_verified_upsert",
