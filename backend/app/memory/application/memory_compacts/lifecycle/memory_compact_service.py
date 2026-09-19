@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import AbstractAsyncContextManager
 from datetime import datetime
 
 from app.memory.application.memory_compacts.lifecycle.memory_compact_creation_service import (
@@ -48,6 +49,20 @@ class MemoryCompactService:
             repository=repository,
             query_service=self._query_service,
         )
+        self._repository = repository
+
+    def creation_guard(self) -> AbstractAsyncContextManager[None]:
+        """Serialize a full application-level check-and-create section.
+
+        Callers that must read lineage state before creating (the resume
+        package seal) hold this guard around the whole read-select-create-
+        supersede sequence; the inner compact creation re-enters the same
+        task-local lock acquisition instead of deadlocking.
+
+        Returns:
+            Async context manager backed by the cross-process creation lock.
+        """
+        return self._repository.creation_guard()
 
     async def create(self, payload: MemoryCompactCreate) -> MemoryCompact:
         """Create a compact and enforce lifecycle invariants.

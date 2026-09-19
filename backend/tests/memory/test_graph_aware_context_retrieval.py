@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import replace
 from datetime import UTC, datetime
 from typing import cast
@@ -92,6 +93,7 @@ class _HybridSearchSource(IContextSearchSource):
         fingerprint_key: str,
         limit: int,
         force: bool = False,
+        note_ids: Sequence[str] | None = None,
     ) -> list[ContextChunkRecord]:
         return []
 

@@ -15,6 +15,7 @@ from app.mcp_server.tools.contexts.context_lifecycle_registration import (
     register_context_lifecycle_tools,
 )
 from app.mcp_server.tools.contexts.context_recall_registration import (
+    register_context_brief_tool,
     register_context_recall_tools,
 )
 from app.mcp_server.tools.contexts.recall_registration import (
@@ -25,6 +26,9 @@ from app.mcp_server.tools.managed_spec.managed_spec_registration import (
 )
 from app.mcp_server.tools.memory_compacts.memory_compact_registration import (
     register_memory_compact_tools,
+)
+from app.mcp_server.tools.memory_compacts.memory_resume_package_registration import (
+    register_memory_resume_package_tools,
 )
 from app.mcp_server.tools.memory_compacts.memory_steward_registration import (
     register_memory_steward_tools,
@@ -53,6 +57,7 @@ from app.mcp_server.tools.reconciliation.memory_cycle_registration import (
 from app.mcp_server.tools.reconciliation.memory_reconciliation_registration import (
     register_memory_reconciliation_tools,
 )
+from app.mcp_server.toolset_revision import ToolsetRevisionMCPServer
 from app.mcp_server.type_validate.mcp_transport_enums import McpTransport
 
 DEFAULT_MCP_TRANSPORT_HOST = "0.0.0.0"
@@ -71,7 +76,9 @@ def build_mcp_server(
         local_oauth_runtime: Optional self-hosted OAuth provider and settings.
 
     Returns:
-        MCPServer server with async tool callbacks registered.
+        MCPServer server with async tool callbacks registered. Every tool's
+        discovery ``_meta`` carries the observation-only tool-set revision
+        under ``alexandria.toolset_revision``.
     """
     api_client = (
         AlexandriaApiClient(AlexandriaApiSettings.from_env())
@@ -93,12 +100,12 @@ def build_mcp_server(
         "starting or retrying a recovery run."
     )
     if local_oauth_runtime is None:
-        server = MCPServer(
+        server = ToolsetRevisionMCPServer(
             "heterarchy-alexandria",
             instructions=instructions,
         )
     else:
-        server = MCPServer(
+        server = ToolsetRevisionMCPServer(
             "heterarchy-alexandria",
             instructions=instructions,
             auth_server_provider=local_oauth_runtime.provider,
@@ -110,7 +117,9 @@ def build_mcp_server(
         )
     register_memory_reconciliation_tools(server, api_client)
     register_context_recall_tools(server, api_client)
+    register_context_brief_tool(server, api_client)
     register_memory_compact_tools(server, api_client)
+    register_memory_resume_package_tools(server, api_client)
     register_memory_steward_tools(server, api_client)
     register_context_lifecycle_tools(server, api_client)
     register_operations_tools(server, api_client)

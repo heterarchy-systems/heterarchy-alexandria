@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from app.memory.domain.entities.context_change_log import ContextDeltaPage
 from app.memory.domain.entities.context_read_models import (
     ContextAccessEventRecord,
     ContextChunkRecord,
@@ -161,6 +162,26 @@ class ContextRecordQueryService:
         return await self._repository.access_events(
             context_id=context_id,
             limit=limit,
+        )
+
+    async def context_delta(
+        self,
+        cursor_token: str | None,
+        max_rows: int,
+    ) -> ContextDeltaPage:
+        """Return one bounded SQL change-log delta page.
+
+        Args:
+            cursor_token: Opaque cursor from a previous page, or None for a
+                fresh read.
+            max_rows: Maximum entries for this page.
+
+        Returns:
+            Delta page with sequence-ordered entries and the next cursor.
+        """
+        return await self._repository.context_delta(
+            cursor_token=cursor_token,
+            max_rows=max_rows,
         )
 
 

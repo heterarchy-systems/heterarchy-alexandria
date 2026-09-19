@@ -23,7 +23,15 @@ _LOCK_RETRY_DELAY_SECONDS = 0.01
 
 
 class MemoryCompactCreationLock:
-    """Serialize Memory Compact check-and-create sections across processes."""
+    """Serialize Memory Compact check-and-create sections across processes.
+
+    The lock is re-entrant for the owning asyncio task: a nested ``hold()``
+    inside the same task (for example an application-level critical section
+    that itself calls the compact creation path) reuses the held descriptor
+    instead of deadlocking on a second conflicting flock. Different tasks in
+    the same process, and other processes, still contend on the filesystem
+    lock exactly as before.
+    """
 
     def __init__(self, vault_path: str | Path, relative_dir: str | Path) -> None:
         """Resolve the concept-owned lock beside canonical compact notes.
@@ -34,6 +42,9 @@ class MemoryCompactCreationLock:
         """
         base_dir = resolve_base_dir(vault_path, relative_dir)
         self._path = base_dir / _CREATION_LOCK_NAME
+        self._owner_task: asyncio.Task[None] | None = None
+        self._descriptor: int | None = None
+        self._depth = 0
 
     @asynccontextmanager
     async def hold(self) -> AsyncIterator[None]:
@@ -42,12 +53,47 @@ class MemoryCompactCreationLock:
         Yields:
             Control while this process owns the creation critical section.
         """
-        descriptor = await self._acquire_without_cancellation_leak()
+        await self._acquire()
         try:
             yield
         finally:
-            release_task = asyncio.ensure_future(asyncify(_release)(descriptor))
-            await wait_for_critical_task(release_task)
+            await self._release_one()
+
+    async def _acquire(self) -> None:
+        """Acquire or re-enter the critical section for the current task.
+
+        Raises:
+            RuntimeError: When a foreign task attempts to re-enter while the
+                lock is held without an owning descriptor.
+        """
+        current = asyncio.current_task()
+        if current is None:
+            raise RuntimeError(
+                "the creation lock must be held inside a running asyncio task"
+            )
+        if current is self._owner_task:
+            self._depth += 1
+            return
+        descriptor = await self._acquire_without_cancellation_leak()
+        self._descriptor = descriptor
+        self._owner_task = current
+        self._depth = 1
+
+    async def _release_one(self) -> None:
+        """Release one acquisition, keeping the lock held while nested."""
+        self._depth -= 1
+        if self._depth > 0:
+            return
+        descriptor = self._descriptor
+        self._descriptor = None
+        self._owner_task = None
+        self._depth = 0
+        if descriptor is None:
+            raise RuntimeError(
+                "creation lock release attempted without a held descriptor"
+            )
+        release_task = asyncio.ensure_future(asyncify(_release)(descriptor))
+        await wait_for_critical_task(release_task)
 
     async def _acquire_without_cancellation_leak(self) -> int:
         """Acquire without cancellation leak.

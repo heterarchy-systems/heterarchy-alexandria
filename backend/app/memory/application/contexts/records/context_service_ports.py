@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from datetime import datetime
 
 from app.memory.application.contexts.diagnostics.context_search_trace import (
@@ -105,12 +106,15 @@ class ContextEmbeddingReindexPort(ABC):
         self,
         limit: int = 100,
         force: bool = False,
+        note_ids: Sequence[str] | None = None,
     ) -> ContextReindexResult:
         """Reindex one bounded batch of Context embeddings.
 
         Args:
             limit: Maximum chunks scanned in one batch.
             force: Whether current embeddings should also be rebuilt.
+            note_ids: Optional compile-driven note restriction for sources
+                that support it.
 
         Returns:
             Bounded Context embedding reindex result.

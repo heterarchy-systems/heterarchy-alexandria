@@ -7,6 +7,7 @@ from datetime import datetime
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.memory.domain.entities.context_change_log import ContextDeltaPage
 from app.memory.domain.entities.context_read_models import (
     ContextAccessEventRecord,
     ContextChunkRecord,
@@ -17,6 +18,10 @@ from app.memory.infrastructure.models.context_models import ContextChunkORM, Con
 from app.memory.infrastructure.repositories.contexts.records.access_events import (
     list_context_access_events,
 )
+from app.memory.infrastructure.repositories.contexts.records.context_change_log_reader import (
+    MAX_CONTEXT_DELTA_ROWS,
+    read_context_delta,
+)
 from app.memory.infrastructure.repositories.contexts.records.filters import (
     filtered_context_statement,
 )
@@ -24,7 +29,10 @@ from app.memory.infrastructure.repositories.contexts.records.mapping import (
     map_chunk_row,
     map_context_row,
 )
-from app.shared.exceptions.memory_context_exceptions import MemoryContextNotFoundError
+from app.shared.exceptions.memory_context_exceptions import (
+    MemoryContextNotFoundError,
+    MemoryContextValidationError,
+)
 
 
 class ContextRecordQueryStore:
@@ -152,6 +160,36 @@ class ContextRecordQueryStore:
             session=self._session,
             context_id=context_id,
             limit=limit,
+        )
+
+    async def context_delta(
+        self,
+        cursor_token: str | None,
+        max_rows: int,
+    ) -> ContextDeltaPage:
+        """Return one bounded change-log delta page.
+
+        Args:
+            cursor_token: Opaque cursor from a previous page, or None for a
+                fresh read.
+            max_rows: Maximum entries for this page.
+
+        Returns:
+            Delta page with sequence-ordered entries and the next cursor.
+
+        Raises:
+            ContextChangeCursorInvalidError: When the token is malformed.
+            ContextChangeCursorResyncRequiredError: When the token version or
+                scope does not match this log.
+        """
+        if not 1 <= max_rows <= MAX_CONTEXT_DELTA_ROWS:
+            raise MemoryContextValidationError(
+                f"context_delta max_rows must be between 1 and {MAX_CONTEXT_DELTA_ROWS}"
+            )
+        return await read_context_delta(
+            self._session,
+            cursor_token=cursor_token,
+            max_rows=max_rows,
         )
 
 

@@ -22,6 +22,12 @@ from app.shared.infrastructure.native_compute_extension import (
     NativeComputeContractModule,
     load_native_compute_module,
 )
+from app.shared.infrastructure.native_wire_values import (
+    wire_array,
+    wire_integer,
+    wire_object,
+    wire_required_text,
+)
 from app.shared.serialization.orjson_codec import dumps_json, loads_json
 from app.shared.types.extra_types import JSONObject, JSONValue
 
@@ -285,37 +291,13 @@ def _metrics(value: JSONObject) -> ReconciliationCandidateComputeMetrics:
 
 
 def _object(value: JSONValue | None, field: str) -> JSONObject:
-    """Execute object.
-
-    Args:
-        value: Value being processed.
-        field: Field used by this operation.
-
-    Returns:
-        JSONObject result produced by object.
-    """
-    if not isinstance(value, dict):
-        raise ValueError(
-            f"NATIVE_RECONCILIATION_CANDIDATE_OUTPUT_ERROR: {field} must be an object"
-        )
-    return value
+    """Narrow one decoded wire value to a JSON object."""
+    return wire_object(value, field, "NATIVE_RECONCILIATION_CANDIDATE_OUTPUT_ERROR")
 
 
 def _array(value: JSONValue | None, field: str) -> list[JSONValue]:
-    """Execute array.
-
-    Args:
-        value: Value being processed.
-        field: Field used by this operation.
-
-    Returns:
-        list[JSONValue] result produced by array.
-    """
-    if not isinstance(value, list):
-        raise ValueError(
-            f"NATIVE_RECONCILIATION_CANDIDATE_OUTPUT_ERROR: {field} must be an array"
-        )
-    return value
+    """Narrow one decoded wire value to a JSON array."""
+    return wire_array(value, field, "NATIVE_RECONCILIATION_CANDIDATE_OUTPUT_ERROR")
 
 
 def _string_array(value: JSONValue | None, field: str) -> list[str]:
@@ -337,35 +319,15 @@ def _string_array(value: JSONValue | None, field: str) -> list[str]:
 
 
 def _text(value: JSONObject, key: str) -> str:
-    """Execute text.
-
-    Args:
-        value: Value being processed.
-        key: Key used by this operation.
-
-    Returns:
-        str result produced by text.
-    """
-    raw = value.get(key)
-    if not isinstance(raw, str) or not raw:
-        raise ValueError(f"NATIVE_RECONCILIATION_CANDIDATE_OUTPUT_ERROR: invalid {key}")
-    return raw
+    """Read one required non-empty text field from the decoded wire object."""
+    return wire_required_text(
+        value, key, "NATIVE_RECONCILIATION_CANDIDATE_OUTPUT_ERROR"
+    )
 
 
 def _int(value: JSONObject, key: str) -> int:
-    """Execute int.
-
-    Args:
-        value: Value being processed.
-        key: Key used by this operation.
-
-    Returns:
-        int result produced by int.
-    """
-    raw = value.get(key)
-    if not isinstance(raw, int) or isinstance(raw, bool) or raw < 0:
-        raise ValueError(f"NATIVE_RECONCILIATION_CANDIDATE_OUTPUT_ERROR: invalid {key}")
-    return raw
+    """Read one required non-negative integer field from the decoded wire object."""
+    return wire_integer(value, key, "NATIVE_RECONCILIATION_CANDIDATE_OUTPUT_ERROR")
 
 
 def _number(value: JSONValue | None, field: str) -> float:

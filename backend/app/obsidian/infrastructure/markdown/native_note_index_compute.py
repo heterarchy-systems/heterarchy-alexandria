@@ -10,12 +10,16 @@ from app.obsidian.infrastructure.markdown.native_frontmatter import (
     decode_native_frontmatter_entries,
 )
 from app.obsidian.infrastructure.markdown.note_index_compute_contracts import (
-    NoteIndexComputeProvider,
     NoteIndexComputeResult,
 )
 from app.shared.infrastructure.native_compute_extension import (
     NativeComputeContractModule,
     load_native_compute_module,
+)
+from app.shared.infrastructure.native_wire_values import (
+    wire_array,
+    wire_object,
+    wire_required_text,
 )
 from app.shared.search.markdown_text_chunking import (
     DEFAULT_SEARCH_CHUNK_MAX_CHARS,
@@ -40,6 +44,7 @@ class _DocumentIndexInputWire(TypedDict):
 
 class _DocumentIndexBatchWire(TypedDict):
     contract_version: int
+    include_chunks: bool
     chunking_version: int
     hashing_version: int
     max_chars: int
@@ -63,17 +68,24 @@ class NativeDocumentIndexComputeModule(NativeComputeContractModule, Protocol):
 
 
 @dataclass(frozen=True, slots=True)
-class NativeNoteIndexComputeProvider(NoteIndexComputeProvider):
+class NativeNoteIndexComputeProvider:
     """Delegate deterministic note-index compute to the native Rust extension."""
 
     native_module: NativeDocumentIndexComputeModule
 
-    def compute(self, text: str, relative_path: str) -> NoteIndexComputeResult:
+    def compute(
+        self,
+        text: str,
+        relative_path: str,
+        *,
+        include_chunks: bool = True,
+    ) -> NoteIndexComputeResult:
         """Return parsed document, title, chunks, and hashes from one native call.
 
         Args:
             text: Complete Markdown document already read by Python.
             relative_path: Vault-relative path used for deterministic title fallback.
+            include_chunks: Skip chunk generation for chunk-free snapshot reads.
 
         Returns:
             Frozen normalized note-index compute result.
@@ -87,6 +99,7 @@ class NativeNoteIndexComputeProvider(NoteIndexComputeProvider):
             hashing_version=_DOCUMENT_HASHING_VERSION,
             max_chars=DEFAULT_SEARCH_CHUNK_MAX_CHARS,
             overlap_chars=DEFAULT_SEARCH_CHUNK_OVERLAP_CHARS,
+            include_chunks=include_chunks,
             documents=[
                 _DocumentIndexInputWire(
                     document_id=_DOCUMENT_ID,
@@ -98,7 +111,7 @@ class NativeNoteIndexComputeProvider(NoteIndexComputeProvider):
         encoded = self.native_module.compute_document_index_batch_json(
             dumps_json(cast(JSONValue, request))
         )
-        return _decode_result(loads_json(encoded))
+        return _decode_result(loads_json(encoded), include_chunks=include_chunks)
 
 
 def create_native_note_index_compute_provider() -> NativeNoteIndexComputeProvider:
@@ -111,11 +124,12 @@ def create_native_note_index_compute_provider() -> NativeNoteIndexComputeProvide
     return NativeNoteIndexComputeProvider(module)
 
 
-def _decode_result(value: JSONValue) -> NoteIndexComputeResult:
+def _decode_result(value: JSONValue, *, include_chunks: bool) -> NoteIndexComputeResult:
     """Decode result.
 
     Args:
         value: Value being processed.
+        include_chunks: Whether the request requires indexing chunks.
 
     Returns:
         Decoded result.
@@ -151,12 +165,14 @@ def _decode_result(value: JSONValue) -> NoteIndexComputeResult:
     content_hash = _sha256_hex(result, "content_hash")
     frontmatter = decode_native_frontmatter_entries(analysis.get("frontmatter"))
     raw_chunks = _array(result.get("chunks"), "chunks")
+    if include_chunks and not raw_chunks:
+        raise ValueError("NATIVE_DOCUMENT_INDEX_OUTPUT_ERROR: missing chunks")
+    if not include_chunks and raw_chunks:
+        raise ValueError("NATIVE_DOCUMENT_INDEX_OUTPUT_ERROR: unexpected chunks")
     chunks = tuple(
         _chunk(raw_chunk, expected_index=index)
         for index, raw_chunk in enumerate(raw_chunks)
     )
-    if not chunks:
-        raise ValueError("NATIVE_DOCUMENT_INDEX_OUTPUT_ERROR: missing chunks")
     return NoteIndexComputeResult(
         frontmatter=frontmatter,
         body=body,
@@ -212,19 +228,8 @@ def _sha256_hex(value: JSONObject, key: str) -> str:
 
 
 def _required_text(value: JSONObject, key: str) -> str:
-    """Execute required text.
-
-    Args:
-        value: Value being processed.
-        key: Key used by this operation.
-
-    Returns:
-        str result produced by required text.
-    """
-    raw = value.get(key)
-    if not isinstance(raw, str) or not raw:
-        raise ValueError(f"NATIVE_DOCUMENT_INDEX_OUTPUT_ERROR: invalid {key}")
-    return raw
+    """Read one required non-empty text field from the decoded wire object."""
+    return wire_required_text(value, key, "NATIVE_DOCUMENT_INDEX_OUTPUT_ERROR")
 
 
 def _required_text_allow_empty(value: JSONObject, key: str) -> str:
@@ -244,34 +249,10 @@ def _required_text_allow_empty(value: JSONObject, key: str) -> str:
 
 
 def _object(value: JSONValue | None, field: str) -> JSONObject:
-    """Execute object.
-
-    Args:
-        value: Value being processed.
-        field: Field used by this operation.
-
-    Returns:
-        JSONObject result produced by object.
-    """
-    if not isinstance(value, dict):
-        raise ValueError(
-            f"NATIVE_DOCUMENT_INDEX_OUTPUT_ERROR: {field} must be an object"
-        )
-    return value
+    """Narrow one decoded wire value to a JSON object."""
+    return wire_object(value, field, "NATIVE_DOCUMENT_INDEX_OUTPUT_ERROR")
 
 
 def _array(value: JSONValue | None, field: str) -> list[JSONValue]:
-    """Execute array.
-
-    Args:
-        value: Value being processed.
-        field: Field used by this operation.
-
-    Returns:
-        list[JSONValue] result produced by array.
-    """
-    if not isinstance(value, list):
-        raise ValueError(
-            f"NATIVE_DOCUMENT_INDEX_OUTPUT_ERROR: {field} must be an array"
-        )
-    return value
+    """Narrow one decoded wire value to a JSON array."""
+    return wire_array(value, field, "NATIVE_DOCUMENT_INDEX_OUTPUT_ERROR")

@@ -7,6 +7,7 @@ from app.mcp_server.tools.backend_gateway_policy import (
     _path_segment,
 )
 from app.memory.interface.schemas.context.context_retrieval_schema import (
+    ContextBriefRequest,
     ContextSearchRequest,
 )
 from app.memory.interface.schemas.context.context_schema import ContextSupersedeRequest
@@ -108,3 +109,28 @@ async def alexandria_rag_status(client: AlexandriaApiClient) -> JSONValue:
     """
     response = await client.get("/memory/contexts/rag/status")
     return response
+
+
+async def alexandria_context_brief(
+    client: AlexandriaApiClient,
+    request: ContextBriefRequest,
+) -> JSONValue:
+    """Build a budgeted model-delivery context brief through the backend API.
+
+    Args:
+        client: Backend HTTP client.
+        request: Validated Context brief boundary contract.
+
+    Returns:
+        Backend budgeted brief response payload.
+    """
+    payload = schema_payload(request, exclude_none=True)
+    if payload.get("include_scopes") == []:
+        del payload["include_scopes"]
+    if payload.get("include_lifecycle_statuses") == []:
+        del payload["include_lifecycle_statuses"]
+    if payload.get("prefer_memory_functions") == []:
+        del payload["prefer_memory_functions"]
+    if payload.get("previously_delivered") == []:
+        del payload["previously_delivered"]
+    return await client.post("/memory/contexts/retrieval/brief", payload)

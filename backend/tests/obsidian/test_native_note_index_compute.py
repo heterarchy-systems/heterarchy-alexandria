@@ -10,13 +10,21 @@ from app.obsidian.infrastructure.markdown.native_note_index_compute import (
     NativeNoteIndexComputeProvider,
 )
 from app.shared.serialization.orjson_codec import dumps_json, loads_json
-from app.shared.types.extra_types import JSONValue
+from app.shared.types.extra_types import JSONObject, JSONValue
 
 
 class _FakeNativeModule:
     def __init__(self) -> None:
         self.request: JSONValue | None = None
         self.content_hash = "a" * 64
+        self.chunks: list[JSONObject] = [
+            {
+                "chunk_index": 0,
+                "heading": "Heading",
+                "content": "# Heading\nHello world",
+                "content_hash": "b" * 64,
+            }
+        ]
 
     def compute_contract_version(self) -> int:
         return 1
@@ -45,19 +53,11 @@ class _FakeNativeModule:
                                 "value": {"kind": "integer", "value": "7"},
                             },
                         ],
-                        "body": "# Heading\nHello world\n",
                     },
                     "body": "# Heading\nHello world",
                     "title": "Canonical Title",
                     "content_hash": self.content_hash,
-                    "chunks": [
-                        {
-                            "chunk_index": 0,
-                            "heading": "Heading",
-                            "content": "# Heading\nHello world",
-                            "content_hash": "b" * 64,
-                        }
-                    ],
+                    "chunks": self.chunks,
                 }
             ],
         }
@@ -101,3 +101,31 @@ def test_compute_rejects_malformed_native_hash() -> None:
         match="NATIVE_DOCUMENT_INDEX_OUTPUT_ERROR: invalid content_hash",
     ):
         provider.compute("# Heading\n", "Projects/Example.md")
+
+
+@pytest.mark.parametrize("include_chunks", [True, False])
+@pytest.mark.parametrize("returned_chunks", [True, False])
+def test_compute_enforces_requested_chunk_mode(
+    include_chunks: bool, returned_chunks: bool
+) -> None:
+    module = _FakeNativeModule()
+    if not returned_chunks:
+        module.chunks = []
+    provider = NativeNoteIndexComputeProvider(
+        cast(NativeDocumentIndexComputeModule, module)
+    )
+
+    if include_chunks != returned_chunks:
+        with pytest.raises(ValueError, match="NATIVE_DOCUMENT_INDEX_OUTPUT_ERROR"):
+            provider.compute(
+                "# Heading\n", "Projects/Example.md", include_chunks=include_chunks
+            )
+    else:
+        result = provider.compute(
+            "# Heading\n", "Projects/Example.md", include_chunks=include_chunks
+        )
+        assert bool(result.chunks) is include_chunks
+        assert result.body == "# Heading\nHello world"
+        assert result.content_hash == "a" * 64
+    assert isinstance(module.request, dict)
+    assert module.request["include_chunks"] is include_chunks

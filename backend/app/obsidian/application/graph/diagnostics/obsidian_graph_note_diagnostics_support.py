@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
 from dataclasses import dataclass, field
-from pathlib import PurePosixPath
 from typing import Literal
 
 from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild_service import (
@@ -12,12 +10,16 @@ from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild
     ObsidianGraphProjectionStatusReport,
 )
 from app.obsidian.domain.entities.obsidian_note import ObsidianEdge, ObsidianNote
-from app.obsidian.domain.event_enum.obsidian_enums import ObsidianIndexStatus
 from app.obsidian.infrastructure.markdown.paths import (
     safe_relative_path,
 )
 from app.shared.exceptions.obsidian_exceptions import (
     ObsidianValidationError,
+)
+from app.shared.infrastructure.native_compile_plan import (
+    DiagnosticEdgeWire,
+    DiagnosticNoteWire,
+    create_native_compile_plan_provider,
 )
 
 GraphLinkValidationIssueCode = Literal[
@@ -180,7 +182,7 @@ def _outgoing_diagnostics(
     notes: tuple[ObsidianNote, ...],
     include_resolved_targets: bool,
 ) -> ObsidianGraphOutgoingLinkDiagnostic:
-    """Execute outgoing diagnostics.
+    """Resolve cached outgoing edges through the Rust graph authority.
 
     Args:
         edges: Edges used by this operation.
@@ -190,29 +192,76 @@ def _outgoing_diagnostics(
     Returns:
         ObsidianGraphOutgoingLinkDiagnostic result produced by outgoing diagnostics.
     """
-    notes_by_id = {note.note_id: note for note in notes}
-    notes_by_path = {note.relative_path: note for note in notes}
-    healthy_notes = tuple(
-        note for note in notes if note.index_status is ObsidianIndexStatus.INDEXED
-    )
-    healthy_notes_by_id = {note.note_id: note for note in healthy_notes}
-    healthy_notes_by_path = {note.relative_path: note for note in healthy_notes}
-    healthy_notes_by_link_name = _notes_by_link_name(healthy_notes)
+    notes_wire: list[DiagnosticNoteWire] = [
+        {
+            "note_id": note.note_id,
+            "relative_path": note.relative_path,
+            "title": note.title,
+            "status": note.status,
+            "index_status": note.index_status.value,
+            "aliases": list(_note_aliases(note)),
+        }
+        for note in notes
+    ]
+    ordered_edges = tuple(sorted(edges, key=lambda item: item.edge_id))
+    edges_wire: list[DiagnosticEdgeWire] = [
+        {
+            "edge_id": edge.edge_id,
+            "source_note_id": edge.source_note_id,
+            "target_note_id": edge.target_note_id,
+            "target_path": edge.target_path,
+        }
+        for edge in ordered_edges
+    ]
+    edges_by_id = {edge.edge_id: edge for edge in ordered_edges}
+    provider = create_native_compile_plan_provider()
+    resolutions = provider.resolve_note_targets(notes=notes_wire, edges=edges_wire)
+
     resolved: list[ObsidianGraphResolvedTargetDiagnostic] = []
     unresolved: list[ObsidianGraphUnresolvedTargetDiagnostic] = []
-    for edge in sorted(edges, key=lambda item: item.edge_id):
-        target = _resolve_target(
-            edge,
-            notes_by_id=notes_by_id,
-            notes_by_path=notes_by_path,
-            healthy_notes_by_id=healthy_notes_by_id,
-            healthy_notes_by_path=healthy_notes_by_path,
-            healthy_notes_by_link_name=healthy_notes_by_link_name,
-        )
-        if isinstance(target, ObsidianGraphResolvedTargetDiagnostic):
-            resolved.append(target)
+    for resolution in resolutions:
+        edge = edges_by_id[resolution["edge_id"]]
+        outcome = resolution["outcome"]
+        if outcome == "RESOLVED":
+            resolved.append(
+                ObsidianGraphResolvedTargetDiagnostic(
+                    edge_id=edge.edge_id,
+                    target_note_id=resolution["target_note_id"] or "",
+                    target_path=resolution["target_path"] or edge.target_path,
+                    relation=edge.relation.value,
+                    source_kind=edge.source_kind.value,
+                )
+            )
+            continue
+        if outcome == "TARGET_NOT_INDEXED":
+            code: GraphLinkValidationIssueCode = "target_not_indexed"
+            detail = (
+                "edge target exists with "
+                f"index_status={resolution.get('target_index_status')}"
+            )
+        elif outcome == "AMBIGUOUS":
+            code = "ambiguous_target_note"
+            detail = "edge target matches multiple healthy Obsidian notes"
         else:
-            unresolved.append(target)
+            code = "missing_target_note"
+            detail = (
+                "explicit edge target id is absent from the Obsidian index"
+                if edge.target_note_id is not None
+                else "edge target is absent from the healthy Obsidian index"
+            )
+        unresolved.append(
+            ObsidianGraphUnresolvedTargetDiagnostic(
+                edge_id=edge.edge_id,
+                target_note_id=resolution["target_note_id"] or edge.target_note_id,
+                target_path=edge.target_path,
+                relation=edge.relation.value,
+                source_kind=edge.source_kind.value,
+                code=code,
+                detail=detail,
+                candidate_note_ids=tuple(resolution["candidate_note_ids"]),
+                candidate_paths=tuple(resolution["candidate_paths"]),
+            )
+        )
     return ObsidianGraphOutgoingLinkDiagnostic(
         parsed_count=len(edges),
         resolved_count=len(resolved),
@@ -222,169 +271,20 @@ def _outgoing_diagnostics(
     )
 
 
-def _resolve_target(
-    edge: ObsidianEdge,
-    notes_by_id: dict[str, ObsidianNote],
-    notes_by_path: dict[str, ObsidianNote],
-    healthy_notes_by_id: dict[str, ObsidianNote],
-    healthy_notes_by_path: dict[str, ObsidianNote],
-    healthy_notes_by_link_name: dict[str, tuple[ObsidianNote, ...]],
-) -> ObsidianGraphResolvedTargetDiagnostic | ObsidianGraphUnresolvedTargetDiagnostic:
-    """Resolve target.
+def _note_aliases(note: ObsidianNote) -> tuple[str, ...]:
+    """Decode the alias list used by the graph link-name authority.
 
     Args:
-        edge: Edge used by this operation.
-        notes_by_id: Identifier for notes by.
-        notes_by_path: Notes by path used by this operation.
-        healthy_notes_by_id: Identifier for healthy notes by.
-        healthy_notes_by_path: Healthy notes by path used by this operation.
-        healthy_notes_by_link_name: Healthy notes by link name used by this operation.
+        note: Note used by this operation.
 
     Returns:
-        Resolved target.
+        Decoded alias tuple.
     """
-    if edge.target_note_id is not None:
-        target = healthy_notes_by_id.get(edge.target_note_id)
-        if target is not None:
-            return _resolved_target(edge, target)
-        unhealthy = notes_by_id.get(edge.target_note_id)
-        if unhealthy is not None:
-            return _unresolved_target_not_indexed(edge, unhealthy)
-        path_candidate = healthy_notes_by_path.get(edge.target_path)
-        return ObsidianGraphUnresolvedTargetDiagnostic(
-            edge_id=edge.edge_id,
-            target_note_id=edge.target_note_id,
-            target_path=edge.target_path,
-            relation=edge.relation.value,
-            source_kind=edge.source_kind.value,
-            code="missing_target_note",
-            detail="explicit edge target id is absent from the Obsidian index",
-            candidate_note_ids=(
-                () if path_candidate is None else (path_candidate.note_id,)
-            ),
-            candidate_paths=(
-                () if path_candidate is None else (path_candidate.relative_path,)
-            ),
+    aliases = note.frontmatter.get("aliases")
+    if isinstance(aliases, str):
+        return (aliases,) if aliases.strip() else ()
+    if isinstance(aliases, list):
+        return tuple(
+            alias for alias in aliases if isinstance(alias, str) and alias.strip()
         )
-    target = healthy_notes_by_path.get(edge.target_path)
-    if target is not None:
-        return _resolved_target(edge, target)
-    unhealthy = notes_by_path.get(edge.target_path)
-    if unhealthy is not None:
-        return _unresolved_target_not_indexed(edge, unhealthy)
-    candidates = healthy_notes_by_link_name.get(_link_name(edge.target_path), ())
-    if len(candidates) == 1:
-        return _resolved_target(edge, candidates[0])
-    if len(candidates) > 1:
-        return ObsidianGraphUnresolvedTargetDiagnostic(
-            edge_id=edge.edge_id,
-            target_note_id=edge.target_note_id,
-            target_path=edge.target_path,
-            relation=edge.relation.value,
-            source_kind=edge.source_kind.value,
-            code="ambiguous_target_note",
-            detail="edge target matches multiple healthy Obsidian notes",
-            candidate_note_ids=tuple(note.note_id for note in candidates),
-            candidate_paths=tuple(note.relative_path for note in candidates),
-        )
-    return ObsidianGraphUnresolvedTargetDiagnostic(
-        edge_id=edge.edge_id,
-        target_note_id=edge.target_note_id,
-        target_path=edge.target_path,
-        relation=edge.relation.value,
-        source_kind=edge.source_kind.value,
-        code="missing_target_note",
-        detail="edge target is absent from the healthy Obsidian index",
-    )
-
-
-def _resolved_target(
-    edge: ObsidianEdge,
-    target: ObsidianNote,
-) -> ObsidianGraphResolvedTargetDiagnostic:
-    """Execute resolved target.
-
-    Args:
-        edge: Edge used by this operation.
-        target: Target used by this operation.
-
-    Returns:
-        ObsidianGraphResolvedTargetDiagnostic result produced by resolved target.
-    """
-    return ObsidianGraphResolvedTargetDiagnostic(
-        edge_id=edge.edge_id,
-        target_note_id=target.note_id,
-        target_path=target.relative_path,
-        relation=edge.relation.value,
-        source_kind=edge.source_kind.value,
-    )
-
-
-def _unresolved_target_not_indexed(
-    edge: ObsidianEdge,
-    target: ObsidianNote,
-) -> ObsidianGraphUnresolvedTargetDiagnostic:
-    """Execute unresolved target not indexed.
-
-    Args:
-        edge: Edge used by this operation.
-        target: Target used by this operation.
-
-    Returns:
-        ObsidianGraphUnresolvedTargetDiagnostic result produced by unresolved target not indexed.
-    """
-    return ObsidianGraphUnresolvedTargetDiagnostic(
-        edge_id=edge.edge_id,
-        target_note_id=target.note_id,
-        target_path=edge.target_path,
-        relation=edge.relation.value,
-        source_kind=edge.source_kind.value,
-        code="target_not_indexed",
-        detail=f"edge target exists with index_status={target.index_status.value}",
-        candidate_note_ids=(target.note_id,),
-        candidate_paths=(target.relative_path,),
-    )
-
-
-def _notes_by_link_name(
-    notes: tuple[ObsidianNote, ...],
-) -> dict[str, tuple[ObsidianNote, ...]]:
-    """Execute notes by link name.
-
-    Args:
-        notes: Notes used by this operation.
-
-    Returns:
-        dict[str, tuple[ObsidianNote, ...]] result produced by notes by link name.
-    """
-    grouped: defaultdict[str, list[ObsidianNote]] = defaultdict(list)
-    for note in notes:
-        names = {_link_name(note.relative_path), note.title.strip().casefold()}
-        aliases = note.frontmatter.get("aliases")
-        if isinstance(aliases, str):
-            names.add(aliases.strip().casefold())
-        elif isinstance(aliases, list):
-            names.update(
-                alias.strip().casefold()
-                for alias in aliases
-                if isinstance(alias, str) and alias.strip()
-            )
-        for name in names:
-            if name:
-                grouped[name].append(note)
-    return {
-        name: tuple(sorted(values, key=lambda item: item.relative_path))
-        for name, values in grouped.items()
-    }
-
-
-def _link_name(path: str) -> str:
-    """Execute link name.
-
-    Args:
-        path: Path used by this operation.
-
-    Returns:
-        str result produced by link name.
-    """
-    return PurePosixPath(path).stem.strip().casefold()
+    return ()

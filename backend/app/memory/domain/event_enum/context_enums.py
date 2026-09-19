@@ -46,6 +46,25 @@ class ContextScope(StrEnum):
     USER = "USER"
 
 
+class ContextChangeKind(StrEnum):
+    """Kinds of Context Vault mutations recorded in the durable change log.
+
+    The set matches the real PG-observed mutation sites: the SQL ``contexts``
+    archive/hard-delete stores and the canonical Obsidian index write-through,
+    where a change entry is appended inside the same transaction that commits
+    the indexed note projection. The log therefore reflects PG-observed state:
+    a Markdown write whose index write fails produces no entry until the
+    reconciliation/indexing pass commits the note, and externally edited vault
+    files surface only through that pass.
+    """
+
+    CREATED = "created"
+    UPDATED = "updated"
+    SUPERSEDED = "superseded"
+    ARCHIVED = "archived"
+    DELETED = "deleted"
+
+
 class ContextImportance(StrEnum):
     """Importance level used for recall ranking and filtering."""
 

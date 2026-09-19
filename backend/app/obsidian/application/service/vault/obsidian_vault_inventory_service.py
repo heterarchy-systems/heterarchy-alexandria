@@ -7,7 +7,9 @@ from pathlib import Path
 
 import anyio
 
-from app.obsidian.application.notes.obsidian_note_indexer import note_index_from_path
+from app.obsidian.application.notes.obsidian_note_indexer import (
+    note_snapshot_payload_from_path,
+)
 from app.obsidian.domain.contracts.obsidian_contracts import (
     ObsidianNoteIndex,
     ObsidianVaultInventoryRequest,
@@ -73,11 +75,7 @@ class ObsidianVaultInventoryService:
                 discovered,
             )
             relative_path = str(path.relative_to(config.vault_path))
-            payload = note_index_from_path(
-                path,
-                relative_path,
-                alexandria_root=config.alexandria_root,
-            )
+            payload = note_snapshot_payload_from_path(path, relative_path)
             if payload is None:
                 continue
             items.append(
@@ -272,10 +270,9 @@ def _source_snapshot_sync(
                 discovered,
             )
             relative_path = str(path.relative_to(vault_path))
-            payload = note_index_from_path(
+            payload = note_snapshot_payload_from_path(
                 path,
                 relative_path,
-                alexandria_root=alexandria_root,
                 max_source_bytes=max_file_bytes,
             )
         except ObsidianValidationError as exc:

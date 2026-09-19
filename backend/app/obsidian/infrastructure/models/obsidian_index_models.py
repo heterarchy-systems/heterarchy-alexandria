@@ -39,6 +39,7 @@ class ObsidianFileORM(Base):
     project: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     source: Mapped[str | None] = mapped_column(String(255), nullable=True)
     content_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    source_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     frontmatter_json: Mapped[dict[str, JSONValue]] = mapped_column(
         JSON,
         nullable=False,

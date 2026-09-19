@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Sequence
 
 from app.memory.application.contexts.records.context_service_ports import (
     ContextEmbeddingReindexPort,
@@ -28,6 +29,16 @@ class ContextEmbeddingRecoveryService:
         self._batch_size = batch_size
         self._max_batches = max_batches
         self._lock = asyncio.Lock()
+        self._pending_note_ids: tuple[str, ...] = ()
+
+    def record_invalidations(self, note_ids: Sequence[str]) -> None:
+        """Queue compile-invalidated note ids for the next bounded recovery.
+
+        Args:
+            note_ids: Source note identities whose chunks must re-embed.
+        """
+        merged = dict.fromkeys((*self._pending_note_ids, *note_ids))
+        self._pending_note_ids = tuple(merged)
 
     async def recover(
         self,
@@ -42,11 +53,24 @@ class ContextEmbeddingRecoveryService:
             Aggregate recovery result.
         """
         async with self._lock:
+            pending_note_ids, self._pending_note_ids = self._pending_note_ids, ()
             scanned = 0
             updated = 0
             skipped = 0
             warnings: list[str] = []
             exhausted_batch_limit = True
+            if pending_note_ids:
+                batch = await context_service.reindex_embeddings(
+                    limit=self._batch_size * self._max_batches,
+                    force=False,
+                    note_ids=pending_note_ids,
+                )
+                scanned += batch.scanned
+                updated += batch.updated
+                skipped += batch.skipped
+                warnings.extend(
+                    warning for warning in batch.warnings if warning not in warnings
+                )
             for _ in range(self._max_batches):
                 batch = await context_service.reindex_embeddings(
                     limit=self._batch_size,

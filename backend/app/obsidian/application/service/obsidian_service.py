@@ -2,13 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
 from pathlib import Path
 
-from app.obsidian.application.notes.lifecycle.obsidian_context_reindex_manifest import (
-    UNCONFIGURED_CONTEXT_REINDEX_MANIFEST_VALIDATOR,
-    ContextReindexManifestValidator,
-)
 from app.obsidian.application.service.notes.obsidian_context_lifecycle_service import (
     ObsidianContextLifecycleService,
 )
@@ -39,6 +35,7 @@ from app.obsidian.application.service.vault.obsidian_vault_operations import (
     ObsidianVaultOperations,
 )
 from app.obsidian.domain.contracts.obsidian_contracts import (
+    ObsidianNoteIndex,
     ObsidianSaveNote,
     ObsidianSearchQuery,
     ObsidianWriteNote,
@@ -77,11 +74,10 @@ class ObsidianService(
         vault_path: str | None = None,
         alexandria_root: str = "Alexandria",
         vault_config_store: ObsidianVaultConfigStore | None = None,
-        context_reindex_hook: Callable[[], Awaitable[None]] | None = None,
+        context_reindex_hook: Callable[[Sequence[str] | None], Awaitable[None]]
+        | None = None,
+        embedding_fingerprint_key: str | None = None,
         index_maintenance_coordinator: IndexMaintenanceCoordinator | None = None,
-        context_reindex_manifest_validator: ContextReindexManifestValidator = (
-            UNCONFIGURED_CONTEXT_REINDEX_MANIFEST_VALIDATOR
-        ),
     ) -> None:
         """Initialize service dependencies.
 
@@ -92,7 +88,6 @@ class ObsidianService(
             vault_config_store: Optional runtime vault override store.
             context_reindex_hook: Callback invoked for context reindex.
             index_maintenance_coordinator: Index maintenance coordinator used by this operation.
-            context_reindex_manifest_validator: Cross-note manifest validation authority.
         """
         self._repository = repository
         if vault_config_store is None:
@@ -114,7 +109,6 @@ class ObsidianService(
         )
         self._vault_lifecycle_service = ObsidianVaultLifecycleService(
             repository=self._repository,
-            context_reindex_manifest_validator=context_reindex_manifest_validator,
             vault_config_store=self._vault_config_store,
             save_note=self.save_note,
             read_note_by_path=self.read_note_by_path,
@@ -122,6 +116,7 @@ class ObsidianService(
             mark_context_superseded=self._delegate_mark_context_superseded,
             context_reindex_hook=context_reindex_hook,
             index_maintenance_coordinator=self._index_maintenance_coordinator,
+            embedding_fingerprint_key=embedding_fingerprint_key,
         )
         self._index_error_repair_service = ObsidianIndexErrorRepairService(
             repository=self._repository,
@@ -188,6 +183,48 @@ class ObsidianService(
             Authoritative note loaded from Markdown.
         """
         return await self._note_service.read_note_by_path(relative_path)
+
+    async def read_note_by_path_verified(
+        self,
+        relative_path: str,
+        payload: ObsidianNoteIndex,
+    ) -> ObsidianNote | None:
+        """Reuse one known parsed payload after a byte-hash source check.
+
+        Args:
+            relative_path: Vault-relative Markdown path.
+            payload: Previously parsed index payload for the same source.
+
+        Returns:
+            Authoritative note, or ``None`` when the bytes cannot be proven.
+        """
+        return await self._note_service.read_note_by_path_verified(
+            relative_path,
+            payload,
+        )
+
+    async def read_note_from_write_evidence(
+        self,
+        relative_path: str,
+        *,
+        source_hash: str,
+        expected_note: ObsidianNote,
+    ) -> ObsidianNote | None:
+        """Confirm one written source by hash and reuse its committed note.
+
+        Args:
+            relative_path: Vault-relative Markdown path of the written note.
+            source_hash: Rust-computed hash of the written document text.
+            expected_note: Note produced by indexing the written source bytes.
+
+        Returns:
+            The committed authoritative note, or ``None`` when unverified.
+        """
+        return await self._note_service.read_note_from_write_evidence(
+            relative_path,
+            source_hash=source_hash,
+            expected_note=expected_note,
+        )
 
     async def save_note(self, payload: ObsidianSaveNote) -> ObsidianNote:
         """Create or replace one Alexandria-managed Markdown note.

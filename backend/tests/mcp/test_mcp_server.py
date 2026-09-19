@@ -9,6 +9,7 @@ import anyio
 import httpx
 import pytest
 from fastapi.testclient import TestClient
+from mcp_types import Tool
 
 from app.main import app as default_app, create_app
 from app.mcp_server.backend_api_client import (
@@ -65,6 +66,10 @@ from app.mcp_server.tools.operations.operations_backend_gateway import (
     alexandria_operational_readiness,
     alexandria_recover,
     alexandria_recovery_run_status,
+)
+from app.mcp_server.toolset_revision import (
+    TOOLSET_REVISION_META_KEY,
+    compute_toolset_revision,
 )
 from app.memory.domain.event_enum.context_enums import (
     ContextRecallLifecycleStatus,
@@ -1635,7 +1640,7 @@ def test_fastmcp_server_registers_required_alexandria_tools() -> None:
     tools = anyio.run(server.list_tools)
     names = {tool.name for tool in tools}
 
-    assert len(names) == 52
+    assert len(names) == 55
     composite_names = {
         "alexandria_recall",
         "alexandria_verified_upsert",
@@ -1655,8 +1660,11 @@ def test_fastmcp_server_registers_required_alexandria_tools() -> None:
         "alexandria_execute_managed_spec",
         "alexandria_memory_cycle",
         "alexandria_search",
+        "alexandria_context_brief",
         "alexandria_memory_steward_readiness",
         "alexandria_memory_steward_refresh_current_compact",
+        "alexandria_create_memory_resume_package",
+        "alexandria_get_memory_resume_package",
         "alexandria_vault_inventory",
         "alexandria_vault_path_search",
         "alexandria_vault_move_plan",
@@ -1697,3 +1705,131 @@ def test_fastmcp_server_registers_required_alexandria_tools() -> None:
         "alexandria_get_memory_reconciliation_result",
         "alexandria_mark_memory_conflict_reviewing",
     }.isdisjoint(names)
+
+
+def _revision_probe_tool(name: str, property_name: str) -> Tool:
+    """Build one minimal discovery tool definition for revision assertions."""
+    return Tool(
+        name=name,
+        input_schema={
+            "type": "object",
+            "properties": {property_name: {"type": "string"}},
+            "required": [property_name],
+        },
+    )
+
+
+def _observed_toolset_revision(tools: list[Tool]) -> str:
+    """Return the single revision stamped across one tools/list response."""
+    revisions = {
+        tool.meta[TOOLSET_REVISION_META_KEY] if tool.meta else None for tool in tools
+    }
+    assert len(revisions) == 1
+    revision = revisions.pop()
+    assert isinstance(revision, str)
+    return revision
+
+
+def test_mcp_tools_list_carries_stable_toolset_revision() -> None:
+    """Every tools/list entry carries one stable revision across calls."""
+    client, _ = _client()
+    server = build_mcp_server(client=client)
+
+    first = anyio.run(server.list_tools)
+    second = anyio.run(server.list_tools)
+
+    revision = _observed_toolset_revision(first)
+    assert len(revision) == 16
+    assert _observed_toolset_revision(second) == revision
+    names = {tool.name for tool in first}
+    assert {
+        "alexandria_create_memory_resume_package",
+        "alexandria_get_memory_resume_package",
+    } <= names
+
+
+def test_mcp_toolset_revision_changes_when_tool_is_added() -> None:
+    """Adding one tool must change the revision observed on tools/list."""
+    client, _ = _client()
+    base_server = build_mcp_server(client=client)
+    extended_server = build_mcp_server(client=client)
+
+    @extended_server.tool(name="alexandria_test_revision_probe")
+    async def _revision_probe(marker: str) -> JSONValue:
+        return marker
+
+    base_revision = _observed_toolset_revision(anyio.run(base_server.list_tools))
+    extended_revision = _observed_toolset_revision(
+        anyio.run(extended_server.list_tools)
+    )
+
+    assert base_revision != extended_revision
+
+
+def test_mcp_toolset_revision_changes_when_tool_schema_changes() -> None:
+    """A same-named tool with a different input schema must move the revision."""
+    client, _ = _client()
+    first_server = build_mcp_server(client=client)
+    second_server = build_mcp_server(client=client)
+
+    @first_server.tool(name="alexandria_test_schema_probe")
+    async def _schema_probe_compact(marker: str) -> JSONValue:
+        return marker
+
+    @second_server.tool(name="alexandria_test_schema_probe")
+    async def _schema_probe_extended(marker: str, extra: int) -> JSONValue:
+        return marker
+
+    first_revision = _observed_toolset_revision(anyio.run(first_server.list_tools))
+    second_revision = _observed_toolset_revision(anyio.run(second_server.list_tools))
+
+    assert first_revision != second_revision
+
+
+def test_mcp_toolset_revision_ignores_registration_order() -> None:
+    """Registering the same additions in a different order keeps one revision."""
+    client, _ = _client()
+    first_server = build_mcp_server(client=client)
+    second_server = build_mcp_server(client=client)
+
+    @first_server.tool(name="alexandria_test_order_probe_a")
+    async def _order_probe_a(marker: str) -> JSONValue:
+        return marker
+
+    @first_server.tool(name="alexandria_test_order_probe_b")
+    async def _order_probe_b(marker: str) -> JSONValue:
+        return marker
+
+    @second_server.tool(name="alexandria_test_order_probe_b")
+    async def _order_probe_b(marker: str) -> JSONValue:
+        return marker
+
+    @second_server.tool(name="alexandria_test_order_probe_a")
+    async def _order_probe_a(marker: str) -> JSONValue:
+        return marker
+
+    first_revision = _observed_toolset_revision(anyio.run(first_server.list_tools))
+    second_revision = _observed_toolset_revision(anyio.run(second_server.list_tools))
+
+    assert first_revision == second_revision
+
+
+def test_mcp_toolset_revision_normalizes_schema_key_order() -> None:
+    """Dict key order inside an input schema cannot wiggle the revision."""
+    first = [
+        _revision_probe_tool("alexandria_b_tool", "alpha"),
+        _revision_probe_tool("alexandria_a_tool", "beta"),
+    ]
+    second = [
+        _revision_probe_tool("alexandria_a_tool", "beta"),
+        Tool(
+            name="alexandria_b_tool",
+            input_schema={
+                "required": ["alpha"],
+                "properties": {"alpha": {"type": "string"}},
+                "type": "object",
+            },
+        ),
+    ]
+
+    assert compute_toolset_revision(second) == compute_toolset_revision(first)

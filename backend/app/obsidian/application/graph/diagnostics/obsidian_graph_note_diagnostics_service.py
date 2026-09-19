@@ -178,7 +178,6 @@ class ObsidianGraphNoteDiagnosticsService:
         write_repository = cast(IObsidianIndexRepository, self._repository)
         async with self._index_maintenance_coordinator.operation("note_graph_rebuild"):
             await write_repository.upsert_note(payload)
-            await write_repository.resolve_edge_targets()
         projection = await self._projection_service.rebuild(
             include_issue_details=True,
         )

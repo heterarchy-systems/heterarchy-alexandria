@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.memory.domain.contracts.context_contracts import ContextChunkEmbeddingUpdate
@@ -70,6 +72,7 @@ class SqlAlchemyObsidianContextSearchSource(IContextSearchSource):
         fingerprint_key: str,
         limit: int,
         force: bool = False,
+        note_ids: Sequence[str] | None = None,
     ) -> list[ContextChunkRecord]:
         """Return Obsidian chunks requiring embedding work.
 
@@ -79,11 +82,13 @@ class SqlAlchemyObsidianContextSearchSource(IContextSearchSource):
             fingerprint_key: Current embedding fingerprint key.
             limit: Maximum chunks to scan.
             force: Whether current rows should also be rebuilt.
+            note_ids: Optional compile-driven note restriction.
 
         Returns:
             Obsidian Context chunks selected for embedding.
         """
         return await self._embedding_store.chunks_missing_embeddings(
+            note_ids=note_ids,
             model_name=model_name,
             dimensions=dimensions,
             fingerprint_key=fingerprint_key,

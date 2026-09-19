@@ -38,9 +38,15 @@ from app.memory.application.contexts.records.context_service_ports import (
 from app.memory.application.contexts.records.context_soft_rebuild_service import (
     ContextSoftRebuildService,
 )
+from app.memory.application.retrieval.context_brief import (
+    MAX_CONTEXT_BRIEF_BYTES,
+    MAX_CONTEXTS_PER_BRIEF,
+    build_context_brief,
+)
 from app.memory.application.retrieval.embeddings.embedding_contract import (
     EmbeddingProvider,
 )
+from app.memory.domain.entities.context_change_log import ContextDeltaPage
 from app.memory.domain.entities.context_read_models import (
     ContextAccessEventRecord,
     ContextChunkRecord,
@@ -78,6 +84,7 @@ from app.memory.domain.repositories.contexts.graph.context_graph_candidate_expan
 from app.memory.domain.repositories.contexts.graph.context_graph_signal_provider import (
     IContextGraphSignalProvider,
 )
+from app.memory.domain.types.context_payload_types import ContextBriefPayload
 from app.shared.application.index_maintenance_coordinator import (
     IndexMaintenanceCoordinator,
 )
@@ -128,6 +135,11 @@ class ContextService(
         """
         search_sources = [repository, *(extra_search_sources or ())]
         self._retrieval_kernel_provider = retrieval_kernel_provider
+        self._embedding_fingerprint_key = (
+            embedding_provider.fingerprint().key()
+            if embedding_provider is not None
+            else None
+        )
         self._index_maintenance_coordinator = (
             index_maintenance_coordinator or IndexMaintenanceCoordinator()
         )
@@ -167,6 +179,11 @@ class ContextService(
             Authority identifier reported by the injected compute provider.
         """
         return self._retrieval_kernel_provider.authority
+
+    @property
+    def embedding_fingerprint_key(self) -> str | None:
+        """Return the active embedding pipeline fingerprint, when configured."""
+        return self._embedding_fingerprint_key
 
     async def get(self, context_id: str) -> ContextRecord:
         """Return one Context or raise not-found.
@@ -317,6 +334,35 @@ class ContextService(
             source_surface=source_surface,
         )
 
+    async def context_delta(
+        self,
+        cursor_token: str | None = None,
+        max_rows: int = 32,
+    ) -> ContextDeltaPage:
+        """Return one bounded change-log delta page for incremental consumers.
+
+        Entries are ordered by the global change-log sequence; reads never
+        mutate the log. Covered transitions are every PG-observed Context
+        mutation: SQL ``contexts`` archive/hard delete plus canonical Obsidian
+        create/update/supersede/archive index writes, which append their entry
+        inside the index-write transaction. The log reflects PG-observed
+        state: a Markdown write whose index write fails produces no entry
+        until the reconciliation/indexing pass commits the note, and
+        externally edited vault files surface only through that pass.
+
+        Args:
+            cursor_token: Opaque cursor from a previous page, or None for a
+                fresh read.
+            max_rows: Maximum entries for this page (1..64).
+
+        Returns:
+            Delta page with entries, next cursor, and has-more flag.
+        """
+        return await self._record_query_service.context_delta(
+            cursor_token=cursor_token,
+            max_rows=max_rows,
+        )
+
     async def access_events(
         self,
         context_id: str,
@@ -401,6 +447,78 @@ class ContextService(
             prefer_memory_functions=prefer_memory_functions,
         )
 
+    async def context_brief(
+        self,
+        query: str,
+        strategy: RagStrategy = RagStrategy.HYBRID,
+        limit: int = 5,
+        project: str | None = None,
+        kind: ContextKind | None = None,
+        include_scopes: list[ContextScope] | None = None,
+        workspace_id: str | None = None,
+        agent_id: str | None = None,
+        user_id: str | None = None,
+        session_id: str | None = None,
+        include_lifecycle_statuses: list[ContextRecallLifecycleStatus] | None = None,
+        prefer_memory_functions: list[MemoryFunction] | None = None,
+        byte_budget: int = MAX_CONTEXT_BRIEF_BYTES,
+        record_budget: int = MAX_CONTEXTS_PER_BRIEF,
+        previously_delivered: Sequence[tuple[str, str]] = (),
+    ) -> ContextBriefPayload:
+        """Run the normal search path and derive a budgeted delivery brief.
+
+        The brief is a read-only projection of the same matches that feed the
+        Context Pack; it never writes anything, so brief reads cannot grow the
+        durable change log. Repetition suppression is caller-driven via
+        ``(context_id, content_hash)`` pairs observed by earlier deliveries.
+
+        Args:
+            query: Search query text shared with the retrieval call.
+            strategy: Requested retrieval strategy.
+            limit: Maximum matches retrieved.
+            project: Optional project filter.
+            kind: Optional Context kind filter.
+            include_scopes: Optional recall scope filters.
+            workspace_id: Optional workspace filter.
+            agent_id: Optional agent filter.
+            user_id: Optional user filter.
+            session_id: Optional session filter.
+            include_lifecycle_statuses: Optional administrative lifecycle filter.
+            prefer_memory_functions: Optional soft functional-memory preference.
+            byte_budget: Maximum rendered utf-8 byte count.
+            record_budget: Maximum number of delivered context entries.
+            previously_delivered: ``(context_id, content_hash)`` pairs already
+                delivered to the same consumer by earlier briefs.
+
+        Returns:
+            Identity-free brief payload with exact byte accounting.
+
+        Raises:
+            MemoryContextBriefBudgetError: When the budgets cannot deliver any
+                candidate entry or the serialized payload exceeds its cap.
+        """
+        pack = await self.search(
+            query=query,
+            strategy=strategy,
+            limit=limit,
+            project=project,
+            kind=kind,
+            include_scopes=include_scopes,
+            workspace_id=workspace_id,
+            agent_id=agent_id,
+            user_id=user_id,
+            session_id=session_id,
+            include_lifecycle_statuses=include_lifecycle_statuses,
+            prefer_memory_functions=prefer_memory_functions,
+        )
+        return build_context_brief(
+            query,
+            list(pack.matches),
+            byte_budget=byte_budget,
+            record_budget=record_budget,
+            previously_delivered=previously_delivered,
+        )
+
     async def explain_search(
         self,
         query: str,
@@ -472,18 +590,23 @@ class ContextService(
         self,
         limit: int = 100,
         force: bool = False,
+        note_ids: Sequence[str] | None = None,
     ) -> ContextReindexResult:
         """Backfill or rebuild embeddings for stored context chunks.
 
         Args:
             limit: Maximum chunks to reindex in this batch.
             force: Whether matching embeddings should be rebuilt.
+            note_ids: Optional compile-driven note restriction for sources that
+                support it.
 
         Returns:
             Context embedding reindex result.
         """
         async with self._index_maintenance_coordinator.operation("embedding_reindex"):
-            return await self._embedding_service.reindex(limit=limit, force=force)
+            return await self._embedding_service.reindex(
+                limit=limit, force=force, note_ids=note_ids
+            )
 
     async def soft_rebuild_embeddings(
         self,

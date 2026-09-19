@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime
 
 from app.memory.domain.contracts.context_contracts import (
@@ -12,6 +13,7 @@ from app.memory.domain.contracts.context_recall_contracts import (
     ContextFtsRecall,
     ContextVectorRecall,
 )
+from app.memory.domain.entities.context_change_log import ContextDeltaPage
 from app.memory.domain.entities.context_read_models import (
     ContextAccessEventRecord,
     ContextChunkRecord,
@@ -146,6 +148,26 @@ class ContextRecordQueryRepositoryDelegate:
             limit=limit,
         )
 
+    async def context_delta(
+        self,
+        cursor_token: str | None,
+        max_rows: int,
+    ) -> ContextDeltaPage:
+        """Return one bounded change-log delta page.
+
+        Args:
+            cursor_token: Opaque cursor from a previous page, or None for a
+                fresh read.
+            max_rows: Maximum entries for this page.
+
+        Returns:
+            Delta page with sequence-ordered entries and the next cursor.
+        """
+        return await self._query_store.context_delta(
+            cursor_token=cursor_token,
+            max_rows=max_rows,
+        )
+
 
 class ContextRecordMutationRepositoryDelegate:
     """Delegate Context lifecycle and access mutations."""
@@ -229,6 +251,7 @@ class ContextEmbeddingRepositoryDelegate:
         fingerprint_key: str,
         limit: int,
         force: bool = False,
+        note_ids: Sequence[str] | None = None,
     ) -> list[ContextChunkRecord]:
         """Return chunks needing embedding backfill or forced rebuild.
 
@@ -238,6 +261,7 @@ class ContextEmbeddingRepositoryDelegate:
             fingerprint_key: Current embedding generation fingerprint key.
             limit: Maximum chunks to scan.
             force: Whether matching embeddings may be rebuilt.
+            note_ids: Ignored; agent-saved Contexts are not compile-driven.
 
         Returns:
             Chunks that require embedding work.

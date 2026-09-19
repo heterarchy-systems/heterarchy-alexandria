@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "feature": "compile_plan",
+  "description": "Structural expectations for the deterministic compile-plan authority. Fingerprint stability and exact plans are asserted by compile_plan_golden.rs; this corpus pins the invalidation decisions per case.",
+  "policy": {
+    "chunk_max_chars": 600,
+    "chunk_overlap_chars": 80,
+    "embedding_fingerprint_key": "embed-v1"
+  },
+  "cases": [
+    {
+      "name": "full_compile_empty_previous",
+      "previous_documents": [],
+      "current_documents": ["Contexts/a.md"],
+      "expectations": {
+        "action": "ADDED",
+        "embedding_action": "REEMBED",
+        "embedding_reason": "DOCUMENT_ADDED",
+        "chunk_actions": "ALL_ADD",
+        "diagnostics": 0
+      }
+    },
+    {
+      "name": "unchanged_document_is_noop",
+      "previous_documents": ["Contexts/a.md@same-hash"],
+      "current_documents": ["Contexts/a.md@same-hash"],
+      "expectations": {
+        "upserts": 0,
+        "removals": 0,
+        "diagnostics": 0
+      }
+    },
+    {
+      "name": "fingerprint_change_reembeds_unchanged_content",
+      "previous_embedding_fingerprint_key": "embed-v0",
+      "previous_documents": ["Contexts/a.md@same-hash"],
+      "current_documents": ["Contexts/a.md@same-hash"],
+      "expectations": {
+        "action": "EMBEDDING_ONLY",
+        "embedding_action": "REEMBED",
+        "embedding_reason": "EMBEDDING_POLICY_CHANGED",
+        "chunk_actions": "ALL_KEEP"
+      }
+    },
+    {
+      "name": "metadata_only_change_skips_embedding",
+      "previous_documents": ["Contexts/a.md@old-hash"],
+      "current_documents": ["Contexts/a.md@new-hash-same-chunks"],
+      "expectations": {
+        "action": "UPDATED",
+        "embedding_action": "NONE",
+        "chunk_actions": "ALL_KEEP"
+      }
+    },
+    {
+      "name": "content_change_reembeds_changed_chunks",
+      "previous_documents": ["Contexts/a.md@old-hash"],
+      "current_documents": ["Contexts/a.md@new-hash-new-chunks"],
+      "expectations": {
+        "action": "UPDATED",
+        "embedding_action": "REEMBED",
+        "embedding_reason": "CHUNKS_CHANGED",
+        "changed_chunk_count_at_least": 1
+      }
+    },
+    {
+      "name": "vanished_document_is_removed",
+      "previous_documents": ["Contexts/gone.md"],
+      "current_documents": [],
+      "expectations": {
+        "removals": 1,
+        "upserts": 0
+      }
+    }
+  ]
+}

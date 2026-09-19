@@ -7,7 +7,10 @@ from pathlib import Path
 
 import anyio
 
-from app.obsidian.application.notes.obsidian_note_indexer import note_index_from_path
+from app.obsidian.application.notes.obsidian_note_indexer import (
+    _read_source_text,
+    note_snapshot_payload_from_path,
+)
 from app.obsidian.domain.contracts.obsidian_contracts import ObsidianNoteIndex
 from app.obsidian.domain.entities.obsidian_note import ObsidianNote
 from app.obsidian.domain.event_enum.obsidian_enums import ObsidianIndexStatus
@@ -15,6 +18,7 @@ from app.obsidian.infrastructure.markdown.paths import (
     safe_relative_path,
     validate_discovered_note_path,
 )
+from app.shared.compute.native_text_hashing import hash_text
 from app.shared.exceptions.obsidian_exceptions import (
     ObsidianNotFoundError,
     ObsidianValidationError,
@@ -52,10 +56,9 @@ def authoritative_note_from_path(
     if not absolute.exists():
         raise ObsidianNotFoundError(f"Obsidian note not found: {relative_path}")
     try:
-        payload = note_index_from_path(
+        payload = note_snapshot_payload_from_path(
             absolute,
             relative_path,
-            alexandria_root=alexandria_root,
         )
     except (OSError, UnicodeError) as exc:
         raise ObsidianValidationError("SOURCE_READ_FAILED") from exc
@@ -96,6 +99,49 @@ async def authoritative_note_from_path_async(
         loader,
         limiter=anyio.to_thread.current_default_thread_limiter(),
     )
+
+
+def source_matches_hash(
+    vault_path: Path,
+    relative_path: str,
+    alexandria_root: str,
+    source_hash: str,
+    *,
+    max_source_bytes: int,
+) -> bool:
+    """Re-read one managed source and confirm its bytes still match a known hash.
+
+    The read is parse-free: byte equality is proven by the Rust-owned content
+    hash, so callers may reuse an already-parsed payload without reinterpreting
+    the same Markdown. Any mismatch, missing file, or read failure returns
+    ``False`` so callers fall back to the full parse path and preserve the
+    canonical drift fence.
+
+    Args:
+        vault_path: Absolute Obsidian vault root.
+        relative_path: Vault-relative Markdown path.
+        alexandria_root: Managed Alexandria folder inside the vault.
+        source_hash: Rust-computed hash of the previously parsed source text.
+        max_source_bytes: Previously observed source size bounding this fast read.
+
+    Returns:
+        Whether the source text still matches ``source_hash``; the read buffer
+        is released before the caller continues with database I/O.
+    """
+    if not source_hash:
+        return False
+    try:
+        safe_path = _validated_source_path(
+            vault_path=vault_path,
+            relative_path=relative_path,
+            alexandria_root=alexandria_root,
+        )
+        if not safe_path.exists():
+            return False
+        text = _read_source_text(safe_path, max_source_bytes=max_source_bytes)
+    except (OSError, ValueError, ObsidianValidationError):
+        return False
+    return hash_text(text) == source_hash
 
 
 def authoritative_note_from_index(
@@ -150,6 +196,7 @@ def authoritative_note_from_index(
         size_bytes=payload.size_bytes,
         modified_at=payload.modified_at,
         indexed_at=indexed_at,
+        source_hash=payload.source_hash,
     )
 
 

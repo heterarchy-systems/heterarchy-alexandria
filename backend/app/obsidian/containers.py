@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
 
 from dependency_injector import containers, providers
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +13,9 @@ from app.memory.application.contexts.embedding.context_embedding_recovery_servic
 from app.memory.application.contexts.records.context_service import ContextService
 from app.memory.application.integration.context_projection_integrity_service import (
     ContextProjectionIntegrityService,
+)
+from app.memory.infrastructure.repositories.contexts.records.obsidian_context_change_recorder import (
+    record_obsidian_context_change,
 )
 from app.memory.infrastructure.repositories.projection_integrity.projection_integrity_store import (
     ContextProjectionIntegrityStore,
@@ -56,9 +59,6 @@ from app.obsidian.infrastructure.graph.native_obsidian_graph_projection_compute_
 from app.obsidian.infrastructure.graph.sqlalchemy_obsidian_graph_projection_source import (
     SqlAlchemyObsidianGraphProjectionSource,
 )
-from app.obsidian.infrastructure.markdown.native_context_reindex_manifest import (
-    create_native_context_reindex_manifest_validator,
-)
 from app.obsidian.infrastructure.obsidian_report_bundle_run_store import (
     ObsidianReportBundleRunStore,
 )
@@ -93,13 +93,28 @@ def _build_context_reindex_hook(
         Constructed context reindex hook.
     """
 
-    async def _hook() -> None:
-        """Execute hook."""
+    async def _hook(note_ids: Sequence[str] | None = None) -> None:
+        """Execute hook for one compile outcome.
+
+        Args:
+            note_ids: Compile-invalidated note identities to re-embed first.
+        """
         await projection_integrity_service.refresh()
         if enabled and context_service is not None and recovery_service is not None:
+            if note_ids:
+                recovery_service.record_invalidations(note_ids)
             await recovery_service.recover(context_service)
 
     return _hook
+
+
+def _context_embedding_fingerprint_key(
+    context_service: ContextService | None,
+) -> str | None:
+    """Expose Memory's existing embedding pipeline fingerprint authority."""
+    if context_service is None:
+        return None
+    return context_service.embedding_fingerprint_key
 
 
 class ObsidianContainer(containers.DeclarativeContainer):
@@ -121,7 +136,9 @@ class ObsidianContainer(containers.DeclarativeContainer):
         instance_of=IndexMaintenanceCoordinator
     )
     index_repo = providers.Factory(
-        SqlAlchemyObsidianIndexRepository, session=db_session
+        SqlAlchemyObsidianIndexRepository,
+        session=db_session,
+        context_change_recorder=record_obsidian_context_change,
     )
     context_projection_integrity_store = providers.Factory(
         ContextProjectionIntegrityStore,
@@ -140,9 +157,7 @@ class ObsidianContainer(containers.DeclarativeContainer):
     graph_projection_compute_provider = providers.Singleton(
         create_native_obsidian_graph_projection_compute_provider,
     )
-    context_reindex_manifest_validator = providers.Singleton(
-        create_native_context_reindex_manifest_validator,
-    )
+    context_reindex_manifest_validator = providers.Singleton()
     graph_projection_source_builder = providers.Factory(
         ObsidianGraphProjectionSourceBuilder,
         source=graph_projection_source,
@@ -173,13 +188,16 @@ class ObsidianContainer(containers.DeclarativeContainer):
         ObsidianService,
         repository=index_repo,
         vault_config_store=vault_config_store,
-        context_reindex_manifest_validator=context_reindex_manifest_validator,
         context_reindex_hook=providers.Factory(
             _build_context_reindex_hook,
             enabled=app_config.provided.rag_embedding_recovery_on_vault_reindex,
             context_service=memory_context_service,
             recovery_service=memory_embedding_recovery_service,
             projection_integrity_service=context_projection_integrity_service,
+        ),
+        embedding_fingerprint_key=providers.Callable(
+            _context_embedding_fingerprint_key,
+            context_service=memory_context_service,
         ),
         index_maintenance_coordinator=index_maintenance_coordinator,
     )

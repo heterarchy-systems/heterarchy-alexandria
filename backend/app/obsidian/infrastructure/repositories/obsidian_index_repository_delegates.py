@@ -6,6 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.obsidian.domain.contracts.obsidian_contracts import (
+    ObsidianCompiledDocumentState,
     ObsidianContextDuplicateQuery,
     ObsidianNoteIndex,
     ObsidianSearchQuery,
@@ -61,24 +62,34 @@ class ObsidianIndexWriteRepositoryDelegate:
         """
         return await self._write_store._upsert_note(payload)
 
-    async def mark_missing_stale(self, relative_paths: set[str]) -> int:
-        """Mark indexed notes absent from the current scan as stale.
+    async def list_indexed_note_identifiers(self) -> tuple[tuple[str, str], ...]:
+        """Return every indexed note identity in the rebuildable projection.
+
+        Returns:
+            (note_id, relative_path) pairs for all indexed notes.
+        """
+        return await self._write_store.list_indexed_note_identifiers()
+
+    async def list_compiled_document_states(
+        self,
+    ) -> tuple[ObsidianCompiledDocumentState, ...]:
+        """Return previous deterministic compile state for every indexed note."""
+        return await self._write_store.list_compiled_document_states()
+
+    async def read_compiled_embedding_fingerprint_key(self) -> str | None:
+        """Return one complete persisted embedding generation, if one exists."""
+        return await self._write_store.read_compiled_embedding_fingerprint_key()
+
+    async def mark_documents_stale(self, relative_paths: tuple[str, ...]) -> int:
+        """Discard indexed notes removed from the canonical scan.
 
         Args:
-            relative_paths: Paths observed during the current scan.
+            relative_paths: Paths removed per the compile plan.
 
         Returns:
-            Number of notes marked stale.
+            Number of notes discarded.
         """
-        return await self._write_store.mark_missing_stale(relative_paths)
-
-    async def resolve_edge_targets(self) -> int:
-        """Resolve late-indexed edge target ids from canonical paths.
-
-        Returns:
-            Number of edge rows updated.
-        """
-        return await self._write_store.resolve_edge_targets()
+        return await self._write_store.mark_documents_stale(relative_paths)
 
 
 class ObsidianIndexQueryRepositoryDelegate:

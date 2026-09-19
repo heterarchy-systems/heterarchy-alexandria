@@ -5,18 +5,9 @@ use heterarchy_alexandria_core::graph_compute::{
     GRAPH_COMPUTE_VERSION, GraphContextEvidence, GraphProjection, GraphProjectionEdge,
     GraphProjectionNode, GraphProjectionReadResult, GraphRelatedNote, GraphSelectedCandidate,
     GraphTitleRelevance, GraphTraversalRequest, GraphTraversalResult, TraversalDirection,
-    read_projection, select_projection_candidates, traverse_projection,
+    read_projection, select_projection_candidates,
 };
 use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct GraphTraversalBatchWire {
-    contract_version: u16,
-    graph_compute_version: u16,
-    projection: GraphProjectionWire,
-    traversal_requests: Vec<GraphTraversalRequestWire>,
-}
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -85,13 +76,6 @@ struct GraphTraversalRequestWire {
 }
 
 #[derive(Debug, Serialize)]
-struct GraphTraversalBatchResult {
-    contract_version: u16,
-    graph_compute_version: u16,
-    traversals: Vec<GraphTraversalResult>,
-}
-
-#[derive(Debug, Serialize)]
 struct GraphCandidateSelectionBatchResult {
     contract_version: u16,
     graph_compute_version: u16,
@@ -106,41 +90,6 @@ struct GraphProjectionReadResultWire {
     graph_compute_version: u16,
     related_notes: Vec<GraphRelatedNote>,
     context_evidence: Vec<GraphContextEvidence>,
-}
-
-/// Traverse one already-built graph projection without rebuilding projection state.
-///
-/// # Errors
-///
-/// Returns a stable machine-readable error when the wire contract, graph version, projection
-/// snapshot, traversal direction, or bounded traversal request is invalid.
-pub(crate) fn compute_graph_traversal_payload(payload: &[u8]) -> Result<Vec<u8>, String> {
-    let wire: GraphTraversalBatchWire = serde_json::from_slice(payload)
-        .map_err(|error| format!("NATIVE_GRAPH_TRAVERSAL_INPUT_ERROR: {error}"))?;
-    crate::validate_contract_version(
-        wire.contract_version,
-        "NATIVE_GRAPH_TRAVERSAL_CONTRACT_ERROR",
-    )?;
-    if wire.graph_compute_version != GRAPH_COMPUTE_VERSION {
-        return Err(format!(
-            "NATIVE_GRAPH_TRAVERSAL_CONTRACT_ERROR: expected graph compute version {GRAPH_COMPUTE_VERSION}, found {}",
-            wire.graph_compute_version
-        ));
-    }
-    let projection = projection_from_wire(wire.projection)?;
-    let requests = wire
-        .traversal_requests
-        .into_iter()
-        .map(traversal_from_wire)
-        .collect::<Result<Vec<_>, _>>()?;
-    let traversals = traverse_projection(&projection, &requests)
-        .map_err(|error| format!("NATIVE_GRAPH_TRAVERSAL_INVARIANT_ERROR: {error}"))?;
-    serde_json::to_vec(&GraphTraversalBatchResult {
-        contract_version: ComputeContractVersion::CURRENT.value(),
-        graph_compute_version: GRAPH_COMPUTE_VERSION,
-        traversals,
-    })
-    .map_err(|error| format!("NATIVE_GRAPH_TRAVERSAL_OUTPUT_ERROR: {error}"))
 }
 
 /// Traverse one active projection and select a small title-relevant graph candidate set.
@@ -291,79 +240,7 @@ fn direction_from_wire(value: &str) -> Result<TraversalDirection, String> {
 mod tests {
     use serde_json::Value;
 
-    use super::{
-        compute_graph_candidate_selection_payload, compute_graph_projection_read_payload,
-        compute_graph_traversal_payload,
-    };
-
-    const VALID_PAYLOAD: &[u8] = br#"{
-        "contract_version":1,
-        "graph_compute_version":1,
-        "projection":{
-            "nodes":[
-                {"note_id":"a","relative_path":"Contexts/a.md","alexandria_type":"context","title":"A","status":"active","project":null},
-                {"note_id":"b","relative_path":"Contexts/b.md","alexandria_type":"context","title":"B","status":"active","project":null},
-                {"note_id":"c","relative_path":"Contexts/c.md","alexandria_type":"context","title":"C","status":"active","project":null}
-            ],
-            "edges":[
-                {"edge_id":"e1","source_note_id":"a","source_path":"Contexts/a.md","target_note_id":"b","target_path":"Contexts/b.md","relation":"wikilink","confidence":1.0,"source_kind":"wikilink"},
-                {"edge_id":"e2","source_note_id":"b","source_path":"Contexts/b.md","target_note_id":"c","target_path":"Contexts/c.md","relation":"wikilink","confidence":1.0,"source_kind":"wikilink"}
-            ]
-        },
-        "traversal_requests":[
-            {"request_id":"depth-two","start_note_id":"a","direction":"outgoing","relations":["wikilink"],"max_depth":2,"max_results":10}
-        ]
-    }"#;
-
-    #[test]
-    fn adapter_traverses_active_projection_in_one_coarse_request() {
-        let encoded = match compute_graph_traversal_payload(VALID_PAYLOAD) {
-            Ok(value) => value,
-            Err(error) => unreachable!("valid graph traversal payload failed: {error}"),
-        };
-        let decoded: Value = match serde_json::from_slice(&encoded) {
-            Ok(value) => value,
-            Err(error) => unreachable!("graph traversal adapter emitted invalid JSON: {error}"),
-        };
-        assert_eq!(decoded["contract_version"], 1);
-        assert_eq!(decoded["graph_compute_version"], 1);
-        assert_eq!(decoded["traversals"][0]["start_found"], true);
-        assert_eq!(
-            decoded["traversals"][0]["visits"],
-            serde_json::json!([
-                {"note_id":"a","depth":0},
-                {"note_id":"b","depth":1},
-                {"note_id":"c","depth":2}
-            ])
-        );
-    }
-
-    #[test]
-    fn adapter_rejects_unknown_fields_and_graph_versions() {
-        let extra_field = VALID_PAYLOAD
-            .strip_suffix(b"}")
-            .map(|prefix| [prefix, br#","extra":true}"#].concat())
-            .unwrap_or_default();
-        let Err(field_error) = compute_graph_traversal_payload(&extra_field) else {
-            unreachable!("unknown graph traversal field must fail");
-        };
-        assert!(field_error.contains("unknown field"));
-
-        let version_payload = VALID_PAYLOAD
-            .windows(b"\"graph_compute_version\":1".len())
-            .position(|window| window == b"\"graph_compute_version\":1")
-            .map(|position| {
-                let mut payload = VALID_PAYLOAD.to_vec();
-                let version_index = position + b"\"graph_compute_version\":".len();
-                payload[version_index] = b'2';
-                payload
-            })
-            .unwrap_or_default();
-        let Err(version_error) = compute_graph_traversal_payload(&version_payload) else {
-            unreachable!("unknown graph traversal version must fail");
-        };
-        assert!(version_error.contains("expected graph compute version 1, found 2"));
-    }
+    use super::{compute_graph_candidate_selection_payload, compute_graph_projection_read_payload};
 
     #[test]
     fn adapter_selects_a_small_title_relevant_graph_candidate_set() {

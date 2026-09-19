@@ -14,6 +14,7 @@ from app.shared.infrastructure.native_compute_extension import (
     NativeComputeContractModule,
     load_native_compute_module,
 )
+from app.shared.infrastructure.native_wire_values import wire_array, wire_object
 from app.shared.serialization.orjson_codec import dumps_json, loads_json
 from app.shared.types.extra_types import JSONObject, JSONValue
 
@@ -242,34 +243,10 @@ def _scalar_from_tag(
 
 
 def _object(value: JSONValue | None, field: str) -> JSONObject:
-    """Execute object.
-
-    Args:
-        value: Value being processed.
-        field: Field used by this operation.
-
-    Returns:
-        JSONObject result produced by object.
-    """
-    if not isinstance(value, dict):
-        raise ValueError(
-            f"NATIVE_DOCUMENT_ANALYSIS_OUTPUT_ERROR: {field} must be an object"
-        )
-    return value
+    """Narrow one decoded wire value to a JSON object."""
+    return wire_object(value, field, "NATIVE_DOCUMENT_ANALYSIS_OUTPUT_ERROR")
 
 
 def _array(value: JSONValue | None, field: str) -> list[JSONValue]:
-    """Execute array.
-
-    Args:
-        value: Value being processed.
-        field: Field used by this operation.
-
-    Returns:
-        list[JSONValue] result produced by array.
-    """
-    if not isinstance(value, list):
-        raise ValueError(
-            f"NATIVE_DOCUMENT_ANALYSIS_OUTPUT_ERROR: {field} must be an array"
-        )
-    return value
+    """Narrow one decoded wire value to a JSON array."""
+    return wire_array(value, field, "NATIVE_DOCUMENT_ANALYSIS_OUTPUT_ERROR")

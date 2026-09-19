@@ -15,7 +15,6 @@ from app.memory.application.retrieval.embeddings.fake_embedding_provider import 
 from app.memory.application.retrieval.planning.context_query_planning import (
     context_query_variants,
 )
-from app.memory.application.retrieval.ranking.vector_math import cosine_similarity
 
 NOW = datetime(2026, 7, 27, tzinfo=UTC)
 
@@ -101,14 +100,6 @@ def test_embedding_document_text_includes_title_and_heading() -> None:
         fingerprint.identity_payload()["document_input_format"]
         == EMBEDDING_DOCUMENT_INPUT_FORMAT
     )
-
-
-def test_cosine_similarity_package_contract_handles_vector_edges() -> None:
-    """The ranking package should expose deterministic cosine similarity behavior."""
-    assert cosine_similarity([1.0, 0.0], [1.0, 0.0]) == 1.0
-    assert cosine_similarity([1.0, 0.0], [0.0, 1.0]) == 0.0
-    assert cosine_similarity([0.0, 0.0], [1.0, 1.0]) == 0.0
-    assert cosine_similarity([1.0], [1.0, 0.0]) == 0.0
 
 
 def test_context_query_variants_include_focused_korean_topic_terms() -> None:

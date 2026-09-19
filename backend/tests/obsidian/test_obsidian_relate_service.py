@@ -59,9 +59,6 @@ from app.obsidian.infrastructure.graph.postgresql_obsidian_graph_projection_repo
 from app.obsidian.infrastructure.graph.sqlalchemy_obsidian_graph_projection_source import (
     SqlAlchemyObsidianGraphProjectionSource,
 )
-from app.obsidian.infrastructure.markdown.native_context_reindex_manifest import (
-    create_native_context_reindex_manifest_validator,
-)
 from app.obsidian.infrastructure.models import (
     obsidian_index_models as _obsidian_index_models,
 )
@@ -133,9 +130,6 @@ def _build_services(
     obsidian = ObsidianService(
         repository=repository,
         vault_config_store=vault_config,
-        context_reindex_manifest_validator=(
-            create_native_context_reindex_manifest_validator()
-        ),
         index_maintenance_coordinator=coordinator,
     )
     source = SqlAlchemyObsidianGraphProjectionSource(session=session)

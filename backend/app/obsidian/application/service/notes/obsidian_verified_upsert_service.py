@@ -10,6 +10,9 @@ from typing import Final
 import anyio
 from pydantic import TypeAdapter
 
+from app.obsidian.application.notes.lifecycle.obsidian_authoritative_read import (
+    authoritative_note_from_index,
+)
 from app.obsidian.application.service.notes.obsidian_canonical_identity_service import (
     ObsidianCanonicalIdentityService,
 )
@@ -39,7 +42,11 @@ from app.obsidian.domain.contracts.obsidian_verified_upsert import (
     ObsidianVerifiedUpsertSelector,
     ObsidianVerifiedUpsertVerification,
 )
-from app.obsidian.domain.entities.obsidian_note import ObsidianNote
+from app.obsidian.domain.entities.obsidian_note import (
+    ObsidianCanonicalIdentityResult,
+    ObsidianNote,
+    ObsidianNoteWriteResult,
+)
 from app.obsidian.domain.event_enum.obsidian_enums import (
     ObsidianFrontmatterMode,
     ObsidianIndexErrorCode,
@@ -147,7 +154,7 @@ class ObsidianVerifiedUpsertService:
                 path_target_id=None,
                 recommended_operation="resolve_identity",
             )
-        existing = await self._read_path_if_present(resolution.canonical_path)
+        existing = await self._read_existing_for_resolution(resolution)
         if existing is not None and resolution.existing_note_id is None:
             raise ObsidianIdentityConflictError(
                 operation="verified_upsert",
@@ -174,21 +181,28 @@ class ObsidianVerifiedUpsertService:
 
         if existing is not None:
             if verified_request_matches_note(normalized, existing):
-                result = self._result_from_note(
-                    normalized,
-                    existing,
-                    operation=ObsidianVerifiedUpsertOperation.IDEMPOTENT_REPLAY,
-                    warnings=("logical_identity_replay",),
-                )
-                await self._save_completed(
-                    store=store,
-                    checkpoint_key=checkpoint_key,
-                    request=normalized,
-                    request_hash=request_hash,
-                    note=existing,
-                    warnings=result.warnings,
-                )
-                return result
+                existing = await self._verify_replay_candidate(resolution, existing)
+                if existing is None:
+                    raise ObsidianWriteConflictError(
+                        "OBSIDIAN_WRITE_CONFLICT: canonical replay source disappeared "
+                        "after identity resolution"
+                    )
+                if verified_request_matches_note(normalized, existing):
+                    result = self._result_from_note(
+                        normalized,
+                        existing,
+                        operation=ObsidianVerifiedUpsertOperation.IDEMPOTENT_REPLAY,
+                        warnings=("logical_identity_replay",),
+                    )
+                    await self._save_completed(
+                        store=store,
+                        checkpoint_key=checkpoint_key,
+                        request=normalized,
+                        request_hash=request_hash,
+                        note=existing,
+                        warnings=result.warnings,
+                    )
+                    return result
             if normalized.expected_content_hash is None:
                 raise ObsidianWriteConflictError(
                     "OBSIDIAN_WRITE_CONFLICT: logical identity already has "
@@ -277,7 +291,7 @@ class ObsidianVerifiedUpsertService:
             )
             return degraded
 
-        readback = await self._read_path_if_present(write_result.note.relative_path)
+        readback = await self._verified_post_commit_readback(write_result)
         if readback is None or readback.note_id != write_result.note.note_id:
             unknown = replace(
                 intent,
@@ -709,6 +723,60 @@ class ObsidianVerifiedUpsertService:
             return await self._obsidian_service.read_note_by_path(path)
         except ObsidianNotFoundError:
             return None
+
+    async def _read_existing_for_resolution(
+        self,
+        resolution: ObsidianCanonicalIdentityResult,
+    ) -> ObsidianNote | None:
+        """Reuse the identity snapshot until the operation needs a freshness fence.
+
+        The canonical identity scan already parsed the source. Update paths defer
+        the byte-level freshness check to the compare-and-swap write boundary,
+        avoiding a redundant read. Replay paths verify the snapshot immediately
+        before returning through ``_verify_replay_candidate``.
+        """
+        payload = resolution.source_payload
+        if payload is not None:
+            return authoritative_note_from_index(payload)
+        return await self._read_path_if_present(resolution.canonical_path)
+
+    async def _verify_replay_candidate(
+        self,
+        resolution: ObsidianCanonicalIdentityResult,
+        existing: ObsidianNote,
+    ) -> ObsidianNote | None:
+        """Verify a snapshot-backed replay candidate before returning it unchanged."""
+        payload = resolution.source_payload
+        if payload is None:
+            return existing
+        verified = await self._obsidian_service.read_note_by_path_verified(
+            resolution.canonical_path,
+            payload,
+        )
+        if verified is not None:
+            return verified
+        return await self._read_path_if_present(resolution.canonical_path)
+
+    async def _verified_post_commit_readback(
+        self,
+        write_result: ObsidianNoteWriteResult,
+    ) -> ObsidianNote | None:
+        """Confirm the committed write by hash without a second parse.
+
+        The write path already parsed the exact bytes it atomically persisted,
+        so a matching re-read hash proves the disk state and the committed note
+        is reused directly. Any mismatch falls back to the full parse readback.
+        """
+        source_hash = write_result.source_hash
+        if source_hash:
+            verified = await self._obsidian_service.read_note_from_write_evidence(
+                write_result.note.relative_path,
+                source_hash=source_hash,
+                expected_note=write_result.note,
+            )
+            if verified is not None:
+                return verified
+        return await self._read_path_if_present(write_result.note.relative_path)
 
     async def _rollback_after_projection_failure(self) -> None:
         """Rollback the request transaction before exposing degraded evidence."""

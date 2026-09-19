@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 
 from app.memory.domain.contracts.context_contracts import (
     ContextChunkEmbeddingUpdate,
@@ -57,6 +58,7 @@ class IContextSearchSource(ABC):
         fingerprint_key: str,
         limit: int,
         force: bool = False,
+        note_ids: Sequence[str] | None = None,
     ) -> list[ContextChunkRecord]:
         """Return source chunks that need embedding backfill or rebuild.
 
@@ -66,6 +68,8 @@ class IContextSearchSource(ABC):
             fingerprint_key: Current embedding generation fingerprint key.
             limit: Maximum chunks to scan.
             force: Whether to rebuild existing embeddings even if metadata matches.
+            note_ids: Optional compile-driven note restriction; sources that are
+                not compile-driven ignore it.
 
         Returns:
             Chunks missing current embedding metadata or selected for rebuild.

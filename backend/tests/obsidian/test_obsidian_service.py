@@ -48,9 +48,6 @@ from app.obsidian.domain.event_enum.obsidian_enums import (
     ObsidianWriteMode,
     ObsidianWriteOperation,
 )
-from app.obsidian.infrastructure.markdown.native_context_reindex_manifest import (
-    create_native_context_reindex_manifest_validator,
-)
 from app.obsidian.infrastructure.models import (
     obsidian_index_models as _obsidian_index_models,
 )
@@ -99,7 +96,6 @@ async def _service(
         vault_path=str(tmp_path / "vault"),
         alexandria_root=alexandria_root,
         index_maintenance_coordinator=coordinator,
-        context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
     )
     return database, session, service
 
@@ -532,8 +528,7 @@ def test_obsidian_reindex_triggers_embedding_reindex_when_hook_is_configured(
                 repository=repository,
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
-                context_reindex_hook=lambda: None,
-                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
+                context_reindex_hook=lambda note_ids=None: None,
             )
             note_path = tmp_path / "vault" / "Alexandria" / "Contexts" / "Decisions"
             note_path.mkdir(parents=True, exist_ok=True)
@@ -554,7 +549,7 @@ def test_obsidian_reindex_triggers_embedding_reindex_when_hook_is_configured(
 
             called = False
 
-            async def hook() -> None:
+            async def hook(note_ids: list[str] | None = None):
                 nonlocal called
                 called = True
 
@@ -563,7 +558,6 @@ def test_obsidian_reindex_triggers_embedding_reindex_when_hook_is_configured(
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
                 context_reindex_hook=hook,
-                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             result = await service.reindex()
         finally:
@@ -820,7 +814,6 @@ def test_obsidian_reindex_continues_after_one_index_write_failure(
             repository=repository,
             vault_path=str(tmp_path / "vault"),
             alexandria_root="Alexandria",
-            context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
         )
         root = tmp_path / "vault" / "Alexandria" / "Contexts" / "Projects"
         root.mkdir(parents=True)
@@ -1377,7 +1370,6 @@ def test_obsidian_vault_settings_update_redirects_future_writes(
         service = ObsidianService(
             repository=SqlAlchemyObsidianIndexRepository(session=session),
             vault_config_store=store,
-            context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
         )
         try:
             status = await service.configure_vault_settings(
@@ -1480,7 +1472,6 @@ def test_obsidian_roundtrips_memory_skill_prompt_after_postgres_rebuild(
                 repository=SqlAlchemyObsidianIndexRepository(session=first_session),
                 vault_path=str(vault_path),
                 alexandria_root="Alexandria",
-                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             skill = await first_service.save_note(
                 ObsidianSaveNote(
@@ -1533,7 +1524,6 @@ def test_obsidian_roundtrips_memory_skill_prompt_after_postgres_rebuild(
                 repository=SqlAlchemyObsidianIndexRepository(session=rebuild_session),
                 vault_path=str(vault_path),
                 alexandria_root="Alexandria",
-                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             reindex = await rebuilt_service.reindex()
             memory_hits = await rebuilt_service.search(

@@ -53,6 +53,7 @@ class ObsidianNote:
     size_bytes: int
     modified_at: datetime
     indexed_at: datetime | None
+    source_hash: str | None = None
 
     def __post_init__(self) -> None:
         """Normalize note tags to an immutable sequence."""
@@ -91,6 +92,7 @@ class ObsidianNoteWriteResult:
     graph_projection_status: str
     reindex_required: bool
     warnings: tuple[str, ...] = field(default_factory=tuple)
+    source_hash: str | None = None
 
     def __post_init__(self) -> None:
         """Normalize warnings to an immutable sequence."""
@@ -118,6 +120,7 @@ class ObsidianCanonicalIdentityResult:
     aliases: tuple[str, ...]
     resolution: str
     candidate_paths: tuple[str, ...] = field(default_factory=tuple)
+    source_payload: ObsidianNoteIndex | None = None
 
     def __post_init__(self) -> None:
         """Normalize resolver collections to immutable sequences."""
@@ -211,6 +214,10 @@ class ObsidianReindexResult:
     error_details: tuple[ObsidianIndexError, ...] = field(default_factory=tuple)
     skip_reasons: dict[str, int] = field(default_factory=dict)
     edge_targets_resolved: int = 0
+    plan_fingerprint: str | None = None
+    policy_version: str | None = None
+    embedding_invalidated_documents: int = 0
+    diagnostic_count: int = 0
 
     def __post_init__(self) -> None:
         """Normalize reindex diagnostics to immutable sequences."""

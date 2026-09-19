@@ -87,6 +87,7 @@ class _RecordingSource(IContextSearchSource):
         fingerprint_key: str,
         limit: int,
         force: bool = False,
+        note_ids: Sequence[str] | None = None,
     ) -> list[ContextChunkRecord]:
         self._events.append(f"select:{force}")
         if force:

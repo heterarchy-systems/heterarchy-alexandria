@@ -48,6 +48,7 @@ def note_from_model(model: ObsidianFileORM) -> ObsidianNote:
         size_bytes=model.size_bytes,
         modified_at=model.modified_at,
         indexed_at=model.indexed_at,
+        source_hash=model.source_hash,
     )
 
 

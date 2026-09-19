@@ -15,6 +15,9 @@ from app.memory.application.integration.obsidian_canonical_context_gateway impor
 from app.memory.application.memory_compacts.lifecycle.memory_compact_service import (
     MemoryCompactService,
 )
+from app.memory.application.memory_compacts.resume_package.resume_package_service import (
+    MemoryResumePackageService,
+)
 from app.memory.application.reconciliation.candidates.context_memory_candidate_recall_source import (
     ContextMemoryCandidateRecallSource,
 )
@@ -78,6 +81,9 @@ from app.memory.infrastructure.providers.native_memory_reconciliation_candidate_
 from app.memory.infrastructure.repositories.context_repository import (
     SqlAlchemyContextRepository,
 )
+from app.memory.infrastructure.repositories.contexts.records.obsidian_context_change_recorder import (
+    record_obsidian_context_change,
+)
 from app.memory.infrastructure.repositories.contexts.search.obsidian_search_source import (
     SqlAlchemyObsidianContextSearchSource,
 )
@@ -91,9 +97,6 @@ from app.memory.infrastructure.repositories.memory_reconciliation_repository imp
     SqlAlchemyMemoryReconciliationRepository,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
-from app.obsidian.infrastructure.markdown.native_context_reindex_manifest import (
-    create_native_context_reindex_manifest_validator,
-)
 from app.obsidian.infrastructure.obsidian_vault_config_store import (
     ObsidianVaultConfigStore,
 )
@@ -134,9 +137,7 @@ class MemoryContainer(containers.DeclarativeContainer):
     retrieval_kernel_provider = providers.Singleton(
         create_native_context_retrieval_kernel_provider
     )
-    context_reindex_manifest_validator = providers.Singleton(
-        create_native_context_reindex_manifest_validator,
-    )
+    context_reindex_manifest_validator = providers.Singleton()
     context_embedding_batch_transaction = providers.Factory(
         SqlAlchemyContextEmbeddingBatchTransaction,
         session=db_session,
@@ -150,12 +151,12 @@ class MemoryContainer(containers.DeclarativeContainer):
     obsidian_index_repo = providers.Factory(
         SqlAlchemyObsidianIndexRepository,
         session=db_session,
+        context_change_recorder=record_obsidian_context_change,
     )
     obsidian_service = providers.Factory(
         ObsidianService,
         repository=obsidian_index_repo,
         vault_config_store=obsidian_vault_config_store,
-        context_reindex_manifest_validator=context_reindex_manifest_validator,
     )
     canonical_context_gateway = providers.Factory(
         ObsidianCanonicalContextGateway,
@@ -187,6 +188,11 @@ class MemoryContainer(containers.DeclarativeContainer):
     memory_compact_service = providers.Factory(
         MemoryCompactService,
         repository=memory_compact_repo,
+    )
+    memory_resume_package_service = providers.Factory(
+        MemoryResumePackageService,
+        compact_service=memory_compact_service,
+        evidence_source=context_service,
     )
     reconciliation_readiness_repo = providers.Factory(
         SqlAlchemyMemoryReconciliationReadinessRepository,

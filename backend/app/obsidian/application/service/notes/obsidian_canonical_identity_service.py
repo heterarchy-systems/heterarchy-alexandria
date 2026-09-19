@@ -204,6 +204,7 @@ class ObsidianCanonicalIdentityService:
                 existing_note_id=note.note_id,
                 aliases=aliases,
                 resolution="EXISTING_CANONICAL_FAMILY",
+                source_payload=(note if isinstance(note, ObsidianNoteIndex) else None),
             )
         generated_path = self._generated_path(
             project=project,

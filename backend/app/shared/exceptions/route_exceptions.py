@@ -16,8 +16,12 @@ from app.shared.exceptions.exception_decorators import RouteExceptionStatusMappi
 from app.shared.exceptions.memory_compact_exceptions import (
     MemoryCompactNotFoundError,
     MemoryCompactValidationError,
+    MemoryResumePackageRequestConflictError,
 )
 from app.shared.exceptions.memory_context_exceptions import (
+    ContextChangeCursorInvalidError,
+    ContextChangeCursorResyncRequiredError,
+    MemoryContextBriefBudgetError,
     MemoryContextNotFoundError,
     MemoryContextValidationError,
 )
@@ -42,6 +46,7 @@ MEMORY_COMPACT_ROUTE_EXCEPTION_MAPPING: RouteExceptionStatusMapping = {
     BoundaryValidationError: status.HTTP_400_BAD_REQUEST,
     MemoryCompactNotFoundError: status.HTTP_404_NOT_FOUND,
     MemoryCompactValidationError: status.HTTP_400_BAD_REQUEST,
+    MemoryResumePackageRequestConflictError: status.HTTP_409_CONFLICT,
 }
 
 CONNECTIONS_ROUTE_EXCEPTION_MAPPING: RouteExceptionStatusMapping = {
@@ -52,6 +57,9 @@ CONNECTIONS_ROUTE_EXCEPTION_MAPPING: RouteExceptionStatusMapping = {
 
 CONTEXT_ROUTE_EXCEPTION_MAPPING: RouteExceptionStatusMapping = {
     BoundaryValidationError: status.HTTP_400_BAD_REQUEST,
+    ContextChangeCursorInvalidError: status.HTTP_400_BAD_REQUEST,
+    ContextChangeCursorResyncRequiredError: status.HTTP_409_CONFLICT,
+    MemoryContextBriefBudgetError: status.HTTP_422_UNPROCESSABLE_CONTENT,
     MemoryContextNotFoundError: status.HTTP_404_NOT_FOUND,
     MemoryContextValidationError: status.HTTP_400_BAD_REQUEST,
     IndexMaintenanceConflictError: status.HTTP_409_CONFLICT,

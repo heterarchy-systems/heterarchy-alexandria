@@ -131,6 +131,14 @@ contains = "PythonObsidianGraphProjectionComputeProvider"
 path = "native/tests/generate_graph_compute_corpus.py"
 contains = "def live_projection("
 
+[features.compile_plan]
+authority = "rust"
+python_retirement = "complete"
+legacy_inventory_complete = true
+golden_corpora = ["native/corpora/compile_plan/v1/cases.json"]
+forbidden_python_imports_when_rust = []
+legacy_python_markers = []
+
 [features.embedding_compute]
 authority = "rust"
 python_retirement = "complete"

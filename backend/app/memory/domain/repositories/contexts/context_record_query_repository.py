@@ -5,6 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from datetime import datetime
 
+from app.memory.domain.entities.context_change_log import ContextDeltaPage
 from app.memory.domain.entities.context_read_models import (
     ContextAccessEventRecord,
     ContextChunkRecord,
@@ -14,7 +15,7 @@ from app.memory.domain.event_enum.context_enums import ContextKind, ContextScope
 
 
 class IContextRecordQueryRepository(ABC):
-    """Read Context records, chunks, and recent access events."""
+    """Read Context records, chunks, recent access events, and change deltas."""
 
     @abstractmethod
     async def get(self, context_id: str) -> ContextRecord | None:
@@ -94,4 +95,25 @@ class IContextRecordQueryRepository(ABC):
 
         Returns:
             Recent access events ordered newest first.
+        """
+
+    @abstractmethod
+    async def context_delta(
+        self,
+        cursor_token: str | None,
+        max_rows: int,
+    ) -> ContextDeltaPage:
+        """Return one bounded, sequence-ordered change-log delta page.
+
+        Reads never write to the change log. The single global sequence makes
+        duplicate sequences across caller scopes impossible; caller scope
+        identity travels in the cursor token and is validated on decode.
+
+        Args:
+            cursor_token: Opaque cursor from a previous page, or None to start
+                a fresh read from the beginning of the log.
+            max_rows: Maximum entries for this page.
+
+        Returns:
+            Delta page with sequence-ordered entries and the next cursor.
         """

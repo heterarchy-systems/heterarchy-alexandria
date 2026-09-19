@@ -12,9 +12,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.obsidian.domain.contracts.obsidian_contracts import ObsidianSaveNote
 from app.obsidian.domain.event_enum.obsidian_enums import AlexandriaNoteType
-from app.obsidian.infrastructure.markdown.native_context_reindex_manifest import (
-    create_native_context_reindex_manifest_validator,
-)
 from app.obsidian.infrastructure.models import (
     obsidian_index_models as _obsidian_index_models,
 )
@@ -42,7 +39,6 @@ async def _services(
         repository=repository,
         vault_path=str(tmp_path / "vault"),
         alexandria_root="Alexandria",
-        context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
     )
     return database, session, obsidian
 
@@ -153,51 +149,6 @@ def test_reindex_resolves_relative_wikilinks_from_source_folder(
     assert indexed_edges == [("Alexandria/Z Target.md", "ctx_z_target")]
 
 
-def test_repository_resolves_edges_after_target_note_is_indexed_later(
-    tmp_path: Path,
-) -> None:
-    """A second resolve pass should fill target ids for late-indexed notes."""
-
-    async def scenario() -> tuple[int, list[tuple[str, str]]]:
-        database, session, obsidian = await _services(tmp_path)
-        repository = SqlAlchemyObsidianIndexRepository(session=session)
-        try:
-            await obsidian.save_note(
-                ObsidianSaveNote(
-                    title="Late Source",
-                    body="# Late Source\n\nSee [[Late Target]].",
-                    alexandria_type=AlexandriaNoteType.CONTEXT,
-                    note_id="ctx_late_source",
-                    relative_path="Alexandria/Late Source.md",
-                    frontmatter={"scope": "GLOBAL"},
-                )
-            )
-            await obsidian.save_note(
-                ObsidianSaveNote(
-                    title="Late Target",
-                    body="# Late Target\n",
-                    alexandria_type=AlexandriaNoteType.CONTEXT,
-                    note_id="ctx_late_target",
-                    relative_path="Alexandria/Late Target.md",
-                    frontmatter={"scope": "GLOBAL"},
-                )
-            )
-            resolved = await repository.resolve_edge_targets()
-            rows = await session.execute(
-                select(ObsidianEdgeORM.target_path, ObsidianEdgeORM.target_note_id)
-            )
-            edges = [(path, note_id or "") for path, note_id in rows.all()]
-        finally:
-            await session.close()
-            await database.shutdown()
-        return resolved, edges
-
-    resolved, edges = anyio.run(scenario)
-
-    assert resolved == 1
-    assert edges == [("Alexandria/Late Target.md", "ctx_late_target")]
-
-
 def test_postgres_edge_source_cache_preserves_incoming_backlink_source(
     tmp_path: Path,
 ) -> None:
@@ -284,7 +235,6 @@ def test_postgres_edge_source_cache_persists_and_replaces_stale_source_edges(
                 repository=repository,
                 vault_path=str(tmp_path / "vault"),
                 alexandria_root="Alexandria",
-                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             await reopened_obsidian.save_note(
                 ObsidianSaveNote(

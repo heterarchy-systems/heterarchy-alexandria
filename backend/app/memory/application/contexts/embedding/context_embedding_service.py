@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from app.memory.application.contexts.embedding.context_embedding_health_service import (
     ContextEmbeddingHealthService,
 )
@@ -95,17 +97,22 @@ class ContextEmbeddingService:
         self,
         limit: int = 100,
         force: bool = False,
+        note_ids: Sequence[str] | None = None,
     ) -> ContextReindexResult:
         """Backfill or rebuild embeddings for stored context chunks.
 
         Args:
             limit: Maximum chunks to reindex in this batch.
             force: Whether existing matching embeddings should be rebuilt.
+            note_ids: Optional compile-driven note restriction for sources that
+                support it.
 
         Returns:
             Context embedding reindex result.
         """
-        return await self._reindex_service.reindex(limit=limit, force=force)
+        return await self._reindex_service.reindex(
+            limit=limit, force=force, note_ids=note_ids
+        )
 
     async def source_statuses(self) -> list[ContextEmbeddingSourceStatus]:
         """Return source-level embedding fingerprint diagnostics.

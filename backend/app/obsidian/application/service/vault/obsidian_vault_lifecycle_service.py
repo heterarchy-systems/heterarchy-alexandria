@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
-from dataclasses import dataclass, field
+from collections.abc import Awaitable, Callable, Sequence
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Protocol
 
 from app.obsidian.application.notes.lifecycle.obsidian_context_reindex_manifest import (
     ContextReindexCandidate,
-    ContextReindexManifestValidator,
+    manifest_frontmatter_text,
     supersedes_context_id,
 )
 from app.obsidian.application.notes.obsidian_note_indexer import note_index_from_path
@@ -40,6 +40,9 @@ from app.obsidian.infrastructure.markdown.paths import (
     resolve_note_path,
     validate_discovered_note_path,
 )
+from app.obsidian.infrastructure.obsidian_report_bundle_run_store import (
+    ObsidianReportBundleRunStore,
+)
 from app.obsidian.infrastructure.obsidian_vault_config_store import (
     ObsidianVaultConfig,
     ObsidianVaultConfigStore,
@@ -51,6 +54,15 @@ from app.shared.exceptions.obsidian_exceptions import (
     ObsidianIndexWriteError,
     ObsidianValidationError,
 )
+from app.shared.infrastructure.native_compile_plan import (
+    CompileDocumentWire,
+    create_native_compile_plan_provider,
+)
+from app.shared.search.markdown_text_chunking import (
+    DEFAULT_SEARCH_CHUNK_MAX_CHARS,
+    DEFAULT_SEARCH_CHUNK_OVERLAP_CHARS,
+)
+from app.shared.types.extra_types import JSONObject
 from app.shared.types.types_convert_utils import now_utc
 
 
@@ -115,20 +127,19 @@ class ObsidianVaultLifecycleService:
     def __init__(
         self,
         repository: IObsidianIndexRepository,
-        context_reindex_manifest_validator: ContextReindexManifestValidator,
         vault_config_store: ObsidianVaultConfigStore,
         save_note: ObsidianLifecycleSaveHook,
         read_note_by_path: ObsidianLifecycleReadHook,
         note_id_from_existing_file: Callable[[Path], str | None],
         mark_context_superseded: ObsidianMarkSupersededHook,
-        context_reindex_hook: Callable[[], Awaitable[None]] | None,
+        context_reindex_hook: Callable[[Sequence[str] | None], Awaitable[None]] | None,
         index_maintenance_coordinator: IndexMaintenanceCoordinator,
+        embedding_fingerprint_key: str | None = None,
     ) -> None:
         """Create the vault lifecycle service.
 
         Args:
             repository: Rebuildable PostgreSQL index repository.
-            context_reindex_manifest_validator: Cross-note manifest validation authority.
             vault_config_store: Runtime vault location provider.
             save_note: Canonical note save callback.
             read_note_by_path: Canonical note read callback.
@@ -138,7 +149,6 @@ class ObsidianVaultLifecycleService:
             index_maintenance_coordinator: Index maintenance coordinator used by this operation.
         """
         self._repository = repository
-        self._context_reindex_manifest_validator = context_reindex_manifest_validator
         self._vault_config_store = vault_config_store
         self._save_note = save_note
         self._read_note_by_path = read_note_by_path
@@ -146,6 +156,7 @@ class ObsidianVaultLifecycleService:
         self._mark_context_superseded = mark_context_superseded
         self._context_reindex_hook = context_reindex_hook
         self._index_maintenance_coordinator = index_maintenance_coordinator
+        self._embedding_fingerprint_key = embedding_fingerprint_key
 
     async def status(self) -> ObsidianVaultStatus:
         """Return local Obsidian vault and index status.
@@ -238,11 +249,14 @@ class ObsidianVaultLifecycleService:
         config = self._vault_config_store.current()
         root = _root_path(config)
         if not root.exists():
+            indexed = await self._repository.list_indexed_note_identifiers()
             return ObsidianReindexResult(
                 files_seen=0,
                 files_indexed=0,
                 files_skipped=0,
-                stale_marked=await self._repository.mark_missing_stale(set()),
+                stale_marked=await self._repository.mark_documents_stale(
+                    tuple(path for _, path in indexed)
+                ),
                 errors=("Alexandria Obsidian root does not exist",),
             )
         files_seen = 0
@@ -311,22 +325,88 @@ class ObsidianVaultLifecycleService:
                     exc,
                     diagnostics,
                 )
-        manifest = self._context_reindex_manifest_validator.validate(candidates)
-        for issue in manifest.issues:
+        previous_states = await self._repository.list_compiled_document_states()
+        current_embedding_fingerprint_key = (
+            self._embedding_fingerprint_key or "__embedding_disabled__"
+        )
+        previous_embedding_fingerprint_key = (
+            current_embedding_fingerprint_key
+            if self._embedding_fingerprint_key is None
+            else (
+                await self._repository.read_compiled_embedding_fingerprint_key()
+                or "__embedding_incomplete__"
+            )
+        )
+        policy = {
+            "chunk_max_chars": DEFAULT_SEARCH_CHUNK_MAX_CHARS,
+            "chunk_overlap_chars": DEFAULT_SEARCH_CHUNK_OVERLAP_CHARS,
+            "embedding_fingerprint_key": current_embedding_fingerprint_key,
+        }
+        current_documents: list[CompileDocumentWire] = [
+            _compile_document(candidate) for candidate in candidates
+        ]
+        plan = create_native_compile_plan_provider().compile(
+            policy=policy,
+            current_documents=current_documents,
+            previous={
+                "embedding_fingerprint_key": previous_embedding_fingerprint_key,
+                "documents": [
+                    {
+                        "note_id": state.note_id,
+                        "relative_path": state.relative_path,
+                        "source_hash": state.source_hash,
+                        "chunk_hashes": list(state.chunk_hashes),
+                        "edge_ids": list(state.edge_ids),
+                    }
+                    for state in previous_states
+                ],
+            },
+        )
+        for diagnostic in plan["diagnostics"]:
             await self._record_reindex_error(
-                issue.relative_path,
-                issue.context_id,
-                ValueError(issue.message),
+                diagnostic["relative_path"],
+                diagnostic["context_id"],
+                ValueError(diagnostic["message"]),
                 diagnostics,
             )
+        payload_by_path = {
+            candidate.payload.relative_path: candidate for candidate in candidates
+        }
+        resolved_targets: dict[str, dict[str, str]] = {}
         indexed_candidates: list[ContextReindexCandidate] = []
-        for candidate in manifest.candidates:
+        for upsert in plan["upserts"]:
+            relative_path = upsert["relative_path"]
+            candidate = payload_by_path.get(relative_path)
+            if (
+                candidate is None
+                or upsert["action"] == "EMBEDDING_ONLY"
+                or not upsert["manifest_accepted"]
+            ):
+                continue
+            edge_targets = {
+                edge["edge_id"]: edge["target_note_id"]
+                for edge in upsert["edges"]
+                if edge["resolution"] == "RESOLVED" and edge["target_note_id"]
+            }
+            resolved_targets[relative_path] = edge_targets
+            payload = replace(
+                candidate.payload,
+                edges=tuple(
+                    replace(
+                        edge,
+                        target_note_id=edge_targets.get(edge.edge_id)
+                        or edge.target_note_id,
+                    )
+                    for edge in candidate.payload.edges
+                ),
+            )
+            reconciled_candidate = replace(candidate, payload=payload)
             try:
-                await self._repository.upsert_note(candidate.payload)
-                indexed_candidates.append(candidate)
+                await self._repository.upsert_note(reconciled_candidate.payload)
+                indexed_candidates.append(reconciled_candidate)
             except ObsidianIndexWriteError as exc:
                 await self._record_reindex_error(
-                    candidate.payload.relative_path,
+                    relative_path,
                     candidate.payload.note_id,
                     exc,
                     diagnostics,
@@ -350,10 +430,43 @@ class ObsidianVaultLifecycleService:
                     exc,
                     diagnostics,
                 )
-        stale_marked = await self._repository.mark_missing_stale(seen_paths)
-        edge_targets_resolved = await self._repository.resolve_edge_targets()
+        stale_marked = await self._repository.mark_documents_stale(
+            tuple(
+                removal["relative_path"]
+                for removal in plan["removals"]
+                if removal["relative_path"] not in seen_paths
+            )
+        )
+        edge_targets_resolved = sum(
+            len(targets) for targets in resolved_targets.values()
+        )
+        embedding_invalidated_documents = sum(
+            1
+            for upsert in plan["upserts"]
+            if upsert["embedding"]["action"] == "REEMBED"
+        )
+        plan_fingerprint = str(plan["plan_fingerprint"])
+        policy_version = str(plan["policy_version"])
+        diagnostic_count = len(plan["diagnostics"])
         if self._context_reindex_hook is not None:
-            await self._context_reindex_hook()
+            invalidated_note_ids = tuple(
+                upsert["note_id"]
+                for upsert in plan["upserts"]
+                if upsert["embedding"]["action"] == "REEMBED"
+            )
+            await self._context_reindex_hook(invalidated_note_ids or None)
+        receipt: JSONObject = {
+            "plan_fingerprint": plan_fingerprint,
+            "policy_version": policy_version,
+            "applied_at": now_utc().isoformat(),
+            "changed_documents": len(plan["upserts"]),
+            "removed_documents": len(plan["removals"]),
+            "embedding_invalidated_documents": embedding_invalidated_documents,
+            "diagnostic_count": diagnostic_count,
+        }
+        ObsidianReportBundleRunStore(vault_path=config.vault_path).save(
+            "compile-receipt:latest", receipt
+        )
         return ObsidianReindexResult(
             files_seen=files_seen,
             files_indexed=len(successfully_reconciled),
@@ -363,6 +476,10 @@ class ObsidianVaultLifecycleService:
             error_details=tuple(diagnostics.details),
             skip_reasons=skip_reasons,
             edge_targets_resolved=edge_targets_resolved,
+            plan_fingerprint=plan_fingerprint,
+            policy_version=policy_version,
+            embedding_invalidated_documents=embedding_invalidated_documents,
+            diagnostic_count=diagnostic_count,
         )
 
     async def _record_reindex_error(
@@ -394,6 +511,88 @@ class ObsidianVaultLifecycleService:
         diagnostics.errors.append(
             f"{relative_path}: {detail.error_code.value}: {safe_message}"
         )
+
+
+def _note_aliases(frontmatter: dict) -> tuple[str, ...]:
+    """Decode the alias list consumed by the graph link-name authority.
+
+    Args:
+        frontmatter: Note frontmatter mapping.
+
+    Returns:
+        Decoded non-blank alias tuple.
+    """
+    aliases = frontmatter.get("aliases")
+    if isinstance(aliases, str):
+        return (aliases,) if aliases.strip() else ()
+    if isinstance(aliases, list):
+        return tuple(
+            alias for alias in aliases if isinstance(alias, str) and alias.strip()
+        )
+    return ()
+
+
+def _compile_document(candidate: ContextReindexCandidate) -> CompileDocumentWire:
+    """Build one strict compile input from an already-parsed note payload.
+
+    Args:
+        candidate: Parsed managed-note candidate from the vault scan.
+
+    Returns:
+        JSON-serializable compile document input with provided chunks and edges.
+    """
+    payload = candidate.payload
+    return {
+        "relative_path": payload.relative_path,
+        "note_id": payload.note_id,
+        "title": payload.title,
+        "alexandria_type": payload.alexandria_type.value,
+        "status": payload.status,
+        "aliases": list(_note_aliases(payload.frontmatter)),
+        "text": None,
+        "source_hash": payload.source_hash or "",
+        "body": payload.body,
+        "frontmatter": payload.frontmatter,
+        "edge_seeds": [],
+        "provided_chunks": [
+            {"chunk_index": chunk.chunk_index, "content_hash": chunk.content_hash}
+            for chunk in payload.chunks
+        ],
+        "provided_edges": [
+            {
+                "edge_id": edge.edge_id,
+                "source_note_id": edge.source_note_id,
+                "source_path": edge.source_path,
+                "target_note_id": edge.target_note_id,
+                "target_path": edge.target_path,
+                "relation": edge.relation.value,
+                "confidence": edge.confidence,
+                "source_kind": edge.source_kind.value,
+            }
+            for edge in payload.edges
+        ],
+        "manifest_candidate": {
+            "note_id": payload.note_id,
+            "relative_path": payload.relative_path,
+            "canonical_relative_path": canonical_relative_path(payload.relative_path),
+            "is_context": payload.alexandria_type is AlexandriaNoteType.CONTEXT,
+            "identity": {
+                "scope": manifest_frontmatter_text(payload, "scope"),
+                "project": manifest_frontmatter_text(payload, "project"),
+                "workspace_id": manifest_frontmatter_text(payload, "workspace_id"),
+                "agent_id": manifest_frontmatter_text(payload, "agent_id"),
+                "user_id": manifest_frontmatter_text(payload, "user_id"),
+                "session_id": manifest_frontmatter_text(payload, "session_id"),
+                "content_hash": manifest_frontmatter_text(payload, "content_hash"),
+            },
+            "supersedes_context_id": manifest_frontmatter_text(
+                payload, "supersedes_context_id"
+            ),
+            "superseded_by_context_id": manifest_frontmatter_text(
+                payload, "superseded_by_context_id"
+            ),
+        },
+    }
 
 
 def _root_path(config: ObsidianVaultConfig) -> Path:

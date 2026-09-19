@@ -88,9 +88,6 @@ from app.memory.interface.schemas.reconciliation.cycles.memory_cycle_schema impo
 from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.obsidian.domain.contracts.obsidian_contracts import ObsidianSaveNote
 from app.obsidian.domain.event_enum.obsidian_enums import AlexandriaNoteType
-from app.obsidian.infrastructure.markdown.native_context_reindex_manifest import (
-    create_native_context_reindex_manifest_validator,
-)
 from app.obsidian.infrastructure.obsidian_report_bundle_run_store import (
     ObsidianReportBundleRunStore,
 )
@@ -171,7 +168,6 @@ async def _build_cycle(
         repository=SqlAlchemyObsidianIndexRepository(session=session),
         vault_config_store=config,
         index_maintenance_coordinator=coordinator,
-        context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
     )
     canonical_gateway = ObsidianCanonicalContextGateway(obsidian)
     context_service = ContextService(
@@ -310,7 +306,6 @@ def test_memory_cycle_real_postgres_vault_clean_apply_replay_and_raw_stale(
                 repository=SqlAlchemyObsidianIndexRepository(session=session),
                 vault_config_store=config,
                 index_maintenance_coordinator=coordinator,
-                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             record = await _save_context(
                 obsidian,
@@ -447,7 +442,6 @@ def test_memory_cycle_real_postgres_vault_contradiction_stays_review_bound(
                 repository=SqlAlchemyObsidianIndexRepository(session=session),
                 vault_config_store=config,
                 index_maintenance_coordinator=coordinator,
-                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             claim_a = {
                 "subject": "service",
@@ -545,7 +539,6 @@ def test_memory_cycle_real_project_scope_excludes_agent_user_and_rejects_scope(
                 repository=SqlAlchemyObsidianIndexRepository(session=session),
                 vault_config_store=config,
                 index_maintenance_coordinator=coordinator,
-                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             project_record = await _save_context(
                 obsidian,
@@ -632,7 +625,6 @@ def test_memory_cycle_real_performance_scales_and_writes_evidence(
                 repository=SqlAlchemyObsidianIndexRepository(session=session),
                 vault_config_store=config,
                 index_maintenance_coordinator=coordinator,
-                context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
             )
             records = tuple(
                 [

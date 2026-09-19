@@ -50,16 +50,75 @@ def note_index_from_path(
     Returns:
         Index payload, or None when Alexandria frontmatter is missing.
     """
+    return _note_payload_from_path(
+        path,
+        relative_path,
+        alexandria_root=alexandria_root,
+        max_source_bytes=max_source_bytes,
+    )
+
+
+def note_snapshot_payload_from_path(
+    path: Path,
+    relative_path: str,
+    max_source_bytes: int | None = None,
+) -> ObsidianNoteIndex | None:
+    """Build a chunk-free index payload for bounded identity snapshots.
+
+    Identity resolution, projection-integrity scans, and verified readbacks
+    never read chunk or edge rows, so the dominant per-file allocation is
+    skipped while analysis, title fallback, and hashing stay on the Rust
+    authority. ``content_hash`` keeps its per-type semantics; ``source_hash``
+    is the raw document hash used for byte-verified readbacks.
+
+    Args:
+        path: Absolute Markdown path.
+        relative_path: Vault-relative Markdown path.
+        max_source_bytes: Optional source-byte ceiling for bounded reads.
+
+    Returns:
+        Chunk-free index payload, or None when Alexandria frontmatter is missing.
+    """
+    return _note_payload_from_path(
+        path,
+        relative_path,
+        alexandria_root=None,
+        max_source_bytes=max_source_bytes,
+    )
+
+
+def _note_payload_from_path(
+    path: Path,
+    relative_path: str,
+    *,
+    alexandria_root: str | None,
+    max_source_bytes: int | None,
+) -> ObsidianNoteIndex | None:
+    """Load and map one native source result for indexing or identity snapshots.
+
+    Args:
+        path: Absolute Markdown path.
+        relative_path: Vault-relative Markdown path.
+        alexandria_root: Managed root for full graph indexing, or None for snapshots.
+        max_source_bytes: Optional source-byte ceiling for bounded reads.
+
+    Returns:
+        Normalized index payload, or None when Alexandria frontmatter is missing.
+    """
     text = _read_source_text(path, max_source_bytes=max_source_bytes)
     if frontmatter_contains_secret_field(text):
         raise ValueError(
             "FRONTMATTER_SECRET_DETECTED: frontmatter contains a secret-like field"
         )
-    computed = create_native_note_index_compute_provider().compute(text, relative_path)
+    computed = create_native_note_index_compute_provider().compute(
+        text,
+        relative_path,
+        include_chunks=alexandria_root is not None,
+    )
     note_type = _note_type_from_frontmatter(computed.frontmatter)
-    note_id = frontmatter_text(computed.frontmatter, "id")
     if note_type is None:
         return None
+    note_id = frontmatter_text(computed.frontmatter, "id")
     if not note_id:
         raise ValueError("FRONTMATTER_PARSE_ERROR: managed note is missing id")
     stat = path.stat()
@@ -91,19 +150,24 @@ def note_index_from_path(
         project=project,
         source=frontmatter_text(computed.frontmatter, "source"),
         content_hash=note_content_hash,
+        source_hash=computed.content_hash,
         frontmatter=frontmatter,
         body=body,
         size_bytes=stat.st_size,
         modified_at=datetime.fromtimestamp(stat.st_mtime, tz=UTC),
         chunks=computed.chunks,
-        edges=tuple(
-            create_native_obsidian_graph_edge_builder().build(
-                note_id=note_id,
-                relative_path=relative_path,
-                alexandria_root=alexandria_root,
-                frontmatter=frontmatter,
-                body=body,
+        edges=(
+            tuple(
+                create_native_obsidian_graph_edge_builder().build(
+                    note_id=note_id,
+                    relative_path=relative_path,
+                    alexandria_root=alexandria_root,
+                    frontmatter=frontmatter,
+                    body=body,
+                )
             )
+            if alexandria_root is not None
+            else ()
         ),
     )
 

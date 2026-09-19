@@ -26,6 +26,7 @@ from app.obsidian.application.notes.frontmatter.obsidian_note_write_metadata imp
 from app.obsidian.application.notes.lifecycle.obsidian_authoritative_read import (
     authoritative_note_from_index,
     authoritative_note_from_path_async,
+    source_matches_hash,
 )
 from app.obsidian.application.notes.lifecycle.obsidian_context_save_policy import (
     apply_context_save_policy,
@@ -62,6 +63,7 @@ from app.obsidian.domain.event_enum.obsidian_enums import (
     AlexandriaNoteType,
     ObsidianFrontmatterMode,
     ObsidianIndexErrorCode,
+    ObsidianIndexStatus,
     ObsidianWriteOperation,
 )
 from app.obsidian.domain.repositories.obsidian_index_repository import (
@@ -88,6 +90,7 @@ from app.shared.exceptions.obsidian_exceptions import (
     ObsidianNotFoundError,
     ObsidianStoredProjectionError,
     ObsidianValidationError,
+    ObsidianWriteConflictError,
 )
 from app.shared.infrastructure.identifiers import new_uuid
 from app.shared.types.types_convert_utils import now_utc
@@ -228,6 +231,101 @@ class ObsidianNoteService:
             ),
         )
 
+    async def read_note_by_path_verified(
+        self,
+        relative_path: str,
+        payload: ObsidianNoteIndex,
+    ) -> ObsidianNote | None:
+        """Reuse one known parsed payload when the source bytes still match.
+
+        The source is re-read and byte-verified against the payload's Rust
+        content hash instead of being reinterpreted. ``None`` means the bytes
+        drifted, the file vanished, or index metadata was unavailable; callers
+        must fall back to the full parse path to preserve the drift fence.
+
+        Args:
+            relative_path: Vault-relative Markdown path.
+            payload: Previously parsed index payload for the same source.
+
+        Returns:
+            Authoritative note rebuilt from the payload, or ``None`` on drift.
+        """
+        if not payload.source_hash:
+            return None
+        config = self._vault_config_store.current()
+        safe_path = str(safe_relative_path(relative_path))
+        if payload.relative_path != safe_path:
+            return None
+        source_matches = await anyio.to_thread.run_sync(
+            partial(
+                source_matches_hash,
+                config.vault_path,
+                safe_path,
+                config.alexandria_root,
+                payload.source_hash,
+                max_source_bytes=payload.size_bytes,
+            ),
+            limiter=anyio.to_thread.current_default_thread_limiter(),
+        )
+        if not source_matches:
+            return None
+        indexed, metadata_unavailable = await self._best_effort_index_lookup(
+            lambda: self._repository.get_by_path(safe_path)
+        )
+        if metadata_unavailable:
+            return None
+        return authoritative_note_from_index(payload, indexed=indexed)
+
+    async def read_note_from_write_evidence(
+        self,
+        relative_path: str,
+        *,
+        source_hash: str,
+        expected_note: ObsidianNote,
+    ) -> ObsidianNote | None:
+        """Confirm one written source by hash and reuse its committed index note.
+
+        The just-written Markdown is re-read and byte-verified against
+        ``source_hash``. Because the committed note was mapped from the
+        deterministic parse of exactly those bytes, a matching hash proves the
+        readback without a second parse. ``None`` means unverified; callers
+        must fall back to the full parse readback.
+
+        Args:
+            relative_path: Vault-relative Markdown path of the written note.
+            source_hash: Rust-computed hash of the written document text.
+            expected_note: Note produced by indexing the written source bytes.
+
+        Returns:
+            The committed authoritative note, or ``None`` when unverified.
+        """
+        config = self._vault_config_store.current()
+        safe_path = str(safe_relative_path(relative_path))
+        source_matches = await anyio.to_thread.run_sync(
+            partial(
+                source_matches_hash,
+                config.vault_path,
+                safe_path,
+                config.alexandria_root,
+                source_hash,
+                max_source_bytes=expected_note.size_bytes,
+            ),
+            limiter=anyio.to_thread.current_default_thread_limiter(),
+        )
+        if not source_matches:
+            return None
+        indexed, metadata_unavailable = await self._best_effort_index_lookup(
+            lambda: self._repository.get_by_path(safe_path)
+        )
+        if (
+            metadata_unavailable
+            or indexed is None
+            or indexed != expected_note
+            or indexed.relative_path != safe_path
+        ):
+            return None
+        return indexed
+
     async def _best_effort_index_lookup(
         self,
         lookup: Callable[[], Awaitable[ObsidianNote | None]],
@@ -280,10 +378,17 @@ class ObsidianNoteService:
         Returns:
             Saved note loaded through the index.
         """
+        if payload.expected_content_hash is not None:
+            async with self._index_maintenance_coordinator.operation(
+                "obsidian_note_compare_and_swap",
+                wait=True,
+            ):
+                note, _, _ = await self._save_note_serialized(payload)
+                return note
         async with self._index_maintenance_coordinator.write_operation(
             "obsidian_note_write"
         ):
-            note, _ = await self._save_note_serialized(payload)
+            note, _, _ = await self._save_note_serialized(payload)
             return note
 
     async def write_note(
@@ -307,7 +412,7 @@ class ObsidianNoteService:
                 existing,
                 expected_operation,
             ) = await self._write_target_resolver.resolve(command)
-            note, mutated = await self._save_note_serialized(
+            note, mutated, source_hash = await self._save_note_serialized(
                 payload,
                 existing_note=existing,
                 frontmatter_mode=command.frontmatter_mode,
@@ -324,6 +429,7 @@ class ObsidianNoteService:
             graph_edge_index_status="indexed",
             graph_projection_status="stale" if mutated else "unknown",
             reindex_required=mutated,
+            source_hash=source_hash,
         )
 
     async def _save_note_serialized(
@@ -331,7 +437,7 @@ class ObsidianNoteService:
         payload: ObsidianSaveNote,
         existing_note: ObsidianNote | None = None,
         frontmatter_mode: ObsidianFrontmatterMode | None = None,
-    ) -> tuple[ObsidianNote, bool]:
+    ) -> tuple[ObsidianNote, bool, str | None]:
         """Save one note while serializing canonical read-check-replace writes.
 
         Args:
@@ -340,7 +446,9 @@ class ObsidianNoteService:
             frontmatter_mode: Frontmatter mode used by this operation.
 
         Returns:
-            tuple[ObsidianNote, bool] result produced by save note serialized.
+            tuple[ObsidianNote, bool, str | None] with the committed note, the
+            mutation flag, and the Rust-computed hash of the written document
+            text (``None`` when no new bytes were written).
         """
         config = self._vault_config_store.current()
         title = payload.title.strip()
@@ -365,6 +473,13 @@ class ObsidianNoteService:
             payload=payload,
             indexed_note=indexed_note,
             safe_path=safe_path,
+        )
+        await self._validate_expected_source_state(
+            payload=payload,
+            indexed_note=indexed_note,
+            safe_path=safe_path,
+            vault_path=config.vault_path,
+            alexandria_root=config.alexandria_root,
         )
         if (
             payload.note_id is not None
@@ -416,7 +531,7 @@ class ObsidianNoteService:
                 desired_body=body,
             )
         ):
-            return existing_note, False
+            return existing_note, False, None
         if frontmatter_mode is not None:
             frontmatter = apply_write_history(
                 frontmatter,
@@ -433,7 +548,7 @@ class ObsidianNoteService:
                 self._repository,
             )
             if policy.duplicate is not None:
-                return policy.duplicate, False
+                return policy.duplicate, False, None
             frontmatter = policy.frontmatter
             supersedes_context_id = policy.supersedes_context_id
         document = render_markdown_document(frontmatter, body)
@@ -526,7 +641,63 @@ class ObsidianNoteService:
                     "INDEX_WRITE_FAILED: replacement Markdown was preserved for "
                     "reindex reconciliation"
                 ) from exc
-        return note, True
+        return note, True, index_payload.source_hash
+
+    async def _validate_expected_source_state(
+        self,
+        *,
+        payload: ObsidianSaveNote,
+        indexed_note: ObsidianNote | None,
+        safe_path: str,
+        vault_path: Path,
+        alexandria_root: str,
+    ) -> None:
+        """Reject CAS writes when canonical Markdown drifted from its projection.
+
+        The PostgreSQL row remains a rebuildable projection.  When callers send
+        ``expected_content_hash`` we therefore re-read the canonical source and
+        require it to agree with the indexed projection before replacing the
+        file.  This uses the normal authoritative parser because CONTEXT notes
+        intentionally expose a logical/body content hash that differs from the
+        raw-source hash.  CAS writes run in the coordinator's exclusive lane,
+        which closes the same-token race for cooperating Alexandria writers.
+        Arbitrary external editors do not share that lease, so this is a
+        pre-replace drift fence rather than a claim of universal filesystem CAS.
+        """
+        expected = payload.expected_content_hash
+        if expected is None or indexed_note is None:
+            return
+        if indexed_note.source_hash is not None and source_matches_hash(
+            vault_path,
+            safe_path,
+            alexandria_root,
+            indexed_note.source_hash,
+            max_source_bytes=indexed_note.size_bytes,
+        ):
+            return
+        try:
+            current = await authoritative_note_from_path_async(
+                vault_path=vault_path,
+                relative_path=safe_path,
+                alexandria_root=alexandria_root,
+                indexed=indexed_note,
+                expected_note_id=indexed_note.note_id,
+            )
+        except (
+            OSError,
+            ValueError,
+            ObsidianNotFoundError,
+            ObsidianValidationError,
+        ) as exc:
+            raise ObsidianWriteConflictError(
+                "OBSIDIAN_WRITE_CONFLICT: canonical Markdown cannot be verified "
+                f"before compare-and-swap: {safe_path}"
+            ) from exc
+        if current.index_status is ObsidianIndexStatus.STALE:
+            raise ObsidianWriteConflictError(
+                "OBSIDIAN_WRITE_CONFLICT: canonical Markdown changed since the "
+                f"indexed compare-and-swap token was observed: {safe_path}"
+            )
 
     def note_id_from_existing_file(self, path: Path) -> str | None:
         """Read a stable note id from an existing managed Markdown file.

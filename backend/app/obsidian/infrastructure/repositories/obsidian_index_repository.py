@@ -19,6 +19,7 @@ from app.obsidian.infrastructure.repositories.obsidian_index_repository_delegate
     ObsidianIndexWriteRepositoryDelegate,
 )
 from app.obsidian.infrastructure.repositories.obsidian_index_write_store import (
+    ObsidianIndexChangeRecorder,
     ObsidianIndexWriteStore,
 )
 
@@ -31,13 +32,22 @@ class SqlAlchemyObsidianIndexRepository(
 ):
     """Assemble focused Obsidian index stores behind the stable repository API."""
 
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        context_change_recorder: ObsidianIndexChangeRecorder | None = None,
+    ) -> None:
         """Create the repository facade.
 
         Args:
             session: Active async database session.
+            context_change_recorder: Optional canonical Context change
+                observer appended inside each index-write transaction.
         """
         self._session = session
-        self._write_store = ObsidianIndexWriteStore(session)
+        self._write_store = ObsidianIndexWriteStore(
+            session,
+            context_change_recorder=context_change_recorder,
+        )
         self._query_store = ObsidianIndexQueryStore(session)
         self._error_store = ObsidianIndexErrorStore(session)

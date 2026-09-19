@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import get_type_hints
 
 import pytest
 
+from app.memory.application.retrieval.context_brief import build_context_brief
 from app.memory.application.retrieval.context_pack import (
     MAX_CONTEXT_PACK_CHARACTERS,
     build_context_pack,
@@ -25,12 +27,16 @@ from app.memory.domain.event_enum.context_enums import (
     ContextStorageStatus,
     RagStrategy,
 )
-from app.memory.domain.types.context_payload_types import ContextMetadataPayload
+from app.memory.domain.types.context_payload_types import (
+    ContextBriefPayload,
+    ContextMetadataPayload,
+)
 from app.memory.interface.schemas.context.context_mapping import (
     match_payload,
     pack_payload,
 )
 from app.memory.interface.schemas.context.context_retrieval_schema import (
+    ContextBriefResponse,
     ContextSearchMatchResponse,
 )
 
@@ -256,3 +262,214 @@ def test_pack_payload_preserves_raw_matches_when_context_pack_is_bounded() -> No
 
     assert len(payload["matches"]) == 12
     assert payload["context_pack"].count("- context_id:") == 10
+
+
+_BRIEF_CORE_CONTENT = (
+    "# Handoff\n"
+    "\n"
+    "## Goal\n"
+    "Ship the budgeted context brief.\n"
+    "\n"
+    "## Constraints\n"
+    "Stay inside the delivery byte budget.\n"
+    "\n"
+    "## Unconfirmed Status\n"
+    "Cache eviction behavior is unverified.\n"
+    "\n"
+    "## Next Actions\n"
+    "Land the contract tests.\n"
+    "\n"
+    "## Summary\n"
+    "Supplementary narrative that may be trimmed under budget pressure."
+)
+
+
+def test_context_brief_respects_byte_budget_preserves_core_and_reports_omissions() -> (
+    None
+):
+    matches = [
+        _match("ctx-core", score=0.9, content=_BRIEF_CORE_CONTENT),
+        _match(
+            "ctx-overflow",
+            score=0.5,
+            content=_BRIEF_CORE_CONTENT,
+            chunk_suffix="2",
+        ),
+    ]
+
+    payload = build_context_brief(
+        query="brief recall",
+        matches=matches,
+        byte_budget=2_000,
+        record_budget=1,
+    )
+    response = ContextBriefResponse.model_validate(payload)
+
+    assert len(payload["context_brief"].encode("utf-8")) == payload["total_bytes"]
+    assert payload["total_bytes"] <= 2_000
+    brief = payload["context_brief"]
+    assert "Ship the budgeted context brief." in brief
+    assert "Stay inside the delivery byte budget." in brief
+    assert "Cache eviction behavior is unverified." in brief
+    assert "Land the contract tests." in brief
+    assert [entry["context_id"] for entry in payload["entries"]] == ["ctx-core"]
+    assert response.entries[0].delivery_status == "new"
+    overflow_omissions = [
+        record
+        for record in payload["omitted"]
+        if record["context_id"] == "ctx-overflow"
+    ]
+    assert len(overflow_omissions) == 1
+    assert overflow_omissions[0]["reason"] == "record_budget"
+    refetch = overflow_omissions[0]["refetch"]
+    assert refetch["query"] == "brief recall"
+    assert refetch["context_id"] == "ctx-overflow"
+    assert refetch["canonical_context_id"] == "ctx-overflow"
+    assert refetch["chunk_id"] == "chunk-ctx-overflow-2"
+    assert "artifact://test-results.json" in refetch["evidence_refs"]
+    assert response.omitted[0].refetch.retrieval_strategy == "FTS_ONLY"
+
+
+def test_context_brief_suppresses_unchanged_entries_and_flags_changed_delivery() -> (
+    None
+):
+    unchanged = _match("ctx-same", score=0.9, content="## Goal\n" + ("u" * 400))
+    changed = _match("ctx-changed", score=0.8, content="## Goal\n" + ("c" * 400))
+    first = build_context_brief(query="suppress", matches=[unchanged, changed])
+    assert [entry["context_id"] for entry in first["entries"]] == [
+        "ctx-same",
+        "ctx-changed",
+    ]
+
+    second = build_context_brief(
+        query="suppress",
+        matches=[unchanged, changed],
+        previously_delivered=[
+            ("ctx-same", unchanged.chunk.content_hash),
+            ("ctx-changed", changed.chunk.content_hash),
+        ],
+    )
+
+    assert second["entries"] == []
+    assert [marker["context_id"] for marker in second["already_delivered"]] == [
+        "ctx-same",
+        "ctx-changed",
+    ]
+    assert second["already_delivered"][0]["content_hash"] == (
+        unchanged.chunk.content_hash
+    )
+    assert second["already_delivered"][0]["refetch"]["context_id"] == "ctx-same"
+    assert second["already_delivered"][0]["refetch"]["query"] == "suppress"
+    assert second["total_bytes"] < first["total_bytes"]
+
+    changed_updated = _match(
+        "ctx-changed",
+        score=0.8,
+        content="## Goal\n" + ("n" * 400),
+        chunk_suffix="2",
+    )
+    third = build_context_brief(
+        query="suppress",
+        matches=[unchanged, changed_updated],
+        previously_delivered=[
+            ("ctx-same", unchanged.chunk.content_hash),
+            ("ctx-changed", changed.chunk.content_hash),
+        ],
+    )
+
+    assert [entry["context_id"] for entry in third["entries"]] == ["ctx-changed"]
+    assert third["entries"][0]["delivery_status"] == "changed"
+    assert third["entries"][0]["content_hash"] == changed_updated.chunk.content_hash
+    assert [marker["context_id"] for marker in third["already_delivered"]] == [
+        "ctx-same",
+    ]
+
+
+def test_context_brief_marks_truncated_sections_with_delivered_bytes_and_refetch() -> (
+    None
+):
+    goal_body = "g" * 800
+    content = f"## Goal\n{goal_body}\n\n## Constraints\nStay small."
+    match = _match("ctx-trunc", score=1.0, content=content)
+
+    payload = build_context_brief(query="truncate", matches=[match], byte_budget=500)
+
+    entry = payload["entries"][0]
+    truncated = [section for section in entry["sections"] if section["truncated"]]
+    assert len(truncated) == 1
+    section = truncated[0]
+    assert section["heading"] == "Goal"
+    assert section["delivered_bytes"] == len(section["text"].encode("utf-8"))
+    assert section["delivered_bytes"] < len(goal_body.encode("utf-8"))
+    assert goal_body not in payload["context_brief"]
+    assert payload["total_bytes"] <= 500
+    truncation_omissions = [
+        record
+        for record in payload["omitted"]
+        if record["reason"] == "section_truncated"
+    ]
+    assert len(truncation_omissions) == 1
+    assert truncation_omissions[0]["context_id"] == "ctx-trunc"
+    assert truncation_omissions[0]["heading"] == "Goal"
+    assert truncation_omissions[0]["refetch"]["query"] == "truncate"
+    assert truncation_omissions[0]["refetch"]["chunk_id"] == "chunk-ctx-trunc-1"
+
+
+def test_context_brief_output_type_prevents_self_amplification() -> None:
+    brief = build_context_brief(query="guard", matches=[_match("ctx-guard")])
+
+    identity_keys = {"id", "context_id", "canonical_context_id", "context"}
+    assert not set(brief) & identity_keys
+    match_keys = {
+        "context",
+        "chunk",
+        "score",
+        "fts_score",
+        "vector_score",
+        "graph_score",
+        "why_retrieved",
+        "graph_evidence",
+    }
+    assert not set(brief) & match_keys
+    entry_identity_keys = {"id", "canonical_context_id", "context"}
+    for entry in brief["entries"]:
+        assert not set(entry) & entry_identity_keys
+        assert "context" not in entry
+
+    hints = get_type_hints(build_context_brief)
+    assert hints["matches"] == list[ContextSearchMatch]
+    assert hints["return"] == ContextBriefPayload
+    # Structure prevents re-feeding a brief as retrieval evidence: the input
+    # type is the ContextSearchMatch read model, never a brief payload, so
+    # generating a brief from a brief-shaped input is a static type error
+    # (enforced by pyrefly) and brief-derived content cannot grow the pack.
+
+
+def test_context_brief_reports_exact_bytes_and_labeled_token_estimate() -> None:
+    content = "## Goal\n요약 예산 유지: 한글 본문.\n\n## Next Actions\n브리프 검증."
+    match = _match("ctx-bytes", score=1.0, content=content)
+
+    payload = build_context_brief(query="예산", matches=[match])
+
+    brief_text = payload["context_brief"]
+    assert payload["total_bytes"] == len(brief_text.encode("utf-8"))
+    assert payload["total_bytes"] > len(brief_text)
+    assert payload["estimated_tokens"] == len(brief_text) // 4
+    description = ContextBriefResponse.model_fields["estimated_tokens"].description
+    assert description is not None
+    assert "estimate" in description.lower()
+
+
+def test_context_brief_handles_absent_matches_with_unspent_budget() -> None:
+    payload = build_context_brief(query="empty recall", matches=[])
+
+    response = ContextBriefResponse.model_validate(payload)
+
+    assert payload["entries"] == []
+    assert payload["already_delivered"] == []
+    assert payload["omitted"] == []
+    assert payload["total_bytes"] == len(payload["context_brief"].encode("utf-8"))
+    assert payload["total_bytes"] < payload["byte_budget"]
+    assert payload["estimated_tokens"] == len(payload["context_brief"]) // 4
+    assert payload["context_brief"].startswith("# Alexandria Context Brief")
+    assert response.total_bytes == payload["total_bytes"]

@@ -13,3 +13,15 @@ class MemoryCompactNotFoundError(MemoryCompactDomainError):
 
 class MemoryCompactValidationError(MemoryCompactDomainError):
     """Raised when a Memory Compact invariant is violated."""
+
+
+class MemoryResumePackageValidationError(MemoryCompactValidationError):
+    """Raised when a resume package draft or artifact violates its contract."""
+
+
+class MemoryResumePackageEvidenceNotFoundError(MemoryResumePackageValidationError):
+    """Raised when a resume package references a Context that is not stored."""
+
+
+class MemoryResumePackageRequestConflictError(MemoryResumePackageValidationError):
+    """Raised when a sealed request id is retried with different content."""

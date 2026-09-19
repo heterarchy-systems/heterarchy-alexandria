@@ -209,6 +209,88 @@ class ContextPackPayload(TypedDict, closed=True):
     context_pack: str
 
 
+type ContextBriefDeliveryStatus = Literal["new", "changed"]
+type ContextBriefOmissionReason = Literal[
+    "record_budget", "byte_budget", "section_truncated"
+]
+
+
+class ContextRefetchReferencePayload(TypedDict, closed=True):
+    """Exact re-fetch reference through the existing retrieval API.
+
+    Reuses the identity fields a Context Pack match already exposes so a
+    consumer can re-fetch the omitted or truncated source without new
+    retrieval machinery.
+    """
+
+    context_id: str
+    canonical_context_id: str
+    query: str
+    retrieval_strategy: RagStrategy
+    chunk_id: str | None
+    evidence_refs: list[str]
+
+
+class ContextBriefSectionPayload(TypedDict, closed=True):
+    """One delivered HANDOFF-style section inside a brief entry."""
+
+    heading: str
+    text: str
+    truncated: bool
+    delivered_bytes: int
+
+
+class ContextBriefEntryPayload(TypedDict, closed=True):
+    """One delivered source context inside a brief.
+
+    Entries reference their source Context for re-fetch and suppression
+    semantics only; they never embed a Context payload.
+    """
+
+    context_id: str
+    title: str
+    score: float
+    content_hash: str
+    delivery_status: ContextBriefDeliveryStatus
+    sections: list[ContextBriefSectionPayload]
+
+
+class ContextBriefAlreadyDeliveredPayload(TypedDict, closed=True):
+    """Compact marker replacing one unchanged previously delivered entry."""
+
+    context_id: str
+    content_hash: str
+    refetch: ContextRefetchReferencePayload
+
+
+class ContextBriefOmissionPayload(TypedDict, closed=True):
+    """One omitted or truncated brief item with its exact re-fetch reference."""
+
+    context_id: str
+    reason: ContextBriefOmissionReason
+    heading: str | None
+    refetch: ContextRefetchReferencePayload
+
+
+class ContextBriefPayload(TypedDict, closed=True):
+    """API payload for one budgeted model-delivery brief.
+
+    Identity-free by contract: the brief itself carries no id and no
+    embedded Context payload, so brief output cannot re-enter retrieval as
+    a Context and repeated brief generation cannot grow the pack.
+    """
+
+    query: str
+    byte_budget: int
+    record_budget: int
+    total_bytes: int
+    estimated_tokens: int
+    entries: list[ContextBriefEntryPayload]
+    already_delivered: list[ContextBriefAlreadyDeliveredPayload]
+    omitted: list[ContextBriefOmissionPayload]
+    context_brief: str
+
+
 class ContextEmbeddingSourceStatusPayload(TypedDict, closed=True):
     """API payload for source-level embedding fingerprint diagnostics."""
 

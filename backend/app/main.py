@@ -52,6 +52,9 @@ from app.memory.interface.routers.memory_existing_reconciliation_router import (
 from app.memory.interface.routers.memory_reconciliation_router import (
     router as memory_reconciliation_router,
 )
+from app.memory.interface.routers.memory_resume_package_router import (
+    router as memory_resume_package_router,
+)
 from app.obsidian.interface.routers.managed_spec_router import (
     router as managed_spec_router,
 )
@@ -307,6 +310,7 @@ def create_app(app_config: AppConfig) -> FastAPI:
     app.include_router(context_retrieval_router)
     app.include_router(context_recall_router)
     app.include_router(memory_compact_router)
+    app.include_router(memory_resume_package_router)
     app.include_router(memory_cycle_router)
     app.include_router(memory_existing_reconciliation_router)
     app.include_router(memory_reconciliation_router)

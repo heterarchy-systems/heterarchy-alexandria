@@ -54,6 +54,7 @@ class ObsidianNoteIndex:
     project: str | None
     source: str | None
     content_hash: str
+    source_hash: str | None = None
     frontmatter: JSONObject
     body: str
     size_bytes: int
@@ -66,6 +67,17 @@ class ObsidianNoteIndex:
         self.tags = tuple(self.tags)
         self.chunks = tuple(self.chunks)
         self.edges = tuple(self.edges)
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ObsidianCompiledDocumentState:
+    """Persisted deterministic inputs for one previous compile decision."""
+
+    note_id: str
+    relative_path: str
+    source_hash: str
+    chunk_hashes: tuple[str, ...]
+    edge_ids: tuple[str, ...]
 
 
 @dataclass(slots=True, kw_only=True)

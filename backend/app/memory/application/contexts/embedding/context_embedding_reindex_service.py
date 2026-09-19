@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from asyncer import asyncify
@@ -79,12 +80,15 @@ class ContextEmbeddingReindexService:
         self,
         limit: int = 100,
         force: bool = False,
+        note_ids: Sequence[str] | None = None,
     ) -> ContextReindexResult:
         """Backfill or rebuild embeddings for stored context chunks.
 
         Args:
             limit: Maximum chunks to reindex in this batch.
             force: Whether existing matching embeddings should be rebuilt.
+            note_ids: Optional compile-driven note restriction; sources that are
+                not compile-driven ignore it.
 
         Returns:
             Context embedding reindex result.
@@ -116,6 +120,7 @@ class ContextEmbeddingReindexService:
             fingerprint_key=fingerprint_key,
             limit=limit,
             force=False,
+            note_ids=note_ids,
             processed_by_source=processed_by_source,
         )
         if force and scanned < limit:
@@ -125,6 +130,7 @@ class ContextEmbeddingReindexService:
                 fingerprint_key=fingerprint_key,
                 limit=limit - scanned,
                 force=True,
+                note_ids=note_ids,
                 processed_by_source=processed_by_source,
             )
             source_batches.extend(forced_batches)
@@ -154,6 +160,7 @@ async def _select_embedding_source_batches(
     fingerprint_key: str,
     limit: int,
     force: bool,
+    note_ids: Sequence[str] | None,
     processed_by_source: dict[int, set[str]],
 ) -> tuple[list[_EmbeddingSourceBatch], int]:
     """Execute select embedding source batches.
@@ -182,6 +189,7 @@ async def _select_embedding_source_batches(
             fingerprint_key=fingerprint_key,
             limit=remaining + len(processed_ids),
             force=force,
+            note_ids=note_ids,
         )
         selected = tuple(chunk for chunk in chunks if chunk.id not in processed_ids)[
             :remaining

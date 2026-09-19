@@ -8,8 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.memory.domain.contracts.context_contracts import ContextAccessCreate
 from app.memory.domain.entities.context_read_models import ContextRecord
+from app.memory.domain.event_enum.context_enums import ContextChangeKind
 from app.memory.infrastructure.repositories.contexts.records.access_events import (
     record_context_access,
+)
+from app.memory.infrastructure.repositories.contexts.records.context_change_log_writer import (
+    context_change_content_hash,
+    record_context_change,
 )
 from app.memory.infrastructure.repositories.contexts.records.context_record_query_store import (
     require_context,
@@ -48,6 +53,13 @@ class ContextRecordMutationStore:
         model.archived_at = archived_at
         model.updated_at = archived_at
         await self._session.flush()
+        await record_context_change(
+            self._session,
+            context_id=context_id,
+            change_kind=ContextChangeKind.ARCHIVED,
+            content_hash=context_change_content_hash(model.content),
+            recorded_at=archived_at,
+        )
         return map_context_row(model)
 
     async def delete(self, context_id: str) -> None:

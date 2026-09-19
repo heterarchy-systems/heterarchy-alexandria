@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
-from sqlalchemy import case, func, or_, select
+from collections.abc import Sequence
+
+from sqlalchemy import and_, case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.elements import ColumnElement
 
 from app.memory.domain.contracts.context_contracts import ContextChunkEmbeddingUpdate
 from app.memory.domain.entities.context_read_models import (
@@ -27,6 +30,35 @@ from app.obsidian.infrastructure.models.obsidian_index_models import (
 from app.shared.types.extra_types import JSONObject
 
 
+def _current_embedding_condition(
+    model_name: str,
+    dimensions: int,
+    fingerprint_key: str,
+) -> ColumnElement[bool]:
+    """Return the single current-embedding predicate for indexed Obsidian chunks."""
+    return and_(
+        ObsidianChunkORM.embedding.is_not(None),
+        ObsidianChunkORM.embedding_model == model_name,
+        ObsidianChunkORM.embedding_dimensions == dimensions,
+        ObsidianChunkORM.embedding_fingerprint_key == fingerprint_key,
+    )
+
+
+def _stale_embedding_condition(
+    model_name: str,
+    dimensions: int,
+    fingerprint_key: str,
+) -> ColumnElement[bool]:
+    """Return the single stale-embedding predicate for indexed Obsidian chunks."""
+    return or_(
+        ObsidianChunkORM.embedding.is_(None),
+        ObsidianChunkORM.embedding_model != model_name,
+        ObsidianChunkORM.embedding_dimensions != dimensions,
+        ObsidianChunkORM.embedding_fingerprint_key.is_(None),
+        ObsidianChunkORM.embedding_fingerprint_key != fingerprint_key,
+    )
+
+
 class ObsidianContextEmbeddingStore:
     """Manage embeddings for indexed Obsidian Context chunks."""
 
@@ -45,6 +77,7 @@ class ObsidianContextEmbeddingStore:
         fingerprint_key: str,
         limit: int,
         force: bool = False,
+        note_ids: Sequence[str] | None = None,
     ) -> list[ContextChunkRecord]:
         """Return indexed Obsidian chunks missing current embedding metadata.
 
@@ -54,6 +87,7 @@ class ObsidianContextEmbeddingStore:
             fingerprint_key: Current embedding generation fingerprint key.
             limit: Maximum chunks to scan.
             force: Whether to rebuild existing embeddings even if metadata matches.
+            note_ids: Optional compile-driven note restriction.
 
         Returns:
             Obsidian chunks mapped into Context RAG chunk read models.
@@ -63,29 +97,19 @@ class ObsidianContextEmbeddingStore:
             .join(ObsidianFileORM, ObsidianFileORM.note_id == ObsidianChunkORM.note_id)
             .where(*_default_recall_visibility_conditions())
             .where(func.length(func.trim(ObsidianChunkORM.text)) > 0)
-            .limit(limit)
         )
+        if note_ids is not None:
+            statement = statement.where(ObsidianChunkORM.note_id.in_(note_ids))
+        statement = statement.limit(limit)
         if not force:
             statement = statement.where(
-                or_(
-                    ObsidianChunkORM.embedding.is_(None),
-                    ObsidianChunkORM.embedding_model != model_name,
-                    ObsidianChunkORM.embedding_dimensions != dimensions,
-                    ObsidianChunkORM.embedding_fingerprint_key.is_(None),
-                    ObsidianChunkORM.embedding_fingerprint_key != fingerprint_key,
-                )
+                _stale_embedding_condition(model_name, dimensions, fingerprint_key)
             )
         statement = statement.order_by(
             case(
                 (
-                    (
-                        ObsidianChunkORM.embedding.is_not(None)
-                        & (ObsidianChunkORM.embedding_model == model_name)
-                        & (ObsidianChunkORM.embedding_dimensions == dimensions)
-                        & (
-                            ObsidianChunkORM.embedding_fingerprint_key
-                            == fingerprint_key
-                        )
+                    _current_embedding_condition(
+                        model_name, dimensions, fingerprint_key
                     ),
                     1,
                 ),
@@ -122,15 +146,7 @@ class ObsidianContextEmbeddingStore:
             .join(ObsidianFileORM, ObsidianFileORM.note_id == ObsidianChunkORM.note_id)
             .where(*_default_recall_visibility_conditions())
             .where(func.length(func.trim(ObsidianChunkORM.text)) > 0)
-            .where(
-                or_(
-                    ObsidianChunkORM.embedding.is_(None),
-                    ObsidianChunkORM.embedding_model != model_name,
-                    ObsidianChunkORM.embedding_dimensions != dimensions,
-                    ObsidianChunkORM.embedding_fingerprint_key.is_(None),
-                    ObsidianChunkORM.embedding_fingerprint_key != fingerprint_key,
-                )
-            )
+            .where(_stale_embedding_condition(model_name, dimensions, fingerprint_key))
             .limit(1)
         )
         stale_chunk_id = await self._session.scalar(statement)
@@ -168,10 +184,7 @@ class ObsidianContextEmbeddingStore:
             .where(
                 *_default_recall_visibility_conditions(),
                 func.length(func.trim(ObsidianChunkORM.text)) > 0,
-                ObsidianChunkORM.embedding.is_not(None),
-                ObsidianChunkORM.embedding_model == model_name,
-                ObsidianChunkORM.embedding_dimensions == dimensions,
-                ObsidianChunkORM.embedding_fingerprint_key == fingerprint_key,
+                _current_embedding_condition(model_name, dimensions, fingerprint_key),
             )
         )
         missing_rows = await self._session.scalar(

@@ -11,7 +11,7 @@ const EXPECTED_MEMBERS: [&str; 3] = [
     "crates/heterarchy-alexandria-py",
     "xtask",
 ];
-const EXPECTED_FEATURES: [&str; 9] = [
+const EXPECTED_FEATURES: [&str; 10] = [
     "document_analysis",
     "chunking",
     "link_extraction",
@@ -21,6 +21,7 @@ const EXPECTED_FEATURES: [&str; 9] = [
     "retrieval_kernel",
     "reconciliation_candidates",
     "context_reindex_manifest",
+    "compile_plan",
 ];
 const FORBIDDEN_CORE_DEPENDENCIES: [&str; 8] = [
     "pyo3",
@@ -741,12 +742,45 @@ fn run_python_ci(repository_root: &Path) -> TaskResult<()> {
 
 fn run_document_analysis_ffi_parity(repository_root: &Path, python: &Path) -> TaskResult<()> {
     require_ffi_parity_artifacts(repository_root)?;
+    let expected_library = native_python_library_path(repository_root, "debug");
+    run_native_import_mode_contract(repository_root, python, &expected_library, "linked")?;
     let library = build_debug_python_extension(repository_root, python)?;
+    run_native_import_mode_contract(repository_root, python, &library, "extension")?;
     run_ffi_parity_scripts(repository_root, &library)
+}
+
+fn run_native_import_mode_contract(
+    repository_root: &Path,
+    python: &Path,
+    library: &Path,
+    mode: &str,
+) -> TaskResult<()> {
+    run_command(
+        repository_root,
+        &python.to_string_lossy(),
+        &[
+            "native/tests/native_import_mode_contract.py",
+            &library.to_string_lossy(),
+            "--mode",
+            mode,
+        ],
+    )
+}
+
+fn native_python_library_path(repository_root: &Path, profile: &str) -> PathBuf {
+    repository_root
+        .join("native/target")
+        .join(profile)
+        .join(format!(
+            "{}heterarchy_alexandria_native{}",
+            env::consts::DLL_PREFIX,
+            env::consts::DLL_SUFFIX,
+        ))
 }
 
 fn require_ffi_parity_artifacts(repository_root: &Path) -> TaskResult<()> {
     for relative_path in [
+        "native/tests/native_import_mode_contract.py",
         "native/corpora/document_analysis/v1/cases.json",
         "native/tests/document_analysis_ffi_parity.py",
         "native/corpora/chunking/v1/cases.json",
@@ -757,7 +791,6 @@ fn require_ffi_parity_artifacts(repository_root: &Path) -> TaskResult<()> {
         "native/tests/hash_fingerprint_ffi_parity.py",
         "native/corpora/graph_compute/v1/cases.json",
         "native/tests/graph_compute_ffi_parity.py",
-        "native/tests/graph_traversal_ffi_parity.py",
         "native/tests/graph_candidate_selection_ffi_parity.py",
         "native/corpora/bulk_embedding/v1/cases.json",
         "native/corpora/bulk_embedding/v1/python_fastembed_numerical_baseline.json",
@@ -768,8 +801,6 @@ fn require_ffi_parity_artifacts(repository_root: &Path) -> TaskResult<()> {
         "native/tests/reconciliation_candidates_ffi_parity.py",
         "native/golden/context_reindex_manifest.v1.json",
         "native/tests/context_reindex_manifest_ffi_parity.py",
-        "native/golden/raw_data_integrity_cases.json",
-        "native/tests/raw_data_integrity_ffi_parity.py",
     ] {
         require_non_empty_file(repository_root, relative_path)?;
     }
@@ -793,14 +824,7 @@ fn build_debug_python_extension(repository_root: &Path, python: &Path) -> TaskRe
         ],
         &build_environment,
     )?;
-    let library_name = format!(
-        "{}heterarchy_alexandria_native{}",
-        env::consts::DLL_PREFIX,
-        env::consts::DLL_SUFFIX
-    );
-    let library = repository_root
-        .join("native/target/debug")
-        .join(library_name);
+    let library = native_python_library_path(repository_root, "debug");
     if !library.is_file() {
         return Err(format!(
             "native Python extension artifact is missing: {}",
@@ -821,13 +845,11 @@ fn run_ffi_parity_scripts(repository_root: &Path, library: &Path) -> TaskResult<
         "../native/tests/reference_extraction_ffi_parity.py",
         "../native/tests/hash_fingerprint_ffi_parity.py",
         "../native/tests/graph_compute_ffi_parity.py",
-        "../native/tests/graph_traversal_ffi_parity.py",
         "../native/tests/graph_candidate_selection_ffi_parity.py",
         "../native/tests/bulk_embedding_ffi_parity.py",
         "../native/tests/retrieval_kernel_ffi_parity.py",
         "../native/tests/reconciliation_candidates_ffi_parity.py",
         "../native/tests/context_reindex_manifest_ffi_parity.py",
-        "../native/tests/raw_data_integrity_ffi_parity.py",
     ] {
         run_command_in_directory_with_environment(
             &repository_root.join("backend"),
@@ -1306,14 +1328,7 @@ fn build_release_python_extension(repository_root: &Path) -> TaskResult<PathBuf>
         ],
         &environment,
     )?;
-    let library_name = format!(
-        "{}heterarchy_alexandria_native{}",
-        env::consts::DLL_PREFIX,
-        env::consts::DLL_SUFFIX
-    );
-    let library = repository_root
-        .join("native/target/release")
-        .join(library_name);
+    let library = native_python_library_path(repository_root, "release");
     if !library.is_file() {
         return Err(format!(
             "release native Python extension artifact is missing: {}",

@@ -35,9 +35,6 @@ from app.memory.infrastructure.repositories.memory_reconciliation_repository imp
 from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.obsidian.domain.contracts.obsidian_contracts import ObsidianSaveNote
 from app.obsidian.domain.event_enum.obsidian_enums import AlexandriaNoteType
-from app.obsidian.infrastructure.markdown.native_context_reindex_manifest import (
-    create_native_context_reindex_manifest_validator,
-)
 from app.obsidian.infrastructure.repositories.obsidian_index_repository import (
     SqlAlchemyObsidianIndexRepository,
 )
@@ -99,9 +96,6 @@ def test_real_postgres_alias_recall_scope_and_malformed_alias_safety(
                     repository=SqlAlchemyObsidianIndexRepository(session=session),
                     vault_path=str(tmp_path / "vault"),
                     alexandria_root="Alexandria",
-                    context_reindex_manifest_validator=(
-                        create_native_context_reindex_manifest_validator()
-                    ),
                 )
                 await _save_note(
                     obsidian_service,

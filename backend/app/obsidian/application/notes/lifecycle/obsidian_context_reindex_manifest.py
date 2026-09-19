@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -17,70 +16,6 @@ class ContextReindexCandidate:
 
     path: Path
     payload: ObsidianNoteIndex
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class ContextReindexManifestIssue:
-    """One candidate rejected by cross-note manifest validation."""
-
-    relative_path: str
-    context_id: str
-    message: str
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class ContextReindexManifest:
-    """Validated candidates and deterministic per-note rejection details."""
-
-    candidates: tuple[ContextReindexCandidate, ...]
-    issues: tuple[ContextReindexManifestIssue, ...]
-
-
-class ContextReindexManifestValidator(ABC):
-    """Validate one complete normalized reindex candidate batch."""
-
-    @abstractmethod
-    def validate(
-        self,
-        candidates: list[ContextReindexCandidate],
-    ) -> ContextReindexManifest:
-        """Return accepted candidates and deterministic manifest issues.
-
-        Args:
-            candidates: Parsed notes from one complete vault scan.
-
-        Returns:
-            Validated candidates and structured rejection details.
-        """
-
-
-class UnconfiguredContextReindexManifestValidator(ContextReindexManifestValidator):
-    """Fail closed when direct service construction omits the production validator."""
-
-    def validate(
-        self,
-        candidates: list[ContextReindexCandidate],
-    ) -> ContextReindexManifest:
-        """Reject reindex execution when the native validator was not composed.
-
-        Args:
-            candidates: Parsed notes that cannot safely be validated here.
-
-        Returns:
-            Never returns because missing native authority is fatal.
-
-        Raises:
-            RuntimeError: Always, because reindex compute must have one configured authority.
-        """
-        del candidates
-        raise RuntimeError(
-            "CONTEXT_REINDEX_MANIFEST_VALIDATOR_UNAVAILABLE: native validator is not configured"
-        )
-
-
-UNCONFIGURED_CONTEXT_REINDEX_MANIFEST_VALIDATOR = (
-    UnconfiguredContextReindexManifestValidator()
-)
 
 
 def supersedes_context_id(payload: ObsidianNoteIndex) -> str | None:

@@ -146,7 +146,7 @@ fn duplicate_values<'value>(values: impl Iterator<Item = &'value str>) -> Vec<St
         .collect()
 }
 
-fn indexed_notes_by_id(notes: &[&GraphSourceNote]) -> BTreeMap<String, usize> {
+pub(crate) fn indexed_notes_by_id(notes: &[&GraphSourceNote]) -> BTreeMap<String, usize> {
     notes
         .iter()
         .enumerate()
@@ -154,7 +154,7 @@ fn indexed_notes_by_id(notes: &[&GraphSourceNote]) -> BTreeMap<String, usize> {
         .collect()
 }
 
-fn indexed_notes_by_path(notes: &[&GraphSourceNote]) -> BTreeMap<String, Vec<usize>> {
+pub(crate) fn indexed_notes_by_path(notes: &[&GraphSourceNote]) -> BTreeMap<String, Vec<usize>> {
     let mut grouped = BTreeMap::<String, Vec<usize>>::new();
     for (index, note) in notes.iter().enumerate() {
         grouped
@@ -173,7 +173,7 @@ fn indexed_notes_by_path(notes: &[&GraphSourceNote]) -> BTreeMap<String, Vec<usi
     grouped
 }
 
-fn notes_by_link_name(notes: &[&GraphSourceNote]) -> BTreeMap<String, Vec<usize>> {
+pub(crate) fn notes_by_link_name(notes: &[&GraphSourceNote]) -> BTreeMap<String, Vec<usize>> {
     let mut grouped = BTreeMap::<String, Vec<usize>>::new();
     for (index, note) in notes.iter().enumerate() {
         let mut names = BTreeSet::from([
@@ -207,7 +207,7 @@ fn nfc_normalized(value: &str) -> String {
     value.nfc().collect()
 }
 
-fn canonical_path_key(value: &str) -> String {
+pub(crate) fn canonical_path_key(value: &str) -> String {
     nfc_normalized(&value.replace('\\', "/"))
 }
 
@@ -293,10 +293,45 @@ fn projection_edges(
 }
 
 #[derive(Clone, Copy)]
-enum TargetResolution<'note> {
+pub(crate) enum TargetResolution<'note> {
     Resolved(&'note GraphSourceNote),
     Missing,
     Ambiguous,
+}
+
+/// Resolve one raw edge target against the healthy-note authority indexes.
+pub(crate) fn resolve_target_reference<'note>(
+    target_note_id: Option<&str>,
+    target_path: &str,
+    notes_by_id: &BTreeMap<String, usize>,
+    notes_by_path: &BTreeMap<String, Vec<usize>>,
+    notes_by_link_name: &BTreeMap<String, Vec<usize>>,
+    notes: &[&'note GraphSourceNote],
+) -> TargetResolution<'note> {
+    if let Some(index) = target_note_id.and_then(|id| notes_by_id.get(id).copied()) {
+        return TargetResolution::Resolved(notes[index]);
+    }
+    if let Some(candidates) = notes_by_path.get(&canonical_path_key(target_path)) {
+        match candidates.as_slice() {
+            [index] => return TargetResolution::Resolved(notes[*index]),
+            [] => {}
+            _ => return TargetResolution::Ambiguous,
+        }
+    }
+    let mut resolution = TargetResolution::Missing;
+    for candidate_name in candidate_link_names(target_path) {
+        match notes_by_link_name.get(&candidate_name) {
+            Some(candidates) if candidates.len() == 1 => {
+                return TargetResolution::Resolved(notes[candidates[0]]);
+            }
+            Some(candidates) if candidates.len() > 1 => {
+                resolution = TargetResolution::Ambiguous;
+                break;
+            }
+            _ => {}
+        }
+    }
+    resolution
 }
 
 fn resolve_target<'note>(
@@ -336,7 +371,7 @@ fn resolve_target<'note>(
     resolution
 }
 
-fn candidate_link_names(path: &str) -> Vec<String> {
+pub(crate) fn candidate_link_names(path: &str) -> Vec<String> {
     let candidate = link_name(path);
     if candidate.is_empty() {
         Vec::new()

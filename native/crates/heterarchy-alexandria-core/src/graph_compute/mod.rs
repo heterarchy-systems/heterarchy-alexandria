@@ -2,7 +2,7 @@
 
 mod algorithms;
 mod candidate_selection;
-mod projection;
+pub(crate) mod projection;
 mod read_semantics;
 
 pub use read_semantics::{

@@ -14,9 +14,6 @@ from app.obsidian.domain.contracts.obsidian_contracts import (
     ObsidianSearchQuery,
 )
 from app.obsidian.domain.event_enum.obsidian_enums import AlexandriaNoteType
-from app.obsidian.infrastructure.markdown.native_context_reindex_manifest import (
-    create_native_context_reindex_manifest_validator,
-)
 from app.obsidian.infrastructure.models import (
     obsidian_index_models as _obsidian_index_models,
 )
@@ -48,7 +45,6 @@ def test_dogfood_metadata_round_trips_through_markdown_index_and_search(
             repository=SqlAlchemyObsidianIndexRepository(session=session),
             vault_path=str(tmp_path / "vault"),
             alexandria_root="Alexandria",
-            context_reindex_manifest_validator=create_native_context_reindex_manifest_validator(),
         )
         try:
             saved = await service.save_note(

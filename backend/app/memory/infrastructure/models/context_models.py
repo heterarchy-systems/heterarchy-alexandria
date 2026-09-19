@@ -6,10 +6,12 @@ from datetime import datetime
 
 from sqlalchemy import (
     JSON,
+    BigInteger,
     Boolean,
     CheckConstraint,
     ForeignKey,
     Integer,
+    LargeBinary,
     String,
     Text,
 )
@@ -18,6 +20,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.memory.domain.event_enum.context_enums import (
     ContextAccessActorType,
     ContextAccessMethod,
+    ContextChangeKind,
     ContextContentFormat,
     ContextImportance,
     ContextKind,
@@ -127,6 +130,57 @@ class ContextORM(Base):
             "status IN "
             f"({_enum_values_sql(tuple(item.value for item in ContextStorageStatus))})",
             name="ck_contexts_status",
+        ),
+    )
+
+
+class ContextChangeLogORM(Base):
+    """Durable, append-only Context mutation record for bounded delta reads.
+
+    Rows deliberately carry no foreign key to ``contexts``: hard-deleted
+    contexts must still surface as ``deleted`` change entries.
+    """
+
+    __tablename__ = "context_change_log"
+
+    sequence: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    context_id: Mapped[str] = mapped_column(
+        String(ID_LENGTH), nullable=False, index=True
+    )
+    change_kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    content_hash: Mapped[bytes] = mapped_column(LargeBinary(32), nullable=False)
+    recorded_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
+
+    __table_args__ = (
+        CheckConstraint(
+            "change_kind IN "
+            f"({_enum_values_sql(tuple(item.value for item in ContextChangeKind))})",
+            name="ck_context_change_log_change_kind",
+        ),
+    )
+
+
+class ContextChangeLogMetaORM(Base):
+    """Singleton high-water allocator for the Context change log.
+
+    ``high_water_seq`` advances only inside the same transaction that inserts
+    the corresponding change row, so committed sequences never precede their
+    change and gaps from rolled-back transactions are acceptable.
+    """
+
+    __tablename__ = "context_change_log_meta"
+
+    singleton_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    high_water_seq: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+    __table_args__ = (
+        CheckConstraint(
+            "singleton_id = 1",
+            name="ck_context_change_log_meta_singleton",
+        ),
+        CheckConstraint(
+            "high_water_seq >= 0",
+            name="ck_context_change_log_meta_non_negative",
         ),
     )
 

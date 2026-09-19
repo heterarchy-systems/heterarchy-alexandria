@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from sqlalchemy import case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.elements import ColumnElement
 
 from app.memory.domain.contracts.context_contracts import ContextChunkEmbeddingUpdate
 from app.memory.domain.entities.context_read_models import (
@@ -18,6 +21,30 @@ from app.memory.infrastructure.repositories.contexts.records.mapping import (
 from app.shared.types.extra_types import JSONObject
 
 
+def _stale_embedding_condition(
+    model_name: str,
+    dimensions: int,
+    fingerprint_key: str,
+) -> ColumnElement[bool]:
+    """Return the single stale-embedding predicate shared by every consumer.
+
+    Args:
+        model_name: Current embedding model name.
+        dimensions: Current embedding dimensions.
+        fingerprint_key: Current embedding generation fingerprint key.
+
+    Returns:
+        SQLAlchemy condition matching chunks that require re-embedding.
+    """
+    return or_(
+        ContextChunkORM.embedding.is_(None),
+        ContextChunkORM.embedding_model != model_name,
+        ContextChunkORM.embedding_dimensions != dimensions,
+        ContextChunkORM.embedding_fingerprint_key.is_(None),
+        ContextChunkORM.embedding_fingerprint_key != fingerprint_key,
+    )
+
+
 async def chunks_missing_embeddings(
     session: AsyncSession,
     model_name: str,
@@ -25,6 +52,7 @@ async def chunks_missing_embeddings(
     fingerprint_key: str,
     limit: int,
     force: bool = False,
+    note_ids: Sequence[str] | None = None,
 ) -> list[ContextChunkRecord]:
     """Return chunks requiring embedding reindex for the current model.
 
@@ -35,6 +63,7 @@ async def chunks_missing_embeddings(
         fingerprint_key: Current embedding generation fingerprint key.
         limit: Maximum chunks to scan.
         force: Whether to rebuild all active chunk embeddings even if model metadata matches.
+        note_ids: Ignored; agent-saved Contexts are not compile-driven.
 
     Returns:
         Chunks requiring embedding backfill or forced rebuild.
@@ -47,13 +76,7 @@ async def chunks_missing_embeddings(
     )
     if not force:
         statement = statement.where(
-            or_(
-                ContextChunkORM.embedding.is_(None),
-                ContextChunkORM.embedding_model != model_name,
-                ContextChunkORM.embedding_dimensions != dimensions,
-                ContextChunkORM.embedding_fingerprint_key.is_(None),
-                ContextChunkORM.embedding_fingerprint_key != fingerprint_key,
-            )
+            _stale_embedding_condition(model_name, dimensions, fingerprint_key)
         )
     statement = statement.order_by(
         case(
@@ -138,15 +161,7 @@ async def embedding_index_status(
         select(ContextChunkORM.id)
         .join(ContextORM, ContextORM.id == ContextChunkORM.context_id)
         .where(ContextORM.is_archived.is_(False))
-        .where(
-            or_(
-                ContextChunkORM.embedding.is_(None),
-                ContextChunkORM.embedding_model != model_name,
-                ContextChunkORM.embedding_dimensions != dimensions,
-                ContextChunkORM.embedding_fingerprint_key.is_(None),
-                ContextChunkORM.embedding_fingerprint_key != fingerprint_key,
-            )
-        )
+        .where(_stale_embedding_condition(model_name, dimensions, fingerprint_key))
         .limit(1)
     )
     stale_chunk_id = await session.scalar(statement)
