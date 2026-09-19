@@ -91,6 +91,7 @@ def graph_snapshot_from_status(
         recommended_operation=(
             "alexandria_graph_list_issues" if issue_total > 0 else None
         ),
+        last_run_issue_total=issue_total,
     )
 
 

@@ -55,6 +55,7 @@ class OperationalGraphSnapshot:
     projection_revision: str | None
     warnings: tuple[str, ...] = ()
     recommended_operation: str | None = None
+    last_run_issue_total: int = 0
 
 
 @dataclass(frozen=True, slots=True)
