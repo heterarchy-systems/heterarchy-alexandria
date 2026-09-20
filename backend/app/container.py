@@ -87,6 +87,10 @@ from app.operations.application.readiness.operational_retrieval_canary_service i
 from app.operations.application.readiness.operational_runtime_provenance_service import (
     OperationalRuntimeProvenanceService,
 )
+from app.operations.application.steward.memory_steward_service import (
+    MemoryStewardDiagnoseService,
+    MemoryStewardSealService,
+)
 from app.operations.infrastructure.redis_maintenance_job_queue import (
     RedisMaintenanceJobSubmitter,
 )
@@ -442,4 +446,12 @@ class ApplicationContainer(containers.DeclarativeContainer):
         projection_integrity_service=obsidian.context_projection_integrity_service,
         runtime_provenance_service=operational_runtime_provenance_service,
         graph_projection_service=obsidian.graph_projection_rebuild_service,
+    )
+    memory_steward_diagnose_service = providers.Factory(
+        MemoryStewardDiagnoseService,
+        readiness_service=operational_readiness_service,
+    )
+    memory_steward_seal_service = providers.Factory(
+        MemoryStewardSealService,
+        readiness_service=operational_readiness_service,
     )

@@ -12,6 +12,13 @@ from app.operations.application.readiness.operational_capability_policy import (
 from app.operations.application.readiness.operational_readiness_service import (
     OperationalReadinessService,
 )
+from app.operations.application.steward.memory_steward_service import (
+    MemoryStewardDiagnoseService,
+    MemoryStewardSealService,
+)
+from app.operations.interface.schemas.operations.memory_steward_schema import (
+    MemoryStewardDiagnoseResponse,
+)
 from app.operations.interface.schemas.operations.operational_capability_schema import (
     OperationalCapabilitySnapshotResponse,
 )
@@ -79,3 +86,61 @@ async def operational_capabilities(
     return OperationalCapabilitySnapshotResponse.from_entity(
         capability_snapshot(readiness)
     )
+
+
+@router.get(
+    "/memory-steward/diagnose",
+    response_model=MemoryStewardDiagnoseResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Compose Memory Steward diagnostics",
+    description=(
+        "Compose the authoritative readiness snapshot into actionable Memory "
+        "Steward diagnostics with detail and repair operation references."
+    ),
+)
+@inject
+async def memory_steward_diagnose(
+    service: Annotated[
+        MemoryStewardDiagnoseService,
+        Depends(Provide[ApplicationContainer.memory_steward_diagnose_service]),
+    ],
+) -> MemoryStewardDiagnoseResponse:
+    """Return composed Memory Steward diagnostics.
+
+    Args:
+        service: Request-scoped Memory Steward diagnose application service.
+
+    Returns:
+        Composed steward diagnose response.
+    """
+    result = await service.diagnose()
+    return MemoryStewardDiagnoseResponse.from_entity(result)
+
+
+@router.get(
+    "/memory-steward/seal",
+    response_model=MemoryStewardDiagnoseResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Run the Memory Steward seal verification",
+    description=(
+        "Verify the final state of one memory circulation and report residual "
+        "diagnostics as READY, READY_WITH_RESIDUALS, NOT_READY, or FAILED."
+    ),
+)
+@inject
+async def memory_steward_seal(
+    service: Annotated[
+        MemoryStewardSealService,
+        Depends(Provide[ApplicationContainer.memory_steward_seal_service]),
+    ],
+) -> MemoryStewardDiagnoseResponse:
+    """Return the seal verification verdict for the current state.
+
+    Args:
+        service: Request-scoped Memory Steward seal application service.
+
+    Returns:
+        Composed steward seal response.
+    """
+    result = await service.seal()
+    return MemoryStewardDiagnoseResponse.from_entity(result)

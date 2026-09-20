@@ -15,6 +15,10 @@ from app.operations.application.readiness.operational_readiness_service import (
 from app.operations.domain.entities.operational_readiness import (
     OperationalReadinessSnapshot,
 )
+from app.operations.domain.event_enum.memory_steward_enums import MemoryStewardStatus
+from app.operations.domain.event_enum.operational_readiness_enums import (
+    OperationalReadinessStatus,
+)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -32,7 +36,7 @@ class StewardDiagnostic:
 class StewardDiagnoseResult:
     """Memory Steward diagnose result composing all diagnostic evidence."""
 
-    overall_status: str
+    overall_status: MemoryStewardStatus
     diagnostics: tuple[StewardDiagnostic, ...]
     readiness: OperationalReadinessSnapshot
 
@@ -136,14 +140,12 @@ class MemoryStewardDiagnoseService:
         """
         snapshot = await self._readiness_service.snapshot()
         diagnostics = _diagnose_from_readiness(snapshot)
-        if snapshot.status.value in {"READY", "READY_WITH_RESIDUALS"}:
-            overall = snapshot.status.value
-        elif snapshot.ready:
-            overall = "READY"
+        if snapshot.status is OperationalReadinessStatus.READY or snapshot.ready:
+            overall = MemoryStewardStatus.READY
         elif snapshot.blockers:
-            overall = "NOT_READY"
+            overall = MemoryStewardStatus.NOT_READY
         else:
-            overall = "DEGRADED"
+            overall = MemoryStewardStatus.DEGRADED
         return StewardDiagnoseResult(
             overall_status=overall,
             diagnostics=tuple(diagnostics),
@@ -179,13 +181,13 @@ class MemoryStewardSealService:
         diagnostics = _diagnose_from_readiness(snapshot)
         blocking = [d for d in diagnostics if d.blocking]
         if snapshot.database.reachable is False:
-            status = "FAILED"
+            status = MemoryStewardStatus.FAILED
         elif blocking:
-            status = "NOT_READY"
+            status = MemoryStewardStatus.NOT_READY
         elif diagnostics:
-            status = "READY_WITH_RESIDUALS"
+            status = MemoryStewardStatus.READY_WITH_RESIDUALS
         else:
-            status = "READY"
+            status = MemoryStewardStatus.READY
         return StewardDiagnoseResult(
             overall_status=status,
             diagnostics=tuple(diagnostics),

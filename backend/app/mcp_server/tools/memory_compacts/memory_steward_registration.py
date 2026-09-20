@@ -5,6 +5,10 @@ from __future__ import annotations
 from mcp.server import MCPServer
 
 from app.mcp_server.backend_api_client import AlexandriaApiClient
+from app.mcp_server.tools.memory_compacts.memory_steward_diagnose_tools import (
+    alexandria_memory_steward_diagnose,
+    alexandria_memory_steward_seal,
+)
 from app.mcp_server.tools.memory_compacts.memory_steward_readiness_tools import (
     alexandria_memory_steward_readiness,
     alexandria_memory_steward_refresh_current_compact,
@@ -71,3 +75,21 @@ def register_memory_steward_tools(
             force=force,
             covered_to=covered_to,
         )
+
+    @server.tool(name="alexandria_memory_steward_diagnose")
+    async def _tool_memory_steward_diagnose() -> JSONValue:
+        """Compose readiness evidence into Memory Steward diagnostics.
+
+        Returns:
+            Diagnose result with overall status and per-issue detail refs.
+        """
+        return await alexandria_memory_steward_diagnose(api_client)
+
+    @server.tool(name="alexandria_memory_steward_seal")
+    async def _tool_memory_steward_seal() -> JSONValue:
+        """Run the final readiness verification for one memory circulation.
+
+        Returns:
+            Seal result with overall status and residual diagnostics.
+        """
+        return await alexandria_memory_steward_seal(api_client)
