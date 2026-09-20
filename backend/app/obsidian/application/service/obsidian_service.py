@@ -202,6 +202,29 @@ class ObsidianService(
         """
         return await self._note_service.read_note_raw(path=path, note_id=note_id)
 
+    async def repair_note_raw(
+        self,
+        *,
+        path: str,
+        expected_content_hash: str,
+        raw_content: str,
+    ) -> ObsidianNote:
+        """Replace one note's raw source after CAS and parse validation.
+
+        Args:
+            path: Vault-relative Markdown path of the note to repair.
+            expected_content_hash: Content hash of the current raw bytes.
+            raw_content: Full replacement Markdown source.
+
+        Returns:
+            The repaired note as parsed and indexed after the write.
+        """
+        return await self._note_service.repair_note_raw(
+            path=path,
+            expected_content_hash=expected_content_hash,
+            raw_content=raw_content,
+        )
+
     async def read_note_by_path_verified(
         self,
         relative_path: str,

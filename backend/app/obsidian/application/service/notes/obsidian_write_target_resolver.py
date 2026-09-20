@@ -237,7 +237,8 @@ class ObsidianWriteTargetResolver:
         if indexed_note.content_hash != expected:
             raise ObsidianWriteConflictError(
                 "OBSIDIAN_WRITE_CONFLICT: expected content hash does not match "
-                f"the current note: {safe_path}"
+                f"the current note: {safe_path}",
+                current_content_hash=indexed_note.content_hash,
             )
 
     def note_id_from_existing_file(self, path: Path) -> str | None:

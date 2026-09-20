@@ -112,6 +112,7 @@ class BatchWriteItemResult:
     note_id: str | None
     status: str
     content_hash: str | None = None
+    current_content_hash: str | None = None
     error: str | None = None
 
 

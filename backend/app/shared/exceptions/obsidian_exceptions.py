@@ -25,6 +25,22 @@ class ObsidianValidationError(ObsidianDomainError):
 class ObsidianWriteConflictError(ObsidianDomainError):
     """Raised when a canonical note changed after an agent read it."""
 
+    def __init__(
+        self,
+        message: str,
+        *,
+        current_content_hash: str | None = None,
+    ) -> None:
+        """Create the conflict error with the current CAS evidence.
+
+        Args:
+            message: Operator-safe conflict description.
+            current_content_hash: Content hash the conflicting note carries
+                now, when the note exists; callers retry CAS against it.
+        """
+        super().__init__(message)
+        self.current_content_hash = current_content_hash
+
 
 class ObsidianIndexWriteError(ObsidianDomainError):
     """Raised when one rebuildable Obsidian index write fails."""

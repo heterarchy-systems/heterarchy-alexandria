@@ -222,11 +222,12 @@ class ObsidianBatchNoteService:
                 frontmatter_mode=ObsidianFrontmatterMode.MERGE,
             )
             result = await self._obsidian_service.write_note(command)
-        except ObsidianWriteConflictError:
+        except ObsidianWriteConflictError as exc:
             return BatchWriteItemResult(
                 path=operation.relative_path,
                 note_id=operation.note_id,
                 status="conflict",
+                current_content_hash=exc.current_content_hash,
             )
         except ObsidianNotFoundError:
             return BatchWriteItemResult(

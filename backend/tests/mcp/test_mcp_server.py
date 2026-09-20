@@ -1674,6 +1674,7 @@ def test_fastmcp_server_registers_required_alexandria_tools() -> None:
         "alexandria_recover",
         "alexandria_read_note",
         "alexandria_read_note_raw",
+        "alexandria_repair_note_raw",
         "alexandria_graph_list_issues",
         "alexandria_batch_read_notes",
         "alexandria_batch_validate_note_links",

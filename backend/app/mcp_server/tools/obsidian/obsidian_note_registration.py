@@ -15,6 +15,7 @@ from app.mcp_server.tools.obsidian.obsidian_backend_gateway import (
     alexandria_get_related_notes,
     alexandria_read_note,
     alexandria_read_note_raw,
+    alexandria_repair_note_raw,
     alexandria_resolve_canonical_identity,
     alexandria_update_note,
     alexandria_upsert_note,
@@ -69,6 +70,33 @@ def register_obsidian_note_tools(
             JSONValue result produced by tool read note raw.
         """
         return await alexandria_read_note_raw(api_client, note_id, path)
+
+    @server.tool(name="alexandria_repair_note_raw")
+    async def _tool_repair_note_raw(
+        path: str,
+        expected_content_hash: str,
+        raw_content: str,
+    ) -> JSONValue:
+        """Replace one note's raw source after CAS and parse validation.
+
+        Use together with alexandria_read_note_raw to recover a malformed
+        note in place: read the raw text, fix the frontmatter or body, and
+        submit the full replacement against the current content hash.
+
+        Args:
+            path: Vault-relative Markdown path of the note to repair.
+            expected_content_hash: Content hash of the current raw bytes.
+            raw_content: Full replacement Markdown source.
+
+        Returns:
+            JSONValue result carrying the repaired note.
+        """
+        return await alexandria_repair_note_raw(
+            api_client,
+            path,
+            expected_content_hash,
+            raw_content,
+        )
 
     @server.tool(name="alexandria_check_path_exists")
     async def _tool_check_path_exists(path: str) -> JSONValue:

@@ -48,6 +48,7 @@ from app.obsidian.interface.schemas.obsidian.obsidian_schema import (
     ObsidianBatchWriteRequest,
     ObsidianBatchWriteResponse,
     ObsidianNoteRawReadResponse,
+    ObsidianNoteRepairRequest,
     ObsidianNoteResponse,
 )
 from app.obsidian.interface.schemas.obsidian.obsidian_search_schema import (
@@ -271,6 +272,45 @@ async def read_obsidian_note_raw(
     mark_database_transaction_read_only(request)
     read = await service.read_note_raw(path=path, note_id=note_id)
     return ObsidianNoteRawReadResponse.from_entity(read)
+
+
+@router.post(
+    "/notes/repair",
+    response_model=ObsidianNoteResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Repair raw Obsidian note source",
+    description=(
+        "Replace one note's raw Markdown after a byte-hash CAS check and "
+        "parse validation, so a malformed note is recovered in place."
+    ),
+)
+@router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
+@inject
+async def repair_obsidian_note_raw(
+    request: Annotated[
+        ObsidianNoteRepairRequest,
+        Depends(model_validate_json_body(ObsidianNoteRepairRequest)),
+    ],
+    service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
+) -> ObsidianNoteResponse:
+    """Repair one note's raw source with CAS and parse guards.
+
+    Args:
+        request: Repair request body with current hash and replacement source.
+        service: Obsidian application service.
+
+    Returns:
+        The repaired note response.
+    """
+    note = await service.repair_note_raw(
+        path=request.path,
+        expected_content_hash=request.expected_content_hash,
+        raw_content=request.raw_content,
+    )
+    return ObsidianNoteResponse.from_entity(note)
 
 
 @router.get(
@@ -636,6 +676,7 @@ async def batch_write_notes(
                 note_id=item.note_id,
                 status=item.status,
                 content_hash=item.content_hash,
+                current_content_hash=item.current_content_hash,
                 error=item.error,
             )
             for item in result.items

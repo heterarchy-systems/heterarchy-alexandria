@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import ConfigDict, StringConstraints
+
 from app.obsidian.application.service.vault.obsidian_vault_reindex_service import (
     ObsidianVaultReindexReport,
 )
@@ -298,6 +300,32 @@ class ObsidianNoteResponse(StrictSchemaModel):
         )
 
 
+class ObsidianNoteRepairRequest(StrictSchemaModel):
+    """Bounded raw-source repair for one malformed or damaged note."""
+
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        validate_default=True,
+    )
+
+    path: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1, max_length=400),
+        described_field("Vault-relative path for this note repair request."),
+    ]
+    expected_content_hash: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1, max_length=128),
+        described_field("Expected content hash for this note repair request."),
+    ]
+    raw_content: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1),
+        described_field("Full replacement Markdown source for this repair."),
+    ]
+
+
 class ObsidianNoteRawReadResponse(StrictSchemaModel):
     """Raw malformed-note read response for operator repair inspection."""
 
@@ -457,6 +485,10 @@ class ObsidianBatchWriteItemResult(StrictSchemaModel):
     status: Annotated[str, described_field("Operation outcome status.")]
     content_hash: Annotated[
         str | None, described_field("Content hash after write.")
+    ] = None
+    current_content_hash: Annotated[
+        str | None,
+        described_field("Conflicting note content hash to retry CAS against."),
     ] = None
     error: Annotated[str | None, described_field("Error detail.")] = None
 

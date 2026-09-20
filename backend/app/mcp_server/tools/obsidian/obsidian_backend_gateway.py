@@ -98,6 +98,33 @@ async def alexandria_read_note_raw(
     return await client.get("/obsidian/notes/raw", params=params)
 
 
+async def alexandria_repair_note_raw(
+    client: AlexandriaApiClient,
+    path: str,
+    expected_content_hash: str,
+    raw_content: str,
+) -> JSONValue:
+    """Replace one note's raw source after CAS and parse validation.
+
+    Args:
+        client: Backend HTTP client.
+        path: Vault-relative Markdown path of the note to repair.
+        expected_content_hash: Content hash of the current raw bytes.
+        raw_content: Full replacement Markdown source.
+
+    Returns:
+        Backend response with the repaired note.
+    """
+    return await client.post(
+        "/obsidian/notes/repair",
+        {
+            "path": path,
+            "expected_content_hash": expected_content_hash,
+            "raw_content": raw_content,
+        },
+    )
+
+
 async def alexandria_check_path_exists(
     client: AlexandriaApiClient,
     path: str,

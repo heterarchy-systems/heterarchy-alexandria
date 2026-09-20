@@ -319,6 +319,89 @@ class ObsidianNoteService:
             ),
         )
 
+    async def repair_note_raw(
+        self,
+        *,
+        path: str,
+        expected_content_hash: str,
+        raw_content: str,
+    ) -> ObsidianNote:
+        """Replace one note's raw source after CAS and parse validation.
+
+        This is the bounded write side of the raw-repair workflow: the
+        caller reads the raw source, fixes the frontmatter or body, and
+        submits the full replacement text. The replacement is accepted
+        only when the byte-hash CAS matches, the content is secret-free,
+        and the repaired source parses cleanly — so a malformed note can
+        be recovered in place without a quarantine detour.
+
+        Args:
+            path: Vault-relative Markdown path of the note to repair.
+            expected_content_hash: Rust content hash of the current bytes.
+            raw_content: Full replacement Markdown source.
+
+        Returns:
+            The repaired note as parsed and indexed after the write.
+        """
+        safe_path = str(safe_relative_path(path))
+        config = self._vault_config_store.current()
+        absolute = resolve_note_path(config.vault_path, safe_path)
+        if not absolute.exists():
+            raise ObsidianNotFoundError(f"Obsidian note not found: {safe_path}")
+        try:
+            current_text = await anyio.to_thread.run_sync(
+                partial(_read_source_text, absolute, max_source_bytes=None),
+                limiter=anyio.to_thread.current_default_thread_limiter(),
+            )
+        except (OSError, UnicodeError) as exc:
+            raise ObsidianValidationError("SOURCE_READ_FAILED") from exc
+        current_hash = hash_text(current_text)
+        if current_hash != expected_content_hash:
+            raise ObsidianWriteConflictError(
+                "OBSIDIAN_WRITE_CONFLICT: expected content hash does not match "
+                f"the current note: {safe_path}",
+                current_content_hash=current_hash,
+            )
+        redaction = redact_secret_text(raw_content)
+        if redaction.blocked:
+            raise ObsidianValidationError("high-risk secret content cannot be saved")
+        content = redaction.redacted_content
+        try:
+            parse_markdown_document(content)
+        except ValueError as exc:
+            raise ObsidianValidationError(
+                f"REPAIR_CONTENT_INVALID: repaired source must parse: {exc}"
+            ) from exc
+        index_payload = await anyio.to_thread.run_sync(
+            partial(
+                _persist_and_index,
+                absolute,
+                content,
+                safe_path,
+                config.alexandria_root,
+            ),
+            limiter=anyio.to_thread.current_default_thread_limiter(),
+        )
+        if index_payload is None:
+            atomic_write_markdown(absolute, current_text)
+            raise ObsidianValidationError(
+                "repaired note is missing Alexandria frontmatter"
+            )
+        try:
+            return await self._repository.upsert_note(index_payload)
+        except ObsidianIndexWriteError as exc:
+            index_error = ObsidianIndexError(
+                note_path=safe_path,
+                context_id=index_payload.note_id,
+                error_code=ObsidianIndexErrorCode.INDEX_WRITE_FAILED,
+                error_message=str(exc),
+                detected_at=now_utc(),
+            )
+            await self._record_index_error_best_effort(index_error)
+            raise ObsidianValidationError(
+                "INDEX_WRITE_FAILED: canonical Markdown was preserved for reindex"
+            ) from exc
+
     async def read_note_by_path(self, relative_path: str) -> ObsidianNote:
         """Read one managed note by vault-relative path.
 
