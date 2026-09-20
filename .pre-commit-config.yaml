@@ -7,7 +7,7 @@ repos:
     hooks:
       - id: repository-quality-gate
         name: repository quality gate
-        entry: bash -lc 'unset VIRTUAL_ENV; cd backend && uv sync --group dev && cd .. && make ci'
+        entry: bash -lc 'unset VIRTUAL_ENV; cd backend && uv sync --group dev --reinstall-package heterarchy-alexandria && cd .. && make ci'
         language: system
         pass_filenames: false
         stages: [pre-push]
