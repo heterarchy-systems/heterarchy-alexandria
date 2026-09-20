@@ -33,6 +33,26 @@ class EmbeddingReindexJobResult:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class BatchNoteWriteJobItem:
+    """One per-item CAS outcome inside an async batch note write job."""
+
+    path: str
+    status: str
+    content_hash: str | None = None
+    current_content_hash: str | None = None
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class BatchNoteWriteJobResult:
+    """Bounded per-item outcome of one async batch note write job."""
+
+    succeeded: int
+    conflicted: int
+    failed: int
+    items: tuple[BatchNoteWriteJobItem, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class MaintenanceJobSnapshot:
     """Operator-visible lifecycle snapshot for one queued job."""
 
@@ -50,7 +70,7 @@ class MaintenanceJobSnapshot:
     stream_id: str | None = None
     deduplicated: bool = False
     error_summary: str | None = None
-    result: EmbeddingReindexJobResult | None = None
+    result: EmbeddingReindexJobResult | BatchNoteWriteJobResult | None = None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

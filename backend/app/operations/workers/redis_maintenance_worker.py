@@ -14,12 +14,25 @@ from dependency_injector import providers
 
 from app.container import ApplicationContainer
 from app.memory.application.contexts.records.context_service import ContextService
+from app.obsidian.application.service.notes.obsidian_batch_note_service import (
+    ObsidianBatchNoteService,
+)
+from app.obsidian.domain.contracts.obsidian_batch_contracts import (
+    BatchWriteOperation,
+)
 from app.operations.application.maintenance_job_queue import (
     MaintenanceJobDelivery,
     MaintenanceQueueUnavailableError,
 )
-from app.operations.domain.entities.maintenance_job import EmbeddingReindexJobResult
+from app.operations.domain.entities.maintenance_job import (
+    BatchNoteWriteJobItem,
+    BatchNoteWriteJobResult,
+    EmbeddingReindexJobResult,
+)
 from app.operations.domain.event_enum.maintenance_job_enums import MaintenanceJobKind
+from app.operations.infrastructure.maintenance_job_payload_store import (
+    MaintenanceJobPayloadStore,
+)
 from app.operations.infrastructure.redis_maintenance_job_consumer import (
     RedisMaintenanceJobConsumer,
 )
@@ -173,24 +186,29 @@ async def _process_delivery(
         )
         return
     await consumer.mark_succeeded(delivery, result)
-    logger.info(
-        "maintenance job succeeded",
-        extra={
-            "job_id": delivery.job.job_id,
-            "kind": delivery.job.kind.value,
-            "attempt": attempt,
-            "scanned": result.scanned,
-            "updated": result.updated,
-            "skipped": result.skipped,
-        },
-    )
+    extra: dict[str, object] = {
+        "job_id": delivery.job.job_id,
+        "kind": delivery.job.kind.value,
+        "attempt": attempt,
+    }
+    if isinstance(result, EmbeddingReindexJobResult):
+        extra.update(
+            scanned=result.scanned, updated=result.updated, skipped=result.skipped
+        )
+    else:
+        extra.update(
+            succeeded=result.succeeded,
+            conflicted=result.conflicted,
+            failed=result.failed,
+        )
+    logger.info("maintenance job succeeded", extra=extra)
 
 
 async def _execute_job(
     delivery: MaintenanceJobDelivery,
     database: Database,
     container: ApplicationContainer,
-) -> EmbeddingReindexJobResult:
+) -> EmbeddingReindexJobResult | BatchNoteWriteJobResult:
     """Execute job.
 
     Args:
@@ -199,8 +217,10 @@ async def _execute_job(
         container: Container used by this operation.
 
     Returns:
-        EmbeddingReindexJobResult result produced by execute job.
+        Kind-specific bounded job result.
     """
+    if delivery.job.kind is MaintenanceJobKind.BATCH_NOTE_WRITE:
+        return await _execute_batch_note_write(delivery, database, container)
     if delivery.job.kind is not MaintenanceJobKind.EMBEDDING_REINDEX:
         raise RuntimeError(f"unsupported maintenance job kind: {delivery.job.kind}")
     async with database.request_session():
@@ -218,6 +238,61 @@ async def _execute_job(
         skipped=result.skipped,
         warnings=tuple(result.warnings),
     )
+
+
+async def _execute_batch_note_write(
+    delivery: MaintenanceJobDelivery,
+    database: Database,
+    container: ApplicationContainer,
+) -> BatchNoteWriteJobResult:
+    """Execute one staged batch note write job.
+
+    Args:
+        delivery: Delivery used by this operation.
+        database: Database used by this operation.
+        container: Container used by this operation.
+
+    Returns:
+        Bounded per-item CAS outcome of the staged batch.
+
+    Raises:
+        RuntimeError: When the staged payload is missing.
+    """
+    async with database.request_session() as session:
+        payload = await MaintenanceJobPayloadStore(session).load(delivery.job.source_id)
+    if payload is None:
+        raise RuntimeError(
+            f"maintenance job payload is missing: {delivery.job.source_id}"
+        )
+    raw_operations = payload["operations"]
+    if not isinstance(raw_operations, list):
+        raise RuntimeError("maintenance job payload operations are invalid")
+    operations = [
+        BatchWriteOperation.from_payload(operation) for operation in raw_operations
+    ]
+    async with database.request_session():
+        batch_service = await cast(
+            Awaitable[ObsidianBatchNoteService],
+            container.obsidian.batch_note_service(),
+        )
+        result = await batch_service.batch_write(operations)
+    job_result = BatchNoteWriteJobResult(
+        succeeded=result.succeeded,
+        conflicted=result.conflicted,
+        failed=result.failed,
+        items=tuple(
+            BatchNoteWriteJobItem(
+                path=item.path,
+                status=item.status,
+                content_hash=item.content_hash,
+                current_content_hash=item.current_content_hash,
+            )
+            for item in result.items
+        ),
+    )
+    async with database.request_session() as session:
+        await MaintenanceJobPayloadStore(session).delete(delivery.job.source_id)
+    return job_result
 
 
 def _safe_error_summary(exc: Exception) -> str:

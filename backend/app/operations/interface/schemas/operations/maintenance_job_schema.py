@@ -5,9 +5,11 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import ConfigDict, StringConstraints
+from pydantic import ConfigDict, Field, StringConstraints
 
 from app.operations.domain.entities.maintenance_job import (
+    BatchNoteWriteJobItem,
+    BatchNoteWriteJobResult,
     EmbeddingReindexJobResult,
     MaintenanceDeadLetterEntry,
     MaintenanceJobSnapshot,
@@ -18,6 +20,7 @@ from app.operations.domain.event_enum.maintenance_job_enums import (
     MaintenanceJobStatus,
 )
 from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
+from app.shared.types.extra_types import JSONValue
 
 
 class EmbeddingReindexJobRequest(StrictSchemaModel):
@@ -136,7 +139,7 @@ class MaintenanceJobResponse(StrictSchemaModel):
         str | None, described_field("Error summary for this maintenance job response.")
     ] = None
     result: Annotated[
-        EmbeddingReindexJobResultResponse | None,
+        EmbeddingReindexJobResultResponse | BatchNoteWriteJobResultResponse | None,
         described_field("Result for this maintenance job response."),
     ] = None
 
@@ -151,6 +154,15 @@ class MaintenanceJobResponse(StrictSchemaModel):
             Validated operator-visible maintenance job response model.
         """
         result = snapshot.result
+        mapped_result: (
+            EmbeddingReindexJobResultResponse | BatchNoteWriteJobResultResponse | None
+        )
+        if isinstance(result, BatchNoteWriteJobResult):
+            mapped_result = BatchNoteWriteJobResultResponse.from_entity(result)
+        elif result is None:
+            mapped_result = None
+        else:
+            mapped_result = EmbeddingReindexJobResultResponse.from_entity(result)
         return cls(
             job_id=snapshot.job_id,
             kind=snapshot.kind,
@@ -166,11 +178,102 @@ class MaintenanceJobResponse(StrictSchemaModel):
             stream_id=snapshot.stream_id,
             deduplicated=snapshot.deduplicated,
             error_summary=snapshot.error_summary,
-            result=(
-                None
-                if result is None
-                else EmbeddingReindexJobResultResponse.from_entity(result)
-            ),
+            result=mapped_result,
+        )
+
+
+class BatchNoteWriteJobRequest(StrictSchemaModel):
+    """Submit one bounded asynchronous batch note write."""
+
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        validate_default=True,
+    )
+
+    requested_by: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1, max_length=120),
+        described_field("Requested by for this batch note write job request."),
+    ] = "manual"
+    operations: Annotated[
+        list[dict[str, JSONValue]],
+        Field(min_length=1, max_length=50),
+        described_field("JSON write operations executed asynchronously by the worker."),
+    ]
+
+
+class BatchNoteWriteJobItemResponse(StrictSchemaModel):
+    """One per-item CAS outcome inside an async batch note write job."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    path: Annotated[str, described_field("Path for this batch job item.")]
+    status: Annotated[str, described_field("Status for this batch job item.")]
+    content_hash: Annotated[
+        str | None, described_field("Content hash for this batch job item.")
+    ] = None
+    current_content_hash: Annotated[
+        str | None,
+        described_field("Current content hash for this batch job item."),
+    ] = None
+
+    @classmethod
+    def from_entity(cls, item: BatchNoteWriteJobItem) -> BatchNoteWriteJobItemResponse:
+        """Map an immutable job item to the HTTP response.
+
+        Args:
+            item: Immutable batch job item.
+
+        Returns:
+            Validated batch job item response model.
+        """
+        return cls(
+            path=item.path,
+            status=item.status,
+            content_hash=item.content_hash,
+            current_content_hash=item.current_content_hash,
+        )
+
+
+class BatchNoteWriteJobResultResponse(StrictSchemaModel):
+    """Bounded per-item outcome of one async batch note write job."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    succeeded: Annotated[
+        int, described_field("Succeeded for this batch job result response.")
+    ]
+    conflicted: Annotated[
+        int, described_field("Conflicted for this batch job result response.")
+    ]
+    failed: Annotated[
+        int, described_field("Failed for this batch job result response.")
+    ]
+    items: Annotated[
+        list[BatchNoteWriteJobItemResponse],
+        described_field("Items for this batch job result response."),
+    ] = Field(default_factory=list)
+
+    @classmethod
+    def from_entity(
+        cls, result: BatchNoteWriteJobResult
+    ) -> BatchNoteWriteJobResultResponse:
+        """Map an immutable job result to the HTTP response.
+
+        Args:
+            result: Immutable batch note write job result.
+
+        Returns:
+            Validated batch job result response model.
+        """
+        return cls(
+            succeeded=result.succeeded,
+            conflicted=result.conflicted,
+            failed=result.failed,
+            items=[
+                BatchNoteWriteJobItemResponse.from_entity(item) for item in result.items
+            ],
         )
 
 

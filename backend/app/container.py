@@ -67,6 +67,9 @@ from app.obsidian.infrastructure.obsidian_report_bundle_run_store import (
 from app.operations.application.diagnostics.operational_retrieval_diagnostics_service import (
     OperationalRetrievalDiagnosticsService,
 )
+from app.operations.application.maintenance_batch_note_write_service import (
+    MaintenanceBatchNoteWriteService,
+)
 from app.operations.application.maintenance_job_queue import MaintenanceJobSubmitter
 from app.operations.application.readiness.external_api_rate_limit import (
     ExternalApiRateLimiter,
@@ -343,6 +346,11 @@ class ApplicationContainer(containers.DeclarativeContainer):
         create_maintenance_job_submitter,
         client=redis_client,
         config=maintenance_queue_config,
+    )
+    maintenance_batch_note_write_service = providers.Factory(
+        MaintenanceBatchNoteWriteService,
+        database=database,
+        submitter=maintenance_job_submitter,
     )
     external_api_rate_limiter = providers.Resource(
         create_external_api_rate_limiter,

@@ -15,6 +15,7 @@ from app.operations.application.maintenance_job_queue import (
     MaintenanceQueueUnavailableError,
 )
 from app.operations.domain.entities.maintenance_job import (
+    BatchNoteWriteJobResult,
     EmbeddingReindexJobResult,
 )
 from app.operations.domain.event_enum.maintenance_job_enums import (
@@ -23,6 +24,7 @@ from app.operations.domain.event_enum.maintenance_job_enums import (
 from app.operations.infrastructure.redis_maintenance_job_codec import (
     decode_autoclaim_delivery,
     decode_readgroup_delivery,
+    encode_batch_note_write_result,
     encode_embedding_result,
     response_integer,
 )
@@ -149,19 +151,23 @@ class RedisMaintenanceJobConsumer(MaintenanceJobConsumer):
     async def mark_succeeded(
         self,
         delivery: MaintenanceJobDelivery,
-        result: EmbeddingReindexJobResult,
+        result: EmbeddingReindexJobResult | BatchNoteWriteJobResult,
     ) -> None:
         """Persist a bounded result and acknowledge the Stream entry.
 
         Args:
             delivery: Claimed maintenance job and Redis stream identifier.
-            result: Bounded embedding reindex result to persist.
+            result: Bounded kind-specific result to persist.
         """
         key = _status_key(self._config, delivery.job.job_id)
         mutation: MaintenanceStatusMutation = {
             "status": MaintenanceJobStatus.SUCCEEDED.value,
             "finished_at": datetime.now(UTC).isoformat(),
-            "result_json": encode_embedding_result(result),
+            "result_json": (
+                encode_batch_note_write_result(result)
+                if isinstance(result, BatchNoteWriteJobResult)
+                else encode_embedding_result(result)
+            ),
             "error_summary": "",
         }
         try:

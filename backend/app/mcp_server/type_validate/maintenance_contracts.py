@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import ConfigDict, StringConstraints, field_validator
+from pydantic import ConfigDict, Field, StringConstraints, field_validator
 
 from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
-from app.shared.types.extra_types import JSONObject
+from app.shared.types.extra_types import JSONObject, JSONValue
 
 
 class MaintenanceEmbeddingReindexToolRequest(StrictSchemaModel):
@@ -71,6 +71,58 @@ class MaintenanceEmbeddingReindexToolRequest(StrictSchemaModel):
             "source_id": self.source_id,
             "limit": self.limit,
             "force": self.force,
+        }
+
+
+class MaintenanceBatchNoteWriteToolRequest(StrictSchemaModel):
+    """Validated MCP input for a queued asynchronous batch note write."""
+
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        validate_default=True,
+    )
+
+    requested_by: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1, max_length=120),
+        described_field(
+            "Requested by for this maintenance batch note write tool request."
+        ),
+    ] = "mcp"
+    operations: Annotated[
+        list[dict[str, JSONValue]],
+        described_field(
+            "JSON write operations for this maintenance batch note write tool request."
+        ),
+        Field(min_length=1, max_length=50),
+    ]
+
+    @field_validator("requested_by")
+    @classmethod
+    def normalize_nonblank_requested_by(cls, value: str) -> str:
+        """Normalize the requested-by identity.
+
+        Args:
+            value: Value to transform.
+
+        Returns:
+            Normalized value.
+        """
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("requested_by must not be blank")
+        return normalized
+
+    def to_payload(self) -> JSONObject:
+        """Return the explicit backend request payload.
+
+        Returns:
+            JSON object accepted by the backend batch write job endpoint.
+        """
+        return {
+            "requested_by": self.requested_by,
+            "operations": list(self.operations),
         }
 
 

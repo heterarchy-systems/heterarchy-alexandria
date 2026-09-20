@@ -5,6 +5,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import anyio
+import pytest
 
 from app.obsidian.application.service.notes.obsidian_batch_note_service import (
     ObsidianBatchNoteService,
@@ -17,6 +18,27 @@ from app.shared.exceptions.obsidian_exceptions import (
     ObsidianNotFoundError,
     ObsidianWriteConflictError,
 )
+
+
+def test_batch_write_operation_from_payload_validates_shape() -> None:
+    """JSON payloads parse into operations and reject invalid shapes."""
+    operation = BatchWriteOperation.from_payload(
+        {
+            "op": "update",
+            "title": "T",
+            "body": "b",
+            "relative_path": "Alexandria/T.md",
+            "expected_content_hash": "h",
+            "frontmatter": {"scope": "GLOBAL"},
+        }
+    )
+    assert operation.expected_content_hash == "h"
+    assert operation.frontmatter == {"scope": "GLOBAL"}
+
+    with pytest.raises(ValueError, match="BATCH_OPERATION_INVALID"):
+        BatchWriteOperation.from_payload({"op": "update"})
+    with pytest.raises(ValueError, match="BATCH_OPERATION_INVALID"):
+        BatchWriteOperation.from_payload("not-an-object")
 
 
 class _FakeObsidianService:

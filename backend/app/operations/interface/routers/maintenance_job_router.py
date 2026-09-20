@@ -6,6 +6,10 @@ from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from app.container import ApplicationContainer
+from app.operations.application.maintenance_batch_note_write_service import (
+    MaintenanceBatchNoteWriteService,
+    MaintenanceBatchWritePayloadTooLargeError,
+)
 from app.operations.application.maintenance_job_queue import (
     MaintenanceDeadLetterNotFoundError,
     MaintenanceDeadLetterSourceGoneError,
@@ -16,6 +20,7 @@ from app.operations.application.maintenance_job_queue import (
 from app.operations.domain.entities.maintenance_job import MaintenanceJobRequest
 from app.operations.domain.event_enum.maintenance_job_enums import MaintenanceJobKind
 from app.operations.interface.schemas.operations.maintenance_job_schema import (
+    BatchNoteWriteJobRequest,
     EmbeddingReindexJobRequest,
     MaintenanceDeadLetterListResponse,
     MaintenanceDeadLetterPurgeResponse,
@@ -157,6 +162,61 @@ async def get_maintenance_queue_status(
             detail="Redis maintenance queue is unavailable",
         ) from exc
     return MaintenanceQueueStatusResponse.from_entity(snapshot)
+
+
+@router.post(
+    "/batch-note-write/jobs",
+    response_model=MaintenanceJobResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Queue an asynchronous batch note write",
+    description=(
+        "Stage bounded note write operations durably and enqueue one job. "
+        "The worker executes per-item CAS writes; poll the returned job id "
+        "for per-item outcomes."
+    ),
+)
+@inject
+async def submit_batch_note_write_job(
+    request: Annotated[
+        BatchNoteWriteJobRequest,
+        Depends(model_validate_json_body(BatchNoteWriteJobRequest)),
+    ],
+    service: Annotated[
+        MaintenanceBatchNoteWriteService,
+        Depends(Provide[ApplicationContainer.maintenance_batch_note_write_service]),
+    ],
+) -> MaintenanceJobResponse:
+    """Queue one bounded asynchronous batch note write.
+
+    Args:
+        request: Validated HTTP batch write job request.
+        service: Async batch note write submission service.
+
+    Returns:
+        Operator-visible queued maintenance job response.
+    """
+    try:
+        snapshot = await service.submit(
+            operations=request.operations,
+            requested_by=request.requested_by,
+        )
+    except MaintenanceBatchWritePayloadTooLargeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    except MaintenanceSubmissionRateLimitError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Maintenance submission rate limit exceeded",
+            headers={"Retry-After": str(exc.retry_after_seconds)},
+        ) from exc
+    except MaintenanceQueueUnavailableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Redis maintenance queue is unavailable",
+        ) from exc
+    return MaintenanceJobResponse.from_entity(snapshot)
 
 
 def _required_submitter(

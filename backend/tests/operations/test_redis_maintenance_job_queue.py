@@ -14,6 +14,13 @@ from app.operations.application.maintenance_job_queue import (
     MaintenanceSubmissionRateLimitError,
 )
 from app.operations.domain.entities.maintenance_job import (
+    BatchNoteWriteJobItem,
+    BatchNoteWriteJobResult,
+)
+from app.operations.infrastructure.redis_maintenance_job_codec import (
+    encode_batch_note_write_result,
+)
+from app.operations.domain.entities.maintenance_job import (
     MaintenanceJobRequest,
     MaintenanceJobSnapshot,
 )
@@ -234,6 +241,48 @@ def test_worker_client_read_timeout_has_headroom_above_stream_block() -> None:
     )
 
     assert client.connection_pool.connection_kwargs["socket_timeout"] == 10.0
+
+
+def test_batch_note_write_result_roundtrips_through_status_hash() -> None:
+    """A batch write job result decodes by kind from the status hash."""
+    encoded = encode_batch_note_write_result(
+        BatchNoteWriteJobResult(
+            succeeded=1,
+            conflicted=1,
+            failed=0,
+            items=(
+                BatchNoteWriteJobItem(
+                    path="Alexandria/A.md",
+                    status="updated",
+                    content_hash="hash-1",
+                ),
+                BatchNoteWriteJobItem(
+                    path="Alexandria/B.md",
+                    status="conflict",
+                    current_content_hash="hash-2",
+                ),
+            ),
+        )
+    )
+    fields = {
+        **_status_fields(),
+        "kind": MaintenanceJobKind.BATCH_NOTE_WRITE.value,
+        "result_json": encoded.decode("utf-8"),
+    }
+
+    async def scenario() -> MaintenanceJobSnapshot:
+        fake = _FakeRedis()
+        fake.status_fields = fields
+        return await _submitter(fake).get("job-1")
+
+    snapshot = anyio.run(scenario)
+
+    assert snapshot.kind is MaintenanceJobKind.BATCH_NOTE_WRITE
+    result = snapshot.result
+    assert isinstance(result, BatchNoteWriteJobResult)
+    assert (result.succeeded, result.conflicted, result.failed) == (1, 1, 0)
+    assert result.items[0].content_hash == "hash-1"
+    assert result.items[1].current_content_hash == "hash-2"
 
 
 def test_list_dead_letters_returns_newest_entries_bounded() -> None:

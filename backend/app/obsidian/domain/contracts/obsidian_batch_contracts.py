@@ -10,6 +10,50 @@ from app.shared.types.extra_types import JSONObject
 BATCH_MAX_OPERATIONS = 50
 
 
+def _payload_str(raw: dict, key: str) -> str:
+    """Extract one required text field from a payload object.
+
+    Args:
+        raw: Decoded JSON object.
+        key: Required text field name.
+
+    Returns:
+        The field value.
+
+    Raises:
+        BatchValidationError: When the field is missing or not text.
+    """
+    value = raw.get(key)
+    if not isinstance(value, str) or not value:
+        raise BatchValidationError(
+            f"BATCH_OPERATION_INVALID: {key} must be non-empty text"
+        )
+    return value
+
+
+def _payload_optional_str(raw: dict, key: str) -> str | None:
+    """Extract one optional text field from a payload object.
+
+    Args:
+        raw: Decoded JSON object.
+        key: Optional text field name.
+
+    Returns:
+        The field value, or None when absent.
+
+    Raises:
+        BatchValidationError: When the field is present but not text.
+    """
+    value = raw.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise BatchValidationError(
+            f"BATCH_OPERATION_INVALID: {key} must be text when present"
+        )
+    return value
+
+
 class BatchValidationError(ValueError):
     """Invalid batch request (size, selector, or operation shape)."""
 
@@ -49,6 +93,40 @@ class BatchWriteOperation:
     note_id: str | None = None
     expected_content_hash: str | None = None
     frontmatter: JSONObject = field(default_factory=dict)
+
+    @classmethod
+    def from_payload(cls, raw: object) -> BatchWriteOperation:
+        """Parse one JSON payload into a validated write operation.
+
+        Args:
+            raw: Decoded JSON object for one write operation.
+
+        Returns:
+            Validated immutable write operation.
+
+        Raises:
+            BatchValidationError: When the payload shape is invalid.
+        """
+        if not isinstance(raw, dict):
+            raise BatchValidationError(
+                "BATCH_OPERATION_INVALID: each operation must be an object"
+            )
+        try:
+            return cls(
+                op=_payload_str(raw, "op"),
+                title=_payload_str(raw, "title"),
+                body=_payload_str(raw, "body"),
+                relative_path=_payload_str(raw, "relative_path"),
+                note_id=_payload_optional_str(raw, "note_id"),
+                expected_content_hash=_payload_optional_str(
+                    raw, "expected_content_hash"
+                ),
+                frontmatter=dict(raw.get("frontmatter") or {}),
+            )
+        except BatchValidationError:
+            raise
+        except (TypeError, ValueError) as exc:
+            raise BatchValidationError(f"BATCH_OPERATION_INVALID: {exc}") from exc
 
     def command_parts(self) -> tuple[str, str, str, str, str | None, str | None]:
         """Return (op, title, body, relative_path, note_id, expected_hash).

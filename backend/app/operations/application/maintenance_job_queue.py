@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from app.operations.domain.entities.maintenance_job import (
+    BatchNoteWriteJobResult,
     EmbeddingReindexJobResult,
     MaintenanceDeadLetterEntry,
     MaintenanceJobRequest,
@@ -150,13 +151,13 @@ class MaintenanceJobConsumer(ABC):
     async def mark_succeeded(
         self,
         delivery: MaintenanceJobDelivery,
-        result: EmbeddingReindexJobResult,
+        result: EmbeddingReindexJobResult | BatchNoteWriteJobResult,
     ) -> None:
         """Persist success and acknowledge the stream entry.
 
         Args:
             delivery: Claimed maintenance job and Redis stream identifier.
-            result: Bounded embedding reindex result to persist.
+            result: Bounded kind-specific result to persist.
         """
 
     @abstractmethod

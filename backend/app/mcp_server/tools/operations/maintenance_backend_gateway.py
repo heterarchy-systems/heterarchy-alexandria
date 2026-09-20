@@ -5,6 +5,7 @@ from __future__ import annotations
 from app.mcp_server.backend_api_client import AlexandriaApiClient
 from app.mcp_server.tools.backend_gateway_policy import _path_segment
 from app.mcp_server.type_validate.maintenance_contracts import (
+    MaintenanceBatchNoteWriteToolRequest,
     MaintenanceDeadLetterIdToolRequest,
     MaintenanceEmbeddingReindexToolRequest,
     MaintenanceJobIdToolRequest,
@@ -39,6 +40,31 @@ async def alexandria_reindex_context_embeddings(
     )
     return await client.post(
         "/operations/maintenance/embedding-reindex/jobs",
+        request.to_payload(),
+    )
+
+
+async def alexandria_submit_batch_note_write_job(
+    client: AlexandriaApiClient,
+    operations: list[dict[str, JSONValue]],
+    requested_by: str = "mcp",
+) -> JSONValue:
+    """Queue one bounded asynchronous batch note write job.
+
+    Args:
+        client: Backend API client used to submit the batch write request.
+        operations: JSON write operations executed by the worker.
+        requested_by: Operator or automation identity recorded on the job.
+
+    Returns:
+        Decoded backend response containing the queued job snapshot.
+    """
+    request = MaintenanceBatchNoteWriteToolRequest(
+        requested_by=requested_by,
+        operations=operations,
+    )
+    return await client.post(
+        "/operations/maintenance/batch-note-write/jobs",
         request.to_payload(),
     )
 

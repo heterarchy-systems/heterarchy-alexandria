@@ -14,6 +14,7 @@ import app.mcp_server.local_oauth.orm as _mcp_local_oauth_models  # noqa: F401
 import app.memory.infrastructure.models.context_models as _context_models  # noqa: F401
 import app.memory.infrastructure.models.reconciliation_models as _reconciliation_models  # noqa: F401
 import app.obsidian.infrastructure.models.obsidian_index_models as _obsidian_index_models  # noqa: F401
+import app.operations.infrastructure.maintenance_models as _maintenance_models  # noqa: F401
 from app.platform.config.database_config import DatabaseConfig
 from app.shared.infrastructure.database import Base
 

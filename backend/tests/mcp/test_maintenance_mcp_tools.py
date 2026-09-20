@@ -175,4 +175,5 @@ def test_fastmcp_registers_queued_reindex_and_job_observation_tools() -> None:
         "alexandria_list_maintenance_dead_letters",
         "alexandria_purge_maintenance_dead_letters",
         "alexandria_replay_maintenance_dead_letter",
+        "alexandria_submit_batch_note_write_job",
     } <= names

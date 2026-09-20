@@ -12,6 +12,7 @@ from app.mcp_server.tools.operations.maintenance_backend_gateway import (
     alexandria_purge_maintenance_dead_letters,
     alexandria_reindex_context_embeddings,
     alexandria_replay_maintenance_dead_letter,
+    alexandria_submit_batch_note_write_job,
 )
 from app.shared.types.extra_types import JSONValue
 
@@ -106,3 +107,25 @@ def register_maintenance_tools(
             Freshly queued replacement maintenance job payload.
         """
         return await alexandria_replay_maintenance_dead_letter(api_client, entry_id)
+
+    @server.tool(name="alexandria_submit_batch_note_write_job")
+    async def submit_batch_note_write_job_tool(
+        operations: list[dict[str, JSONValue]],
+        requested_by: str = "mcp",
+    ) -> JSONValue:
+        """Queue a bounded batch note write executed asynchronously by the worker.
+
+        Args:
+            operations: JSON write operations; each carries op, title, body,
+                relative_path, and the CAS expected_content_hash.
+            requested_by: Operator or automation identity recorded on the job.
+
+        Returns:
+            Queued maintenance job payload; poll the job id for per-item
+            CAS outcomes.
+        """
+        return await alexandria_submit_batch_note_write_job(
+            api_client,
+            operations,
+            requested_by,
+        )

@@ -11,6 +11,8 @@ from app.operations.application.maintenance_job_queue import (
     MaintenanceQueueUnavailableError,
 )
 from app.operations.domain.entities.maintenance_job import (
+    BatchNoteWriteJobItem,
+    BatchNoteWriteJobResult,
     EmbeddingReindexJobResult,
     MaintenanceDeadLetterEntry,
     MaintenanceJobRequest,
@@ -126,7 +128,102 @@ def decode_job_snapshot(raw: RedisResponse) -> MaintenanceJobSnapshot | None:
         finished_at=_optional_datetime(fields.get("finished_at"), "finished_at"),
         stream_id=_nonblank(fields.get("stream_id")),
         error_summary=_nonblank(fields.get("error_summary")),
-        result=decode_embedding_result(result_json) if result_json else None,
+        result=decode_job_result(fields.get("kind"), result_json)
+        if result_json
+        else None,
+    )
+
+
+def decode_job_result(
+    kind: str | None, payload: bytes | str
+) -> EmbeddingReindexJobResult | BatchNoteWriteJobResult:
+    """Decode a persisted job result according to the job kind.
+
+    Args:
+        kind: Job kind recorded on the status hash.
+        payload: Persisted JSON bytes or text from the Redis status hash.
+
+    Returns:
+        The kind-specific validated job result.
+
+    Raises:
+        MaintenanceQueueUnavailableError: When the kind is unknown.
+    """
+    if kind == MaintenanceJobKind.BATCH_NOTE_WRITE.value:
+        return decode_batch_note_write_result(payload)
+    if kind == MaintenanceJobKind.EMBEDDING_REINDEX.value:
+        return decode_embedding_result(payload)
+    raise MaintenanceQueueUnavailableError(
+        "Redis maintenance job result kind is unknown"
+    )
+
+
+def encode_batch_note_write_result(result: BatchNoteWriteJobResult) -> bytes:
+    """Serialize a bounded batch note write result for the status hash.
+
+    Args:
+        result: Immutable batch note write result.
+
+    Returns:
+        UTF-8 JSON bytes encoded by the shared orjson boundary.
+    """
+    payload: JSONObject = {
+        "succeeded": result.succeeded,
+        "conflicted": result.conflicted,
+        "failed": result.failed,
+        "items": [
+            {
+                "path": item.path,
+                "status": item.status,
+                "content_hash": item.content_hash,
+                "current_content_hash": item.current_content_hash,
+            }
+            for item in result.items
+        ],
+    }
+    return dumps_json(payload)
+
+
+def decode_batch_note_write_result(payload: bytes | str) -> BatchNoteWriteJobResult:
+    """Validate and decode a persisted batch note write result.
+
+    Args:
+        payload: Persisted JSON bytes or text from the Redis status hash.
+
+    Returns:
+        Validated immutable batch note write result.
+    """
+    decoded = loads_json(payload)
+    if not isinstance(decoded, dict):
+        raise MaintenanceQueueUnavailableError(
+            "Redis maintenance result JSON must be an object"
+        )
+    items_raw = decoded.get("items", [])
+    if not isinstance(items_raw, Sequence) or isinstance(items_raw, str | bytes):
+        raise MaintenanceQueueUnavailableError(
+            "Redis maintenance result items must be a sequence"
+        )
+    items: list[BatchNoteWriteJobItem] = []
+    for item_raw in items_raw:
+        if not isinstance(item_raw, dict):
+            raise MaintenanceQueueUnavailableError(
+                "Redis maintenance result item must be an object"
+            )
+        items.append(
+            BatchNoteWriteJobItem(
+                path=_json_text(item_raw.get("path"), "path"),
+                status=_json_text(item_raw.get("status"), "status"),
+                content_hash=_json_optional_text(item_raw.get("content_hash")),
+                current_content_hash=_json_optional_text(
+                    item_raw.get("current_content_hash")
+                ),
+            )
+        )
+    return BatchNoteWriteJobResult(
+        succeeded=_json_integer(decoded.get("succeeded"), "succeeded"),
+        conflicted=_json_integer(decoded.get("conflicted"), "conflicted"),
+        failed=_json_integer(decoded.get("failed"), "failed"),
+        items=tuple(items),
     )
 
 
@@ -549,6 +646,37 @@ def _json_integer(raw: JSONValue, field: str) -> int:
             f"Redis maintenance result field must be an integer: {field}"
         )
     return raw
+
+
+def _json_text(raw: JSONValue, field: str) -> str:
+    """Execute json text.
+
+    Args:
+        raw: Raw used by this operation.
+        field: Field used by this operation.
+
+    Returns:
+        str result produced by json text.
+    """
+    if not isinstance(raw, str):
+        raise MaintenanceQueueUnavailableError(
+            f"Redis maintenance result field must be text: {field}"
+        )
+    return raw
+
+
+def _json_optional_text(raw: JSONValue) -> str | None:
+    """Execute json optional text.
+
+    Args:
+        raw: Raw used by this operation.
+
+    Returns:
+        str | None result produced by json optional text.
+    """
+    if raw is None:
+        return None
+    return _json_text(raw, "optional text")
 
 
 def _datetime(value: str, field: str) -> datetime:
