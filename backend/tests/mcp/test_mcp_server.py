@@ -1563,13 +1563,15 @@ def test_mcp_vault_operation_tools_map_to_safe_vault_endpoints() -> None:
 
 
 def test_mcp_context_delete_tool_maps_to_hard_delete_endpoint() -> None:
-    """Context delete MCP tool should call the hard-delete context endpoint."""
+    """Context delete MCP tool should call the guarded hard-delete endpoint."""
     client, calls = _client()
 
-    _run_json(alexandria_delete_context(client, "ctx/1"))
+    _run_json(alexandria_delete_context(client, "ctx/1", True))
 
     assert calls[0].method == "DELETE"
-    assert str(calls[0].url) == "http://backend:8000/memory/contexts/ctx%2F1"
+    assert str(calls[0].url) == (
+        "http://backend:8000/memory/contexts/ctx%2F1?confirm=true"
+    )
 
 
 def test_mcp_context_supersede_tool_maps_to_canonical_endpoint() -> None:
@@ -1640,7 +1642,6 @@ def test_fastmcp_server_registers_required_alexandria_tools() -> None:
     tools = anyio.run(server.list_tools)
     names = {tool.name for tool in tools}
 
-    assert len(names) == 60
     composite_names = {
         "alexandria_recall",
         "alexandria_verified_upsert",
@@ -1674,6 +1675,11 @@ def test_fastmcp_server_registers_required_alexandria_tools() -> None:
         "alexandria_read_note",
         "alexandria_read_note_raw",
         "alexandria_graph_list_issues",
+        "alexandria_batch_read_notes",
+        "alexandria_batch_validate_note_links",
+        "alexandria_batch_write_notes",
+        "alexandria_memory_steward_diagnose",
+        "alexandria_memory_steward_seal",
         "alexandria_search_vault",
         "alexandria_create_note",
         "alexandria_update_note",

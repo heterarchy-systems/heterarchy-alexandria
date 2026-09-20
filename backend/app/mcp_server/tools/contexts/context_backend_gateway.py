@@ -12,7 +12,7 @@ from app.memory.interface.schemas.context.context_retrieval_schema import (
 )
 from app.memory.interface.schemas.context.context_schema import ContextSupersedeRequest
 from app.shared.serialization.model_codec import schema_payload
-from app.shared.types.extra_types import JSONValue
+from app.shared.types.extra_types import JSONObject, JSONValue
 
 
 async def alexandria_search(
@@ -83,18 +83,26 @@ async def alexandria_supersede_context(
 
 
 async def alexandria_delete_context(
-    client: AlexandriaApiClient, context_id: str
+    client: AlexandriaApiClient,
+    context_id: str,
+    confirm: bool = False,
 ) -> JSONValue:
-    """Hard delete one context.
+    """Hard delete one context after explicit confirmation.
 
     Args:
         client: Backend HTTP client.
         context_id: Context identifier.
+        confirm: Explicit hard-delete confirmation; the backend refuses to
+            delete without it.
 
     Returns:
         Backend delete response, typically None for HTTP 204.
     """
-    response = await client.delete(f"/memory/contexts/{_path_segment(context_id)}")
+    query: JSONObject | None = {"confirm": "true"} if confirm else None
+    response = await client.delete(
+        f"/memory/contexts/{_path_segment(context_id)}",
+        params=query,
+    )
     return response
 
 

@@ -150,13 +150,14 @@ class MemoryCompactService:
         """
         return await self._lifecycle_service.archive(compact_id)
 
-    async def delete(self, compact_id: str) -> None:
-        """Hard delete one Memory Compact.
+    async def delete(self, compact_id: str, *, confirm: bool = False) -> None:
+        """Hard delete one Memory Compact after explicit confirmation.
 
         Args:
             compact_id: Memory Compact identifier.
+            confirm: Explicit hard-delete confirmation flag.
         """
-        await self._lifecycle_service.delete(compact_id)
+        await self._lifecycle_service.delete(compact_id, confirm=confirm)
 
     async def review(
         self,

@@ -278,7 +278,10 @@ async def review_memory_compact(
     "/{compact_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete Memory Compact",
-    description="Hard delete a Memory Compact and its durable source references.",
+    description=(
+        "Hard delete a Memory Compact and its durable source references. "
+        "Requires the explicit confirm=true query parameter."
+    ),
 )
 @router_exception_status(MEMORY_COMPACT_ROUTE_EXCEPTION_MAPPING)
 @inject
@@ -288,17 +291,22 @@ async def delete_memory_compact(
         MemoryCompactService,
         Depends(Provide[ApplicationContainer.memory.memory_compact_service]),
     ],
+    confirm: bool = Query(
+        default=False,
+        description="Explicit hard-delete confirmation; deletion is refused without it.",
+    ),
 ) -> Response:
     """Hard delete one Memory Compact.
 
     Args:
         compact_id: Memory Compact identifier.
         service: Memory Compact application service.
+        confirm: Explicit hard-delete confirmation flag.
 
     Returns:
         Empty HTTP 204 response.
     """
-    await service.delete(compact_id)
+    await service.delete(compact_id, confirm=confirm)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

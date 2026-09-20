@@ -57,16 +57,20 @@ def register_context_lifecycle_tools(
         )
 
     @server.tool(name="alexandria_delete_context")
-    async def _tool_delete_context(context_id: str) -> JSONValue:
-        """Hard delete one Context Vault entry.
+    async def _tool_delete_context(
+        context_id: str,
+        confirm: bool = False,
+    ) -> JSONValue:
+        """Hard delete one Context Vault entry after explicit confirmation.
 
         Args:
             context_id: Context identifier.
+            confirm: Must be true to perform the irreversible hard delete.
 
         Returns:
             Backend delete response, typically null for HTTP 204.
         """
-        return await alexandria_delete_context(api_client, context_id)
+        return await alexandria_delete_context(api_client, context_id, confirm)
 
     @server.tool(name="alexandria_rag_status")
     async def _tool_rag_status() -> JSONValue:

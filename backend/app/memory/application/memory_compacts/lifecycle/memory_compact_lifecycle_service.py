@@ -83,12 +83,18 @@ class MemoryCompactLifecycleService:
         """
         return await self._repository.archive(compact_id)
 
-    async def delete(self, compact_id: str) -> None:
-        """Hard delete one Memory Compact.
+    async def delete(self, compact_id: str, *, confirm: bool = False) -> None:
+        """Hard delete one Memory Compact after explicit confirmation.
 
         Args:
             compact_id: Memory Compact identifier.
+            confirm: Explicit hard-delete confirmation; deletion is refused
+                without it.
         """
+        if not confirm:
+            raise MemoryCompactValidationError(
+                "hard delete requires explicit confirmation"
+            )
         await self._repository.delete(compact_id)
 
     async def review(

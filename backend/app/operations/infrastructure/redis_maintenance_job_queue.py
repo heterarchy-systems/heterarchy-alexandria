@@ -13,17 +13,22 @@ from redis.asyncio import Redis
 from redis.exceptions import RedisError, ResponseError
 
 from app.operations.application.maintenance_job_queue import (
+    MaintenanceDeadLetterNotFoundError,
+    MaintenanceDeadLetterSourceGoneError,
     MaintenanceJobSubmitter,
     MaintenanceQueueUnavailableError,
     MaintenanceSubmissionRateLimitError,
 )
 from app.operations.domain.entities.maintenance_job import (
+    MaintenanceDeadLetterEntry,
     MaintenanceJobRequest,
     MaintenanceJobSnapshot,
     MaintenanceQueueSnapshot,
 )
 from app.operations.infrastructure.redis_maintenance_job_codec import (
     decode_consumer_count,
+    decode_dead_letter_entries,
+    decode_dead_letter_source_request,
     decode_enqueue_result,
     decode_job_snapshot,
     decode_pending_count,
@@ -228,6 +233,108 @@ class RedisMaintenanceJobSubmitter(MaintenanceJobSubmitter):
                 "dead-letter length",
             ),
         )
+
+    async def list_dead_letters(
+        self, limit: int
+    ) -> tuple[MaintenanceDeadLetterEntry, ...]:
+        """Read the newest dead-letter entries without mutating the stream.
+
+        Args:
+            limit: Requested entry count, clamped to the bounded maximum.
+
+        Returns:
+            Newest-first dead-letter entries.
+        """
+        bounded_limit = max(1, min(limit, 200))
+        try:
+            raw = await cast(
+                Awaitable[RedisResponse],
+                self._client.xrevrange(
+                    self._config.dead_letter_stream_name,
+                    max="+",
+                    min="-",
+                    count=bounded_limit,
+                ),
+            )
+        except RedisError as exc:
+            raise MaintenanceQueueUnavailableError(
+                "Redis dead-letter read failed"
+            ) from exc
+        return decode_dead_letter_entries(raw)
+
+    async def purge_dead_letters(self) -> int:
+        """Drop every dead-letter entry and report the removed count.
+
+        Returns:
+            Number of dead-letter entries present before the purge.
+        """
+        try:
+            length_raw = await cast(
+                Awaitable[int],
+                self._client.xlen(self._config.dead_letter_stream_name),
+            )
+            await cast(
+                Awaitable[int],
+                self._client.xtrim(
+                    self._config.dead_letter_stream_name,
+                    maxlen=0,
+                    approximate=False,
+                ),
+            )
+        except RedisError as exc:
+            raise MaintenanceQueueUnavailableError(
+                "Redis dead-letter purge failed"
+            ) from exc
+        return response_integer(length_raw, "dead-letter length")
+
+    async def replay_dead_letter(self, entry_id: str) -> MaintenanceJobSnapshot:
+        """Re-enqueue the request behind one dead-letter entry as a new job.
+
+        Args:
+            entry_id: Dead-letter stream entry identifier.
+
+        Returns:
+            Freshly queued replacement job snapshot.
+        """
+        letter_raw = await self._range_entry(
+            self._config.dead_letter_stream_name,
+            entry_id,
+        )
+        letters = decode_dead_letter_entries(letter_raw)
+        if not letters:
+            raise MaintenanceDeadLetterNotFoundError("dead-letter entry was not found")
+        letter = letters[0]
+        source_raw = await self._range_entry(
+            self._config.stream_name,
+            letter.source_stream_id,
+        )
+        request = decode_dead_letter_source_request(source_raw)
+        if request is None:
+            raise MaintenanceDeadLetterSourceGoneError(
+                "dead-letter source entry is no longer available for replay"
+            )
+        return await self.enqueue(request)
+
+    async def _range_entry(self, stream: str, entry_id: str) -> RedisResponse:
+        """Read exactly one stream entry by identifier.
+
+        Args:
+            stream: Redis Stream key to read.
+            entry_id: Exact stream entry identifier to fetch.
+
+        Returns:
+            Raw Redis range response with zero or one entries.
+        """
+        try:
+            raw = await cast(
+                Awaitable[RedisResponse],
+                self._client.xrange(stream, min=entry_id, max=entry_id),
+            )
+        except RedisError as exc:
+            raise MaintenanceQueueUnavailableError(
+                "Redis dead-letter read failed"
+            ) from exc
+        return raw
 
 
 def create_maintenance_worker_client(config: MaintenanceQueueConfig) -> Redis:

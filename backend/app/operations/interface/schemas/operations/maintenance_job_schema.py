@@ -9,6 +9,7 @@ from pydantic import ConfigDict, StringConstraints
 
 from app.operations.domain.entities.maintenance_job import (
     EmbeddingReindexJobResult,
+    MaintenanceDeadLetterEntry,
     MaintenanceJobSnapshot,
     MaintenanceQueueSnapshot,
 )
@@ -214,3 +215,83 @@ class MaintenanceQueueStatusResponse(StrictSchemaModel):
             consumers=snapshot.consumers,
             dead_letter_length=snapshot.dead_letter_length,
         )
+
+
+class MaintenanceDeadLetterResponse(StrictSchemaModel):
+    """One terminal job failure recorded in the dead-letter stream."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    entry_id: Annotated[
+        str,
+        described_field("Entry identifier for this dead-letter response."),
+    ]
+    job_id: Annotated[
+        str,
+        described_field("Job identifier for this dead-letter response."),
+    ]
+    kind: Annotated[
+        MaintenanceJobKind,
+        described_field("Kind for this dead-letter response."),
+    ]
+    attempts: Annotated[
+        int,
+        described_field("Attempts for this dead-letter response."),
+    ]
+    failed_at: Annotated[
+        datetime,
+        described_field("Failed at for this dead-letter response."),
+    ]
+    error_summary: Annotated[
+        str,
+        described_field("Error summary for this dead-letter response."),
+    ]
+    source_stream_id: Annotated[
+        str,
+        described_field("Source stream identifier for this dead-letter response."),
+    ]
+
+    @classmethod
+    def from_entity(
+        cls,
+        entry: MaintenanceDeadLetterEntry,
+    ) -> MaintenanceDeadLetterResponse:
+        """Map an immutable dead-letter entry to the HTTP response.
+
+        Args:
+            entry: Immutable dead-letter domain entry.
+
+        Returns:
+            Validated operator-visible dead-letter response model.
+        """
+        return cls(
+            entry_id=entry.entry_id,
+            job_id=entry.job_id,
+            kind=entry.kind,
+            attempts=entry.attempts,
+            failed_at=entry.failed_at,
+            error_summary=entry.error_summary,
+            source_stream_id=entry.source_stream_id,
+        )
+
+
+class MaintenanceDeadLetterListResponse(StrictSchemaModel):
+    """Newest-first bounded dead-letter entries."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    entries: Annotated[
+        tuple[MaintenanceDeadLetterResponse, ...],
+        described_field("Entries for this dead-letter list response."),
+    ] = ()
+
+
+class MaintenanceDeadLetterPurgeResponse(StrictSchemaModel):
+    """Result of dropping every dead-letter entry."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    purged: Annotated[
+        int,
+        described_field("Purged entry count for this dead-letter purge response."),
+    ]

@@ -84,12 +84,18 @@ class ContextRecordLifecycleService:
             replacement_context_id,
         )
 
-    async def delete(self, context_id: str) -> None:
-        """Hard-delete one SQL-backed Context.
+    async def delete(self, context_id: str, *, confirm: bool = False) -> None:
+        """Hard-delete one SQL-backed Context after explicit confirmation.
 
         Args:
             context_id: Context identifier.
+            confirm: Explicit hard-delete confirmation; deletion is refused
+                without it.
         """
+        if not confirm:
+            raise MemoryContextValidationError(
+                "hard delete requires explicit confirmation"
+            )
         if owns_canonical_context(self._canonical_repository, context_id):
             raise MemoryContextValidationError(
                 "Canonical Markdown contexts cannot be hard-deleted through SQL"

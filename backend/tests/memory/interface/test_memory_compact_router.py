@@ -118,7 +118,10 @@ def test_memory_compact_api_hard_deletes_obsidian_note(tmp_path: Path) -> None:
         create_response = client.post("/memory/compacts", json=_payload())
         compact_id = create_response.json()["id"]
         note_path = _compact_note_path(tmp_path / "vault", compact_id)
-        delete_response = client.delete(f"/memory/compacts/{compact_id}")
+        unconfirmed_response = client.delete(f"/memory/compacts/{compact_id}")
+        delete_response = client.delete(
+            f"/memory/compacts/{compact_id}", params={"confirm": "true"}
+        )
         get_response = client.get(f"/memory/compacts/{compact_id}")
         list_response = client.get(
             "/memory/compacts", params={"project": "heterarchy-alexandria"}
@@ -128,6 +131,7 @@ def test_memory_compact_api_hard_deletes_obsidian_note(tmp_path: Path) -> None:
         )
 
     assert create_response.status_code == 201
+    assert unconfirmed_response.status_code == 400
     assert delete_response.status_code == 204
     assert delete_response.content == b""
     assert get_response.status_code == 404

@@ -12,6 +12,8 @@ from app.operations.application.maintenance_job_queue import (
 )
 from app.operations.domain.entities.maintenance_job import (
     EmbeddingReindexJobResult,
+    MaintenanceDeadLetterEntry,
+    MaintenanceJobRequest,
     MaintenanceJobSnapshot,
 )
 from app.operations.domain.event_enum.maintenance_job_enums import (
@@ -40,6 +42,17 @@ class MaintenanceStatusFields(TypedDict, total=False):
     stream_id: str
     result_json: str
     error_summary: str
+
+
+class MaintenanceDeadLetterFields(TypedDict, total=False):
+    """Normalized Redis dead-letter stream fields for one terminal failure."""
+
+    job_id: str
+    kind: str
+    attempts: str
+    failed_at: str
+    error_summary: str
+    source_stream_id: str
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -246,6 +259,76 @@ def decode_readgroup_delivery(raw: RedisResponse) -> RedisStreamDelivery | None:
     return _delivery(entries[0])
 
 
+def decode_dead_letter_entries(
+    raw: RedisResponse,
+) -> tuple[MaintenanceDeadLetterEntry, ...]:
+    """Decode bounded XRANGE or XREVRANGE dead-letter stream output.
+
+    Args:
+        raw: Typed recursive Redis response holding stream entries.
+
+    Returns:
+        Immutable dead-letter entries in the order Redis returned them.
+    """
+    records = _sequence(raw, "dead-letter entries")
+    entries: list[MaintenanceDeadLetterEntry] = []
+    for record in records:
+        values = _sequence(record, "dead-letter entry")
+        if len(values) != 2:
+            raise MaintenanceQueueUnavailableError("Redis dead-letter entry is invalid")
+        fields = _dead_letter_fields(values[1])
+        entries.append(
+            MaintenanceDeadLetterEntry(
+                entry_id=_text(values[0], "dead-letter entry id"),
+                job_id=_required(fields.get("job_id"), "job_id"),
+                kind=MaintenanceJobKind(_required(fields.get("kind"), "kind")),
+                attempts=_integer(
+                    _required(fields.get("attempts"), "attempts"),
+                    "attempts",
+                ),
+                failed_at=_datetime(
+                    _required(fields.get("failed_at"), "failed_at"),
+                    "failed_at",
+                ),
+                error_summary=_nonblank(fields.get("error_summary")) or "",
+                source_stream_id=_required(
+                    fields.get("source_stream_id"),
+                    "source_stream_id",
+                ),
+            )
+        )
+    return tuple(entries)
+
+
+def decode_dead_letter_source_request(
+    raw: RedisResponse,
+) -> MaintenanceJobRequest | None:
+    """Decode the maintenance request behind one dead-letter source entry.
+
+    Args:
+        raw: Typed recursive Redis response from the source stream range read.
+
+    Returns:
+        Replayed job request, or None when the source entry was trimmed.
+    """
+    records = _sequence(raw, "dead-letter source entries")
+    if not records:
+        return None
+    values = _sequence(records[0], "dead-letter source entry")
+    if len(values) != 2:
+        raise MaintenanceQueueUnavailableError(
+            "Redis dead-letter source entry is invalid"
+        )
+    fields = _status_fields(values[1])
+    return MaintenanceJobRequest(
+        kind=MaintenanceJobKind(_required(fields.get("kind"), "kind")),
+        requested_by=_required(fields.get("requested_by"), "requested_by"),
+        source_id=_required(fields.get("source_id"), "source_id"),
+        limit=_integer(_required(fields.get("limit"), "limit"), "limit"),
+        force=_required(fields.get("force"), "force") == "1",
+    )
+
+
 def response_integer(raw: RedisResponse, field: str) -> int:
     """Decode a Redis integer response.
 
@@ -325,6 +408,38 @@ def _status_fields(raw: RedisResponse) -> MaintenanceStatusFields:
             normalized["result_json"] = value
         elif key == "error_summary":
             normalized["error_summary"] = value
+    return normalized
+
+
+def _dead_letter_fields(raw: RedisResponse) -> MaintenanceDeadLetterFields:
+    """Normalize one dead-letter stream hash into known fields.
+
+    Args:
+        raw: Raw Redis hash response for one dead-letter entry.
+
+    Returns:
+        Normalized dead-letter field mapping.
+    """
+    if not isinstance(raw, dict):
+        raise MaintenanceQueueUnavailableError(
+            "Redis dead-letter entry must be a mapping"
+        )
+    normalized: MaintenanceDeadLetterFields = {}
+    for raw_key, raw_value in raw.items():
+        key = _text(raw_key, "dead-letter key")
+        value = _text(raw_value, key)
+        if key == "job_id":
+            normalized["job_id"] = value
+        elif key == "kind":
+            normalized["kind"] = value
+        elif key == "attempts":
+            normalized["attempts"] = value
+        elif key == "failed_at":
+            normalized["failed_at"] = value
+        elif key == "error_summary":
+            normalized["error_summary"] = value
+        elif key == "source_stream_id":
+            normalized["source_stream_id"] = value
     return normalized
 
 

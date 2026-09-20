@@ -200,7 +200,10 @@ async def access_context(
 @router.delete(
     "/{context_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    description="Hard delete one Context Vault entry and its retrieval/audit rows.",
+    description=(
+        "Hard delete one Context Vault entry and its retrieval/audit rows. "
+        "Requires the explicit confirm=true query parameter."
+    ),
     summary="Delete context",
 )
 @router_exception_status(CONTEXT_ROUTE_EXCEPTION_MAPPING)
@@ -210,17 +213,22 @@ async def delete_context(
     service: Annotated[
         ContextService, Depends(Provide[ApplicationContainer.memory.context_service])
     ],
+    confirm: bool = Query(
+        default=False,
+        description="Explicit hard-delete confirmation; deletion is refused without it.",
+    ),
 ) -> Response:
     """Hard delete one context.
 
     Args:
         context_id: Context identifier.
         service: Context application service.
+        confirm: Explicit hard-delete confirmation flag.
 
     Returns:
         Empty HTTP 204 response.
     """
-    await service.delete(context_id)
+    await service.delete(context_id, confirm=confirm)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

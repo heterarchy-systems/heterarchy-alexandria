@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 from app.operations.domain.entities.maintenance_job import (
     EmbeddingReindexJobResult,
+    MaintenanceDeadLetterEntry,
     MaintenanceJobRequest,
     MaintenanceJobSnapshot,
     MaintenanceQueueSnapshot,
@@ -28,6 +29,14 @@ class MaintenanceSubmissionRateLimitError(RuntimeError):
         """
         super().__init__("maintenance submission rate limit exceeded")
         self.retry_after_seconds = retry_after_seconds
+
+
+class MaintenanceDeadLetterNotFoundError(RuntimeError):
+    """Raised when a dead-letter entry identifier does not exist."""
+
+
+class MaintenanceDeadLetterSourceGoneError(RuntimeError):
+    """Raised when the source stream entry behind a dead letter was trimmed."""
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -73,6 +82,38 @@ class MaintenanceJobSubmitter(ABC):
 
         Returns:
             Aggregate maintenance queue snapshot.
+        """
+
+    @abstractmethod
+    async def list_dead_letters(
+        self, limit: int
+    ) -> tuple[MaintenanceDeadLetterEntry, ...]:
+        """Read the newest dead-letter entries without mutating the stream.
+
+        Args:
+            limit: Maximum number of entries to return, bounded by the caller.
+
+        Returns:
+            Newest-first dead-letter entries.
+        """
+
+    @abstractmethod
+    async def purge_dead_letters(self) -> int:
+        """Drop every dead-letter entry and report how many were removed.
+
+        Returns:
+            Number of entries present before the purge.
+        """
+
+    @abstractmethod
+    async def replay_dead_letter(self, entry_id: str) -> MaintenanceJobSnapshot:
+        """Re-enqueue the request behind one dead-letter entry as a new job.
+
+        Args:
+            entry_id: Dead-letter stream entry identifier.
+
+        Returns:
+            Freshly queued replacement job snapshot.
         """
 
 

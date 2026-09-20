@@ -222,7 +222,10 @@ def test_context_api_hard_deletes_context_rows_chunks_access_events_and_search_i
                 "project": "heterarchy-alexandria",
             },
         )
-        delete_response = client.delete(f"/memory/contexts/{context_id}")
+        unconfirmed_response = client.delete(f"/memory/contexts/{context_id}")
+        delete_response = client.delete(
+            f"/memory/contexts/{context_id}", params={"confirm": "true"}
+        )
         after_get_response = client.get(f"/memory/contexts/{context_id}")
         after_list_response = client.get(
             "/memory/contexts", params={"include_archived": "true"}
@@ -240,6 +243,7 @@ def test_context_api_hard_deletes_context_rows_chunks_access_events_and_search_i
     assert access_response.status_code == 200
     assert before_search_response.status_code == 200
     assert context_id in before_search_response.json()["context_pack"]
+    assert unconfirmed_response.status_code == 400
     assert delete_response.status_code == 204
     assert delete_response.content == b""
     assert after_get_response.status_code == 404

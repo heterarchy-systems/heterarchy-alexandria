@@ -8,6 +8,8 @@ from typing import cast
 import anyio
 import pytest
 from app.operations.application.maintenance_job_queue import (
+    MaintenanceDeadLetterNotFoundError,
+    MaintenanceDeadLetterSourceGoneError,
     MaintenanceJobDelivery,
     MaintenanceSubmissionRateLimitError,
 )
@@ -37,8 +39,12 @@ class _FakeRedis:
         self.hset_calls: list[dict[str, str]] = []
         self.xack_calls: list[tuple[str, str, str]] = []
         self.xadd_calls: list[tuple[str, dict[str, str], int, bool]] = []
+        self.xadd_returns: dict[str, str] = {}
         self.expire_calls: list[tuple[str, int]] = []
         self.attempt = 1
+        self.dead_letter_entries: list[tuple[str, dict[str, str]]] = []
+        self.source_entries: list[tuple[str, dict[str, str]]] = []
+        self.xtrim_calls: list[tuple[str, int, bool]] = []
 
     async def eval(self, *_args: object) -> object:
         return self.eval_response
@@ -74,7 +80,56 @@ class _FakeRedis:
         approximate: bool,
     ) -> str:
         self.xadd_calls.append((stream, dict(fields), maxlen, approximate))
-        return "2-0"
+        if stream.endswith("dead:v1"):
+            entry_id = f"{len(self.dead_letter_entries) + 1}-0"
+            self.dead_letter_entries.append((entry_id, dict(fields)))
+            return entry_id
+        return self.xadd_returns.get(stream, "2-0")
+
+    async def xrevrange(
+        self,
+        stream: str,
+        *,
+        max: str,
+        min: str,
+        count: int | None,
+    ) -> list[tuple[str, dict[str, str]]]:
+        entries = self.dead_letter_entries if stream.endswith("dead:v1") else []
+        selected = [(entry_id, dict(fields)) for entry_id, fields in reversed(entries)]
+        return selected[:count] if count is not None else selected
+
+    async def xrange(
+        self,
+        stream: str,
+        *,
+        min: str,
+        max: str,
+    ) -> list[tuple[str, dict[str, str]]]:
+        entries = (
+            self.dead_letter_entries
+            if stream.endswith("dead:v1")
+            else self.source_entries
+        )
+        return [
+            (entry_id, dict(fields)) for entry_id, fields in entries if entry_id == min
+        ]
+
+    async def xlen(self, stream: str) -> int:
+        if stream.endswith("dead:v1"):
+            return len(self.dead_letter_entries)
+        return len(self.source_entries)
+
+    async def xtrim(
+        self,
+        stream: str,
+        *,
+        maxlen: int,
+        approximate: bool,
+    ) -> int:
+        self.xtrim_calls.append((stream, maxlen, approximate))
+        removed = len(self.dead_letter_entries)
+        self.dead_letter_entries.clear()
+        return removed
 
 
 def test_enqueue_returns_queued_snapshot() -> None:
@@ -181,6 +236,86 @@ def test_worker_client_read_timeout_has_headroom_above_stream_block() -> None:
     assert client.connection_pool.connection_kwargs["socket_timeout"] == 10.0
 
 
+def test_list_dead_letters_returns_newest_entries_bounded() -> None:
+    """Dead-letter listing should decode bounded newest-first entries."""
+
+    async def scenario() -> tuple[str, str, int]:
+        fake = _FakeRedis()
+        fake.dead_letter_entries = [
+            _dead_letter_entry("1-0"),
+            _dead_letter_entry("3-0"),
+        ]
+        queue = _submitter(fake)
+        entries = await queue.list_dead_letters(50)
+        first = entries[0]
+        return first.entry_id, first.job_id, first.attempts
+
+    entry_id, job_id, attempts = anyio.run(scenario)
+
+    assert (entry_id, job_id, attempts) == ("3-0", "job-9", 3)
+
+
+def test_purge_dead_letters_reports_prior_length_and_trims() -> None:
+    """Purging should report how many entries existed before the trim."""
+
+    async def scenario() -> tuple[int, _FakeRedis]:
+        fake = _FakeRedis()
+        fake.dead_letter_entries = [
+            _dead_letter_entry("1-0"),
+            _dead_letter_entry("2-0"),
+        ]
+        queue = _submitter(fake)
+        purged = await queue.purge_dead_letters()
+        return purged, fake
+
+    purged, fake = anyio.run(scenario)
+
+    assert purged == 2
+    assert fake.dead_letter_entries == []
+    assert fake.xtrim_calls == [("alexandria:maintenance:dead:v1", 0, False)]
+
+
+def test_replay_dead_letter_enqueues_fresh_job_from_source_request() -> None:
+    """Replay should re-enqueue the original request as a new job."""
+
+    async def scenario() -> MaintenanceJobSnapshot:
+        fake = _FakeRedis()
+        fake.dead_letter_entries = [_dead_letter_entry("5-0")]
+        fake.source_entries = [_source_entry("1-0")]
+        queue = _submitter(fake)
+        return await queue.replay_dead_letter("5-0")
+
+    snapshot = anyio.run(scenario)
+
+    assert snapshot.job_id == "job-1"
+    assert snapshot.status is MaintenanceJobStatus.QUEUED
+
+
+def test_replay_dead_letter_unknown_entry_raises_not_found() -> None:
+    """Replaying an unknown dead-letter identifier should fail explicitly."""
+
+    async def scenario() -> None:
+        fake = _FakeRedis()
+        queue = _submitter(fake)
+        with pytest.raises(MaintenanceDeadLetterNotFoundError):
+            await queue.replay_dead_letter("404-0")
+
+    anyio.run(scenario)
+
+
+def test_replay_dead_letter_trimmed_source_raises_source_gone() -> None:
+    """Replay without a retained source entry must not enqueue anything."""
+
+    async def scenario() -> None:
+        fake = _FakeRedis()
+        fake.dead_letter_entries = [_dead_letter_entry("5-0")]
+        queue = _submitter(fake)
+        with pytest.raises(MaintenanceDeadLetterSourceGoneError):
+            await queue.replay_dead_letter("5-0")
+
+    anyio.run(scenario)
+
+
 def _submitter(fake: _FakeRedis) -> RedisMaintenanceJobSubmitter:
     return RedisMaintenanceJobSubmitter(
         client=cast(Redis, fake),
@@ -247,3 +382,32 @@ def _status_fields() -> dict[str, str]:
         "result_json": "",
         "error_summary": "",
     }
+
+
+def _dead_letter_entry(entry_id: str) -> tuple[str, dict[str, str]]:
+    return (
+        entry_id,
+        {
+            "job_id": "job-9",
+            "kind": MaintenanceJobKind.EMBEDDING_REINDEX.value,
+            "attempts": "3",
+            "failed_at": "2026-08-07T01:00:00+00:00",
+            "error_summary": "permanent",
+            "source_stream_id": "1-0",
+        },
+    )
+
+
+def _source_entry(entry_id: str) -> tuple[str, dict[str, str]]:
+    return (
+        entry_id,
+        {
+            "job_id": "job-9",
+            "kind": MaintenanceJobKind.EMBEDDING_REINDEX.value,
+            "requested_by": "manual",
+            "source_id": "scheduler-1",
+            "limit": "250",
+            "force": "0",
+            "submitted_at": "2026-08-07T00:00:00+00:00",
+        },
+    )

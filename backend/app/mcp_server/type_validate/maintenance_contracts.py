@@ -100,3 +100,31 @@ class MaintenanceJobIdToolRequest(StrictSchemaModel):
         if not normalized:
             raise ValueError("job_id must not be blank")
         return normalized
+
+
+class MaintenanceDeadLetterIdToolRequest(StrictSchemaModel):
+    """Validated MCP input for one dead-letter entry operation."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    entry_id: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1, max_length=128),
+        described_field("Entry identifier for this dead-letter ID tool request."),
+    ]
+
+    @field_validator("entry_id")
+    @classmethod
+    def normalize_entry_id(cls, value: str) -> str:
+        """Normalize a dead-letter stream entry identifier.
+
+        Args:
+            value: Value to transform.
+
+        Returns:
+            Normalized value.
+        """
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("entry_id must not be blank")
+        return normalized

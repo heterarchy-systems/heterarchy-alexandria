@@ -298,13 +298,14 @@ class ContextService(
             replacement_context_id,
         )
 
-    async def delete(self, context_id: str) -> None:
-        """Hard-delete one SQL-backed Context.
+    async def delete(self, context_id: str, *, confirm: bool = False) -> None:
+        """Hard-delete one SQL-backed Context after explicit confirmation.
 
         Args:
             context_id: Context identifier.
+            confirm: Explicit hard-delete confirmation flag.
         """
-        await self._record_lifecycle_service.delete(context_id)
+        await self._record_lifecycle_service.delete(context_id, confirm=confirm)
 
     async def access(
         self,

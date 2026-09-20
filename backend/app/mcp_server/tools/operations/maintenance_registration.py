@@ -8,7 +8,10 @@ from app.mcp_server.backend_api_client import AlexandriaApiClient
 from app.mcp_server.tools.operations.maintenance_backend_gateway import (
     alexandria_get_maintenance_job,
     alexandria_get_maintenance_queue_status,
+    alexandria_list_maintenance_dead_letters,
+    alexandria_purge_maintenance_dead_letters,
     alexandria_reindex_context_embeddings,
+    alexandria_replay_maintenance_dead_letter,
 )
 from app.shared.types.extra_types import JSONValue
 
@@ -70,3 +73,36 @@ def register_maintenance_tools(
             Current bounded maintenance queue status payload.
         """
         return await alexandria_get_maintenance_queue_status(api_client)
+
+    @server.tool(name="alexandria_list_maintenance_dead_letters")
+    async def list_maintenance_dead_letters_tool(limit: int = 50) -> JSONValue:
+        """Read the newest terminal maintenance job failures for review.
+
+        Args:
+            limit: Maximum number of dead-letter entries to return.
+
+        Returns:
+            Newest-first dead-letter entries with failure evidence.
+        """
+        return await alexandria_list_maintenance_dead_letters(api_client, limit)
+
+    @server.tool(name="alexandria_purge_maintenance_dead_letters")
+    async def purge_maintenance_dead_letters_tool() -> JSONValue:
+        """Drop every dead-letter entry after operator review.
+
+        Returns:
+            Purged dead-letter entry count returned by the backend.
+        """
+        return await alexandria_purge_maintenance_dead_letters(api_client)
+
+    @server.tool(name="alexandria_replay_maintenance_dead_letter")
+    async def replay_maintenance_dead_letter_tool(entry_id: str) -> JSONValue:
+        """Re-enqueue one dead-letter entry's original request as a fresh job.
+
+        Args:
+            entry_id: Dead-letter stream entry identifier returned by listing.
+
+        Returns:
+            Freshly queued replacement maintenance job payload.
+        """
+        return await alexandria_replay_maintenance_dead_letter(api_client, entry_id)

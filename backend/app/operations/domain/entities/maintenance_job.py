@@ -61,3 +61,16 @@ class MaintenanceQueueSnapshot:
     pending: int
     consumers: int
     dead_letter_length: int
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class MaintenanceDeadLetterEntry:
+    """One terminal job failure recorded in the dead-letter stream."""
+
+    entry_id: str
+    job_id: str
+    kind: MaintenanceJobKind
+    attempts: int
+    failed_at: datetime
+    error_summary: str
+    source_stream_id: str

@@ -121,7 +121,9 @@ def test_canonical_and_sql_mutations_flow_into_delta_in_order() -> None:
         )
         assert archived.status_code == 200, archived.text
 
-        deleted = client.delete(f"/memory/contexts/{sql_context_id}")
+        deleted = client.delete(
+            f"/memory/contexts/{sql_context_id}", params={"confirm": "true"}
+        )
         assert deleted.status_code in (200, 204), deleted.text
 
         page_before = client.get("/memory/contexts/retrieval/changes").json()

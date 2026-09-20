@@ -5,6 +5,7 @@ from __future__ import annotations
 from app.mcp_server.backend_api_client import AlexandriaApiClient
 from app.mcp_server.tools.backend_gateway_policy import _path_segment
 from app.mcp_server.type_validate.maintenance_contracts import (
+    MaintenanceDeadLetterIdToolRequest,
     MaintenanceEmbeddingReindexToolRequest,
     MaintenanceJobIdToolRequest,
 )
@@ -73,3 +74,56 @@ async def alexandria_get_maintenance_queue_status(
         Decoded backend response containing bounded queue evidence.
     """
     return await client.get("/operations/maintenance/queue/status")
+
+
+async def alexandria_list_maintenance_dead_letters(
+    client: AlexandriaApiClient,
+    limit: int = 50,
+) -> JSONValue:
+    """Read the newest terminal maintenance job failures.
+
+    Args:
+        client: Backend API client used to read the dead-letter endpoint.
+        limit: Maximum number of dead-letter entries to return.
+
+    Returns:
+        Decoded backend response containing newest-first dead-letter entries.
+    """
+    return await client.get(
+        "/operations/maintenance/dead-letters",
+        {"limit": max(1, min(int(limit), 200))},
+    )
+
+
+async def alexandria_purge_maintenance_dead_letters(
+    client: AlexandriaApiClient,
+) -> JSONValue:
+    """Drop every dead-letter entry after operator review.
+
+    Args:
+        client: Backend API client used to call the dead-letter purge endpoint.
+
+    Returns:
+        Decoded backend response containing the purged entry count.
+    """
+    return await client.delete("/operations/maintenance/dead-letters")
+
+
+async def alexandria_replay_maintenance_dead_letter(
+    client: AlexandriaApiClient,
+    entry_id: str,
+) -> JSONValue:
+    """Re-enqueue the request behind one dead-letter entry as a fresh job.
+
+    Args:
+        client: Backend API client used to call the dead-letter replay endpoint.
+        entry_id: Dead-letter stream entry identifier to replay.
+
+    Returns:
+        Decoded backend response containing the freshly queued job snapshot.
+    """
+    request = MaintenanceDeadLetterIdToolRequest(entry_id=entry_id)
+    return await client.post(
+        f"/operations/maintenance/dead-letters/{_path_segment(request.entry_id)}/replay",
+        {},
+    )
