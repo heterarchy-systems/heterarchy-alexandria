@@ -30,6 +30,7 @@ from app.obsidian.domain.event_enum.obsidian_enums import (
 )
 from app.shared.exceptions.obsidian_exceptions import (
     ObsidianNotFoundError,
+    ObsidianValidationError,
     ObsidianWriteConflictError,
 )
 
@@ -147,6 +148,13 @@ class ObsidianBatchNoteService:
                 note_id=selector.note_id,
                 status="not_found",
             )
+        except ObsidianValidationError as exc:
+            return BatchReadItemResult(
+                path=selector.path,
+                note_id=selector.note_id,
+                status="parse_error",
+                parse_error=str(exc),
+            )
         except ValueError as exc:
             return BatchReadItemResult(
                 path=selector.path,
@@ -183,6 +191,13 @@ class ObsidianBatchNoteService:
                 path=selector.path,
                 note_id=selector.note_id,
                 status="not_found",
+            )
+        except ObsidianValidationError as exc:
+            return BatchValidateItemResult(
+                path=selector.path,
+                note_id=selector.note_id,
+                status="parse_error",
+                error=str(exc),
             )
         return BatchValidateItemResult(
             path=selector.path or report.note.relative_path,

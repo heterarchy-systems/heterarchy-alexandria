@@ -16,6 +16,7 @@ from app.obsidian.domain.contracts.obsidian_batch_contracts import (
 )
 from app.shared.exceptions.obsidian_exceptions import (
     ObsidianNotFoundError,
+    ObsidianValidationError,
     ObsidianWriteConflictError,
 )
 
@@ -58,7 +59,29 @@ class _FakeObsidianService:
         )
 
     async def read_note_by_path(self, path: str) -> object:
+        if "Broken" in path:
+            raise ObsidianValidationError("FRONTMATTER_PARSE_ERROR: broken")
         raise ObsidianNotFoundError(f"note not found: {path}")
+
+
+def test_batch_read_reports_parse_error_without_failing_the_batch() -> None:
+    """A malformed note becomes a per-item parse_error, not a batch failure."""
+    service = ObsidianBatchNoteService(
+        obsidian_service=_FakeObsidianService(),  # type: ignore[arg-type]
+        diagnostics_service=SimpleNamespace(),  # type: ignore[arg-type]
+    )
+
+    result = anyio.run(
+        service.batch_read,
+        [
+            BatchReadSelector(path="Alexandria/Broken.md"),
+            BatchReadSelector(path="Alexandria/Missing.md"),
+        ],
+    )
+
+    assert [item.status for item in result.items] == ["parse_error", "not_found"]
+    assert result.items[0].parse_error is not None
+    assert "FRONTMATTER_PARSE_ERROR" in result.items[0].parse_error
 
 
 def test_batch_write_reports_conflict_with_current_cas_evidence() -> None:

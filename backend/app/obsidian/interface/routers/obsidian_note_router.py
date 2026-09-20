@@ -618,6 +618,7 @@ async def batch_validate_note_links(
             parsed_count=item.parsed_count,
             resolved_count=item.resolved_count,
             unresolved_count=item.unresolved_count,
+            error=item.error,
         )
         for item in result.items
     ]

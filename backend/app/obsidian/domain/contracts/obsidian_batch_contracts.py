@@ -173,6 +173,7 @@ class BatchValidateItemResult:
     parsed_count: int = 0
     resolved_count: int = 0
     unresolved_count: int = 0
+    error: str | None = None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

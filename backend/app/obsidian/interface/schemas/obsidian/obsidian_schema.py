@@ -427,11 +427,12 @@ class ObsidianBatchValidateLinkItem(StrictSchemaModel):
 
     path: Annotated[str | None, described_field("Vault-relative path.")] = None
     note_id: Annotated[str | None, described_field("Stable note id.")] = None
-    status: Annotated[str, described_field("validated / not_found.")]
+    status: Annotated[str, described_field("validated / parse_error / not_found.")]
     exists: Annotated[bool, described_field("Whether the note exists.")] = False
     parsed_count: Annotated[int, described_field("Outgoing edge count.")] = 0
     resolved_count: Annotated[int, described_field("Resolved edge count.")] = 0
     unresolved_count: Annotated[int, described_field("Unresolved edge count.")] = 0
+    error: Annotated[str | None, described_field("Per-item failure detail.")] = None
 
 
 class ObsidianBatchValidateLinksRequest(StrictSchemaModel):
