@@ -5,10 +5,14 @@ from __future__ import annotations
 from typing import Annotated
 
 from app.operations.application.steward.memory_steward_service import (
+    StewardCurrentCompactsEvidence,
     StewardDiagnoseResult,
     StewardDiagnostic,
 )
 from app.operations.domain.event_enum.memory_steward_enums import MemoryStewardStatus
+from app.operations.interface.schemas.operations.maintenance_job_schema import (
+    MaintenanceQueueStatusResponse,
+)
 from app.operations.interface.schemas.operations.operational_readiness_detail_schema import (
     OperationalReadinessSnapshotResponse,
 )
@@ -62,6 +66,37 @@ class MemoryStewardDiagnosticResponse(StrictSchemaModel):
         )
 
 
+class MemoryStewardCurrentCompactsResponse(StrictSchemaModel):
+    """CURRENT Memory Compact evidence over a bounded page."""
+
+    count: Annotated[
+        int,
+        described_field("Count for this steward current compacts response."),
+    ]
+    unique_projects: Annotated[
+        bool,
+        described_field("Unique projects for this steward current compacts response."),
+    ]
+
+    @classmethod
+    def from_entity(
+        cls,
+        evidence: StewardCurrentCompactsEvidence,
+    ) -> MemoryStewardCurrentCompactsResponse:
+        """Map the internal compact evidence to the HTTP contract.
+
+        Args:
+            evidence: Internal CURRENT compact evidence.
+
+        Returns:
+            HTTP steward current compacts response.
+        """
+        return cls(
+            count=evidence.count,
+            unique_projects=evidence.unique_projects,
+        )
+
+
 class MemoryStewardDiagnoseResponse(StrictSchemaModel):
     """Composed steward verdict with diagnostics and the readiness evidence."""
 
@@ -77,6 +112,16 @@ class MemoryStewardDiagnoseResponse(StrictSchemaModel):
         OperationalReadinessSnapshotResponse,
         described_field("Readiness evidence for this steward diagnose response."),
     ]
+    queue: Annotated[
+        MaintenanceQueueStatusResponse | None,
+        described_field(
+            "Maintenance queue evidence for this steward diagnose response."
+        ),
+    ] = None
+    current_compacts: Annotated[
+        MemoryStewardCurrentCompactsResponse | None,
+        described_field("CURRENT compact evidence for this steward diagnose response."),
+    ] = None
 
     @classmethod
     def from_entity(
@@ -91,6 +136,8 @@ class MemoryStewardDiagnoseResponse(StrictSchemaModel):
         Returns:
             HTTP steward diagnose response.
         """
+        queue = result.queue
+        current_compacts = result.current_compacts
         return cls(
             overall_status=result.overall_status,
             diagnostics=[
@@ -99,5 +146,15 @@ class MemoryStewardDiagnoseResponse(StrictSchemaModel):
             ],
             readiness=OperationalReadinessSnapshotResponse.from_entity(
                 result.readiness
+            ),
+            queue=(
+                None
+                if queue is None
+                else MaintenanceQueueStatusResponse.from_entity(queue)
+            ),
+            current_compacts=(
+                None
+                if current_compacts is None
+                else MemoryStewardCurrentCompactsResponse.from_entity(current_compacts)
             ),
         )

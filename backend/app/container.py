@@ -450,8 +450,12 @@ class ApplicationContainer(containers.DeclarativeContainer):
     memory_steward_diagnose_service = providers.Factory(
         MemoryStewardDiagnoseService,
         readiness_service=operational_readiness_service,
+        maintenance_queue=maintenance_job_submitter,
+        compact_port=memory.memory_compact_service,
     )
     memory_steward_seal_service = providers.Factory(
         MemoryStewardSealService,
         readiness_service=operational_readiness_service,
+        maintenance_queue=maintenance_job_submitter,
+        compact_port=memory.memory_compact_service,
     )

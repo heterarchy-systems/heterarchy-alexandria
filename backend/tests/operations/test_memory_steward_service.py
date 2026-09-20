@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -14,8 +15,13 @@ from app.memory.domain.entities.context_read_models import (
     ContextPack,
     RagDependencyHealth,
 )
+from app.memory.domain.entities.memory_compact import MemoryCompact
 from app.memory.domain.event_enum.context_enums import RagHealthState, RagStrategy
+from app.memory.domain.event_enum.memory_compact_enums import MemoryCompactStatus
 from app.obsidian.domain.entities.obsidian_note import ObsidianVaultStatus
+from app.operations.application.maintenance_job_queue import (
+    MaintenanceQueueUnavailableError,
+)
 from app.operations.application.readiness.operational_readiness_cache import (
     NoopOperationalReadinessCache,
 )
@@ -26,9 +32,13 @@ from app.operations.application.steward.memory_steward_service import (
     MemoryStewardDiagnoseService,
     MemoryStewardSealService,
 )
+from app.operations.domain.entities.maintenance_job import MaintenanceQueueSnapshot
 from app.operations.interface.routers.operational_readiness_router import (
     memory_steward_diagnose,
     memory_steward_seal,
+)
+from app.operations.interface.schemas.operations.memory_steward_schema import (
+    MemoryStewardDiagnoseResponse,
 )
 from app.shared.infrastructure.database import Database
 
@@ -192,3 +202,96 @@ def test_steward_router_handlers_expose_http_contract(tmp_path: Path) -> None:
     assert isinstance(readiness_payload, dict)
     assert readiness_payload["status"] == "DEGRADED_FTS_ONLY"
     assert readiness_payload["database"]["reachable"] is True
+
+
+class _FakeMaintenanceQueue:
+    def __init__(self, *, unavailable: bool = False) -> None:
+        self._unavailable = unavailable
+
+    async def queue_status(self) -> MaintenanceQueueSnapshot:
+        if self._unavailable:
+            raise MaintenanceQueueUnavailableError("redis down")
+        return MaintenanceQueueSnapshot(
+            stream_length=4,
+            pending=1,
+            consumers=1,
+            dead_letter_length=3,
+        )
+
+
+class _FakeCurrentCompacts:
+    async def list_compacts(
+        self,
+        project: str | None = None,
+        status: MemoryCompactStatus | None = None,
+        covered_after: datetime | None = None,
+        covered_before: datetime | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> tuple[list[MemoryCompact], int]:
+        def _compact(compact_id: str) -> MemoryCompact:
+            return MemoryCompact(
+                id=compact_id,
+                project="heterarchy-alexandria",
+                covered_from=datetime(2026, 9, 20, tzinfo=UTC),
+                covered_to=datetime(2026, 9, 21, tzinfo=UTC),
+                markdown_body="# Compact\n",
+                status=MemoryCompactStatus.CURRENT,
+                source_refs=(),
+                created_at=datetime(2026, 9, 21, tzinfo=UTC),
+                updated_at=datetime(2026, 9, 21, tzinfo=UTC),
+                archived_at=None,
+            )
+
+        return [_compact("c-1"), _compact("c-2")], 5
+
+
+def test_steward_diagnose_surfaces_dlq_and_compact_evidence(tmp_path: Path) -> None:
+    """Diagnose composes queue and CURRENT compact evidence into the verdict."""
+    service, database = _readiness_service(tmp_path)
+
+    async def scenario() -> dict[str, object]:
+        try:
+            result = await MemoryStewardDiagnoseService(
+                service,
+                _FakeMaintenanceQueue(),
+                _FakeCurrentCompacts(),
+            ).diagnose()
+            return MemoryStewardDiagnoseResponse.from_entity(result).model_dump(
+                mode="json"
+            )
+        finally:
+            await database.shutdown()
+
+    payload = anyio.run(scenario)
+
+    diagnostics = payload["diagnostics"]
+    assert isinstance(diagnostics, list)
+    codes = {diagnostic["code"] for diagnostic in diagnostics}
+    assert "DLQ_RESIDUALS" in codes
+    queue = payload["queue"]
+    assert isinstance(queue, dict)
+    assert queue["pending"] == 1
+    assert queue["dead_letter_length"] == 3
+    assert payload["current_compacts"] == {"count": 5, "unique_projects": False}
+
+
+def test_steward_diagnose_reports_queue_unavailable_as_residual(
+    tmp_path: Path,
+) -> None:
+    """An unavailable queue becomes a non-blocking diagnostic, not a crash."""
+    service, database = _readiness_service(tmp_path)
+
+    async def scenario() -> tuple[str, ...]:
+        try:
+            result = await MemoryStewardDiagnoseService(
+                service,
+                _FakeMaintenanceQueue(unavailable=True),
+            ).diagnose()
+            return tuple(diagnostic.code for diagnostic in result.diagnostics)
+        finally:
+            await database.shutdown()
+
+    codes = anyio.run(scenario)
+
+    assert "QUEUE_UNAVAILABLE" in codes
