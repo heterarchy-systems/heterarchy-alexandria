@@ -14,7 +14,7 @@ type_checking:
 	uv run --no-editable pyrefly check
 
 cli_smoke:
-	uv run --isolated --with . heterarchy-alexandria --help >/dev/null
+	rm -rf build && uv run --isolated --with . --refresh-package heterarchy-alexandria heterarchy-alexandria --help >/dev/null
 
 benchmark_check:
 	uv run --no-editable pytest -q --confcutdir=tests/benchmark_tools tests/benchmark_tools

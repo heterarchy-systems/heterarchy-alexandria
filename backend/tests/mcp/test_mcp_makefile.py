@@ -22,7 +22,10 @@ def test_makefile_keeps_only_build_and_ci_targets() -> None:
     )
     assert "cli_smoke:" in text
     assert "uv sync --no-editable --reinstall-package heterarchy-alexandria" in text
-    assert "uv run --isolated --with . heterarchy-alexandria --help >/dev/null" in text
+    assert (
+        "rm -rf build && uv run --isolated --with . --refresh-package "
+        "heterarchy-alexandria heterarchy-alexandria --help >/dev/null"
+    ) in text
     assert "LOAD_LOCAL_ENV" not in text
     assert "PROJECT ?=" not in text
     assert "REVIEW_LIMIT ?=" not in text
