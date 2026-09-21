@@ -372,16 +372,20 @@ class ObsidianNoteService:
             raise ObsidianValidationError(
                 f"REPAIR_CONTENT_INVALID: repaired source must parse: {exc}"
             ) from exc
-        index_payload = await anyio.to_thread.run_sync(
-            partial(
-                _persist_and_index,
-                absolute,
-                content,
-                safe_path,
-                config.alexandria_root,
-            ),
-            limiter=anyio.to_thread.current_default_thread_limiter(),
-        )
+        try:
+            index_payload = await anyio.to_thread.run_sync(
+                partial(
+                    _persist_and_index,
+                    absolute,
+                    content,
+                    safe_path,
+                    config.alexandria_root,
+                ),
+                limiter=anyio.to_thread.current_default_thread_limiter(),
+            )
+        except ValueError as exc:
+            atomic_write_markdown(absolute, current_text)
+            raise ObsidianValidationError(f"REPAIR_CONTENT_INVALID: {exc}") from exc
         if index_payload is None:
             atomic_write_markdown(absolute, current_text)
             raise ObsidianValidationError(
