@@ -22,10 +22,10 @@ Use this skill to restore heterarchy-alexandria retrieval health without modifyi
 - Stop only when `/operations/readiness` is `READY` or the remaining blocker is explicitly explained.
 
 ## Procedure
-1. Read operational readiness/capabilities once, then inspect only the failing subsystem's detailed status. For a single note, prefer `alexandria_verify` with an exact selector when registered.
+1. Read operational readiness/capabilities once, then inspect only the failing subsystem's detailed status. For a single note, prefer `alexandria_verify` with an exact selector when registered. For the composed verdict with queue, CURRENT compact, and DLQ evidence, prefer `alexandria_memory_steward_diagnose` (`GET /operations/memory-steward/diagnose`) — each diagnostic carries `detail_operation` and `recommended_operation` references; follow them instead of re-deriving causes.
 2. Reindex the canonical Vault when note/index drift exists and treat the returned `graph_projection` as primary graph evidence.
 3. Catch up only stale/missing embeddings with bounded `force=false` maintenance jobs unless full recomputation is explicitly required.
-4. Recheck graph, queue, RAG, and readiness; stop only when remaining warnings/issues are zero or explicitly bounded and documented.
+4. Recheck graph, queue, RAG, and readiness; stop only when remaining warnings/issues are zero or explicitly bounded and documented. Verify the cycle with `alexandria_memory_steward_seal` (`GET /operations/memory-steward/seal`): `READY` or `READY_WITH_RESIDUALS` with explained residuals is done; it never hides residuals or auto-repairs.
 
 `alexandria_verify` can return `vector_current=null` or `graph_current=null`.
 Those values mean unverified, not current. Consult affected RAG/graph status
@@ -116,6 +116,58 @@ curl -fsS \
 Use a stable `source_id` for duplicate suppression and keep `limit` bounded to `1..1000`. Set `force=true` only when matching embeddings must be regenerated. If polling expires, retain the job ID and resume status checks; do not submit a duplicate job. Completion requires that job to succeed and the affected RAG rows to be current. Report unrelated queue/dead-letter work separately; do not repair or drain it as part of a single-note save.
 
 After every vault reindex, re-check RAG status. Vault reindex can create new missing embedding rows, so enqueue another bounded embedding job if needed.
+
+## Dead-letter queue lifecycle
+
+A nonzero `dead_letter_length` (or a `DLQ_RESIDUALS` steward diagnostic) is
+non-blocking but must be reviewed, not hoarded:
+
+```bash
+set -euo pipefail
+curl -fsS http://127.0.0.1:8000/operations/maintenance/dead-letters | jq
+```
+
+Decide per entry from `kind`, `attempts`, `error_summary`, and `failed_at`:
+
+- Transient cause since resolved (lease contention, deploy restart): replay it.
+- Permanent or obsolete: purge only after the evidence above is recorded in the
+  operation log. Never purge as a way to hide a recurring failure.
+
+```bash
+set -euo pipefail
+curl -fsS -X POST \
+  http://127.0.0.1:8000/operations/maintenance/dead-letters/<entry_id>/replay | jq
+# poll the returned job_id like any queued job, then verify the outcome
+curl -fsS -X DELETE \
+  http://127.0.0.1:8000/operations/maintenance/dead-letters | jq
+```
+
+Replay enqueues the original request as a fresh job (new `job_id`, full retry
+budget); `409` means the source entry was trimmed and the failure is no longer
+replayable — resolve it by running the operation fresh instead.
+
+## Asynchronous batch note write
+
+For multi-note CAS writes that should not block the caller, stage them through
+the queue instead of the synchronous batch endpoint:
+
+```bash
+set -euo pipefail
+job_json="$(
+  curl -fsS -X POST \
+    http://127.0.0.1:8000/operations/maintenance/batch-note-write/jobs \
+    -H "Content-Type: application/json" \
+    --data '{"requested_by":"operator","operations":[
+      {"op":"update","title":"...","body":"...","relative_path":"Alexandria/A.md","expected_content_hash":"<current-hash>"}
+    ]}'
+)"
+job_id="$(printf '%s' "$job_json" | jq -r '.job_id')"
+```
+
+Each operation keeps per-item CAS semantics, so a retried execution cannot
+duplicate a write. Poll the job; the succeeded result carries per-item
+`status`, `content_hash`, and `current_content_hash` for conflicted items.
+Retry a conflicted item only after reading its current source.
 
 Vault reindex now projects the current indexed graph through PostgreSQL and Rust.
 Treat the returned `graph_projection` object as the primary projection result. Run the

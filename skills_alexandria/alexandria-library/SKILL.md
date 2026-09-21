@@ -80,6 +80,7 @@ execution or cycle apply with a new client-side orchestration loop.
 
 ## Status/diagnostics
 - Primary readiness: `alexandria_operational_readiness()` or `GET /operations/readiness`.
+- Composed steward verdict: `alexandria_memory_steward_diagnose()` / `alexandria_memory_steward_seal()` (`GET /operations/memory-steward/diagnose|seal`) — readiness plus queue, DLQ, and CURRENT compact evidence, with per-issue `recommended_operation` references.
 - RAG health: `alexandria_rag_status()` or `GET /memory/contexts/rag/status`.
 - Graph status: `alexandria_get_graph_projection_status()` when graph expansion matters; Markdown owns durable relationships, PostgreSQL owns indexed edges, and Rust owns deterministic graph compute.
 - CLI fallback is limited to commands actually shown by `heterarchy-alexandria --help`.

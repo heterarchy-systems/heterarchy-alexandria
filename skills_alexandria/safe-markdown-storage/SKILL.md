@@ -37,6 +37,11 @@ Use one of these `alexandria_type` values:
 
 Do not store routine scratch output as `context` merely because it is easy. Durable note types are for durable information.
 
+These are the only accepted `alexandria_type` values. An unsupported value (for
+example `evidence`) makes the note unreadable through every managed read and
+write path until its frontmatter is repaired — repair it to the type the
+note's own `document_type` indicates.
+
 ## 2. Separate Markdown body from typed metadata
 
 Verified upsert accepts `identity`, `title`, `body`, `alexandria_type`,
@@ -115,6 +120,36 @@ checkpoint after admission requires recovery; never generate a fresh key to
 recreate an output whose prior outcome is unknown.
 
 Do not infer an update target from a similar title.
+
+## 4b. Batch operations and malformed-note repair
+
+Multi-note workflows use the bounded batch endpoints (max 50 items; per-item
+independent outcomes — one malformed note never fails the batch):
+
+- `alexandria_batch_read_notes` — `POST /obsidian/notes/batch-read`
+- `alexandria_batch_validate_note_links` — `POST /obsidian/notes/batch-validate-links`
+- `alexandria_batch_write_notes` — `POST /obsidian/notes/batch-write` (per-item CAS)
+
+A conflicted write item returns `current_content_hash`: retry CAS against it
+instead of re-reading the note first.
+
+For a note whose frontmatter cannot parse — ordinary reads and CAS writes
+refuse it while the file itself is intact — use the raw repair workflow:
+
+1. `alexandria_read_note_raw(path=...)` returns the source text, its
+   `content_hash`, and a bounded parse status without leaking secret fields.
+2. Fix the frontmatter or body minimally. Do not invent values for unknown
+   metadata; an unsupported `alexandria_type` repairs to the type the note's
+   own `document_type` indicates.
+3. `alexandria_repair_note_raw(path=..., expected_content_hash=<hash>,
+   raw_content=<full replacement>)` accepts the replacement only when the CAS
+   matches, the content is secret-free, and the replacement parses and passes
+   index identity validation; otherwise the original bytes are preserved and
+   a bounded error is returned.
+
+Hard deletes of Context or Memory Compact notes additionally require explicit
+confirmation (`confirm=true` at the HTTP and MCP boundaries); prefer archive
+or supersede.
 
 ## 5. Context scope is part of identity
 
