@@ -1,0 +1,4 @@
+interface:
+  display_name: "Alexandria Library"
+  short_description: "Recall durable evidence with bounded delivery"
+  default_prompt: "Use $alexandria-library to retrieve the project decision I need with a bounded brief and cite its exact sources."

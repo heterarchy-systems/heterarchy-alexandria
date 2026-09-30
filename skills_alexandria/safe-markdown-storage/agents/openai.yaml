@@ -1,0 +1,4 @@
+interface:
+  display_name: "Alexandria Safe Markdown Storage"
+  short_description: "Write and repair canonical Markdown with CAS"
+  default_prompt: "Use $alexandria-safe-markdown-storage to write or repair the requested canonical note with exact identity, CAS and readback."

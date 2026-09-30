@@ -1,0 +1,4 @@
+interface:
+  display_name: "Alexandria Connection Hub"
+  short_description: "Pair MCP clients and verify actual delivery"
+  default_prompt: "Use $connection-hub to inspect the configured MCP endpoint and verify client delivery without exposing credentials."

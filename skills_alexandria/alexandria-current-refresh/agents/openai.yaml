@@ -1,0 +1,4 @@
+interface:
+  display_name: "Alexandria CURRENT Refresh"
+  short_description: "Review final project summaries before promotion"
+  default_prompt: "Use $alexandria-current-refresh to prepare a project-specific DRAFT and bind its final body to a fresh 20/20 review before promotion."

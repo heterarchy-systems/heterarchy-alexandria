@@ -1,78 +1,63 @@
 ---
 name: connection-hub
-description: Use when connecting or repairing an MCP client through the local /connect page, including pairing-code generation and secret-safe connection verification.
+description: Use when connecting or repairing an MCP client through Alexandria's local connection hub and verifying the actual configured endpoint.
 ---
 
 # Connection Hub
 
-Use Alexandria's local connection page instead of manually handling OAuth
-tokens.
+Use the local `/connect` hub and its typed status/API responses. Keep pairing
+codes and credentials out of notes, chat, logs, and source files. Do not change
+credentials, tunnels, backend processes, or restart services unless the task
+explicitly authorizes that action.
 
-## Safety boundary
+## Read the configured endpoint first
 
-- Open `http://127.0.0.1:8000/connect` from the same machine as the backend.
-- Do not paste access tokens, refresh tokens, device codes, or pairing codes into
-  Obsidian notes, chat transcripts, logs, or source files.
-- Pairing codes are short-lived and one-time use.
-- Do not expose the local page publicly without HTTPS and operator
-  authentication.
-- Core memory and local retrieval remain usable independently of MCP client auth.
+Use the actual configured backend origin supplied by the running service or task
+environment. Do not assume `127.0.0.1:8000` or any other port.
 
-## Procedure
-1. Run the preflight checks and confirm the local backend/readiness surface.
-2. Start the exact MCP client connection flow.
-3. Poll the returned status instead of guessing completion from browser state.
-4. Finish only after the verification checks succeed; use the bounded repair path for a classified failure.
+Read:
 
-## Preflight
+- `GET <actual-origin>/health/live`
+- `GET <actual-origin>/connect/status`
+- `GET <actual-origin>/operations/readiness`
 
-```bash
-curl -fsS http://127.0.0.1:8000/health/live
-curl -fsS http://127.0.0.1:8000/connect/status | jq
-curl -fsS http://127.0.0.1:8000/operations/readiness | jq
-```
+The connection status response is authoritative for `app_env`, `mcp_auth_mode`,
+`mcp_endpoint`, `mcp_oauth_enabled`, `mcp_oauth_issuer`, and `local_only`. Use
+the returned `mcp_endpoint` exactly when registering the client.
 
-Require `local_only=true`. For MCP browser authorization, require
-`mcp_auth_mode=local_oauth2` and `mcp_oauth_enabled=true`.
+For local OAuth, require `mcp_auth_mode=local_oauth2`,
+`mcp_oauth_enabled=true`, and `local_only=true` before generating a pairing
+code. A public deployment must use its configured HTTPS issuer/resource origin;
+never publish a localhost endpoint as the remote registration endpoint.
 
-When a public tunnel or domain fronts the local backend, configure both values
-to the same stable public origin before connecting ChatGPT:
+## Pair and inspect the client
 
-```bash
-SERVICE_MCP_OAUTH_ISSUER=https://alexandria.example
-SERVICE_MCP_OAUTH_RESOURCE=https://alexandria.example/mcp
-```
+Open `GET <actual-origin>/connect` on the local machine. Generate a single code
+with `POST <actual-origin>/connect/mcp/pairing-code`, enter it only in the local
+approval page, and poll:
 
-Restart the backend and verify that protected-resource and authorization-server
-metadata advertise only public HTTPS URLs. A localhost `registration_endpoint`
-causes remote clients to report that RFC 7591 registration is unsupported even
-when `/register` itself is implemented.
+- `GET <actual-origin>/connect/status`
+- `GET <actual-origin>/connect/mcp/clients`
+- `GET <actual-origin>/operations/readiness`
 
-## Connect an MCP client
+The pairing response contains `code` and aware `expires_at`. Client records
+contain public-safe `client_id`, `client_name`, `status`, `connected`, `scopes`,
+`resource`, token expiry timestamps, and token-family count; they do not expose
+token material. Disconnect and extension are explicit POST operations at
+`/connect/mcp/clients/{client_id}/disconnect` and
+`/connect/mcp/clients/{client_id}/extend`.
 
-1. Copy the MCP Endpoint displayed by `/connect`.
-2. Register that endpoint in the MCP client.
-3. When the browser approval page opens, generate a one-time pairing code from
-   the hub.
-4. Enter the code only in the local approval page.
-5. Complete OAuth authorization and verify MCP tool discovery.
+Generate a new code only after the previous one expired or was consumed. Do not
+paste a code into an unrelated endpoint or expose it through a log.
 
-Do not generate multiple codes preemptively. Generate a new code only after the
-previous code expired or was consumed.
+## Verify delivery separately
 
-## Verification
+Health, readiness, the local page, and MCP tool discovery prove server-side
+configuration only. They do not prove that the intended external provider can
+invoke the registered MCP endpoint. After authorization, verify the actual
+client can discover and invoke a safe registered tool through the endpoint
+reported by `/connect/status`. Keep provider-delivery or transport failures
+separate from core-memory readiness.
 
-After connection:
-
-```bash
-curl -fsS http://127.0.0.1:8000/connect/status | jq
-curl -fsS http://127.0.0.1:8000/operations/readiness | jq
-```
-
-Confirm:
-
-- no credential material appears in either response;
-- core readiness remains `READY`;
-- retrieval remains `HYBRID` when embeddings are healthy;
-- MCP client connection failures do not disable core memory;
-- the MCP client can discover Alexandria tools only after authorization.
+Never infer success from browser state alone, and never force a fixed port or
+replace the configured endpoint with a guessed URL.

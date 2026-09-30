@@ -1,0 +1,4 @@
+interface:
+  display_name: "Alexandria Graph Care"
+  short_description: "Inspect graph debt and evidence-backed suggestions"
+  default_prompt: "Use $alexandria-graph-care to inspect graph link and orphan debt and explain source-verified relation candidates."

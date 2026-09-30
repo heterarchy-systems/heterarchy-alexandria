@@ -1,17 +1,27 @@
 # Use Alexandria Library
 
-When a task references prior work, project decisions, local skills, prompts, or durable context, use Alexandria as an optional local-first library.
+Use current conversation, loaded skills and relevant local files first. Honor a
+user opt-out. Load [Alexandria Library](../alexandria-library/SKILL.md) for a
+specific durable memory gap.
 
-Preferred order:
-1. Respect an explicit user/session instruction not to use Alexandria; do not invoke nonexistent legacy `policy` or `doctor` CLI commands.
-2. Use current conversation, Hermes local memory, loaded skills, and local files first.
-3. Reuse an already-known current Memory Compact when relevant; otherwise recall the specific gap without a mandatory preliminary lookup.
-4. Use `alexandria_recall` for the specific gap, retaining its route, scope and source/projection evidence.
-5. Prefer `alexandria_verified_upsert`, `alexandria_relate`, `alexandria_verify`, and the exact-plan `alexandria_memory_cycle` composite when present. Use managed-spec preparation/completion for scheduler specification and output persistence; keep domain work with the caller.
-6. These composite tools take `request={...}`. Inspect registered schemas and capability availability; repository edits do not reload the service. If missing, report the gap and use available exact reads or scoped searches for diagnosis, without inventing a replacement mutation loop.
-7. For generic skills/prompts without report/date/entity identity, use the exact note-write API with read-modify-write CAS. Follow [Safe Markdown Storage](../safe-markdown-storage/SKILL.md) for this boundary.
-8. Invoke [Operational Sync](../operational-sync/SKILL.md) only for indicated projection repair. A stored source with pending projections remains stored; do not recreate it or change the idempotency key after an unknown outcome.
+Reuse a relevant known CURRENT; otherwise request a bounded
+`alexandria_context_brief` with a real project/scope and starting budgets of
+16,000 bytes / 8 records. Request HYBRID, inspect truthful degradation and trace,
+and retain delivered `(context_id, content_hash)` pairs per session. Omitted or
+suppressed references remain exact-refetch candidates. Use scoped
+`alexandria_recall` for routing or remaining gaps, then exact source reads and
+verified graph seeds as needed.
 
-If Alexandria is disabled or unavailable, continue independent work with available
-context and state the memory-dependent gap. Do not claim unavailable memory was
-searched, written or verified.
+Choose [Safe Markdown Storage](../safe-markdown-storage/SKILL.md) for exact
+writes, [CURRENT Refresh](../alexandria-current-refresh/SKILL.md) for final
+reviewed project summaries or period closure, [Graph Care](../alexandria-graph-care/SKILL.md)
+for link/orphan evidence, and [Maintenance and DLQ](../alexandria-maintenance-dlq/SKILL.md)
+for jobs or uncertain write outcomes. Use [Operational Sync](../operational-sync/SKILL.md)
+only for the diagnosed recovery cause.
+
+Inspect the actually registered schema: composite requests are nested, brief
+and many exact tools are flat. Keep original write keys/fences, distinguish
+source commit from pending projections, and read receipts before retrying an
+unknown effect. Repo skill changes do not publish Active mirrors or reload the
+server. If a required capability is absent, state that gap and continue useful
+independent work; do not manufacture a replacement mutation loop.

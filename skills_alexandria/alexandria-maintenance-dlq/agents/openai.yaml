@@ -1,0 +1,4 @@
+interface:
+  display_name: "Alexandria Maintenance and DLQ"
+  short_description: "Inspect jobs and reconcile uncertain write outcomes"
+  default_prompt: "Use $alexandria-maintenance-dlq to inspect this job and reconcile durable item outcomes before choosing retry or retirement."

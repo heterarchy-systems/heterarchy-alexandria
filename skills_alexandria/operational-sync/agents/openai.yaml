@@ -1,0 +1,4 @@
+interface:
+  display_name: "Alexandria Operational Sync"
+  short_description: "Repair diagnosed retrieval and projection gaps"
+  default_prompt: "Use $operational-sync to diagnose the reported retrieval problem and prepare a cause-specific recovery and verification plan."
