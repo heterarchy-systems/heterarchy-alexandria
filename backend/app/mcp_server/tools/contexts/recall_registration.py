@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from mcp.server import MCPServer
 
 from app.mcp_server.backend_api_client import AlexandriaApiClient
@@ -10,6 +12,7 @@ from app.memory.interface.schemas.context.recall_schema import (
     RecallRequestSchema,
     RecallResponseSchema,
 )
+from app.shared.type_validation.strict_json_arg import json_mode_arg
 
 
 def register_high_level_recall_tool(
@@ -19,6 +22,11 @@ def register_high_level_recall_tool(
     """Register one high-level recall tool on the MCP server."""
 
     @server.tool(name="alexandria_recall")
-    async def _tool_recall(request: RecallRequestSchema) -> RecallResponseSchema:
+    async def _tool_recall(
+        request: Annotated[
+            RecallRequestSchema,
+            json_mode_arg(RecallRequestSchema),
+        ],
+    ) -> RecallResponseSchema:
         """Recall memory through the bounded canonical cascade."""
         return await alexandria_recall(api_client, request)

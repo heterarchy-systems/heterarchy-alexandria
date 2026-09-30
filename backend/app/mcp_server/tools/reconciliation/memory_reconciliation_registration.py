@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from mcp.server import MCPServer
 
 from app.mcp_server.backend_api_client import AlexandriaApiClient
@@ -28,6 +30,7 @@ from app.memory.interface.schemas.reconciliation.existing.memory_existing_reconc
 from app.memory.interface.schemas.reconciliation.temporal.memory_reconciliation_temporal_request_schema import (
     MemoryTemporalRecallHttpRequest,
 )
+from app.shared.type_validation.strict_json_arg import json_mode_arg
 from app.shared.types.extra_types import JSONValue
 
 
@@ -44,7 +47,10 @@ def register_memory_reconciliation_tools(
 
     @server.tool(name="alexandria_preview_memory_reconciliation")
     async def _preview_memory_reconciliation(
-        candidate: MemoryCandidateRequest,
+        candidate: Annotated[
+            MemoryCandidateRequest,
+            json_mode_arg(MemoryCandidateRequest),
+        ],
         idempotency_key: str | None = None,
         recall_limit: int = 20,
     ) -> JSONValue:
@@ -67,7 +73,10 @@ def register_memory_reconciliation_tools(
 
     @server.tool(name="alexandria_recall_memory_temporally")
     async def _recall_memory_temporally(
-        request: MemoryTemporalRecallHttpRequest,
+        request: Annotated[
+            MemoryTemporalRecallHttpRequest,
+            json_mode_arg(MemoryTemporalRecallHttpRequest),
+        ],
     ) -> JSONValue:
         """Recall current, historical, or all matching memory states.
 
@@ -84,7 +93,10 @@ def register_memory_reconciliation_tools(
 
     @server.tool(name="alexandria_preview_reconciliation_memory_compact")
     async def _preview_reconciliation_memory_compact(
-        request: MemoryTemporalRecallHttpRequest,
+        request: Annotated[
+            MemoryTemporalRecallHttpRequest,
+            json_mode_arg(MemoryTemporalRecallHttpRequest),
+        ],
     ) -> JSONValue:
         """Preview safe Memory Compact fact buckets and blockers.
 
@@ -101,7 +113,10 @@ def register_memory_reconciliation_tools(
 
     @server.tool(name="alexandria_preview_existing_memory_reconciliation")
     async def _preview_existing_memory_reconciliation(
-        request: ExistingMemoryReconciliationHttpRequest,
+        request: Annotated[
+            ExistingMemoryReconciliationHttpRequest,
+            json_mode_arg(ExistingMemoryReconciliationHttpRequest),
+        ],
     ) -> JSONValue:
         """Analyze existing memory without persisting backfill state or plans.
 
@@ -118,7 +133,10 @@ def register_memory_reconciliation_tools(
 
     @server.tool(name="alexandria_apply_existing_memory_reconciliation")
     async def _apply_existing_memory_reconciliation(
-        request: ExistingMemoryReconciliationHttpRequest,
+        request: Annotated[
+            ExistingMemoryReconciliationHttpRequest,
+            json_mode_arg(ExistingMemoryReconciliationHttpRequest),
+        ],
     ) -> JSONValue:
         """Apply safe temporal backfill and persist reviewable plans.
 

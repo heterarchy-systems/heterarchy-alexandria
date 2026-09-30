@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from mcp.server import MCPServer
 
 from app.mcp_server.backend_api_client import AlexandriaApiClient
@@ -12,6 +14,7 @@ from app.obsidian.interface.schemas.obsidian.obsidian_relation_schema import (
     ObsidianRelateRequestSchema,
     ObsidianRelateResponse,
 )
+from app.shared.type_validation.strict_json_arg import json_mode_arg
 
 
 def register_obsidian_relation_tools(
@@ -22,7 +25,10 @@ def register_obsidian_relation_tools(
 
     @server.tool(name="alexandria_relate")
     async def _tool_relate(
-        request: ObsidianRelateRequestSchema,
+        request: Annotated[
+            ObsidianRelateRequestSchema,
+            json_mode_arg(ObsidianRelateRequestSchema),
+        ],
     ) -> ObsidianRelateResponse:
         """Relate two existing notes and verify source, index, and graph state."""
         return await alexandria_relate(api_client, request)

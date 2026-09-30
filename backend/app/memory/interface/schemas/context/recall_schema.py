@@ -258,43 +258,43 @@ class RecallProvenanceResponse(StrictSchemaModel):
         str | None,
         described_field("Matched heading when available."),
         exclude_none_field(),
-    ]
+    ] = None
     project: Annotated[
         str | None,
         described_field("Matched project when available."),
         exclude_none_field(),
-    ]
+    ] = None
     fts_score: Annotated[
         float | None,
         described_field("Existing FTS contribution when available."),
         exclude_none_field(),
-    ]
+    ] = None
     vector_score: Annotated[
         float | None,
         described_field("Existing vector contribution when available."),
         exclude_none_field(),
-    ]
+    ] = None
     graph_score: Annotated[
         float | None,
         described_field("Existing graph contribution when available."),
         exclude_none_field(),
-    ]
+    ] = None
     confidence: Annotated[float, described_field("Bounded evidence confidence.")]
     exact_contribution: Annotated[
         str | None,
         described_field("Exact selector contribution when used."),
         exclude_none_field(),
-    ]
+    ] = None
     source_revision: Annotated[
         str | None,
         described_field("Source revision when the source supplied one."),
         exclude_none_field(),
-    ]
+    ] = None
     index_revision: Annotated[
         str | None,
         described_field("Index revision when the source supplied one."),
         exclude_none_field(),
-    ]
+    ] = None
     lifecycle_eligible: Annotated[
         bool, described_field("Whether lifecycle eligibility was satisfied.")
     ]
@@ -302,7 +302,7 @@ class RecallProvenanceResponse(StrictSchemaModel):
         bool | None,
         described_field("Temporal eligibility when evaluated."),
         exclude_none_field(),
-    ]
+    ] = None
     title_alias_contribution: Annotated[
         str | None,
         described_field("Title or alias contribution when available."),
@@ -333,17 +333,17 @@ class RecallStageTraceResponse(StrictSchemaModel):
         str | None,
         described_field("Project used by the stage."),
         exclude_none_field(),
-    ]
+    ] = None
     effective_strategy: Annotated[
         str | None,
         described_field("Existing effective retrieval strategy."),
         exclude_none_field(),
-    ]
+    ] = None
     reason: Annotated[
         str | None,
         described_field("Bounded stage reason."),
         exclude_none_field(),
-    ]
+    ] = None
     warnings: Annotated[list[str], described_field("Stage warnings.")]
     degraded: Annotated[bool, described_field("Whether the stage degraded.")]
 

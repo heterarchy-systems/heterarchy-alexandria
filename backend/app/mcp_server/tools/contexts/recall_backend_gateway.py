@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-from pydantic import TypeAdapter
-
 from app.mcp_server.backend_api_client import AlexandriaApiClient
 from app.memory.interface.schemas.context.recall_schema import (
     RecallRequestSchema,
     RecallResponseSchema,
 )
 from app.shared.serialization.model_codec import schema_payload
-
-_RESPONSE_ADAPTER = TypeAdapter(RecallResponseSchema)
+from app.shared.type_validation.strict_json_value import model_validate_json_value
 
 
 async def alexandria_recall(
@@ -27,4 +24,4 @@ async def alexandria_recall(
     if payload.get("include_lifecycle_statuses") == []:
         payload.pop("include_lifecycle_statuses", None)
     response = await client.post("/memory/recall", payload)
-    return _RESPONSE_ADAPTER.validate_python(response)
+    return model_validate_json_value(RecallResponseSchema, response)

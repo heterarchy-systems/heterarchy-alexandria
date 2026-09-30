@@ -30,7 +30,12 @@ class ObsidianLogicalIdentitySchema(StrictSchemaModel):
     ]
     date: Annotated[
         str,
-        StringConstraints(strict=True, min_length=10, max_length=10),
+        StringConstraints(
+            strict=True,
+            min_length=10,
+            max_length=10,
+            pattern=r"^\d{4}-\d{2}-\d{2}$",
+        ),
         described_field("ISO calendar date for this Obsidian logical identity."),
     ]
     entity: Annotated[

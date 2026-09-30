@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from mcp.server import MCPServer
 
 from app.mcp_server.backend_api_client import AlexandriaApiClient
@@ -12,6 +14,7 @@ from app.memory.interface.schemas.reconciliation.cycles.memory_cycle_schema impo
     MemoryCycleRequestSchema,
     MemoryCycleResponseSchema,
 )
+from app.shared.type_validation.strict_json_arg import json_mode_arg
 
 
 def register_memory_cycle_tool(
@@ -22,7 +25,10 @@ def register_memory_cycle_tool(
 
     @server.tool(name="alexandria_memory_cycle")
     async def _tool_memory_cycle(
-        request: MemoryCycleRequestSchema,
+        request: Annotated[
+            MemoryCycleRequestSchema,
+            json_mode_arg(MemoryCycleRequestSchema),
+        ],
     ) -> MemoryCycleResponseSchema:
         """Preview or apply one exact aggregate memory cycle."""
         return await alexandria_memory_cycle(api_client, request)
