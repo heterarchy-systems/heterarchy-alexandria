@@ -26,6 +26,9 @@ from app.obsidian.application.graph.diagnostics.obsidian_graph_issue_list_servic
 from app.obsidian.application.graph.diagnostics.obsidian_graph_note_diagnostics_service import (
     ObsidianGraphNoteDiagnosticsService,
 )
+from app.obsidian.application.graph.diagnostics.obsidian_graph_orphan_census_service import (
+    ObsidianGraphOrphanCensusService,
+)
 from app.obsidian.application.graph.obsidian_graph_service import ObsidianGraphService
 from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild_service import (
     ObsidianGraphProjectionRebuildService,
@@ -61,6 +64,9 @@ from app.obsidian.application.service.notes.obsidian_verified_upsert_service imp
 from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.obsidian.application.service.vault.obsidian_vault_reindex_service import (
     ObsidianVaultReindexService,
+)
+from app.obsidian.infrastructure.graph.native_obsidian_graph_diagnostics_compute_provider import (
+    create_native_obsidian_graph_diagnostics_compute_provider,
 )
 from app.obsidian.infrastructure.graph.native_obsidian_graph_projection_compute_provider import (
     create_native_obsidian_graph_projection_compute_provider,
@@ -262,6 +268,17 @@ class ObsidianContainer(containers.DeclarativeContainer):
         index_maintenance_coordinator=index_maintenance_coordinator,
         commit_projection=db_session.provided.commit,
         rollback_projection=db_session.provided.rollback,
+    )
+    graph_diagnostics_compute_provider = providers.Singleton(
+        create_native_obsidian_graph_diagnostics_compute_provider
+    )
+    graph_orphan_census_service = providers.Factory(
+        ObsidianGraphOrphanCensusService,
+        graph_repository=graph_projection_repository,
+        vault_config_store=vault_config_store,
+        compute_provider=graph_diagnostics_compute_provider,
+        index_maintenance_coordinator=index_maintenance_coordinator,
+        source_reader=obsidian_service,
     )
     mutation_outcome_service = providers.Factory(
         ObsidianMutationOutcomeService,

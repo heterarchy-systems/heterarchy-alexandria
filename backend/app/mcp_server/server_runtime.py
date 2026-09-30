@@ -36,6 +36,9 @@ from app.mcp_server.tools.memory_compacts.memory_steward_registration import (
 from app.mcp_server.tools.obsidian.obsidian_note_registration import (
     register_obsidian_note_tools,
 )
+from app.mcp_server.tools.obsidian.obsidian_orphan_census_registration import (
+    register_obsidian_orphan_census_tools,
+)
 from app.mcp_server.tools.obsidian.obsidian_relation_registration import (
     register_obsidian_relation_tools,
 )
@@ -125,6 +128,7 @@ def build_mcp_server(
     register_operations_tools(server, api_client)
     register_maintenance_tools(server, api_client)
     register_vault_maintenance_tools(server, api_client)
+    register_obsidian_orphan_census_tools(server, api_client)
     register_obsidian_note_tools(server, api_client)
     register_high_level_recall_tool(server, api_client)
     register_verified_upsert_tools(server, api_client)
