@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+
 from app.obsidian.application.notes.obsidian_note_templates import (
     frontmatter_for_save,
 )
@@ -14,7 +15,10 @@ from app.obsidian.infrastructure.markdown.frontmatter import (
     render_markdown_document,
 )
 from app.shared.type_validation.frontmatter_metadata_normalization import (
+    BooleanField,
+    StringCollectionField,
     normalize_boolean_metadata,
+    normalize_known_frontmatter_metadata,
     normalize_string_collection,
 )
 from app.shared.types.extra_types import JSONValue
@@ -161,3 +165,22 @@ def test_frontmatter_for_save_normalizes_known_metadata_fields() -> None:
     assert frontmatter["activate_requested"] is False
     assert frontmatter["unrelated_null"] is None
     assert frontmatter["unrelated_number"] == 7
+
+
+def test_known_metadata_enum_fields_normalize_all_values_and_ignore_unknown_keys() -> (
+    None
+):
+    """Enum registries cover every known key without claiming unknown metadata."""
+    frontmatter: dict[str, JSONValue] = {
+        field.value: " value " for field in StringCollectionField
+    }
+    frontmatter.update({field.value: "true" for field in BooleanField})
+    frontmatter["future_field"] = "unchanged"
+
+    normalize_known_frontmatter_metadata(frontmatter)
+
+    assert all(frontmatter[field.value] == ["value"] for field in StringCollectionField)
+    assert all(frontmatter[field.value] is True for field in BooleanField)
+    assert frontmatter["future_field"] == "unchanged"
+    assert "future_field" not in StringCollectionField
+    assert "future_field" not in BooleanField

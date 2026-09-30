@@ -24,8 +24,8 @@ from app.obsidian.infrastructure.markdown.paths import (
 from app.shared.exceptions.obsidian_exceptions import ObsidianValidationError
 from app.shared.serialization.orjson_codec import dumps_canonical_json
 from app.shared.type_validation.frontmatter_metadata_normalization import (
-    BOOLEAN_FIELDS,
-    STRING_COLLECTION_FIELDS,
+    BooleanField,
+    StringCollectionField,
     normalize_boolean_metadata,
 )
 from app.shared.types.extra_types import JSONObject, JSONValue
@@ -78,7 +78,7 @@ def _scan_frontmatter(
         field_name = field_name.strip()
         current_value = raw_value.strip()
         scalar_value = _quoted_scalar(current_value)
-        if field_name in STRING_COLLECTION_FIELDS:
+        if field_name in StringCollectionField:
             if not current_value:
                 if not _has_block_list_items(
                     lines=lines,
@@ -108,7 +108,7 @@ def _scan_frontmatter(
                 )
                 if finding is not None:
                     findings.append(finding)
-        elif field_name in BOOLEAN_FIELDS:
+        elif field_name in BooleanField:
             boolean_value = scalar_value if scalar_value is not None else current_value
             try:
                 normalized = normalize_boolean_metadata(boolean_value)

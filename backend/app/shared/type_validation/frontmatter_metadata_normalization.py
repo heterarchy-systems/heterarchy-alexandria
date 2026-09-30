@@ -2,32 +2,35 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
+
 from app.shared.types.extra_types import JSONValue
 
-STRING_COLLECTION_FIELDS = frozenset(
-    {
-        "tags",
-        "artifact_refs",
-        "evidence_refs",
-        "conflict_set_ids",
-        "evidence_urls",
-        "linked_note_ids",
-        "redaction_warnings",
-        "required_tools",
-        "supersedes",
-        "when_not_to_use",
-        "when_to_use",
-    }
-)
-BOOLEAN_FIELDS = frozenset(
-    {
-        "activate_requested",
-        "is_current",
-        "requires_human_review",
-        "safe_to_publish",
-        "source_of_truth",
-    }
-)
+
+class StringCollectionField(StrEnum):
+    """Known frontmatter fields whose values normalize to string lists."""
+
+    TAGS = "tags"
+    ARTIFACT_REFS = "artifact_refs"
+    EVIDENCE_REFS = "evidence_refs"
+    CONFLICT_SET_IDS = "conflict_set_ids"
+    EVIDENCE_URLS = "evidence_urls"
+    LINKED_NOTE_IDS = "linked_note_ids"
+    REDACTION_WARNINGS = "redaction_warnings"
+    REQUIRED_TOOLS = "required_tools"
+    SUPERSEDES = "supersedes"
+    WHEN_NOT_TO_USE = "when_not_to_use"
+    WHEN_TO_USE = "when_to_use"
+
+
+class BooleanField(StrEnum):
+    """Known frontmatter fields whose values normalize to booleans."""
+
+    ACTIVATE_REQUESTED = "activate_requested"
+    IS_CURRENT = "is_current"
+    REQUIRES_HUMAN_REVIEW = "requires_human_review"
+    SAFE_TO_PUBLISH = "safe_to_publish"
+    SOURCE_OF_TRUTH = "source_of_truth"
 
 
 def normalize_string_collection(value: JSONValue) -> list[str]:
@@ -84,12 +87,14 @@ def normalize_known_frontmatter_metadata(frontmatter: dict[str, JSONValue]) -> N
     Args:
         frontmatter: Mutable save-boundary metadata.
     """
-    for field_name in STRING_COLLECTION_FIELDS:
+    for field in StringCollectionField:
+        field_name = field.value
         if field_name in frontmatter:
             frontmatter[field_name] = normalize_string_collection(
                 frontmatter[field_name]
             )
-    for field_name in BOOLEAN_FIELDS:
+    for field in BooleanField:
+        field_name = field.value
         if field_name in frontmatter:
             frontmatter[field_name] = normalize_boolean_metadata(
                 frontmatter[field_name]

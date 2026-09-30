@@ -21,8 +21,8 @@ from app.operations.domain.event_enum.operational_data_integrity_enums import (
 )
 from app.shared.exceptions.obsidian_exceptions import ObsidianDomainError
 from app.shared.type_validation.frontmatter_metadata_normalization import (
-    BOOLEAN_FIELDS,
-    STRING_COLLECTION_FIELDS,
+    BooleanField,
+    StringCollectionField,
 )
 
 _UNRECOVERABLE_REDACTED_URL = re.compile(
@@ -137,7 +137,11 @@ def _scan_markdown(
         findings: Findings used by this operation.
     """
     fields = _top_level_frontmatter_values(markdown)
-    for field_name in sorted(STRING_COLLECTION_FIELDS & fields.keys()):
+    for field_name in sorted(
+        metadata_field.value
+        for metadata_field in StringCollectionField
+        if metadata_field.value in fields
+    ):
         raw_field = fields[field_name]
         if _is_yaml_collection(raw_field):
             continue
@@ -162,7 +166,11 @@ def _scan_markdown(
                 note_path=note_path,
                 field_name=field_name,
             )
-    for field_name in sorted(BOOLEAN_FIELDS & fields.keys()):
+    for field_name in sorted(
+        metadata_field.value
+        for metadata_field in BooleanField
+        if metadata_field.value in fields
+    ):
         if warning_code := _boolean_warning_code(fields[field_name].value):
             _record(
                 findings,
