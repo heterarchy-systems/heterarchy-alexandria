@@ -62,6 +62,9 @@ from app.obsidian.application.service.notes.obsidian_verified_upsert_service imp
     ObsidianVerifiedUpsertService,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
+from app.obsidian.application.service.vault.obsidian_temporal_coverage_service import (
+    ObsidianTemporalCoverageService,
+)
 from app.obsidian.application.service.vault.obsidian_vault_reindex_service import (
     ObsidianVaultReindexService,
 )
@@ -268,6 +271,10 @@ class ObsidianContainer(containers.DeclarativeContainer):
         index_maintenance_coordinator=index_maintenance_coordinator,
         commit_projection=db_session.provided.commit,
         rollback_projection=db_session.provided.rollback,
+    )
+    temporal_coverage_service = providers.Factory(
+        ObsidianTemporalCoverageService,
+        vault_config_store=vault_config_store,
     )
     graph_diagnostics_compute_provider = providers.Singleton(
         create_native_obsidian_graph_diagnostics_compute_provider

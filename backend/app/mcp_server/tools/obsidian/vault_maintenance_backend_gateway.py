@@ -6,6 +6,10 @@ from app.mcp_server.backend_api_client import AlexandriaApiClient
 from app.mcp_server.tools.backend_gateway_policy import (
     _move_payloads,
 )
+from app.obsidian.interface.schemas.obsidian.obsidian_temporal_coverage_schema import (
+    ObsidianTemporalCoverageResponse,
+)
+from app.shared.type_validation.strict_json_value import model_validate_json_value
 from app.shared.types.extra_types import JSONObject, JSONValue
 
 
@@ -201,3 +205,20 @@ async def alexandria_vault_apply_moves(
     if verification_query is not None:
         payload["verification_query"] = verification_query
     return await client.post("/obsidian/vault/apply-moves", payload)
+
+
+async def alexandria_temporal_coverage(
+    client: AlexandriaApiClient,
+    payload: JSONObject,
+) -> ObsidianTemporalCoverageResponse:
+    """Build one deterministic temporal coverage matrix.
+
+    Args:
+        client: Backend HTTP client.
+        payload: Validated coverage request payload.
+
+    Returns:
+        Coverage matrix response.
+    """
+    response = await client.post("/obsidian/vault/temporal-coverage", payload)
+    return model_validate_json_value(ObsidianTemporalCoverageResponse, response)

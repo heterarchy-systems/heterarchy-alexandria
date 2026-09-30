@@ -8,6 +8,9 @@ from app.obsidian.interface.routers.obsidian_graph_projection_router import (
     router as graph_projection_router,
 )
 from app.obsidian.interface.routers.obsidian_note_router import router as note_router
+from app.obsidian.interface.routers.obsidian_temporal_coverage_router import (
+    router as temporal_coverage_router,
+)
 from app.obsidian.interface.routers.obsidian_vault_index_router import (
     router as vault_index_router,
 )
@@ -20,5 +23,6 @@ router.include_router(vault_index_router)
 router.include_router(note_router)
 router.include_router(graph_projection_router)
 router.include_router(vault_maintenance_router)
+router.include_router(temporal_coverage_router)
 
 __all__ = ["router"]

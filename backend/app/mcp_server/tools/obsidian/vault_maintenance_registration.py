@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from mcp.server import MCPServer
 
 from app.mcp_server.backend_api_client import AlexandriaApiClient
@@ -16,13 +18,17 @@ from app.mcp_server.tools.obsidian.vault_maintenance_backend_gateway import (
     alexandria_rebuild_graph_projection,
     alexandria_rebuild_note_graph,
     alexandria_reindex_vault,
+    alexandria_temporal_coverage,
     alexandria_validate_note_links,
     alexandria_vault_apply_moves,
     alexandria_vault_inventory,
     alexandria_vault_move_plan,
     alexandria_vault_path_search,
 )
-from app.shared.types.extra_types import JSONValue
+from app.obsidian.interface.schemas.obsidian.obsidian_temporal_coverage_schema import (
+    ObsidianTemporalCoverageResponse,
+)
+from app.shared.types.extra_types import JSONObject, JSONValue
 
 
 def register_vault_maintenance_tools(
@@ -35,6 +41,40 @@ def register_vault_maintenance_tools(
         server: MCPServer server receiving tool registrations.
         api_client: Backend HTTP API client used by tool callbacks.
     """
+
+    @server.tool(name="alexandria_temporal_coverage")
+    async def _tool_temporal_coverage(
+        project: str,
+        start_date: str,
+        end_date: str,
+        families: Sequence[str] | None = None,
+        not_expected: Sequence[dict[str, str]] | None = None,
+        timezone: str = "Asia/Seoul",
+    ) -> ObsidianTemporalCoverageResponse:
+        """Classify per-date report-family coverage without LLM inference.
+
+        Args:
+            project: Project identity whose packets are evaluated.
+            start_date: Inclusive ISO range start.
+            end_date: Inclusive ISO range end.
+            families: Expected report families; empty reports observed only.
+            not_expected: (family, date) entries that are NOT_EXPECTED.
+            timezone: IANA timezone for open-day and week boundaries.
+
+        Returns:
+            Deterministic coverage matrix payload.
+        """
+        payload: JSONObject = {
+            "project": project,
+            "start_date": start_date,
+            "end_date": end_date,
+            "timezone": timezone,
+        }
+        if families:
+            payload["families"] = list(families)
+        if not_expected:
+            payload["not_expected"] = [dict(entry) for entry in not_expected]
+        return await alexandria_temporal_coverage(api_client, payload)
 
     @server.tool(name="alexandria_reindex_vault")
     async def _tool_reindex_vault() -> JSONValue:
