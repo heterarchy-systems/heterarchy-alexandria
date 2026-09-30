@@ -7,6 +7,8 @@ from typing import cast
 
 import anyio
 import pytest
+from redis.asyncio import Redis
+
 from app.operations.application.maintenance_job_queue import (
     MaintenanceDeadLetterNotFoundError,
     MaintenanceDeadLetterSourceGoneError,
@@ -16,17 +18,15 @@ from app.operations.application.maintenance_job_queue import (
 from app.operations.domain.entities.maintenance_job import (
     BatchNoteWriteJobItem,
     BatchNoteWriteJobResult,
-)
-from app.operations.infrastructure.redis_maintenance_job_codec import (
-    encode_batch_note_write_result,
-)
-from app.operations.domain.entities.maintenance_job import (
     MaintenanceJobRequest,
     MaintenanceJobSnapshot,
 )
 from app.operations.domain.event_enum.maintenance_job_enums import (
     MaintenanceJobKind,
     MaintenanceJobStatus,
+)
+from app.operations.infrastructure.redis_maintenance_job_codec import (
+    encode_batch_note_write_result,
 )
 from app.operations.infrastructure.redis_maintenance_job_consumer import (
     RedisMaintenanceJobConsumer,
@@ -36,7 +36,6 @@ from app.operations.infrastructure.redis_maintenance_job_queue import (
     create_maintenance_worker_client,
 )
 from app.platform.config.maintenance_queue_config import MaintenanceQueueConfig
-from redis.asyncio import Redis
 
 
 class _FakeRedis:
@@ -137,6 +136,36 @@ class _FakeRedis:
         removed = len(self.dead_letter_entries)
         self.dead_letter_entries.clear()
         return removed
+
+
+def test_batch_lookup_preserves_mixed_states_missing_ids_and_request_order() -> None:
+    """One bounded read exposes mixed progress without enqueuing any work."""
+
+    class BatchRedis(_FakeRedis):
+        async def hgetall(self, key: str) -> dict[str, str]:
+            job_id = key.rsplit(":", maxsplit=1)[-1]
+            if job_id == "missing":
+                return {}
+            fields = _status_fields()
+            fields["job_id"] = job_id
+            fields["status"] = {"q": "QUEUED", "r": "RUNNING", "s": "SUCCEEDED"}[job_id]
+            return fields
+
+    async def scenario() -> tuple[MaintenanceJobSnapshot | None, ...]:
+        queue = _submitter(BatchRedis())
+        result = await queue.get_many(("r", "missing", "s", "q"))
+        with pytest.raises(ValueError, match=r"1\.\.50"):
+            await queue.get_many(tuple("q" for _ in range(51)))
+        return result
+
+    snapshots = anyio.run(scenario)
+    assert [snapshot.status.value if snapshot else None for snapshot in snapshots] == [
+        "RUNNING",
+        None,
+        "SUCCEEDED",
+        "QUEUED",
+    ]
+    assert [snapshot.job_id for snapshot in snapshots if snapshot] == ["r", "s", "q"]
 
 
 def test_enqueue_returns_queued_snapshot() -> None:

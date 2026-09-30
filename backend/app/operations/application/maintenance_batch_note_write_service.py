@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Sequence
+from hashlib import sha256
 
 from app.operations.application.maintenance_job_queue import (
     MaintenanceJobSubmitter,
     MaintenanceQueueUnavailableError,
-    MaintenanceSubmissionRateLimitError,
 )
 from app.operations.domain.entities.maintenance_job import (
     MaintenanceJobRequest,
@@ -19,6 +19,7 @@ from app.operations.infrastructure.maintenance_job_payload_store import (
     MaintenanceJobPayloadStore,
 )
 from app.shared.infrastructure.database import Database
+from app.shared.serialization.orjson_codec import dumps_canonical_json
 from app.shared.types.extra_types import JSONValue
 
 
@@ -82,24 +83,31 @@ class MaintenanceBatchNoteWriteService:
                 f"ASYNC_BATCH_TOO_LARGE: {len(operations)} operations exceeds "
                 f"the {self._max_operations} limit"
             )
-        batch_id = uuid.uuid4().hex
+        payload: dict[str, JSONValue] = {
+            "requested_by": requested_by,
+            "operations": list(operations),
+        }
+        identity = sha256(dumps_canonical_json(payload)).hexdigest()
+        batch_id = uuid.uuid5(
+            uuid.NAMESPACE_URL, "alexandria:batch-note-write:" + identity
+        ).hex
         async with self._database.request_session() as session:
-            await MaintenanceJobPayloadStore(session).save(
-                batch_id,
-                MaintenanceJobKind.BATCH_NOTE_WRITE.value,
-                {"requested_by": requested_by, "operations": list(operations)},
+            store = MaintenanceJobPayloadStore(session)
+            inserted = await store.save_if_absent(
+                batch_id, MaintenanceJobKind.BATCH_NOTE_WRITE.value, payload
             )
-        try:
-            return await self._submitter.enqueue(
-                MaintenanceJobRequest(
-                    kind=MaintenanceJobKind.BATCH_NOTE_WRITE,
-                    requested_by=requested_by,
-                    source_id=batch_id,
-                    limit=len(operations),
-                    force=False,
+            if not inserted and await store.load(batch_id) != payload:
+                raise MaintenanceQueueUnavailableError(
+                    "batch identity already names a different admitted payload"
                 )
+        # Queue errors may occur after Redis admission. Retain the immutable
+        # payload for durable readback/retry instead of deleting a possibly live effect.
+        return await self._submitter.enqueue(
+            MaintenanceJobRequest(
+                kind=MaintenanceJobKind.BATCH_NOTE_WRITE,
+                requested_by=requested_by,
+                source_id=batch_id,
+                limit=len(operations),
+                force=False,
             )
-        except (MaintenanceQueueUnavailableError, MaintenanceSubmissionRateLimitError):
-            async with self._database.request_session() as session:
-                await MaintenanceJobPayloadStore(session).delete(batch_id)
-            raise
+        )

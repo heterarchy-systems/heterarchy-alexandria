@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from sqlalchemy import delete
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.operations.infrastructure.maintenance_models import MaintenanceJobPayloadORM
@@ -59,6 +60,35 @@ class MaintenanceJobPayloadStore:
         if row is None:
             return None
         return dict(row.body)
+
+    async def save_if_absent(
+        self, payload_id: str, kind: str, body: dict[str, JSONValue]
+    ) -> bool:
+        """Stage a retry-stable immutable payload without replacing another admission.
+
+        Args:
+            payload_id: Stable logical batch identity carried by Redis.
+            kind: Existing maintenance job kind.
+            body: Exact original operation payload.
+
+        Returns:
+            True for new admission; False when its payload already exists.
+        """
+        inserted = await self._session.scalar(
+            insert(MaintenanceJobPayloadORM)
+            .values(
+                payload_id=payload_id,
+                kind=kind,
+                body=body,
+                created_at=datetime.now(UTC),
+            )
+            .on_conflict_do_nothing(
+                index_elements=[MaintenanceJobPayloadORM.payload_id]
+            )
+            .returning(MaintenanceJobPayloadORM.payload_id)
+        )
+        await self._session.commit()
+        return inserted is not None
 
     async def delete(self, payload_id: str) -> None:
         """Delete one job payload after successful execution.

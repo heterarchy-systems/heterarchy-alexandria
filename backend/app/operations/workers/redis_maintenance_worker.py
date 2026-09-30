@@ -186,6 +186,18 @@ async def _process_delivery(
         )
         return
     await consumer.mark_succeeded(delivery, result)
+    if delivery.job.kind is MaintenanceJobKind.BATCH_NOTE_WRITE:
+        try:
+            await _delete_batch_payload(delivery.job.source_id, database)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            # SUCCEEDED is already durable; retaining the payload is safer than
+            # turning a cleanup failure into a second source-effect attempt.
+            logger.exception(
+                "maintenance batch payload cleanup deferred",
+                extra={"job_id": delivery.job.job_id},
+            )
     extra: dict[str, object] = {
         "job_id": delivery.job.job_id,
         "kind": delivery.job.kind.value,
@@ -290,9 +302,13 @@ async def _execute_batch_note_write(
             for item in result.items
         ),
     )
-    async with database.request_session() as session:
-        await MaintenanceJobPayloadStore(session).delete(delivery.job.source_id)
     return job_result
+
+
+async def _delete_batch_payload(payload_id: str, database: Database) -> None:
+    """Delete a staged payload only after Redis SUCCEEDED is durable."""
+    async with database.request_session() as session:
+        await MaintenanceJobPayloadStore(session).delete(payload_id)
 
 
 def _safe_error_summary(exc: Exception) -> str:

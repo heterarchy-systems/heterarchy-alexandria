@@ -4,9 +4,18 @@ from __future__ import annotations
 
 import os
 import uuid
+from typing import cast
 
 import anyio
+import pytest
 
+from app.operations.application.maintenance_batch_note_write_service import (
+    MaintenanceBatchNoteWriteService,
+)
+from app.operations.application.maintenance_job_queue import (
+    MaintenanceJobSubmitter,
+    MaintenanceQueueUnavailableError,
+)
 from app.operations.infrastructure.maintenance_job_payload_store import (
     MaintenanceJobPayloadStore,
 )
@@ -61,3 +70,46 @@ def test_payload_store_loads_unknown_as_none() -> None:
             await database.shutdown()
 
     assert anyio.run(scenario) is None
+
+
+def test_batch_submission_unknown_outcome_retains_stable_payload_identity() -> None:
+    """Redis may admit a job before losing its response; retries retain its payload."""
+
+    class UnknownRedisSubmitter:
+        def __init__(self):
+            self.requests = []
+
+        async def enqueue(self, request):
+            self.requests.append(request)
+            raise MaintenanceQueueUnavailableError("response lost after admission")
+
+    async def scenario():
+        database = Database(database_url=os.environ["DATABASE_URL"], create_schema=True)
+        await database.initialize()
+        queue = UnknownRedisSubmitter()
+        service = MaintenanceBatchNoteWriteService(
+            database, cast(MaintenanceJobSubmitter, queue)
+        )
+        operations = [
+            {
+                "op": "upsert",
+                "title": "A",
+                "body": "# A",
+                "relative_path": "Alexandria/A.md",
+            }
+        ]
+        try:
+            for _ in range(2):
+                with pytest.raises(MaintenanceQueueUnavailableError):
+                    await service.submit(operations, "test")
+            assert queue.requests[0].source_id == queue.requests[1].source_id
+            async with database.request_session() as session:
+                payload = await MaintenanceJobPayloadStore(session).load(
+                    queue.requests[0].source_id
+                )
+                assert payload is not None
+                assert payload["operations"] == operations
+        finally:
+            await database.shutdown()
+
+    anyio.run(scenario)

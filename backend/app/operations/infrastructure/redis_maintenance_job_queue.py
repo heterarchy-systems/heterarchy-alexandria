@@ -13,6 +13,7 @@ from redis.asyncio import Redis
 from redis.exceptions import RedisError, ResponseError
 
 from app.operations.application.maintenance_job_queue import (
+    MaintenanceDeadLetterLifecycleConflictError,
     MaintenanceDeadLetterNotFoundError,
     MaintenanceDeadLetterSourceGoneError,
     MaintenanceJobSubmitter,
@@ -20,6 +21,7 @@ from app.operations.application.maintenance_job_queue import (
     MaintenanceSubmissionRateLimitError,
 )
 from app.operations.domain.entities.maintenance_job import (
+    MaintenanceDeadLetterContext,
     MaintenanceDeadLetterEntry,
     MaintenanceJobRequest,
     MaintenanceJobSnapshot,
@@ -29,6 +31,7 @@ from app.operations.infrastructure.redis_maintenance_job_codec import (
     decode_consumer_count,
     decode_dead_letter_entries,
     decode_dead_letter_source_request,
+    decode_dead_letter_transition,
     decode_enqueue_result,
     decode_job_snapshot,
     decode_pending_count,
@@ -36,6 +39,9 @@ from app.operations.infrastructure.redis_maintenance_job_codec import (
 )
 from app.operations.infrastructure.redis_maintenance_job_scripts import (
     ENQUEUE_MAINTENANCE_JOB_SCRIPT,
+    FINALIZE_MAINTENANCE_DEAD_LETTER_SCRIPT,
+    RESERVE_MAINTENANCE_DEAD_LETTER_SCRIPT,
+    RETRY_MAINTENANCE_DEAD_LETTER_SCRIPT,
 )
 from app.platform.config.maintenance_queue_config import MaintenanceQueueConfig
 from app.shared.types.redis_types import RedisHashResponse, RedisResponse
@@ -49,6 +55,10 @@ class MaintenanceStatusMutation(TypedDict, total=False):
     finished_at: str
     result_json: bytes
     error_summary: str
+    attempt_history_json: bytes
+    last_retry_reason: str
+    last_retry_at: str
+    dlq_state: str
 
 
 class MaintenanceDeadLetterFields(TypedDict):
@@ -60,6 +70,7 @@ class MaintenanceDeadLetterFields(TypedDict):
     failed_at: str
     error_summary: str
     source_stream_id: str
+    attempt_history_json: str
 
 
 # protocol-contract: structural-seam
@@ -315,6 +326,177 @@ class RedisMaintenanceJobSubmitter(MaintenanceJobSubmitter):
             )
         return await self.enqueue(request)
 
+    async def get_dead_letter(
+        self, entry_id: str
+    ) -> MaintenanceDeadLetterContext | None:
+        """Read one exact DLQ entry, its original job, and source request."""
+        letter_raw = await self._range_entry(
+            self._config.dead_letter_stream_name,
+            entry_id,
+        )
+        letters = decode_dead_letter_entries(letter_raw)
+        if not letters:
+            return None
+        entry = letters[0]
+        try:
+            lifecycle_raw = await cast(
+                Awaitable[RedisResponse],
+                self._client.get(_dead_letter_lifecycle_key(self._config, entry_id)),
+            )
+        except RedisError as exc:
+            raise MaintenanceQueueUnavailableError(
+                "Redis dead-letter lifecycle lookup failed"
+            ) from exc
+        lifecycle = (
+            _text_response(lifecycle_raw)
+            if lifecycle_raw is not None
+            else entry.lifecycle
+        )
+        entry = replace(entry, lifecycle=lifecycle)
+        original_job = await self.get(entry.job_id)
+        source_raw = await self._range_entry(
+            self._config.stream_name,
+            entry.source_stream_id,
+        )
+        try:
+            source_request = decode_dead_letter_source_request(source_raw)
+        except MaintenanceQueueUnavailableError:
+            # Redis read succeeded but the retained source shape is corrupt;
+            # callers must classify it as unknown/non-retryable evidence.
+            source_request = None
+        return MaintenanceDeadLetterContext(
+            entry=entry,
+            original_job=original_job,
+            source_request=source_request,
+        )
+
+    async def retry_dead_letter(
+        self, entry_id: str, reason: str
+    ) -> MaintenanceJobSnapshot:
+        """Requeue one terminal job under its original identity through Lua CAS."""
+        bounded_reason = reason.strip()[:500]
+        if not bounded_reason:
+            raise ValueError("dead-letter retry reason must not be blank")
+        context = await self.get_dead_letter(entry_id)
+        if context is None:
+            raise MaintenanceDeadLetterNotFoundError("dead-letter entry was not found")
+        if context.source_request is None:
+            raise MaintenanceDeadLetterSourceGoneError(
+                "dead-letter source request is unavailable for same-ID retry"
+            )
+        try:
+            operation = self._client.eval(
+                RETRY_MAINTENANCE_DEAD_LETTER_SCRIPT,
+                4,
+                _status_key(self._config, context.entry.job_id),
+                self._config.stream_name,
+                self._config.dead_letter_stream_name,
+                _dead_letter_lifecycle_key(self._config, entry_id),
+                entry_id,
+                self._config.max_stream_length,
+                bounded_reason,
+                datetime.now(UTC).isoformat(),
+                self._config.status_ttl_seconds,
+                self._config.consumer_group,
+            )
+            raw = await cast(Awaitable[RedisResponse], operation)
+        except RedisError as exc:
+            raise MaintenanceQueueUnavailableError(
+                "Redis dead-letter retry transition failed"
+            ) from exc
+        state, job_id, detail = decode_dead_letter_transition(raw)
+        if state == "NOT_FOUND":
+            raise MaintenanceDeadLetterNotFoundError("dead-letter entry was not found")
+        if state == "CONFLICT":
+            raise MaintenanceDeadLetterLifecycleConflictError(
+                f"dead-letter retry lifecycle conflict: {detail or job_id}"
+            )
+        if state not in {"QUEUED", "IDEMPOTENT"} or not job_id:
+            raise MaintenanceQueueUnavailableError(
+                "Redis dead-letter retry transition returned an invalid state"
+            )
+        snapshot = await self.get(job_id)
+        if snapshot is None:
+            raise MaintenanceQueueUnavailableError(
+                "Redis retried maintenance job status was not persisted"
+            )
+        return snapshot
+
+    async def reserve_dead_letter_retirement(
+        self, entry_id: str
+    ) -> MaintenanceDeadLetterContext:
+        """Reserve one failed entry before PostgreSQL provenance archival."""
+        context = await self.get_dead_letter(entry_id)
+        if context is None:
+            raise MaintenanceDeadLetterNotFoundError("dead-letter entry was not found")
+        try:
+            operation = self._client.eval(
+                RESERVE_MAINTENANCE_DEAD_LETTER_SCRIPT,
+                4,
+                _status_key(self._config, context.entry.job_id),
+                self._config.dead_letter_stream_name,
+                _dead_letter_lifecycle_key(self._config, entry_id),
+                self._config.stream_name,
+                entry_id,
+                self._config.consumer_group,
+                context.entry.source_stream_id,
+            )
+            raw = await cast(Awaitable[RedisResponse], operation)
+        except RedisError as exc:
+            raise MaintenanceQueueUnavailableError(
+                "Redis dead-letter retirement reservation failed"
+            ) from exc
+        state, _value, detail = decode_dead_letter_transition(raw)
+        if state == "NOT_FOUND":
+            raise MaintenanceDeadLetterNotFoundError("dead-letter entry was not found")
+        if state not in {"RETIRING", "RETIRED"}:
+            raise MaintenanceDeadLetterLifecycleConflictError(
+                f"dead-letter retirement lifecycle conflict: {detail or state}"
+            )
+        return replace(context, entry=replace(context.entry, lifecycle=state))
+
+    async def finalize_dead_letter_retirement(
+        self,
+        entry_id: str,
+        source_stream_id: str,
+        job_id: str | None = None,
+    ) -> bool:
+        """Delete exactly one reserved DLQ/source pair and seal RETIRED state."""
+        context = await self.get_dead_letter(entry_id)
+        resolved_job_id = job_id or (
+            context.entry.job_id if context is not None else None
+        )
+        if resolved_job_id is None:
+            raise MaintenanceDeadLetterNotFoundError(
+                "dead-letter entry has no retained job identity"
+            )
+        try:
+            operation = self._client.eval(
+                FINALIZE_MAINTENANCE_DEAD_LETTER_SCRIPT,
+                4,
+                _status_key(self._config, resolved_job_id),
+                self._config.dead_letter_stream_name,
+                self._config.stream_name,
+                _dead_letter_lifecycle_key(self._config, entry_id),
+                entry_id,
+                source_stream_id,
+            )
+            raw = await cast(Awaitable[RedisResponse], operation)
+        except RedisError as exc:
+            raise MaintenanceQueueUnavailableError(
+                "Redis dead-letter retirement cleanup failed"
+            ) from exc
+        state, _removed_dlq, _removed_source = decode_dead_letter_transition(raw)
+        if state == "ALREADY_RETIRED" or state == "RETIRED":
+            return True
+        if state == "CONFLICT":
+            raise MaintenanceDeadLetterLifecycleConflictError(
+                "dead-letter retirement cleanup lost its lifecycle reservation"
+            )
+        raise MaintenanceQueueUnavailableError(
+            "Redis dead-letter retirement cleanup returned an invalid state"
+        )
+
     async def _range_entry(self, stream: str, entry_id: str) -> RedisResponse:
         """Read exactly one stream entry by identifier.
 
@@ -373,6 +555,19 @@ def _status_key(config: MaintenanceQueueConfig, job_id: str) -> str:
         str result produced by status key.
     """
     return f"{config.status_key_prefix}:{job_id}"
+
+
+def _dead_letter_lifecycle_key(config: MaintenanceQueueConfig, entry_id: str) -> str:
+    """Return the non-expiring per-entry lifecycle reservation key."""
+    return f"{config.dead_letter_stream_name}:lifecycle:{entry_id}"
+
+
+def _text_response(value: RedisResponse) -> str:
+    if isinstance(value, bytes):
+        return value.decode("utf-8")
+    if isinstance(value, str):
+        return value
+    raise MaintenanceQueueUnavailableError("Redis dead-letter lifecycle is invalid")
 
 
 def _dedup_key(
@@ -439,6 +634,14 @@ def _status_mapping(fields: MaintenanceStatusMutation) -> dict[str, str | bytes]
         mapping["result_json"] = fields["result_json"]
     if "error_summary" in fields:
         mapping["error_summary"] = fields["error_summary"]
+    if "attempt_history_json" in fields:
+        mapping["attempt_history_json"] = fields["attempt_history_json"]
+    if "last_retry_reason" in fields:
+        mapping["last_retry_reason"] = fields["last_retry_reason"]
+    if "last_retry_at" in fields:
+        mapping["last_retry_at"] = fields["last_retry_at"]
+    if "dlq_state" in fields:
+        mapping["dlq_state"] = fields["dlq_state"]
     return mapping
 
 
@@ -458,4 +661,5 @@ def _dead_letter_mapping(fields: MaintenanceDeadLetterFields) -> dict[str, str]:
         "failed_at": fields["failed_at"],
         "error_summary": fields["error_summary"],
         "source_stream_id": fields["source_stream_id"],
+        "attempt_history_json": fields["attempt_history_json"],
     }

@@ -17,13 +17,16 @@ from app.operations.application.maintenance_job_queue import (
 from app.operations.domain.entities.maintenance_job import (
     BatchNoteWriteJobResult,
     EmbeddingReindexJobResult,
+    MaintenanceJobAttempt,
 )
 from app.operations.domain.event_enum.maintenance_job_enums import (
     MaintenanceJobStatus,
 )
 from app.operations.infrastructure.redis_maintenance_job_codec import (
+    decode_attempt_history,
     decode_autoclaim_delivery,
     decode_readgroup_delivery,
+    encode_attempt_history,
     encode_batch_note_write_result,
     encode_embedding_result,
     response_integer,
@@ -38,7 +41,7 @@ from app.operations.infrastructure.redis_maintenance_job_queue import (
     _status_mapping,
 )
 from app.platform.config.maintenance_queue_config import MaintenanceQueueConfig
-from app.shared.types.redis_types import RedisResponse
+from app.shared.types.redis_types import RedisHashResponse, RedisResponse
 
 
 class RedisMaintenanceJobConsumer(MaintenanceJobConsumer):
@@ -134,6 +137,13 @@ class RedisMaintenanceJobConsumer(MaintenanceJobConsumer):
                 Awaitable[int],
                 self._client.hincrby(key, "attempts", 1),
             )
+            attempt = response_integer(attempt_raw, "attempt")
+            history = await self._append_attempt_history(
+                key,
+                attempt,
+                MaintenanceJobStatus.RUNNING.value,
+            )
+            mutation["attempt_history_json"] = history
             await cast(
                 Awaitable[int],
                 self._client.hset(key, mapping=_status_mapping(mutation)),
@@ -146,7 +156,7 @@ class RedisMaintenanceJobConsumer(MaintenanceJobConsumer):
             raise MaintenanceQueueUnavailableError(
                 "Redis maintenance running transition failed"
             ) from exc
-        return response_integer(attempt_raw, "attempt")
+        return attempt
 
     async def mark_succeeded(
         self,
@@ -171,6 +181,12 @@ class RedisMaintenanceJobConsumer(MaintenanceJobConsumer):
             "error_summary": "",
         }
         try:
+            history = await self._append_attempt_history(
+                key,
+                delivery.job.attempts,
+                MaintenanceJobStatus.SUCCEEDED.value,
+            )
+            mutation["attempt_history_json"] = history
             await cast(
                 Awaitable[int],
                 self._client.hset(key, mapping=_status_mapping(mutation)),
@@ -215,6 +231,13 @@ class RedisMaintenanceJobConsumer(MaintenanceJobConsumer):
         if terminal:
             mutation["finished_at"] = datetime.now(UTC).isoformat()
         try:
+            history = await self._append_attempt_history(
+                key,
+                attempt,
+                mutation["status"],
+                bounded_error,
+            )
+            mutation["attempt_history_json"] = history
             await cast(
                 Awaitable[int],
                 self._client.hset(key, mapping=_status_mapping(mutation)),
@@ -231,6 +254,7 @@ class RedisMaintenanceJobConsumer(MaintenanceJobConsumer):
                     "failed_at": datetime.now(UTC).isoformat(),
                     "error_summary": bounded_error,
                     "source_stream_id": delivery.stream_id,
+                    "attempt_history_json": history.decode("utf-8"),
                 }
                 writer = cast(RedisStreamWriter, self._client)
                 await writer.xadd(
@@ -245,6 +269,42 @@ class RedisMaintenanceJobConsumer(MaintenanceJobConsumer):
                 "Redis maintenance failure transition failed"
             ) from exc
         return terminal
+
+    async def _append_attempt_history(
+        self,
+        key: str,
+        attempt: int,
+        status: str,
+        error_summary: str | None = None,
+    ) -> bytes:
+        """Append one bounded lifecycle event to the status hash."""
+        raw = await cast(
+            Awaitable[RedisHashResponse],
+            self._client.hgetall(key),
+        )
+        value: str | bytes | None = None
+        if isinstance(raw, dict):
+            candidate = raw.get("attempt_history_json")
+            if candidate is None:
+                candidate = raw.get(b"attempt_history_json")
+            if isinstance(candidate, str | bytes):
+                value = candidate
+        history = decode_attempt_history(value)
+        resolved_attempt = max(
+            attempt,
+            history[-1].attempt if history else 0,
+        )
+        return encode_attempt_history(
+            (
+                *history,
+                MaintenanceJobAttempt(
+                    attempt=resolved_attempt,
+                    status=status,
+                    occurred_at=datetime.now(UTC),
+                    error_summary=error_summary,
+                ),
+            )
+        )
 
     async def _ack(self, stream_id: str) -> None:
         """Execute ack.

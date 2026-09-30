@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from app.operations.domain.entities.maintenance_job import (
     BatchNoteWriteJobResult,
     EmbeddingReindexJobResult,
+    MaintenanceDeadLetterContext,
     MaintenanceDeadLetterEntry,
     MaintenanceJobRequest,
     MaintenanceJobSnapshot,
@@ -38,6 +39,14 @@ class MaintenanceDeadLetterNotFoundError(RuntimeError):
 
 class MaintenanceDeadLetterSourceGoneError(RuntimeError):
     """Raised when the source stream entry behind a dead letter was trimmed."""
+
+
+class MaintenanceDeadLetterLifecycleConflictError(RuntimeError):
+    """Raised when a retry or retirement loses the per-entry lifecycle CAS."""
+
+
+class MaintenanceDeadLetterNotRetryableError(RuntimeError):
+    """Raised when evidence does not permit a same-ID retry."""
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -85,6 +94,25 @@ class MaintenanceJobSubmitter(ABC):
             Aggregate maintenance queue snapshot.
         """
 
+    async def get_many(
+        self, job_ids: tuple[str, ...]
+    ) -> tuple[MaintenanceJobSnapshot | None, ...]:
+        """Read a bounded batch in request order without spawning queue work.
+
+        Args:
+            job_ids: Between one and fifty existing job identifiers.
+
+        Returns:
+            Snapshots in request order; absent or expired identities remain None.
+
+        Raises:
+            ValueError: When the batch is empty or exceeds its bound.
+            MaintenanceQueueUnavailableError: When an underlying read fails.
+        """
+        if not 1 <= len(job_ids) <= 50:
+            raise ValueError("maintenance batch requires 1..50 job IDs")
+        return tuple([await self.get(job_id) for job_id in job_ids])
+
     @abstractmethod
     async def list_dead_letters(
         self, limit: int
@@ -116,6 +144,41 @@ class MaintenanceJobSubmitter(ABC):
         Returns:
             Freshly queued replacement job snapshot.
         """
+
+    async def get_dead_letter(
+        self, entry_id: str
+    ) -> MaintenanceDeadLetterContext | None:
+        """Read one exact dead-letter entry and its retained source evidence.
+
+        Concrete Redis implementations provide this operation. Keeping the
+        default explicit preserves the older submitter seam for callers that
+        only submit or poll jobs.
+        """
+        raise NotImplementedError("dead-letter inspection is not supported")
+
+    async def inspect_dead_letter(
+        self, entry_id: str
+    ) -> MaintenanceDeadLetterContext | None:
+        """Compatibility name for exact dead-letter inspection."""
+        return await self.get_dead_letter(entry_id)
+
+    async def retry_dead_letter(
+        self, entry_id: str, reason: str
+    ) -> MaintenanceJobSnapshot:
+        """Requeue the original job identity after a lifecycle CAS."""
+        raise NotImplementedError("dead-letter retry is not supported")
+
+    async def reserve_dead_letter_retirement(
+        self, entry_id: str
+    ) -> MaintenanceDeadLetterContext:
+        """Reserve one entry for archive-before-delete retirement."""
+        raise NotImplementedError("dead-letter retirement is not supported")
+
+    async def finalize_dead_letter_retirement(
+        self, entry_id: str, source_stream_id: str, job_id: str | None = None
+    ) -> bool:
+        """Delete only the reserved DLQ/source entries after archive commit."""
+        raise NotImplementedError("dead-letter retirement is not supported")
 
 
 class MaintenanceJobConsumer(ABC):

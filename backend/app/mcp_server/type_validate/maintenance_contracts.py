@@ -6,6 +6,9 @@ from typing import Annotated
 
 from pydantic import ConfigDict, Field, StringConstraints, field_validator
 
+from app.operations.domain.event_enum.maintenance_job_enums import (
+    MaintenanceDeadLetterRetirementClassification,
+)
 from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
 from app.shared.types.extra_types import JSONObject, JSONValue
 
@@ -180,3 +183,91 @@ class MaintenanceDeadLetterIdToolRequest(StrictSchemaModel):
         if not normalized:
             raise ValueError("entry_id must not be blank")
         return normalized
+
+
+class MaintenanceDeadLetterRetryToolRequest(StrictSchemaModel):
+    """Validated MCP input for same-ID dead-letter retry."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    entry_id: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1, max_length=128),
+        described_field("Entry identifier for this dead-letter retry request."),
+    ]
+    dry_run: Annotated[
+        bool, described_field("Preview retry without queue mutation.")
+    ] = False
+    reason: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1, max_length=500),
+        described_field("Operator reason for this dead-letter retry."),
+    ]
+
+    @field_validator("entry_id", "reason")
+    @classmethod
+    def normalize_retry_text(cls, value: str) -> str:
+        """Normalize required retry text."""
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("retry text must not be blank")
+        return normalized
+
+    def to_payload(self) -> JSONObject:
+        """Return the backend retry request payload."""
+        return {"dry_run": self.dry_run, "reason": self.reason}
+
+
+class MaintenanceDeadLetterRetireToolRequest(StrictSchemaModel):
+    """Validated MCP input for provenance-preserving retirement."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    entry_id: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1, max_length=128),
+        described_field("Entry identifier for this dead-letter retirement."),
+    ]
+    reason: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1, max_length=500),
+        described_field("Mandatory retirement reason."),
+    ]
+    classification: Annotated[
+        MaintenanceDeadLetterRetirementClassification,
+        described_field("Bounded retirement classification."),
+    ]
+    retired_by: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1, max_length=120),
+        described_field("Retiring actor."),
+    ]
+
+    @field_validator("classification", mode="before")
+    @classmethod
+    def parse_classification(
+        cls, value: str | MaintenanceDeadLetterRetirementClassification
+    ) -> MaintenanceDeadLetterRetirementClassification:
+        """Parse the public MCP classification string."""
+        return (
+            value
+            if isinstance(value, MaintenanceDeadLetterRetirementClassification)
+            else MaintenanceDeadLetterRetirementClassification(value)
+        )
+
+    @field_validator("entry_id", "reason", "retired_by")
+    @classmethod
+    def normalize_retirement_text(cls, value: str) -> str:
+        """Normalize required retirement text."""
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("retirement text must not be blank")
+        return normalized
+
+    def to_payload(self) -> JSONObject:
+        """Return the backend retirement request payload."""
+        return {
+            "reason": self.reason,
+            "classification": str(self.classification),
+            "retired_by": self.retired_by,
+        }

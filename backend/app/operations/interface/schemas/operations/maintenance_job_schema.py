@@ -5,22 +5,49 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import ConfigDict, Field, StringConstraints
+from pydantic import ConfigDict, Field, StringConstraints, field_validator
 
 from app.operations.domain.entities.maintenance_job import (
     BatchNoteWriteJobItem,
     BatchNoteWriteJobResult,
     EmbeddingReindexJobResult,
     MaintenanceDeadLetterEntry,
+    MaintenanceDeadLetterInspection,
+    MaintenanceDeadLetterReconcileItem,
+    MaintenanceDeadLetterReconcileResult,
+    MaintenanceDeadLetterRetireResult,
+    MaintenanceDeadLetterRetryResult,
+    MaintenanceJobAttempt,
+    MaintenanceJobRequest,
     MaintenanceJobSnapshot,
     MaintenanceQueueSnapshot,
 )
 from app.operations.domain.event_enum.maintenance_job_enums import (
+    MaintenanceDeadLetterOutcomeClass,
+    MaintenanceDeadLetterRetirementClassification,
     MaintenanceJobKind,
     MaintenanceJobStatus,
 )
 from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
 from app.shared.types.extra_types import JSONValue
+
+
+class MaintenanceJobsRequest(StrictSchemaModel):
+    """Bounded batch lookup over existing maintenance job identities."""
+
+    job_ids: Annotated[
+        list[
+            Annotated[
+                str,
+                StringConstraints(
+                    strict=True, strip_whitespace=True, min_length=1, max_length=128
+                ),
+            ]
+        ],
+        described_field(
+            "Job IDs to read in request order.", min_length=1, max_length=50
+        ),
+    ]
 
 
 class EmbeddingReindexJobRequest(StrictSchemaModel):
@@ -277,6 +304,17 @@ class BatchNoteWriteJobResultResponse(StrictSchemaModel):
         )
 
 
+class MaintenanceJobsResponse(StrictSchemaModel):
+    """Batch progress, with absent snapshots distinguished from failed jobs."""
+
+    jobs: Annotated[
+        list[MaintenanceJobResponse], described_field("Known jobs in request order.")
+    ]
+    missing_job_ids: Annotated[
+        list[str], described_field("Unknown or expired job identities.")
+    ]
+
+
 class MaintenanceQueueStatusResponse(StrictSchemaModel):
     """Bounded Redis Streams backlog and worker evidence."""
 
@@ -353,6 +391,10 @@ class MaintenanceDeadLetterResponse(StrictSchemaModel):
         str,
         described_field("Source stream identifier for this dead-letter response."),
     ]
+    lifecycle: Annotated[
+        str,
+        described_field("Redis lifecycle reservation for this dead-letter response."),
+    ] = "ACTIVE"
 
     @classmethod
     def from_entity(
@@ -375,6 +417,7 @@ class MaintenanceDeadLetterResponse(StrictSchemaModel):
             failed_at=entry.failed_at,
             error_summary=entry.error_summary,
             source_stream_id=entry.source_stream_id,
+            lifecycle=entry.lifecycle,
         )
 
 
@@ -398,3 +441,350 @@ class MaintenanceDeadLetterPurgeResponse(StrictSchemaModel):
         int,
         described_field("Purged entry count for this dead-letter purge response."),
     ]
+
+
+class MaintenanceDeadLetterSourceRequestResponse(StrictSchemaModel):
+    """Original typed request retained in the Redis source stream."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    kind: Annotated[MaintenanceJobKind, described_field("Original job kind.")]
+    requested_by: Annotated[str, described_field("Original requester.")]
+    source_id: Annotated[str, described_field("Original stable source identity.")]
+    limit: Annotated[int, described_field("Original bounded operation limit.")]
+    force: Annotated[bool, described_field("Original force flag.")]
+
+    @classmethod
+    def from_entity(
+        cls, request: MaintenanceJobRequest
+    ) -> MaintenanceDeadLetterSourceRequestResponse:
+        """Map the internal source request to the public response."""
+        return cls(
+            kind=request.kind,
+            requested_by=request.requested_by,
+            source_id=request.source_id,
+            limit=request.limit,
+            force=request.force,
+        )
+
+
+class MaintenanceJobAttemptResponse(StrictSchemaModel):
+    """One retained worker lifecycle event."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    attempt: Annotated[int, described_field("Attempt number.")]
+    status: Annotated[str, described_field("Attempt lifecycle status.")]
+    occurred_at: Annotated[datetime, described_field("Attempt event time.")]
+    error_summary: Annotated[str | None, described_field("Attempt error.")] = None
+
+    @classmethod
+    def from_entity(
+        cls, attempt: MaintenanceJobAttempt
+    ) -> MaintenanceJobAttemptResponse:
+        """Map a retained attempt event."""
+        return cls(
+            attempt=attempt.attempt,
+            status=attempt.status,
+            occurred_at=attempt.occurred_at,
+            error_summary=attempt.error_summary,
+        )
+
+
+class MaintenanceDeadLetterInspectionResponse(StrictSchemaModel):
+    """Exact DLQ evidence and an explicit retry recommendation."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    entry: Annotated[
+        MaintenanceDeadLetterResponse,
+        described_field("Exact dead-letter entry."),
+    ]
+    original_job: Annotated[
+        MaintenanceJobResponse | None,
+        described_field("Current original job snapshot."),
+    ] = None
+    source_request: Annotated[
+        MaintenanceDeadLetterSourceRequestResponse | None,
+        described_field("Original source request when retained."),
+    ] = None
+    source_payload: Annotated[
+        dict[str, JSONValue] | None,
+        described_field("Durable batch payload when available."),
+    ] = None
+    attempts: Annotated[
+        tuple[MaintenanceJobAttemptResponse, ...],
+        described_field("Retained attempt history."),
+    ] = ()
+    error_history: Annotated[
+        tuple[str, ...], described_field("Retained error history.")
+    ] = ()
+    idempotency_keys: Annotated[
+        tuple[str, ...], described_field("Stable effect idempotency keys.")
+    ] = ()
+    effect_identities: Annotated[
+        tuple[str, ...], described_field("Stable effect identities.")
+    ] = ()
+    source_identity: Annotated[str, described_field("Stable source identity.")]
+    retryable: Annotated[bool, described_field("Whether same-ID retry is allowed.")]
+    outcome_class: Annotated[
+        MaintenanceDeadLetterOutcomeClass,
+        described_field("Evidence outcome class."),
+    ]
+    recommended_action: Annotated[str, described_field("Evidence-based next action.")]
+    retired: Annotated[bool, described_field("Whether this is archived evidence.")] = (
+        False
+    )
+    archive_id: Annotated[str | None, described_field("Retirement archive ID.")] = None
+    retirement_reason: Annotated[str | None, described_field("Retirement reason.")] = (
+        None
+    )
+    retirement_classification: Annotated[
+        MaintenanceDeadLetterRetirementClassification | None,
+        described_field("Retirement classification."),
+    ] = None
+    retired_by: Annotated[str | None, described_field("Retiring actor.")] = None
+    retired_at: Annotated[datetime | None, described_field("Retirement time.")] = None
+
+    @classmethod
+    def from_entity(
+        cls, inspection: MaintenanceDeadLetterInspection
+    ) -> MaintenanceDeadLetterInspectionResponse:
+        """Map exact internal DLQ evidence to the public schema."""
+        return cls(
+            entry=MaintenanceDeadLetterResponse.from_entity(inspection.entry),
+            original_job=(
+                None
+                if inspection.original_job is None
+                else MaintenanceJobResponse.from_entity(inspection.original_job)
+            ),
+            source_request=(
+                None
+                if inspection.source_request is None
+                else MaintenanceDeadLetterSourceRequestResponse.from_entity(
+                    inspection.source_request
+                )
+            ),
+            source_payload=inspection.source_payload,
+            attempts=tuple(
+                MaintenanceJobAttemptResponse.from_entity(item)
+                for item in inspection.entry.attempt_history
+            ),
+            error_history=inspection.error_history,
+            idempotency_keys=inspection.idempotency_keys,
+            effect_identities=inspection.effect_identities,
+            source_identity=inspection.source_identity,
+            retryable=inspection.retryable,
+            outcome_class=inspection.outcome_class,
+            recommended_action=inspection.recommended_action,
+            retired=inspection.retired,
+            archive_id=inspection.archive_id,
+            retirement_reason=inspection.retirement_reason,
+            retirement_classification=inspection.retirement_classification,
+            retired_by=inspection.retired_by,
+            retired_at=inspection.retired_at,
+        )
+
+
+class MaintenanceDeadLetterRetryRequest(StrictSchemaModel):
+    """Bounded same-ID retry request."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    dry_run: Annotated[bool, described_field("Preview without queue mutation.")] = False
+    reason: Annotated[
+        str,
+        StringConstraints(
+            strict=True, strip_whitespace=True, min_length=1, max_length=500
+        ),
+        described_field("Operator reason for retry."),
+    ] = "operator retry"
+
+
+class MaintenanceDeadLetterRetryResponse(StrictSchemaModel):
+    """Bounded retry result preserving same job identity."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    entry_id: Annotated[str, described_field("Dead-letter entry ID.")]
+    job_id: Annotated[str, described_field("Original job ID.")]
+    dry_run: Annotated[bool, described_field("Whether the operation was a preview.")]
+    retryable: Annotated[bool, described_field("Whether same-ID retry is allowed.")]
+    status: Annotated[
+        MaintenanceJobStatus | None, described_field("Current job status.")
+    ] = None
+    snapshot: Annotated[
+        MaintenanceJobResponse | None, described_field("Current job snapshot.")
+    ] = None
+    reason: Annotated[str, described_field("Operator retry reason.")]
+    outcome_class: Annotated[
+        MaintenanceDeadLetterOutcomeClass, described_field("Outcome class.")
+    ]
+
+    @classmethod
+    def from_entity(
+        cls, result: MaintenanceDeadLetterRetryResult
+    ) -> MaintenanceDeadLetterRetryResponse:
+        """Map a bounded retry result."""
+        return cls(
+            entry_id=result.entry_id,
+            job_id=result.job_id,
+            dry_run=result.dry_run,
+            retryable=result.retryable,
+            status=result.status,
+            snapshot=(
+                None
+                if result.snapshot is None
+                else MaintenanceJobResponse.from_entity(result.snapshot)
+            ),
+            reason=result.reason,
+            outcome_class=result.outcome_class,
+        )
+
+
+class MaintenanceDeadLetterReconcileItemResponse(StrictSchemaModel):
+    """One note receipt verdict from batch reconciliation."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    index: Annotated[int, described_field("Original batch item index.")]
+    idempotency_key: Annotated[str, described_field("Stable mutation key.")]
+    effect_identity: Annotated[str, described_field("Stable mutation identity.")]
+    status: Annotated[str, described_field("Receipt status.")]
+    evidence: Annotated[tuple[str, ...], described_field("Receipt evidence.")] = ()
+    canonical_path: Annotated[str | None, described_field("Canonical note path.")] = (
+        None
+    )
+    content_hash: Annotated[str | None, described_field("Observed content hash.")] = (
+        None
+    )
+
+    @classmethod
+    def from_entity(
+        cls, item: MaintenanceDeadLetterReconcileItem
+    ) -> MaintenanceDeadLetterReconcileItemResponse:
+        """Map one reconciliation item."""
+        return cls(
+            index=item.index,
+            idempotency_key=item.idempotency_key,
+            effect_identity=item.effect_identity,
+            status=item.status,
+            evidence=item.evidence,
+            canonical_path=item.canonical_path,
+            content_hash=item.content_hash,
+        )
+
+
+class MaintenanceDeadLetterReconcileResponse(StrictSchemaModel):
+    """Per-item receipt reconciliation result."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    entry_id: Annotated[str, described_field("Dead-letter entry ID.")]
+    job_id: Annotated[str, described_field("Original job ID.")]
+    outcome_class: Annotated[
+        MaintenanceDeadLetterOutcomeClass, described_field("Outcome class.")
+    ]
+    retryable: Annotated[bool, described_field("Whether same-ID retry is allowed.")]
+    items: Annotated[
+        tuple[MaintenanceDeadLetterReconcileItemResponse, ...],
+        described_field("Per-item receipt evidence."),
+    ] = ()
+    recommended_action: Annotated[str, described_field("Evidence-based next action.")]
+    source_available: Annotated[
+        bool, described_field("Whether the source was readable.")
+    ]
+
+    @classmethod
+    def from_entity(
+        cls, result: MaintenanceDeadLetterReconcileResult
+    ) -> MaintenanceDeadLetterReconcileResponse:
+        """Map reconciliation evidence."""
+        return cls(
+            entry_id=result.entry_id,
+            job_id=result.job_id,
+            outcome_class=result.outcome_class,
+            retryable=result.retryable,
+            items=tuple(
+                MaintenanceDeadLetterReconcileItemResponse.from_entity(item)
+                for item in result.items
+            ),
+            recommended_action=result.recommended_action,
+            source_available=result.source_available,
+        )
+
+
+class MaintenanceDeadLetterRetireRequest(StrictSchemaModel):
+    """Bounded provenance retirement request."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    reason: Annotated[
+        str,
+        StringConstraints(
+            strict=True, strip_whitespace=True, min_length=1, max_length=500
+        ),
+        described_field("Mandatory operator retirement reason."),
+    ]
+    classification: Annotated[
+        MaintenanceDeadLetterRetirementClassification,
+        described_field("Bounded retirement classification."),
+    ]
+    retired_by: Annotated[
+        str,
+        StringConstraints(
+            strict=True, strip_whitespace=True, min_length=1, max_length=120
+        ),
+        described_field("Actor recording the retirement."),
+    ]
+
+    @field_validator("classification", mode="before")
+    @classmethod
+    def parse_classification(
+        cls, value: str | MaintenanceDeadLetterRetirementClassification
+    ) -> MaintenanceDeadLetterRetirementClassification:
+        """Parse the public JSON classification string once at the boundary."""
+        return (
+            value
+            if isinstance(value, MaintenanceDeadLetterRetirementClassification)
+            else MaintenanceDeadLetterRetirementClassification(value)
+        )
+
+
+class MaintenanceDeadLetterRetireResponse(StrictSchemaModel):
+    """Durable retirement archive and cleanup state."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    entry_id: Annotated[str, described_field("Dead-letter entry ID.")]
+    job_id: Annotated[str, described_field("Original job ID.")]
+    archive_id: Annotated[str, described_field("Immutable archive identity.")]
+    retired_by: Annotated[str, described_field("Retiring actor.")]
+    retired_at: Annotated[datetime, described_field("Retirement time.")]
+    reason: Annotated[str, described_field("Retirement reason.")]
+    classification: Annotated[
+        MaintenanceDeadLetterRetirementClassification,
+        described_field("Retirement classification."),
+    ]
+    retired: Annotated[bool, described_field("Whether exact cleanup completed.")]
+    pending_cleanup: Annotated[
+        bool,
+        described_field("Whether archive is durable and Redis cleanup is pending."),
+    ] = False
+
+    @classmethod
+    def from_entity(
+        cls, result: MaintenanceDeadLetterRetireResult
+    ) -> MaintenanceDeadLetterRetireResponse:
+        """Map retirement provenance."""
+        return cls(
+            entry_id=result.entry_id,
+            job_id=result.job_id,
+            archive_id=result.archive_id,
+            retired_by=result.retired_by,
+            retired_at=result.retired_at,
+            reason=result.reason,
+            classification=result.classification,
+            retired=result.retired,
+            pending_cleanup=result.pending_cleanup,
+        )

@@ -7,10 +7,39 @@ from app.mcp_server.tools.backend_gateway_policy import _path_segment
 from app.mcp_server.type_validate.maintenance_contracts import (
     MaintenanceBatchNoteWriteToolRequest,
     MaintenanceDeadLetterIdToolRequest,
+    MaintenanceDeadLetterRetireToolRequest,
+    MaintenanceDeadLetterRetryToolRequest,
     MaintenanceEmbeddingReindexToolRequest,
     MaintenanceJobIdToolRequest,
 )
+from app.operations.domain.event_enum.maintenance_job_enums import (
+    MaintenanceDeadLetterRetirementClassification,
+)
+from app.operations.interface.schemas.operations.maintenance_job_schema import (
+    MaintenanceJobsRequest,
+    MaintenanceJobsResponse,
+)
+from app.shared.serialization.orjson_codec import dumps_json
 from app.shared.types.extra_types import JSONValue
+
+
+async def alexandria_get_maintenance_jobs(
+    client: AlexandriaApiClient, job_ids: list[str]
+) -> MaintenanceJobsResponse:
+    """Read one bounded batch without submitting or retrying any job.
+
+    Args:
+        client: Existing backend HTTP client.
+        job_ids: Existing maintenance job identities.
+
+    Returns:
+        Current states and explicitly absent identities.
+    """
+    request = MaintenanceJobsRequest(job_ids=job_ids)
+    payload = await client.post(
+        "/operations/maintenance/jobs/batch-status", {"job_ids": request.job_ids}
+    )
+    return MaintenanceJobsResponse.model_validate_json(dumps_json(payload))
 
 
 async def alexandria_reindex_context_embeddings(
@@ -117,7 +146,7 @@ async def alexandria_list_maintenance_dead_letters(
     """
     return await client.get(
         "/operations/maintenance/dead-letters",
-        {"limit": max(1, min(int(limit), 200))},
+        {"limit": max(1, min(limit, 200))},
     )
 
 
@@ -153,3 +182,71 @@ async def alexandria_replay_maintenance_dead_letter(
         f"/operations/maintenance/dead-letters/{_path_segment(request.entry_id)}/replay",
         {},
     )
+
+
+async def alexandria_maintenance_dlq_inspect(
+    client: AlexandriaApiClient,
+    entry_id: str,
+) -> JSONValue:
+    """Inspect exact live or archived DLQ evidence."""
+    request = MaintenanceDeadLetterIdToolRequest(entry_id=entry_id)
+    return await client.get(
+        f"/operations/maintenance/dead-letters/{_path_segment(request.entry_id)}"
+    )
+
+
+async def alexandria_maintenance_dlq_retry(
+    client: AlexandriaApiClient,
+    entry_id: str,
+    dry_run: bool = False,
+    reason: str = "operator retry",
+) -> JSONValue:
+    """Preview or same-ID retry one DLQ entry after evidence review."""
+    request = MaintenanceDeadLetterRetryToolRequest(
+        entry_id=entry_id,
+        dry_run=dry_run,
+        reason=reason,
+    )
+    return await client.post(
+        f"/operations/maintenance/dead-letters/{_path_segment(request.entry_id)}/retry",
+        request.to_payload(),
+    )
+
+
+async def alexandria_maintenance_dlq_reconcile(
+    client: AlexandriaApiClient,
+    entry_id: str,
+) -> JSONValue:
+    """Read per-item mutation receipts without requeueing effects."""
+    request = MaintenanceDeadLetterIdToolRequest(entry_id=entry_id)
+    return await client.post(
+        f"/operations/maintenance/dead-letters/{_path_segment(request.entry_id)}/reconcile",
+        {},
+    )
+
+
+async def alexandria_maintenance_dlq_retire(
+    client: AlexandriaApiClient,
+    entry_id: str,
+    reason: str,
+    classification: str,
+    retired_by: str = "mcp",
+) -> JSONValue:
+    """Archive provenance and retire exactly one DLQ entry."""
+    request = MaintenanceDeadLetterRetireToolRequest(
+        entry_id=entry_id,
+        reason=reason,
+        classification=MaintenanceDeadLetterRetirementClassification(classification),
+        retired_by=retired_by,
+    )
+    return await client.post(
+        f"/operations/maintenance/dead-letters/{_path_segment(request.entry_id)}/retire",
+        request.to_payload(),
+    )
+
+
+# Explicit descriptive aliases retained for callers that use verb-first names.
+alexandria_inspect_maintenance_dead_letter = alexandria_maintenance_dlq_inspect
+alexandria_retry_maintenance_dead_letter = alexandria_maintenance_dlq_retry
+alexandria_reconcile_maintenance_dead_letter = alexandria_maintenance_dlq_reconcile
+alexandria_retire_maintenance_dead_letter = alexandria_maintenance_dlq_retire

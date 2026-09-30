@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from typing import cast
 
@@ -45,8 +45,14 @@ from app.memory.infrastructure.repositories.contexts.obsidian.obsidian_graph_can
 from app.obsidian.application.graph.projection.obsidian_graph_context_signal_service import (
     ObsidianGraphContextSignalService,
 )
+from app.obsidian.application.service.notes.obsidian_mutation_outcome_service import (
+    ObsidianMutationOutcomeService,
+)
 from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.obsidian.containers import ObsidianContainer
+from app.obsidian.domain.entities.obsidian_mutation_outcome import (
+    ObsidianMutationOutcome,
+)
 from app.obsidian.domain.repositories.obsidian_graph_candidate_selection_compute_provider import (
     IObsidianGraphCandidateSelectionComputeProvider,
 )
@@ -71,6 +77,9 @@ from app.operations.application.diagnostics.operational_retrieval_diagnostics_se
 from app.operations.application.maintenance_batch_note_write_service import (
     MaintenanceBatchNoteWriteService,
 )
+from app.operations.application.maintenance_dlq_service import (
+    MaintenanceDeadLetterLifecycleService,
+)
 from app.operations.application.maintenance_job_queue import MaintenanceJobSubmitter
 from app.operations.application.readiness.external_api_rate_limit import (
     ExternalApiRateLimiter,
@@ -91,6 +100,9 @@ from app.operations.application.readiness.operational_retrieval_canary_service i
 from app.operations.application.readiness.operational_runtime_provenance_service import (
     OperationalRuntimeProvenanceService,
 )
+from app.operations.application.recovery.execution.recovery_run_contracts import (
+    resolve_recovery_service,
+)
 from app.operations.application.skill_contract.skill_contract_status_service import (
     SkillContractStatusService,
 )
@@ -100,6 +112,9 @@ from app.operations.application.skill_contract.skill_publication_policy import (
 from app.operations.application.steward.memory_steward_service import (
     MemoryStewardDiagnoseService,
     MemoryStewardSealService,
+)
+from app.operations.infrastructure.maintenance_job_payload_store import (
+    MaintenanceJobPayloadStore,
 )
 from app.operations.infrastructure.redis_maintenance_job_queue import (
     RedisMaintenanceJobSubmitter,
@@ -119,6 +134,7 @@ from app.shared.infrastructure.database import Database
 from app.shared.infrastructure.postgres_advisory_lock import PostgresAdvisoryLock
 from app.shared.infrastructure.redis_client import initialize_redis_client
 from app.shared.security.secret_cipher import SecretCipher, SecretCipherSettings
+from app.shared.types.extra_types import JSONValue
 
 
 @asynccontextmanager
@@ -319,6 +335,53 @@ def create_operational_readiness_service(
     )
 
 
+def create_maintenance_dlq_service(
+    database: Database,
+    queue: MaintenanceJobSubmitter | None,
+    archive_namespace: str,
+    outcome_factory: Callable[
+        [], ObsidianMutationOutcomeService | Awaitable[ObsidianMutationOutcomeService]
+    ],
+) -> MaintenanceDeadLetterLifecycleService | None:
+    """Compose DLQ coordination with its existing durable/effect owners.
+
+    Args:
+        database: Existing PostgreSQL transaction owner.
+        queue: Existing Redis queue, absent when disabled.
+        archive_namespace: Configured DLQ stream identity.
+        outcome_factory: Request-scoped canonical note receipt reader.
+
+    Returns:
+        Enabled lifecycle service or explicit disabled capability.
+    """
+    if queue is None:
+        return None
+
+    async def read_payload(identity: str) -> dict[str, JSONValue] | None:
+        async with database.request_session() as session:
+            return await MaintenanceJobPayloadStore(session).load(identity)
+
+    async def write_archive(identity: str, body: dict[str, JSONValue]) -> bool:
+        async with database.request_session() as session:
+            return await MaintenanceJobPayloadStore(session).save_if_absent(
+                identity, "maintenance_dlq_retirement", body
+            )
+
+    async def read_outcome(identity: str) -> ObsidianMutationOutcome:
+        async with database.request_session():
+            service = await resolve_recovery_service(outcome_factory)
+            return await service.note_write_outcome(identity)
+
+    return MaintenanceDeadLetterLifecycleService(
+        queue,
+        archive_namespace=archive_namespace,
+        payload_reader=read_payload,
+        archive_reader=read_payload,
+        archive_writer=write_archive,
+        note_outcome_reader=read_outcome,
+    )
+
+
 class ApplicationContainer(containers.DeclarativeContainer):
     """Root container for shared application resources."""
 
@@ -458,6 +521,13 @@ class ApplicationContainer(containers.DeclarativeContainer):
             configured_skill_runtime_provider, config=app_config
         ),
         vault_config_store=obsidian.vault_config_store,
+    )
+    maintenance_dlq_service = providers.Factory(
+        create_maintenance_dlq_service,
+        database=database,
+        queue=maintenance_job_submitter,
+        archive_namespace=maintenance_queue_config.provided.dead_letter_stream_name,
+        outcome_factory=obsidian.mutation_outcome_service.provider,
     )
     operational_readiness_service = providers.Factory(
         create_operational_readiness_service,

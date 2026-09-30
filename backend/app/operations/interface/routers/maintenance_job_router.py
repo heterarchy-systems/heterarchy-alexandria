@@ -10,8 +10,13 @@ from app.operations.application.maintenance_batch_note_write_service import (
     MaintenanceBatchNoteWriteService,
     MaintenanceBatchWritePayloadTooLargeError,
 )
+from app.operations.application.maintenance_dlq_service import (
+    MaintenanceDeadLetterLifecycleService,
+)
 from app.operations.application.maintenance_job_queue import (
+    MaintenanceDeadLetterLifecycleConflictError,
     MaintenanceDeadLetterNotFoundError,
+    MaintenanceDeadLetterNotRetryableError,
     MaintenanceDeadLetterSourceGoneError,
     MaintenanceJobSubmitter,
     MaintenanceQueueUnavailableError,
@@ -22,15 +27,63 @@ from app.operations.domain.event_enum.maintenance_job_enums import MaintenanceJo
 from app.operations.interface.schemas.operations.maintenance_job_schema import (
     BatchNoteWriteJobRequest,
     EmbeddingReindexJobRequest,
+    MaintenanceDeadLetterInspectionResponse,
     MaintenanceDeadLetterListResponse,
     MaintenanceDeadLetterPurgeResponse,
+    MaintenanceDeadLetterReconcileResponse,
     MaintenanceDeadLetterResponse,
+    MaintenanceDeadLetterRetireRequest,
+    MaintenanceDeadLetterRetireResponse,
+    MaintenanceDeadLetterRetryRequest,
+    MaintenanceDeadLetterRetryResponse,
     MaintenanceJobResponse,
+    MaintenanceJobsRequest,
+    MaintenanceJobsResponse,
     MaintenanceQueueStatusResponse,
 )
 from app.shared.type_validation.strict_json_body import model_validate_json_body
 
 router = APIRouter(prefix="/operations/maintenance", tags=["operations"])
+
+
+@router.post("/jobs/batch-status", response_model=MaintenanceJobsResponse)
+@inject
+async def get_maintenance_jobs(
+    request: Annotated[
+        MaintenanceJobsRequest,
+        Depends(model_validate_json_body(MaintenanceJobsRequest)),
+    ],
+    submitter: Annotated[
+        MaintenanceJobSubmitter | None,
+        Depends(Provide[ApplicationContainer.maintenance_job_submitter]),
+    ],
+) -> MaintenanceJobsResponse:
+    """Read bounded batch progress through the existing queue authority.
+
+    Args:
+        request: Existing job identifiers to inspect.
+        submitter: Injected maintenance status reader.
+
+    Returns:
+        Known snapshots and explicit absent identities.
+    """
+    queue = _required_submitter(submitter)
+    try:
+        snapshots = await queue.get_many(tuple(request.job_ids))
+    except MaintenanceQueueUnavailableError as exc:
+        raise HTTPException(503, "Redis maintenance queue is unavailable") from exc
+    return MaintenanceJobsResponse(
+        jobs=[
+            MaintenanceJobResponse.from_entity(item)
+            for item in snapshots
+            if item is not None
+        ],
+        missing_job_ids=[
+            job_id
+            for job_id, item in zip(request.job_ids, snapshots, strict=True)
+            if item is None
+        ],
+    )
 
 
 @router.post(
@@ -238,6 +291,18 @@ def _required_submitter(
     return submitter
 
 
+def _required_dlq_service(
+    service: MaintenanceDeadLetterLifecycleService | None,
+) -> MaintenanceDeadLetterLifecycleService:
+    """Require the composed DLQ lifecycle application service."""
+    if service is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Maintenance DLQ lifecycle is disabled",
+        )
+    return service
+
+
 @router.get(
     "/dead-letters",
     response_model=MaintenanceDeadLetterListResponse,
@@ -284,7 +349,8 @@ async def list_maintenance_dead_letters(
     "/dead-letters",
     response_model=MaintenanceDeadLetterPurgeResponse,
     status_code=status.HTTP_200_OK,
-    summary="Purge dead-letter maintenance jobs",
+    summary="Administrative bulk retention purge of dead-letter jobs",
+    description="Explicitly delete all live DLQ entries; normal cleanup uses inspect/retry/reconcile/retire.",
 )
 @inject
 async def purge_maintenance_dead_letters(
@@ -293,7 +359,7 @@ async def purge_maintenance_dead_letters(
         Depends(Provide[ApplicationContainer.maintenance_job_submitter]),
     ],
 ) -> MaintenanceDeadLetterPurgeResponse:
-    """Drop every dead-letter entry after operator review.
+    """Perform an explicit administrative bulk retention purge.
 
     Args:
         submitter: Injected maintenance queue query port.
@@ -310,6 +376,157 @@ async def purge_maintenance_dead_letters(
             detail="Redis maintenance queue is unavailable",
         ) from exc
     return MaintenanceDeadLetterPurgeResponse(purged=purged)
+
+
+@router.get(
+    "/dead-letters/{entry_id}",
+    response_model=MaintenanceDeadLetterInspectionResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Inspect one maintenance dead-letter entry",
+)
+@router.get(
+    "/dead-letters/{entry_id}/inspect",
+    response_model=MaintenanceDeadLetterInspectionResponse,
+    status_code=status.HTTP_200_OK,
+    include_in_schema=False,
+)
+@inject
+async def inspect_maintenance_dead_letter(
+    entry_id: str,
+    service: Annotated[
+        MaintenanceDeadLetterLifecycleService | None,
+        Depends(Provide[ApplicationContainer.maintenance_dlq_service]),
+    ],
+) -> MaintenanceDeadLetterInspectionResponse:
+    """Inspect exact live or archived dead-letter evidence."""
+    lifecycle = _required_dlq_service(service)
+    try:
+        result = await lifecycle.inspect(entry_id)
+    except MaintenanceDeadLetterNotFoundError as exc:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, "Dead-letter entry was not found"
+        ) from exc
+    except MaintenanceQueueUnavailableError as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Redis maintenance queue is unavailable",
+        ) from exc
+    return MaintenanceDeadLetterInspectionResponse.from_entity(result)
+
+
+@router.post(
+    "/dead-letters/{entry_id}/retry",
+    response_model=MaintenanceDeadLetterRetryResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Retry one maintenance dead-letter entry",
+)
+@inject
+async def retry_maintenance_dead_letter(
+    entry_id: str,
+    request: Annotated[
+        MaintenanceDeadLetterRetryRequest,
+        Depends(model_validate_json_body(MaintenanceDeadLetterRetryRequest)),
+    ],
+    service: Annotated[
+        MaintenanceDeadLetterLifecycleService | None,
+        Depends(Provide[ApplicationContainer.maintenance_dlq_service]),
+    ],
+) -> MaintenanceDeadLetterRetryResponse:
+    """Preview or same-ID retry one evidence-approved terminal job."""
+    lifecycle = _required_dlq_service(service)
+    try:
+        result = await lifecycle.retry(
+            entry_id,
+            dry_run=request.dry_run,
+            reason=request.reason,
+        )
+    except MaintenanceDeadLetterNotFoundError as exc:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, "Dead-letter entry was not found"
+        ) from exc
+    except MaintenanceDeadLetterNotRetryableError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    except MaintenanceDeadLetterSourceGoneError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    except MaintenanceDeadLetterLifecycleConflictError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    except MaintenanceQueueUnavailableError as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Redis maintenance queue is unavailable",
+        ) from exc
+    return MaintenanceDeadLetterRetryResponse.from_entity(result)
+
+
+@router.post(
+    "/dead-letters/{entry_id}/reconcile",
+    response_model=MaintenanceDeadLetterReconcileResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Reconcile one maintenance dead-letter entry",
+)
+@inject
+async def reconcile_maintenance_dead_letter(
+    entry_id: str,
+    service: Annotated[
+        MaintenanceDeadLetterLifecycleService | None,
+        Depends(Provide[ApplicationContainer.maintenance_dlq_service]),
+    ],
+) -> MaintenanceDeadLetterReconcileResponse:
+    """Read batch note receipts without requeueing unknown effects."""
+    lifecycle = _required_dlq_service(service)
+    try:
+        result = await lifecycle.reconcile(entry_id)
+    except MaintenanceDeadLetterNotFoundError as exc:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, "Dead-letter entry was not found"
+        ) from exc
+    except MaintenanceQueueUnavailableError as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Redis maintenance queue is unavailable",
+        ) from exc
+    return MaintenanceDeadLetterReconcileResponse.from_entity(result)
+
+
+@router.post(
+    "/dead-letters/{entry_id}/retire",
+    response_model=MaintenanceDeadLetterRetireResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Retire one maintenance dead-letter entry",
+)
+@inject
+async def retire_maintenance_dead_letter(
+    entry_id: str,
+    request: Annotated[
+        MaintenanceDeadLetterRetireRequest,
+        Depends(model_validate_json_body(MaintenanceDeadLetterRetireRequest)),
+    ],
+    service: Annotated[
+        MaintenanceDeadLetterLifecycleService | None,
+        Depends(Provide[ApplicationContainer.maintenance_dlq_service]),
+    ],
+) -> MaintenanceDeadLetterRetireResponse:
+    """Archive provenance before exact Redis cleanup of one entry."""
+    lifecycle = _required_dlq_service(service)
+    try:
+        result = await lifecycle.retire(
+            entry_id,
+            reason=request.reason,
+            classification=request.classification,
+            retired_by=request.retired_by,
+        )
+    except MaintenanceDeadLetterNotFoundError as exc:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, "Dead-letter entry was not found"
+        ) from exc
+    except MaintenanceDeadLetterLifecycleConflictError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    except MaintenanceQueueUnavailableError as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Maintenance DLQ archive or Redis cleanup is unavailable",
+        ) from exc
+    return MaintenanceDeadLetterRetireResponse.from_entity(result)
 
 
 @router.post(
