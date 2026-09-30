@@ -65,6 +65,12 @@ class AppConfigFields(BaseSettings):
         str | None,
         described_field("Build timestamp baked into the running application image."),
     ] = None
+    skill_bundle_root: Annotated[
+        str | None,
+        described_field(
+            "Optional skill bundle root override for skill contract checks."
+        ),
+    ] = None
     readiness_canary_query: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=500),

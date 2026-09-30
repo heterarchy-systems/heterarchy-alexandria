@@ -10,6 +10,7 @@ from app.mcp_server.tools.operations.operations_backend_gateway import (
     alexandria_operational_readiness,
     alexandria_recover,
     alexandria_recovery_run_status,
+    alexandria_skill_contract_status,
 )
 from app.shared.types.extra_types import JSONValue
 
@@ -76,3 +77,12 @@ def register_operations_tools(
             api_client,
             run_id,
         )
+
+    @server.tool(name="alexandria_skill_contract_status")
+    async def _tool_skill_contract_status() -> JSONValue:
+        """Compare repo skill bundles with the live runtime toolset.
+
+        Returns:
+            Skill contract compatibility report payload.
+        """
+        return await alexandria_skill_contract_status(api_client)

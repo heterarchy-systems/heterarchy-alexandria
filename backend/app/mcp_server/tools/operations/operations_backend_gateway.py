@@ -141,3 +141,17 @@ async def alexandria_recover(
         idempotency_key=idempotency_key,
         parent_run_id=parent_run_id,
     )
+
+
+async def alexandria_skill_contract_status(
+    client: AlexandriaApiClient,
+) -> JSONValue:
+    """Read skill and runtime contract compatibility.
+
+    Args:
+        client: Backend HTTP client.
+
+    Returns:
+        Skill contract status response.
+    """
+    return await client.get("/operations/skills/contract-status")

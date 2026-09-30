@@ -10,6 +10,7 @@ from dependency_injector import containers, providers
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.mcp_server.runtime_tool_catalog import registered_runtime_tool_names
 from app.memory.application.contexts.graph.context_graph_candidate_expansion_service import (
     ContextGraphCandidateExpansionService,
     GraphProjectionSnapshotSource,
@@ -89,6 +90,12 @@ from app.operations.application.readiness.operational_retrieval_canary_service i
 )
 from app.operations.application.readiness.operational_runtime_provenance_service import (
     OperationalRuntimeProvenanceService,
+)
+from app.operations.application.skill_contract.skill_contract_status_service import (
+    SkillContractStatusService,
+)
+from app.operations.application.skill_contract.skill_publication_policy import (
+    configured_skill_runtime_provider,
 )
 from app.operations.application.steward.memory_steward_service import (
     MemoryStewardDiagnoseService,
@@ -442,6 +449,15 @@ class ApplicationContainer(containers.DeclarativeContainer):
     operational_runtime_provenance_service = providers.Singleton(
         OperationalRuntimeProvenanceService,
         config=app_config,
+    )
+    skill_contract_status_service = providers.Singleton(
+        SkillContractStatusService,
+        config=app_config,
+        tool_names_provider=registered_runtime_tool_names,
+        runtime_contract_provider=providers.Callable(
+            configured_skill_runtime_provider, config=app_config
+        ),
+        vault_config_store=obsidian.vault_config_store,
     )
     operational_readiness_service = providers.Factory(
         create_operational_readiness_service,

@@ -69,9 +69,59 @@ def render_markdown_document(frontmatter: JSONObject, body: str) -> str:
     return "\n".join(lines) + f"\n\n{normalized_body}\n"
 
 
+def render_frontmatter_block(frontmatter: JSONObject) -> str:
+    """Render one complete frontmatter block, terminating delimiter included.
+
+    Args:
+        frontmatter: JSON-compatible frontmatter values in output order.
+
+    Returns:
+        Frontmatter block text ending with the closing delimiter and newline,
+        ready to be spliced in front of byte-exact body text.
+    """
+    lines = [FRONTMATTER_DELIMITER]
+    for key, value in frontmatter.items():
+        lines.extend(_render_frontmatter_value(key, value))
+    lines.append(FRONTMATTER_DELIMITER)
+    return "\n".join(lines) + "\n"
+
+
+def split_frontmatter_region(text: str) -> tuple[str | None, str]:
+    """Split one document into its frontmatter block and byte-exact body.
+
+    The split is delimiter-based, so documents whose frontmatter fails YAML
+    parsing still yield their exact body bytes for frontmatter-only repair.
+
+    Args:
+        text: Complete Markdown document text.
+
+    Returns:
+        Tuple of the frontmatter block text (``None`` when the document has no
+        frontmatter at all) and the exact body text that follows it.
+
+    Raises:
+        ValueError: When a frontmatter block opens but never terminates, so a
+            body split would be ambiguous and raw repair must be used instead.
+    """
+    lines = text.splitlines(keepends=True)
+    if not lines or lines[0].rstrip("\r\n").strip() != FRONTMATTER_DELIMITER:
+        return None, text
+    end_index = next(
+        (
+            index
+            for index, line in enumerate(lines[1:], start=1)
+            if line.rstrip("\r\n").strip() == FRONTMATTER_DELIMITER
+        ),
+        None,
+    )
+    if end_index is None:
+        raise ValueError("FRONTMATTER_PARSE_ERROR: unterminated frontmatter")
+    return "".join(lines[: end_index + 1]), "".join(lines[end_index + 1 :])
+
+
 def update_frontmatter_scalars(
     text: str,
-    replacements: Mapping[str, str],
+    replacements: Mapping[str, JSONPrimitive],
 ) -> str:
     """Update top-level scalar fields without rewriting unknown YAML structure.
 
@@ -104,9 +154,9 @@ def update_frontmatter_scalars(
         if raw_line != raw_line.lstrip() or ":" not in raw_line:
             continue
         key = raw_line.split(":", maxsplit=1)[0].strip()
-        value = replacements.get(key)
-        if value is None:
+        if key not in replacements:
             continue
+        value = replacements[key]
         matched_keys.add(key)
         line_ending = lines[index][len(raw_line) :]
         lines[index] = f"{key}: {_yaml_scalar(value)}{line_ending}"

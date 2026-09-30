@@ -74,6 +74,10 @@ from app.obsidian.infrastructure.obsidian_vault_config_store import (
 from app.obsidian.infrastructure.repositories.obsidian_index_repository import (
     SqlAlchemyObsidianIndexRepository,
 )
+from app.operations.application.skill_contract.skill_publication_policy import (
+    SkillPublicationPolicy,
+    configured_skill_runtime_provider,
+)
 from app.platform.config.app_config import AppConfig
 from app.shared.application.index_maintenance_coordinator import (
     IndexMaintenanceCoordinator,
@@ -194,6 +198,12 @@ class ObsidianContainer(containers.DeclarativeContainer):
         projection_service=graph_projection_rebuild_service,
         vault_config_store=vault_config_store,
         index_maintenance_coordinator=index_maintenance_coordinator,
+    )
+    skill_publication_policy = providers.Singleton(
+        SkillPublicationPolicy,
+        runtime_provider=providers.Callable(
+            configured_skill_runtime_provider, config=app_config
+        ),
     )
     obsidian_service = providers.Factory(
         ObsidianService,
