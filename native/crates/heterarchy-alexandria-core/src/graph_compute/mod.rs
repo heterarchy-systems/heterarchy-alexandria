@@ -2,9 +2,14 @@
 
 mod algorithms;
 mod candidate_selection;
+mod diagnostics;
 pub(crate) mod projection;
 mod read_semantics;
 
+pub use diagnostics::{
+    GraphDiagnosticsRequest, GraphDiagnosticsResult, GraphOrphanCensusRequest, GraphOrphanRecord,
+    GraphRelationSuggestion, GraphRelationSuggestionRequest, compute_graph_diagnostics,
+};
 pub use read_semantics::{
     GraphContextEvidence, GraphContextSignal, GraphProjectionReadResult, GraphReadDirection,
     GraphRelatedNote, read_projection,

@@ -9,6 +9,7 @@ mod context_reindex_manifest_wire;
 mod document_index_wire;
 pub mod embedding_runtime_registry;
 mod fastembed_runtime;
+mod graph_diagnostics_wire;
 mod graph_traversal_wire;
 mod reconciliation_candidate_wire;
 mod retrieval_kernel_compact;
@@ -20,6 +21,7 @@ use compile_plan_wire::{compile_plan_payload, resolve_note_targets_payload};
 use context_reindex_manifest_wire::compute_context_reindex_manifest_payload;
 use document_index_wire::compute_document_index_batch_payload;
 use fastembed_runtime::infer_query_input;
+use graph_diagnostics_wire::compute_graph_diagnostics_payload;
 use graph_traversal_wire::{
     compute_graph_candidate_selection_payload, compute_graph_projection_read_payload,
 };
@@ -340,6 +342,18 @@ fn compute_graph_json<'python>(
     let owned_payload = payload.to_vec();
     let encoded = python
         .detach(move || compute_graph_payload(&owned_payload))
+        .map_err(PyValueError::new_err)?;
+    Ok(PyBytes::new(python, &encoded))
+}
+
+#[pyfunction]
+fn compute_graph_diagnostics_json<'python>(
+    python: Python<'python>,
+    payload: &[u8],
+) -> PyResult<Bound<'python, PyBytes>> {
+    let owned_payload = payload.to_vec();
+    let encoded = python
+        .detach(move || compute_graph_diagnostics_payload(&owned_payload))
         .map_err(PyValueError::new_err)?;
     Ok(PyBytes::new(python, &encoded))
 }
@@ -836,9 +850,9 @@ pub mod heterarchy_alexandria_native {
     use super::{
         analyze_document_batch_json, chunk_markdown_batch_json, compile_plan_json,
         compute_context_reindex_manifest_json, compute_contract_version,
-        compute_document_index_batch_json, compute_graph_json, compute_hash_batch_json,
-        compute_reconciliation_candidates_json, compute_retrieval_kernel_json,
-        embed_multilingual_e5_query, extract_reference_batch_json,
+        compute_document_index_batch_json, compute_graph_diagnostics_json, compute_graph_json,
+        compute_hash_batch_json, compute_reconciliation_candidates_json,
+        compute_retrieval_kernel_json, embed_multilingual_e5_query, extract_reference_batch_json,
         feature_authority_schema_version, finalize_bulk_embedding_batch_json, native_build_profile,
         native_git_revision, native_package_version, prepare_bulk_embedding_batch_json,
         read_graph_projection_json, resolve_note_targets_json, retrieval_hybrid_candidate_limit,
