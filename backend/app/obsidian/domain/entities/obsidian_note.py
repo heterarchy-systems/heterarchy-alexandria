@@ -6,6 +6,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 from app.obsidian.domain.contracts.obsidian_contracts import ObsidianNoteIndex
+from app.obsidian.domain.entities.obsidian_mutation_outcome import (
+    ObsidianMutationOutcome,
+)
 from app.obsidian.domain.event_enum.obsidian_enums import (
     AlexandriaNoteType,
     ObsidianEdgeSourceKind,
@@ -54,6 +57,9 @@ class ObsidianNote:
     modified_at: datetime
     indexed_at: datetime | None
     source_hash: str | None = None
+    mutation_receipt: ObsidianMutationOutcome | None = field(
+        default=None, compare=False
+    )
 
     def __post_init__(self) -> None:
         """Normalize note tags to an immutable sequence."""
@@ -123,6 +129,24 @@ class ObsidianNoteRawRead:
     body: str | None
     note_id: str | None
     index_status: str | None
+    byte_exact: bool = True
+    """Whether raw_text is the exact durable source bytes."""
+
+
+@dataclass(slots=True, kw_only=True)
+class ObsidianFrontmatterRepairResult:
+    """Truthful evidence for one byte-preserving frontmatter repair."""
+
+    content_hash_before: str
+    content_hash_after: str
+    body_hash_before: str
+    body_hash_after: str
+    body_byte_exact_preserved: bool
+    removed_server_owned_fields: tuple[str, ...]
+    parse_status: str
+    index_status: str
+    note_id: str
+    relative_path: str
 
 
 @dataclass(slots=True, kw_only=True)

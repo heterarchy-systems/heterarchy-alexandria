@@ -6,6 +6,9 @@ from mcp.server import MCPServer
 
 from app.mcp_server.backend_api_client import AlexandriaApiClient
 from app.mcp_server.tools.backend_gateway_policy import DEFAULT_CONTEXT_SEARCH_LIMIT
+from app.mcp_server.tools.obsidian.frontmatter_repair_backend_gateway import (
+    alexandria_repair_frontmatter,
+)
 from app.mcp_server.tools.obsidian.obsidian_backend_gateway import (
     alexandria_batch_read_notes,
     alexandria_batch_validate_note_links,
@@ -25,6 +28,10 @@ from app.obsidian.domain.event_enum.obsidian_enums import (
     AlexandriaNoteType,
     ObsidianFrontmatterMode,
     ObsidianWriteMatchBy,
+)
+from app.obsidian.interface.schemas.obsidian.obsidian_schema import (
+    ObsidianFrontmatterRepairRequest,
+    ObsidianFrontmatterRepairResponse,
 )
 from app.shared.types.extra_types import JSONValue
 
@@ -70,6 +77,25 @@ def register_obsidian_note_tools(
             JSONValue result produced by tool read note raw.
         """
         return await alexandria_read_note_raw(api_client, note_id, path)
+
+    @server.tool(name="alexandria_repair_frontmatter")
+    async def _tool_repair_frontmatter(
+        request: ObsidianFrontmatterRepairRequest,
+    ) -> ObsidianFrontmatterRepairResponse:
+        """Repair one note's frontmatter while preserving durable body bytes.
+
+        Use this instead of alexandria_repair_note_raw when only the
+        frontmatter is stale or malformed: the body bytes survive exactly,
+        server-owned caller fields are rejected, and redaction
+        placeholders are refused.
+
+        Args:
+            request: Validated frontmatter repair request.
+
+        Returns:
+            Before/after hash evidence with body preservation proof.
+        """
+        return await alexandria_repair_frontmatter(api_client, request)
 
     @server.tool(name="alexandria_repair_note_raw")
     async def _tool_repair_note_raw(
@@ -171,8 +197,9 @@ def register_obsidian_note_tools(
         source: str = "mcp",
         frontmatter: dict[str, JSONValue] | None = None,
         frontmatter_mode: ObsidianFrontmatterMode = ObsidianFrontmatterMode.MERGE,
+        idempotency_key: str | None = None,
     ) -> JSONValue:
-        """Create only; fail before mutation when the exact id or path exists.
+        """Create once per request identity; reject another request at an existing target.
 
         Args:
             title: Title used by this operation.
@@ -187,6 +214,8 @@ def register_obsidian_note_tools(
             source: Source used by this operation.
             frontmatter: Frontmatter used by this operation.
             frontmatter_mode: Frontmatter mode used by this operation.
+
+            idempotency_key: Retry-stable mutation identity; retain it after a lost response.
 
         Returns:
             JSONValue result produced by tool create note.
@@ -205,6 +234,7 @@ def register_obsidian_note_tools(
             source,
             frontmatter,
             frontmatter_mode.value,
+            idempotency_key=idempotency_key,
         )
 
     @server.tool(name="alexandria_update_note")
@@ -222,6 +252,7 @@ def register_obsidian_note_tools(
         frontmatter: dict[str, JSONValue] | None = None,
         frontmatter_mode: ObsidianFrontmatterMode = ObsidianFrontmatterMode.MERGE,
         expected_content_hash: str | None = None,
+        idempotency_key: str | None = None,
     ) -> JSONValue:
         """Update by exact id or path; never infer a move or replacement target.
 
@@ -239,6 +270,8 @@ def register_obsidian_note_tools(
             frontmatter: Frontmatter used by this operation.
             frontmatter_mode: Frontmatter mode used by this operation.
             expected_content_hash: Expected content hash used for validation.
+
+            idempotency_key: Retry-stable mutation identity; retain it after a lost response.
 
         Returns:
             JSONValue result produced by tool update note.
@@ -258,6 +291,7 @@ def register_obsidian_note_tools(
             frontmatter,
             frontmatter_mode.value,
             expected_content_hash,
+            idempotency_key=idempotency_key,
         )
 
     @server.tool(name="alexandria_upsert_note")
@@ -275,6 +309,7 @@ def register_obsidian_note_tools(
         frontmatter: dict[str, JSONValue] | None = None,
         frontmatter_mode: ObsidianFrontmatterMode = ObsidianFrontmatterMode.MERGE,
         expected_content_hash: str | None = None,
+        idempotency_key: str | None = None,
     ) -> JSONValue:
         """Create or update by one exact selector and reject identity conflicts.
 
@@ -292,6 +327,8 @@ def register_obsidian_note_tools(
             frontmatter: Frontmatter used by this operation.
             frontmatter_mode: Frontmatter mode used by this operation.
             expected_content_hash: Expected content hash used for validation.
+
+            idempotency_key: Retry-stable mutation identity; retain it after a lost response.
 
         Returns:
             JSONValue result produced by tool upsert note.
@@ -311,6 +348,7 @@ def register_obsidian_note_tools(
             frontmatter,
             frontmatter_mode.value,
             expected_content_hash,
+            idempotency_key=idempotency_key,
         )
 
     @server.tool(name="alexandria_upsert_report_bundle")

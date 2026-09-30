@@ -41,6 +41,7 @@ from app.obsidian.domain.contracts.obsidian_contracts import (
     ObsidianWriteNote,
 )
 from app.obsidian.domain.entities.obsidian_note import (
+    ObsidianFrontmatterRepairResult,
     ObsidianNote,
     ObsidianNoteRawRead,
     ObsidianNoteWriteResult,
@@ -52,12 +53,16 @@ from app.obsidian.domain.repositories.obsidian_index_repository import (
 from app.obsidian.infrastructure.obsidian_vault_config_store import (
     ObsidianVaultConfigStore,
 )
+from app.operations.application.skill_contract.skill_publication_policy import (
+    SkillPublicationPolicy,
+)
 from app.shared.application.index_maintenance_coordinator import (
     IndexMaintenanceCoordinator,
 )
 from app.shared.exceptions.obsidian_exceptions import (
     ObsidianValidationError,
 )
+from app.shared.types.extra_types import JSONObject
 
 
 class ObsidianService(
@@ -79,6 +84,7 @@ class ObsidianService(
         | None = None,
         embedding_fingerprint_key: str | None = None,
         index_maintenance_coordinator: IndexMaintenanceCoordinator | None = None,
+        skill_publication_policy: SkillPublicationPolicy | None = None,
     ) -> None:
         """Initialize service dependencies.
 
@@ -89,6 +95,7 @@ class ObsidianService(
             vault_config_store: Optional runtime vault override store.
             context_reindex_hook: Callback invoked for context reindex.
             index_maintenance_coordinator: Index maintenance coordinator used by this operation.
+            skill_publication_policy: Active Skill admission over the configured runtime.
         """
         self._repository = repository
         if vault_config_store is None:
@@ -140,11 +147,14 @@ class ObsidianService(
             index_maintenance_coordinator=self._index_maintenance_coordinator,
             source_snapshot=self._vault_inventory_service.source_snapshot,
             source_scan_limit=DEFAULT_SOURCE_SCAN_LIMIT,
+            skill_publication_policy=skill_publication_policy,
         )
         self._vault_move_service = ObsidianVaultMoveService(
             vault_config_store=self._vault_config_store,
             reindex=self.reindex,
             search=self.search,
+            skill_publication_policy=skill_publication_policy,
+            index_maintenance_coordinator=self._index_maintenance_coordinator,
         )
 
     async def search(
@@ -223,6 +233,45 @@ class ObsidianService(
             path=path,
             expected_content_hash=expected_content_hash,
             raw_content=raw_content,
+        )
+
+    async def repair_note_frontmatter(
+        self,
+        *,
+        path: str,
+        expected_content_hash: str,
+        replacement_frontmatter: JSONObject,
+    ) -> ObsidianFrontmatterRepairResult:
+        """Replace one note's frontmatter while preserving exact body bytes.
+
+        Args:
+            path: Vault-relative Markdown path of the note to repair.
+            expected_content_hash: Rust content hash of the current bytes.
+            replacement_frontmatter: Complete replacement frontmatter mapping.
+
+        Returns:
+            Before/after hash evidence with body preservation proof.
+        """
+        return await self._note_service.repair_note_frontmatter(
+            path=path,
+            expected_content_hash=expected_content_hash,
+            replacement_frontmatter=replacement_frontmatter,
+        )
+
+    async def revalidate_note_index(
+        self, *, path: str, expected_source_hash: str | None = None
+    ) -> ObsidianNote:
+        """Re-parse one note's exact source and refresh its index row.
+
+        Args:
+            path: Vault-relative Markdown path of the note to revalidate.
+            expected_source_hash: Exact source revision admitted by the plan.
+
+        Returns:
+            The refreshed authoritative note.
+        """
+        return await self._note_service.revalidate_note_index(
+            path=path, expected_source_hash=expected_source_hash
         )
 
     async def read_note_by_path_verified(

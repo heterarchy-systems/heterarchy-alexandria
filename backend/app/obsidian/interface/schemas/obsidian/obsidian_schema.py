@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import ConfigDict, StringConstraints
 
@@ -10,6 +10,7 @@ from app.obsidian.application.service.vault.obsidian_vault_reindex_service impor
     ObsidianVaultReindexReport,
 )
 from app.obsidian.domain.entities.obsidian_note import (
+    ObsidianFrontmatterRepairResult,
     ObsidianIndexError,
     ObsidianNote,
     ObsidianNoteRawRead,
@@ -23,6 +24,9 @@ from app.obsidian.domain.event_enum.obsidian_enums import (
 )
 from app.obsidian.interface.schemas.obsidian.graph.obsidian_graph_projection_schema import (
     ObsidianGraphProjectionRebuildResponse,
+)
+from app.obsidian.interface.schemas.obsidian.obsidian_mutation_outcome_schema import (
+    ObsidianMutationOutcomeResponseSchema,
 )
 from app.shared.schemas.common_schemas import (
     StrictSchemaModel,
@@ -227,6 +231,10 @@ class ObsidianNoteResponse(StrictSchemaModel):
     id: Annotated[
         str, described_field("Stable identifier for this Obsidian note response.")
     ]
+    mutation_receipt: Annotated[
+        ObsidianMutationOutcomeResponseSchema | None,
+        described_field("Write receipt for mutations; null for ordinary source reads."),
+    ] = None
     alexandria_type: Annotated[
         AlexandriaNoteType,
         described_field("Alexandria type for this Obsidian note response."),
@@ -281,6 +289,11 @@ class ObsidianNoteResponse(StrictSchemaModel):
         """
         return cls(
             id=note.note_id,
+            mutation_receipt=None
+            if note.mutation_receipt is None
+            else ObsidianMutationOutcomeResponseSchema.from_entity(
+                note.mutation_receipt
+            ),
             alexandria_type=note.alexandria_type,
             path=note.relative_path,
             title=note.title,
@@ -367,6 +380,13 @@ class ObsidianNoteRawReadResponse(StrictSchemaModel):
         str | None,
         described_field("Index status for this Obsidian note raw read response."),
     ]
+    byte_exact: Annotated[
+        bool,
+        described_field(
+            "Whether raw_text is the exact durable source bytes rather than "
+            "a suppressed or masked view."
+        ),
+    ] = True
 
     @classmethod
     def from_entity(cls, read: ObsidianNoteRawRead) -> ObsidianNoteRawReadResponse:
@@ -389,6 +409,84 @@ class ObsidianNoteRawReadResponse(StrictSchemaModel):
             body=read.body,
             note_id=read.note_id,
             index_status=read.index_status,
+            byte_exact=read.byte_exact,
+        )
+
+
+class ObsidianFrontmatterRepairRequest(StrictSchemaModel):
+    """Byte-preserving frontmatter-only repair for one managed note."""
+
+    path: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1, max_length=400),
+        described_field("Vault-relative path for this frontmatter repair."),
+    ]
+    expected_content_hash: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=64, max_length=128),
+        described_field("Current content hash compare-and-swap token."),
+    ]
+    replacement_frontmatter: Annotated[
+        JSONObject,
+        described_field(
+            "Complete replacement frontmatter mapping; server-owned fields "
+            "are rejected when supplied by callers."
+        ),
+    ]
+    preserve_body_bytes: Annotated[
+        Literal[True],
+        described_field(
+            "The body is preserved byte-exact; only the frontmatter block "
+            "is replaced. Only True is accepted."
+        ),
+    ] = True
+
+
+class ObsidianFrontmatterRepairResponse(StrictSchemaModel):
+    """Truthful hash evidence for one byte-preserving frontmatter repair."""
+
+    content_hash_before: Annotated[
+        str, described_field("Canonical content hash before this repair.")
+    ]
+    content_hash_after: Annotated[
+        str, described_field("Canonical content hash after this repair.")
+    ]
+    body_hash_before: Annotated[str, described_field("Body hash before this repair.")]
+    body_hash_after: Annotated[str, described_field("Body hash after this repair.")]
+    body_byte_exact_preserved: Annotated[
+        bool,
+        described_field("Whether the durable body bytes survived unchanged."),
+    ]
+    removed_server_owned_fields: Annotated[
+        list[str],
+        described_field("Server-owned fields removed from the prior source metadata."),
+    ]
+    parse_status: Annotated[
+        str, described_field("Parse status of the repaired document.")
+    ]
+    index_status: Annotated[
+        str, described_field("Index status after the repair write.")
+    ]
+    note_id: Annotated[str, described_field("Canonical note identifier.")]
+    relative_path: Annotated[str, described_field("Canonical managed note path.")]
+
+    @classmethod
+    def from_entity(
+        cls,
+        result: ObsidianFrontmatterRepairResult,
+    ) -> ObsidianFrontmatterRepairResponse:
+        """Create the schema from the domain repair evidence."""
+        return cls(
+            content_hash_before=result.content_hash_before,
+            content_hash_after=result.content_hash_after,
+            body_hash_before=result.body_hash_before,
+            body_hash_after=result.body_hash_after,
+            body_byte_exact_preserved=result.body_byte_exact_preserved,
+            removed_server_owned_fields=list(result.removed_server_owned_fields),
+            parse_status=result.parse_status,
+            index_status=result.index_status,
+            note_id=result.note_id,
+            relative_path=result.relative_path,
         )
 
 

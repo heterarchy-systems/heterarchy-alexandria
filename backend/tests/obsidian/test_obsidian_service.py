@@ -8,11 +8,11 @@ from pathlib import Path
 
 import anyio
 import pytest
-from dependency_injector import providers
 from fastapi.testclient import TestClient
 from pytest import MonkeyPatch
 from sqlalchemy import event, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from tests.memory.compact_source_fixture import DeterministicCompactSourceReader
 
 from app.main import app
 from app.memory.application.memory_compacts.lifecycle.memory_compact_service import (
@@ -53,7 +53,6 @@ from app.obsidian.infrastructure.models import (
 )
 from app.obsidian.infrastructure.models.obsidian_index_models import (
     ObsidianChunkORM,
-    ObsidianFileORM,
 )
 from app.obsidian.infrastructure.obsidian_vault_config_store import (
     ObsidianVaultConfigStore,
@@ -1426,7 +1425,8 @@ def test_obsidian_roundtrips_memory_skill_prompt_after_postgres_rebuild(
             repository=ObsidianMemoryCompactRepository(
                 vault_path=vault_path,
                 relative_dir="Alexandria/Memory Compacts",
-            )
+            ),
+            source_reader=DeterministicCompactSourceReader(),
         )
         compact = await memory_service.create(
             MemoryCompactCreate(
@@ -1439,7 +1439,7 @@ def test_obsidian_roundtrips_memory_skill_prompt_after_postgres_rebuild(
                     "## Current State\n"
                     "- Obsidian canonical memory survives PostgreSQL index rebuild.\n\n"
                     "## Risks and Blockers\n"
-                    "- None recorded.\n\n"
+                    "- No active risks or blockers are recorded.\n\n"
                     "## Next Actions\n"
                     "- Rebuild the PostgreSQL index as needed.\n\n"
                     "## Coverage\n"
@@ -1447,7 +1447,8 @@ def test_obsidian_roundtrips_memory_skill_prompt_after_postgres_rebuild(
                     "- covered_to: 2026-05-26T00:00:00+00:00\n"
                     "- project: heterarchy-alexandria\n\n"
                     "## Evidence Summary\n"
-                    "- Storage decision source ref."
+                    "- ctx-storage — Storage decision; detail_path: "
+                    "/memory/contexts/ctx-storage."
                 ),
                 status=MemoryCompactStatus.CURRENT,
                 source_refs=[

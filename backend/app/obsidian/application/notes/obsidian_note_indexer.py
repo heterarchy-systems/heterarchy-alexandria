@@ -175,7 +175,7 @@ def _note_payload_from_path(
 def _read_source_text(path: Path, max_source_bytes: int | None) -> str:
     """Read complete UTF-8 source text with an optional byte ceiling."""
     if max_source_bytes is None:
-        return path.read_text(encoding="utf-8")
+        return path.read_bytes().decode("utf-8")
     if max_source_bytes <= 0:
         raise ValueError("SOURCE_SCAN_LIMIT_EXCEEDED")
     with path.open("rb") as source:

@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Sequence
+from functools import partial
 from pathlib import Path
 from typing import Protocol
+
+import anyio
+import anyio.to_thread
 
 from app.obsidian.application.service.vault.obsidian_vault_move_report import (
     ensure_vault_move_report_available,
@@ -27,9 +31,20 @@ from app.obsidian.domain.entities.obsidian_note import (
     ObsidianVaultMoveSkip,
     ObsidianVaultMoveVerification,
 )
+from app.obsidian.infrastructure.markdown.atomic_markdown_write import (
+    atomic_write_markdown,
+)
 from app.obsidian.infrastructure.markdown.paths import NOTE_SUFFIX, resolve_note_path
 from app.obsidian.infrastructure.obsidian_vault_config_store import (
     ObsidianVaultConfigStore,
+)
+from app.operations.application.skill_contract.skill_publication_policy import (
+    SkillPublicationPolicy,
+    active_skill_path,
+    default_skill_publication_policy,
+)
+from app.shared.application.index_maintenance_coordinator import (
+    IndexMaintenanceCoordinator,
 )
 
 
@@ -61,6 +76,8 @@ class ObsidianVaultMoveService:
         vault_config_store: ObsidianVaultConfigStore,
         reindex: Callable[[], Awaitable[ObsidianReindexResult]],
         search: ObsidianVaultSearchHook,
+        skill_publication_policy: SkillPublicationPolicy | None = None,
+        index_maintenance_coordinator: IndexMaintenanceCoordinator | None = None,
     ) -> None:
         """Create the move service.
 
@@ -68,10 +85,16 @@ class ObsidianVaultMoveService:
             vault_config_store: Runtime vault location provider.
             reindex: Callback that rebuilds the Obsidian index.
             search: Callback that verifies indexed search after moves.
+            skill_publication_policy: Active Skill publication admission.
+            index_maintenance_coordinator: Shared source mutation ownership.
         """
         self._vault_config_store = vault_config_store
         self._reindex = reindex
         self._search = search
+        self._skill_publication_policy = skill_publication_policy
+        self._index_maintenance_coordinator = (
+            index_maintenance_coordinator or IndexMaintenanceCoordinator()
+        )
 
     async def plan(
         self,
@@ -142,7 +165,24 @@ class ObsidianVaultMoveService:
             destination = resolve_note_path(config.vault_path, move.destination_path)
             destination.parent.mkdir(parents=True, exist_ok=True)
             source_roots.add(source.parent)
-            source.replace(destination)
+            if active_skill_path(move.destination_path):
+                policy = (
+                    self._skill_publication_policy or default_skill_publication_policy()
+                )
+                async with self._index_maintenance_coordinator.operation(
+                    "active_skill_move", wait=True
+                ):
+                    await anyio.to_thread.run_sync(
+                        partial(
+                            _move_verified_skill,
+                            source,
+                            destination,
+                            move.destination_path,
+                            policy,
+                        )
+                    )
+            else:
+                source.replace(destination)
             moved.append(
                 ObsidianVaultMoveApplied(
                     source_path=move.source_path,
@@ -341,3 +381,19 @@ def _loose_note_count(paths: set[Path]) -> int:
         for child in path.iterdir()
         if child.is_file() and child.suffix == NOTE_SUFFIX
     )
+
+
+def _move_verified_skill(
+    source: Path, destination: Path, path: str, policy: SkillPublicationPolicy
+) -> None:
+    """Refresh trusted scalars before atomic Active rename; restore on failure."""
+    original = source.read_bytes().decode("utf-8")
+    verified = policy.validate_markdown(original, path=path)
+    if verified != original:
+        atomic_write_markdown(source, verified)
+    try:
+        source.replace(destination)
+    except OSError:
+        if source.exists() and source.read_bytes().decode("utf-8") == verified:
+            atomic_write_markdown(source, original)
+        raise

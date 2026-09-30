@@ -46,6 +46,9 @@ from app.obsidian.application.service.notes.obsidian_batch_note_service import (
 from app.obsidian.application.service.notes.obsidian_canonical_identity_service import (
     ObsidianCanonicalIdentityService,
 )
+from app.obsidian.application.service.notes.obsidian_mutation_outcome_service import (
+    ObsidianMutationOutcomeService,
+)
 from app.obsidian.application.service.notes.obsidian_relate_service import (
     ObsidianRelateService,
 )
@@ -207,6 +210,7 @@ class ObsidianContainer(containers.DeclarativeContainer):
     )
     obsidian_service = providers.Factory(
         ObsidianService,
+        skill_publication_policy=skill_publication_policy,
         repository=index_repo,
         vault_config_store=vault_config_store,
         context_reindex_hook=providers.Factory(
@@ -258,6 +262,11 @@ class ObsidianContainer(containers.DeclarativeContainer):
         index_maintenance_coordinator=index_maintenance_coordinator,
         commit_projection=db_session.provided.commit,
         rollback_projection=db_session.provided.rollback,
+    )
+    mutation_outcome_service = providers.Factory(
+        ObsidianMutationOutcomeService,
+        obsidian_service=obsidian_service,
+        vault_config_store=vault_config_store,
     )
     relate_service = providers.Factory(
         ObsidianRelateService,

@@ -11,10 +11,15 @@ from functools import partial
 from pathlib import Path
 
 import anyio
+import anyio.to_thread
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.obsidian.application.graph.diagnostics.obsidian_graph_link_renderer import (
     add_or_update_alexandria_links_section,
+)
+from app.obsidian.application.notes.frontmatter.obsidian_context_frontmatter_mapper import (
+    context_content_hash,
+    context_identity_from_frontmatter,
 )
 from app.obsidian.application.notes.frontmatter.obsidian_frontmatter_redaction import (
     frontmatter_contains_secret_field,
@@ -42,6 +47,10 @@ from app.obsidian.application.notes.obsidian_note_templates import (
     default_note_path,
     frontmatter_for_save,
 )
+from app.obsidian.application.service.notes.obsidian_note_mutation_receipts import (
+    NoteMutationReceipts,
+    note_mutation_identity,
+)
 from app.obsidian.application.service.notes.obsidian_note_service_contracts import (
     ObsidianNoteSupersedeHook,
 )
@@ -57,7 +66,9 @@ from app.obsidian.domain.contracts.obsidian_contracts import (
     ObsidianSearchQuery,
     ObsidianWriteNote,
 )
+from app.obsidian.domain.entities.obsidian_mutation_outcome import NoteMutationReceipt
 from app.obsidian.domain.entities.obsidian_note import (
+    ObsidianFrontmatterRepairResult,
     ObsidianIndexError,
     ObsidianNote,
     ObsidianNoteRawRead,
@@ -73,6 +84,9 @@ from app.obsidian.domain.event_enum.obsidian_enums import (
     ObsidianIndexStatus,
     ObsidianWriteOperation,
 )
+from app.obsidian.domain.event_enum.obsidian_mutation_enums import (
+    ObsidianMutationOutcomeStatus,
+)
 from app.obsidian.domain.repositories.obsidian_index_repository import (
     IObsidianIndexRepository,
 )
@@ -82,7 +96,10 @@ from app.obsidian.infrastructure.markdown.atomic_markdown_write import (
 from app.obsidian.infrastructure.markdown.frontmatter import (
     frontmatter_json,
     parse_markdown_document,
+    render_frontmatter_block,
     render_markdown_document,
+    split_frontmatter_region,
+    update_frontmatter_scalars,
 )
 from app.obsidian.infrastructure.markdown.paths import (
     resolve_note_path,
@@ -91,11 +108,19 @@ from app.obsidian.infrastructure.markdown.paths import (
 from app.obsidian.infrastructure.obsidian_vault_config_store import (
     ObsidianVaultConfigStore,
 )
+from app.operations.application.skill_contract.skill_publication_policy import (
+    SkillPublicationPolicy,
+    active_skill_path,
+    default_skill_publication_policy,
+    skill_body_hash,
+)
 from app.shared.application.index_maintenance_coordinator import (
     IndexMaintenanceCoordinator,
 )
 from app.shared.compute.native_text_hashing import hash_text
 from app.shared.exceptions.obsidian_exceptions import (
+    ObsidianCheckpointRecoveryRequiredError,
+    ObsidianIdentityConflictError,
     ObsidianIndexWriteError,
     ObsidianNotFoundError,
     ObsidianStoredProjectionError,
@@ -111,6 +136,42 @@ logger = logging.getLogger(__name__)
 DEFAULT_SOURCE_SCAN_LIMIT = 4096
 SOURCE_METADATA_LOOKUP_TIMEOUT_SECONDS = 1.0
 _RAW_READ_CODED_MESSAGE_PATTERN = re.compile(r"^[A-Z][A-Z0-9_]*:")
+_SERVER_OWNED_FRONTMATTER_FIELDS = frozenset(
+    {
+        "content_hash",
+        "initial_content_hash",
+        "previous_content_hash",
+        "version",
+        "created_at",
+        "updated_at",
+        "last_modified_by",
+    }
+)
+_REDACTION_PLACEHOLDERS = (
+    "<REDACTED_LONG_VALUE>",
+    "<REDACTED>",
+    "[BLOCKED_SECRET_CONTENT]",
+)
+
+
+def _reject_redaction_placeholders(content: str) -> None:
+    """Reject known redaction placeholders in canonical write payloads.
+
+    Placeholders enter agent context through masked read responses; saving
+    them back would round-trip masking into the durable source.
+
+    Args:
+        content: Candidate canonical write payload text.
+
+    Raises:
+        ObsidianValidationError: When a known placeholder is present.
+    """
+    for placeholder in _REDACTION_PLACEHOLDERS:
+        if placeholder in content:
+            raise ObsidianValidationError(
+                "REPAIR_CONTENT_PLACEHOLDER: canonical write payloads cannot "
+                f"contain the redaction placeholder {placeholder}"
+            )
 
 
 def _persist_and_index(
@@ -118,8 +179,17 @@ def _persist_and_index(
     document: str,
     safe_path: str,
     alexandria_root: str,
+    *,
+    expected_source_hash: str | None = None,
 ) -> ObsidianNoteIndex | None:
     """Persist source and parse its native index payload in one worker."""
+    if expected_source_hash is not None:
+        current_hash = hash_text(_read_source_text(absolute, max_source_bytes=None))
+        if current_hash != expected_source_hash:
+            raise ObsidianWriteConflictError(
+                "OBSIDIAN_WRITE_CONFLICT: source changed before repair persistence",
+                current_content_hash=current_hash,
+            )
     atomic_write_markdown(absolute, document)
     return note_index_from_path(
         absolute,
@@ -155,6 +225,7 @@ class ObsidianNoteService:
         index_maintenance_coordinator: IndexMaintenanceCoordinator,
         source_snapshot: Callable[[int], Awaitable[ObsidianVaultSourceSnapshot]],
         source_scan_limit: int,
+        skill_publication_policy: SkillPublicationPolicy | None = None,
     ) -> None:
         """Create the canonical note service.
 
@@ -166,16 +237,19 @@ class ObsidianNoteService:
             index_maintenance_coordinator: Process-wide rebuildable-index write lane.
             source_snapshot: Source-owned bounded Markdown snapshot callback.
             source_scan_limit: Maximum source files to scan for ID fallback reads.
+            skill_publication_policy: Active Skill admission, composed lazily if absent.
         """
         if source_scan_limit <= 0:
             raise ObsidianValidationError("source_scan_limit must be greater than zero")
         self._repository = repository
         self._vault_config_store = vault_config_store
+        self._mutation_receipts = NoteMutationReceipts(vault_config_store)
         self._reindex = reindex
         self._mark_context_superseded = mark_context_superseded
         self._index_maintenance_coordinator = index_maintenance_coordinator
         self._source_snapshot = source_snapshot
         self._source_scan_limit = source_scan_limit
+        self._skill_publication_policy = skill_publication_policy
         self._write_target_resolver = ObsidianWriteTargetResolver(
             repository=repository,
             vault_config_store=vault_config_store,
@@ -281,6 +355,7 @@ class ObsidianNoteService:
                 relative_path=safe_path,
                 raw_text="",
                 content_hash=None,
+                byte_exact=False,
                 byte_length=len(text.encode("utf-8")),
                 parse_status="FRONTMATTER_SECRET_DETECTED",
                 parse_error=None,
@@ -308,6 +383,7 @@ class ObsidianNoteService:
             relative_path=safe_path,
             raw_text=text,
             content_hash=content_hash,
+            byte_exact=True,
             byte_length=len(text.encode("utf-8")),
             parse_status=parse_status,
             parse_error=parse_error,
@@ -343,68 +419,352 @@ class ObsidianNoteService:
         Returns:
             The repaired note as parsed and indexed after the write.
         """
-        safe_path = str(safe_relative_path(path))
-        config = self._vault_config_store.current()
-        absolute = resolve_note_path(config.vault_path, safe_path)
-        if not absolute.exists():
-            raise ObsidianNotFoundError(f"Obsidian note not found: {safe_path}")
-        try:
-            current_text = await anyio.to_thread.run_sync(
-                partial(_read_source_text, absolute, max_source_bytes=None),
-                limiter=anyio.to_thread.current_default_thread_limiter(),
+        async with self._index_maintenance_coordinator.operation(
+            "obsidian_raw_repair", wait=True
+        ):
+            safe_path = str(safe_relative_path(path))
+            config = self._vault_config_store.current()
+            absolute = resolve_note_path(config.vault_path, safe_path)
+            if not absolute.exists():
+                raise ObsidianNotFoundError(f"Obsidian note not found: {safe_path}")
+            try:
+                current_text = await anyio.to_thread.run_sync(
+                    partial(_read_source_text, absolute, max_source_bytes=None),
+                    limiter=anyio.to_thread.current_default_thread_limiter(),
+                )
+            except (OSError, UnicodeError) as exc:
+                raise ObsidianValidationError("SOURCE_READ_FAILED") from exc
+            current_hash = hash_text(current_text)
+            if current_hash != expected_content_hash:
+                raise ObsidianWriteConflictError(
+                    "OBSIDIAN_WRITE_CONFLICT: expected content hash does not match "
+                    f"the current note: {safe_path}",
+                    current_content_hash=current_hash,
+                )
+            _reject_redaction_placeholders(raw_content)
+            redaction = redact_secret_text(raw_content)
+            if redaction.blocked:
+                raise ObsidianValidationError(
+                    "high-risk secret content cannot be saved"
+                )
+            if redaction.redaction_count > 0:
+                # Masking a canonical write payload would persist placeholders in
+                # place of the caller's exact bytes; repair must fail closed.
+                raise ObsidianValidationError(
+                    "REPAIR_CONTENT_REDACTED: replacement source contains "
+                    "secret-like values; submit the exact source bytes instead"
+                )
+            content = raw_content
+            if active_skill_path(safe_path):
+                policy = (
+                    self._skill_publication_policy or default_skill_publication_policy()
+                )
+                content = await anyio.to_thread.run_sync(
+                    partial(policy.validate_markdown, content, path=safe_path)
+                )
+            try:
+                parse_markdown_document(content)
+            except ValueError as exc:
+                raise ObsidianValidationError(
+                    f"REPAIR_CONTENT_INVALID: repaired source must parse: {exc}"
+                ) from exc
+            try:
+                index_payload = await anyio.to_thread.run_sync(
+                    partial(
+                        _persist_and_index,
+                        absolute,
+                        content,
+                        safe_path,
+                        config.alexandria_root,
+                        expected_source_hash=expected_content_hash,
+                    ),
+                    limiter=anyio.to_thread.current_default_thread_limiter(),
+                )
+            except ValueError as exc:
+                atomic_write_markdown(absolute, current_text)
+                raise ObsidianValidationError(f"REPAIR_CONTENT_INVALID: {exc}") from exc
+            if index_payload is None:
+                atomic_write_markdown(absolute, current_text)
+                raise ObsidianValidationError(
+                    "repaired note is missing Alexandria frontmatter"
+                )
+            try:
+                return await self._repository.upsert_note(index_payload)
+            except ObsidianIndexWriteError as exc:
+                index_error = ObsidianIndexError(
+                    note_path=safe_path,
+                    context_id=index_payload.note_id,
+                    error_code=ObsidianIndexErrorCode.INDEX_WRITE_FAILED,
+                    error_message=str(exc),
+                    detected_at=now_utc(),
+                )
+                await self._record_index_error_best_effort(index_error)
+                raise ObsidianValidationError(
+                    "INDEX_WRITE_FAILED: canonical Markdown was preserved for reindex"
+                ) from exc
+
+    async def repair_note_frontmatter(
+        self,
+        *,
+        path: str,
+        expected_content_hash: str,
+        replacement_frontmatter: JSONObject,
+    ) -> ObsidianFrontmatterRepairResult:
+        """Replace one note's frontmatter while preserving exact body bytes.
+
+        This is the byte-preserving repair for stale or malformed frontmatter:
+        the durable body bytes are spliced in front of the replacement
+        frontmatter block without re-serializing the body, server-owned fields
+        are refused in caller input, and redaction placeholders are refused.
+
+        Args:
+            path: Vault-relative Markdown path of the note to repair.
+            expected_content_hash: Rust content hash of the current bytes.
+            replacement_frontmatter: Complete replacement frontmatter mapping.
+
+        Returns:
+            Before/after hash evidence with body preservation proof.
+
+        Raises:
+            ObsidianWriteConflictError: When the CAS hash does not match.
+            ObsidianValidationError: When the repair cannot preserve the body
+                or the replacement is not acceptable canonical frontmatter.
+        """
+        async with self._index_maintenance_coordinator.operation(
+            "obsidian_frontmatter_repair", wait=True
+        ):
+            safe_path = str(safe_relative_path(path))
+            config = self._vault_config_store.current()
+            absolute = resolve_note_path(config.vault_path, safe_path)
+            if not absolute.exists():
+                raise ObsidianNotFoundError(f"Obsidian note not found: {safe_path}")
+            try:
+                current_text = await anyio.to_thread.run_sync(
+                    partial(_read_source_text, absolute, max_source_bytes=None),
+                    limiter=anyio.to_thread.current_default_thread_limiter(),
+                )
+            except (OSError, UnicodeError) as exc:
+                raise ObsidianValidationError("SOURCE_READ_FAILED") from exc
+            content_hash_before = hash_text(current_text)
+            if content_hash_before != expected_content_hash:
+                raise ObsidianWriteConflictError(
+                    "OBSIDIAN_WRITE_CONFLICT: expected content hash does not match "
+                    f"the current note: {safe_path}",
+                    current_content_hash=content_hash_before,
+                )
+            _, body_before = split_frontmatter_region(current_text)
+            body_hash_before = hash_text(body_before)
+            forbidden = sorted(
+                field
+                for field in replacement_frontmatter
+                if field in _SERVER_OWNED_FRONTMATTER_FIELDS
             )
-        except (OSError, UnicodeError) as exc:
-            raise ObsidianValidationError("SOURCE_READ_FAILED") from exc
-        current_hash = hash_text(current_text)
-        if current_hash != expected_content_hash:
-            raise ObsidianWriteConflictError(
-                "OBSIDIAN_WRITE_CONFLICT: expected content hash does not match "
-                f"the current note: {safe_path}",
-                current_content_hash=current_hash,
+            if forbidden:
+                raise ObsidianValidationError(
+                    "REPAIR_FRONTMATTER_SERVER_OWNED: forbidden fields: "
+                    + ", ".join(forbidden)
+                )
+            try:
+                previous_frontmatter = parse_markdown_document(current_text).frontmatter
+            except ValueError:
+                removed = []
+            else:
+                removed = sorted(
+                    set(previous_frontmatter) & _SERVER_OWNED_FRONTMATTER_FIELDS
+                )
+            caller_frontmatter = replacement_frontmatter
+            rendered_block = render_frontmatter_block(caller_frontmatter)
+            _reject_redaction_placeholders(rendered_block)
+            redaction = redact_secret_text(rendered_block)
+            if redaction.blocked or redaction.redaction_count > 0:
+                raise ObsidianValidationError(
+                    "REPAIR_FRONTMATTER_REDACTED: replacement frontmatter contains "
+                    "secret-like values; repair must fail closed"
+                )
+            repaired_text = rendered_block + body_before
+            if active_skill_path(safe_path):
+                policy = (
+                    self._skill_publication_policy or default_skill_publication_policy()
+                )
+                repaired_text = await anyio.to_thread.run_sync(
+                    partial(policy.validate_markdown, repaired_text, path=safe_path)
+                )
+            try:
+                index_payload = await anyio.to_thread.run_sync(
+                    partial(
+                        _persist_and_index,
+                        absolute,
+                        repaired_text,
+                        safe_path,
+                        config.alexandria_root,
+                        expected_source_hash=expected_content_hash,
+                    ),
+                    limiter=anyio.to_thread.current_default_thread_limiter(),
+                )
+            except ValueError as exc:
+                atomic_write_markdown(absolute, current_text)
+                raise ObsidianValidationError(
+                    f"REPAIR_FRONTMATTER_INVALID: repaired source must parse: {exc}"
+                ) from exc
+            if index_payload is None:
+                atomic_write_markdown(absolute, current_text)
+                raise ObsidianValidationError(
+                    "repaired note is missing Alexandria frontmatter"
+                )
+            try:
+                verified_text = await anyio.to_thread.run_sync(
+                    partial(_read_source_text, absolute, max_source_bytes=None),
+                    limiter=anyio.to_thread.current_default_thread_limiter(),
+                )
+            except (OSError, UnicodeError) as exc:
+                raise ObsidianValidationError("SOURCE_READ_FAILED") from exc
+            _block_after, body_after = split_frontmatter_region(verified_text)
+            body_exact = body_after == body_before
+            try:
+                note = await self._repository.upsert_note(index_payload)
+            except ObsidianIndexWriteError as exc:
+                index_error = ObsidianIndexError(
+                    note_path=safe_path,
+                    context_id=index_payload.note_id,
+                    error_code=ObsidianIndexErrorCode.INDEX_WRITE_FAILED,
+                    error_message=str(exc),
+                    detected_at=now_utc(),
+                )
+                await self._record_index_error_best_effort(index_error)
+                raise ObsidianValidationError(
+                    "INDEX_WRITE_FAILED: canonical Markdown was preserved for reindex"
+                ) from exc
+            return ObsidianFrontmatterRepairResult(
+                content_hash_before=content_hash_before,
+                content_hash_after=hash_text(verified_text),
+                body_hash_before=body_hash_before,
+                body_hash_after=hash_text(body_after),
+                body_byte_exact_preserved=body_exact,
+                removed_server_owned_fields=tuple(removed),
+                parse_status="OK",
+                index_status=note.index_status.value,
+                note_id=note.note_id,
+                relative_path=note.relative_path,
             )
-        redaction = redact_secret_text(raw_content)
-        if redaction.blocked:
-            raise ObsidianValidationError("high-risk secret content cannot be saved")
-        content = redaction.redacted_content
-        try:
-            parse_markdown_document(content)
-        except ValueError as exc:
-            raise ObsidianValidationError(
-                f"REPAIR_CONTENT_INVALID: repaired source must parse: {exc}"
-            ) from exc
-        try:
-            index_payload = await anyio.to_thread.run_sync(
-                partial(
-                    _persist_and_index,
-                    absolute,
-                    content,
-                    safe_path,
-                    config.alexandria_root,
-                ),
-                limiter=anyio.to_thread.current_default_thread_limiter(),
-            )
-        except ValueError as exc:
-            atomic_write_markdown(absolute, current_text)
-            raise ObsidianValidationError(f"REPAIR_CONTENT_INVALID: {exc}") from exc
-        if index_payload is None:
-            atomic_write_markdown(absolute, current_text)
-            raise ObsidianValidationError(
-                "repaired note is missing Alexandria frontmatter"
-            )
-        try:
-            return await self._repository.upsert_note(index_payload)
-        except ObsidianIndexWriteError as exc:
-            index_error = ObsidianIndexError(
-                note_path=safe_path,
-                context_id=index_payload.note_id,
-                error_code=ObsidianIndexErrorCode.INDEX_WRITE_FAILED,
-                error_message=str(exc),
-                detected_at=now_utc(),
-            )
-            await self._record_index_error_best_effort(index_error)
-            raise ObsidianValidationError(
-                "INDEX_WRITE_FAILED: canonical Markdown was preserved for reindex"
-            ) from exc
+
+    async def revalidate_note_index(
+        self, *, path: str, expected_source_hash: str | None = None
+    ) -> ObsidianNote:
+        """Re-parse one note's exact source and refresh its index row.
+
+        This is the bounded note-local alternative to a broad vault reindex:
+        only the addressed note's index row changes, so a stale index-hash
+        repair cannot fail on unrelated notes.
+
+        Args:
+            path: Vault-relative Markdown path of the note to revalidate.
+            expected_source_hash: Exact raw source revision admitted by the plan.
+
+        Returns:
+            The refreshed authoritative note.
+
+        Raises:
+            ObsidianValidationError: When the source no longer parses or is
+                missing Alexandria frontmatter, so an agent repair is needed.
+        """
+        async with self._index_maintenance_coordinator.operation(
+            "obsidian_bounded_source_repair", wait=True
+        ):
+            safe_path = str(safe_relative_path(path))
+            config = self._vault_config_store.current()
+            absolute = resolve_note_path(config.vault_path, safe_path)
+            if not absolute.exists():
+                raise ObsidianNotFoundError(f"Obsidian note not found: {safe_path}")
+            if expected_source_hash is not None:
+                current_text = await anyio.to_thread.run_sync(
+                    partial(_read_source_text, absolute, max_source_bytes=None)
+                )
+                if hash_text(current_text) != expected_source_hash:
+                    raise ObsidianWriteConflictError(
+                        "OBSIDIAN_WRITE_CONFLICT: repair source drifted from preview"
+                    )
+                document = parse_markdown_document(current_text)
+                frontmatter = frontmatter_json(document.frontmatter)
+                if (
+                    frontmatter.get("alexandria_type")
+                    == AlexandriaNoteType.CONTEXT.value
+                    and "content_hash" in frontmatter
+                ):
+                    canonical_hash = context_content_hash(document.body)
+                    if frontmatter["content_hash"] != canonical_hash:
+                        candidate = dict(frontmatter)
+                        candidate["content_hash"] = canonical_hash
+                        project = candidate.get("project")
+                        context_identity_from_frontmatter(
+                            candidate,
+                            project=project if isinstance(project, str) else None,
+                            status=str(candidate.get("status", "active")),
+                            generated_content_hash=canonical_hash,
+                        )
+                        repaired = update_frontmatter_scalars(
+                            current_text, {"content_hash": canonical_hash}
+                        )
+                        # This is a server-owned scalar repair, not a caller raw
+                        # roundtrip. Reuse the source-CAS persistence primitive;
+                        # the existing body and every other field stay byte exact.
+                        try:
+                            repaired_index = await anyio.to_thread.run_sync(
+                                partial(
+                                    _persist_and_index,
+                                    absolute,
+                                    repaired,
+                                    safe_path,
+                                    config.alexandria_root,
+                                    expected_source_hash=expected_source_hash,
+                                )
+                            )
+                        except ValueError as exc:
+                            await anyio.to_thread.run_sync(
+                                atomic_write_markdown, absolute, current_text
+                            )
+                            raise ObsidianValidationError(
+                                "NOTE_MANAGED_HASH_REPAIR_INVALID"
+                            ) from exc
+                        if repaired_index is None:
+                            await anyio.to_thread.run_sync(
+                                atomic_write_markdown, absolute, current_text
+                            )
+                            raise ObsidianValidationError(
+                                "NOTE_MANAGED_HASH_REPAIR_INVALID"
+                            )
+                        return await self._repository.upsert_note(repaired_index)
+            try:
+                index_payload = await anyio.to_thread.run_sync(
+                    partial(
+                        note_index_from_path,
+                        absolute,
+                        safe_path,
+                        alexandria_root=config.alexandria_root,
+                    ),
+                    limiter=anyio.to_thread.current_default_thread_limiter(),
+                )
+            except ValueError as exc:
+                raise ObsidianValidationError(
+                    f"NOTE_SOURCE_INVALID: {safe_path} requires frontmatter repair: {exc}"
+                ) from exc
+            if index_payload is None:
+                raise ObsidianValidationError(
+                    f"NOTE_SOURCE_INVALID: {safe_path} is missing Alexandria frontmatter"
+                )
+            try:
+                return await self._repository.upsert_note(index_payload)
+            except ObsidianIndexWriteError as exc:
+                index_error = ObsidianIndexError(
+                    note_path=safe_path,
+                    context_id=index_payload.note_id,
+                    error_code=ObsidianIndexErrorCode.INDEX_WRITE_FAILED,
+                    error_message=str(exc),
+                    detected_at=now_utc(),
+                )
+                await self._record_index_error_best_effort(index_error)
+                raise ObsidianValidationError(
+                    "INDEX_WRITE_FAILED: canonical Markdown was preserved for reindex"
+                ) from exc
 
     async def read_note_by_path(self, relative_path: str) -> ObsidianNote:
         """Read one managed note by vault-relative path.
@@ -577,18 +937,27 @@ class ObsidianNoteService:
         Returns:
             Saved note loaded through the index.
         """
-        if payload.expected_content_hash is not None:
-            async with self._index_maintenance_coordinator.operation(
-                "obsidian_note_compare_and_swap",
-                wait=True,
-            ):
-                note, _, _ = await self._save_note_serialized(payload)
-                return note
-        async with self._index_maintenance_coordinator.write_operation(
-            "obsidian_note_write"
+        async with self._index_maintenance_coordinator.operation(
+            "obsidian_note_mutation", wait=True
         ):
-            note, _, _ = await self._save_note_serialized(payload)
-            return note
+            receipt, replay = await self._admit_note_mutation(payload)
+            if replay is not None:
+                return replay
+            try:
+                note, _, _ = await self._save_note_serialized(payload, receipt=receipt)
+                note.mutation_receipt = await self._mutation_receipts.completed(
+                    receipt, note
+                )
+                return note
+            except Exception as exc:
+                await self._mutation_receipts.failed(
+                    receipt,
+                    exc,
+                    conflicted=isinstance(
+                        exc, (ObsidianWriteConflictError, ObsidianIdentityConflictError)
+                    ),
+                )
+                raise
 
     async def write_note(
         self,
@@ -606,16 +975,36 @@ class ObsidianNoteService:
             "obsidian_explicit_note_write",
             wait=True,
         ):
-            (
-                payload,
-                existing,
-                expected_operation,
-            ) = await self._write_target_resolver.resolve(command)
-            note, mutated, source_hash = await self._save_note_serialized(
-                payload,
-                existing_note=existing,
-                frontmatter_mode=command.frontmatter_mode,
-            )
+            receipt, replay = await self._admit_note_mutation(command.note, command)
+            if replay is not None:
+                note, mutated, source_hash = replay, False, replay.source_hash
+                expected_operation = ObsidianWriteOperation.UNCHANGED
+            else:
+                try:
+                    (
+                        payload,
+                        existing,
+                        expected_operation,
+                    ) = await self._write_target_resolver.resolve(command)
+                    note, mutated, source_hash = await self._save_note_serialized(
+                        payload,
+                        existing_note=existing,
+                        frontmatter_mode=command.frontmatter_mode,
+                        receipt=receipt,
+                    )
+                    note.mutation_receipt = await self._mutation_receipts.completed(
+                        receipt, note
+                    )
+                except Exception as exc:
+                    await self._mutation_receipts.failed(
+                        receipt,
+                        exc,
+                        conflicted=isinstance(
+                            exc,
+                            (ObsidianWriteConflictError, ObsidianIdentityConflictError),
+                        ),
+                    )
+                    raise
         operation = expected_operation if mutated else ObsidianWriteOperation.UNCHANGED
         return ObsidianNoteWriteResult(
             operation=operation,
@@ -623,19 +1012,67 @@ class ObsidianNoteService:
             match_by=command.match_by,
             note=note,
             storage_status="stored" if mutated else "unchanged",
-            metadata_status="indexed",
-            fts_status="indexed",
-            graph_edge_index_status="indexed",
+            metadata_status=note.index_status.value,
+            fts_status="indexed"
+            if note.index_status is ObsidianIndexStatus.INDEXED
+            else "unknown",
+            graph_edge_index_status="indexed"
+            if note.index_status is ObsidianIndexStatus.INDEXED
+            else "unknown",
             graph_projection_status="stale" if mutated else "unknown",
-            reindex_required=mutated,
+            reindex_required=mutated
+            or (
+                note.mutation_receipt is not None
+                and note.mutation_receipt.error_summary is not None
+            ),
+            warnings=("mutation_pipeline_reconciliation_required",)
+            if note.mutation_receipt is not None
+            and note.mutation_receipt.error_summary is not None
+            else (),
             source_hash=source_hash,
         )
+
+    async def _admit_note_mutation(
+        self,
+        payload: ObsidianSaveNote,
+        command: ObsidianWriteNote | None = None,
+    ) -> tuple[NoteMutationReceipt, ObsidianNote | None]:
+        """Read back existing effects before any target resolver or source mutation."""
+        key, identity = note_mutation_identity(payload, command)
+        receipt = await self._mutation_receipts.admit(key, identity)
+        if not receipt.effect_started:
+            return receipt, None
+        try:
+            note = await self.read_note_by_path(receipt.canonical_path or "")
+        except ObsidianNotFoundError:
+            note = None
+        outcome = await self._mutation_receipts.observe(receipt, note)
+        if (
+            outcome.status is ObsidianMutationOutcomeStatus.COMMITTED
+            and note is not None
+        ):
+            note.mutation_receipt = replace(outcome, replayed=True)
+            return receipt, note
+        if outcome.status is ObsidianMutationOutcomeStatus.NOT_COMMITTED:
+            admitted = replace(
+                receipt,
+                effect_started=False,
+                status=ObsidianMutationOutcomeStatus.NOT_COMMITTED,
+            )
+            await self._mutation_receipts.save(admitted)
+            return admitted, None
+        if outcome.status is ObsidianMutationOutcomeStatus.CONFLICTED:
+            raise ObsidianWriteConflictError(
+                "OBSIDIAN_WRITE_CONFLICT: mutation source drifted; reconcile before retry"
+            )
+        raise ObsidianCheckpointRecoveryRequiredError(receipt.mutation_id)
 
     async def _save_note_serialized(
         self,
         payload: ObsidianSaveNote,
         existing_note: ObsidianNote | None = None,
         frontmatter_mode: ObsidianFrontmatterMode | None = None,
+        receipt: NoteMutationReceipt | None = None,
     ) -> tuple[ObsidianNote, bool, str | None]:
         """Save one note while serializing canonical read-check-replace writes.
 
@@ -643,6 +1080,7 @@ class ObsidianNoteService:
             payload: Validated payload for this operation.
             existing_note: Existing note used by this operation.
             frontmatter_mode: Frontmatter mode used by this operation.
+            receipt: Durable ordinary-write admission when this is an effect path.
 
         Returns:
             tuple[ObsidianNote, bool, str | None] with the committed note, the
@@ -656,6 +1094,7 @@ class ObsidianNoteService:
         redaction = redact_secret_text(payload.body)
         if redaction.blocked:
             raise ObsidianValidationError("high-risk secret content cannot be saved")
+        declared_skill_metadata = dict(payload.frontmatter)
         frontmatter_payload, frontmatter_warnings = redacted_frontmatter(
             payload.frontmatter
         )
@@ -722,6 +1161,28 @@ class ObsidianNoteService:
             frontmatter,
         )
         if (
+            payload.alexandria_type is AlexandriaNoteType.SKILL
+            and active_skill_path(safe_path)
+            and payload.status.casefold() in {"active", "current"}
+        ):
+            publication = (
+                self._skill_publication_policy or default_skill_publication_policy()
+            )
+            declared = dict(frontmatter)
+            if "capability_fingerprint" not in declared_skill_metadata:
+                declared.pop("capability_fingerprint", None)
+            else:
+                declared["capability_fingerprint"] = declared_skill_metadata[
+                    "capability_fingerprint"
+                ]
+            verification = await anyio.to_thread.run_sync(
+                partial(publication.validate, body, declared, path=safe_path)
+            )
+            verification["skill_source_hash"] = skill_body_hash(
+                redaction.redacted_content
+            )
+            frontmatter.update(verification)
+        if (
             frontmatter_mode is not None
             and existing_note is not None
             and write_is_unchanged(
@@ -751,6 +1212,14 @@ class ObsidianNoteService:
             frontmatter = policy.frontmatter
             supersedes_context_id = policy.supersedes_context_id
         document = render_markdown_document(frontmatter, body)
+        if receipt is not None:
+            await self._mutation_receipts.started(
+                receipt,
+                path=safe_path,
+                note_id=note_id,
+                document=document,
+                absolute=absolute,
+            )
         index_payload = await anyio.to_thread.run_sync(
             partial(
                 _persist_and_index,

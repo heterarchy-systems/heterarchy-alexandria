@@ -218,8 +218,9 @@ async def alexandria_create_note(
     source: str = "mcp",
     frontmatter: JSONObject | None = None,
     frontmatter_mode: str = "merge",
+    idempotency_key: str | None = None,
 ) -> JSONValue:
-    """Create only, rejecting an existing exact id or path before mutation.
+    """Create once per request identity, rejecting another request at an existing target.
 
     Args:
         client: Value supplied to alexandria_create_note.
@@ -235,6 +236,8 @@ async def alexandria_create_note(
         source: Value supplied to alexandria_create_note.
         frontmatter: Value supplied to alexandria_create_note.
         frontmatter_mode: Value supplied to alexandria_create_note.
+
+        idempotency_key: Retry-stable identity for the canonical write receipt.
 
     Returns:
         Result produced by alexandria_create_note.
@@ -254,6 +257,7 @@ async def alexandria_create_note(
         source=source,
         frontmatter=frontmatter,
         frontmatter_mode=frontmatter_mode,
+        idempotency_key=idempotency_key,
     )
 
 
@@ -272,6 +276,7 @@ async def alexandria_update_note(
     frontmatter: JSONObject | None = None,
     frontmatter_mode: str = "merge",
     expected_content_hash: str | None = None,
+    idempotency_key: str | None = None,
 ) -> JSONValue:
     """Update an existing exact id or path without moving it implicitly.
 
@@ -290,6 +295,8 @@ async def alexandria_update_note(
         frontmatter: Value supplied to alexandria_update_note.
         frontmatter_mode: Value supplied to alexandria_update_note.
         expected_content_hash: Value supplied to alexandria_update_note.
+
+        idempotency_key: Retry-stable identity for the canonical write receipt.
 
     Returns:
         Result produced by alexandria_update_note.
@@ -310,6 +317,7 @@ async def alexandria_update_note(
         frontmatter=frontmatter,
         frontmatter_mode=frontmatter_mode,
         expected_content_hash=expected_content_hash,
+        idempotency_key=idempotency_key,
     )
 
 
@@ -328,6 +336,7 @@ async def alexandria_upsert_note(
     frontmatter: JSONObject | None = None,
     frontmatter_mode: str = "merge",
     expected_content_hash: str | None = None,
+    idempotency_key: str | None = None,
 ) -> JSONValue:
     """Create or update by one exact selector, rejecting selector conflicts.
 
@@ -346,6 +355,8 @@ async def alexandria_upsert_note(
         frontmatter: Value supplied to alexandria_upsert_note.
         frontmatter_mode: Value supplied to alexandria_upsert_note.
         expected_content_hash: Value supplied to alexandria_upsert_note.
+
+        idempotency_key: Retry-stable identity for the canonical write receipt.
 
     Returns:
         Result produced by alexandria_upsert_note.
@@ -366,6 +377,7 @@ async def alexandria_upsert_note(
         frontmatter=frontmatter,
         frontmatter_mode=frontmatter_mode,
         expected_content_hash=expected_content_hash,
+        idempotency_key=idempotency_key,
     )
 
 
@@ -385,6 +397,7 @@ async def _alexandria_write_note(
     frontmatter: JSONObject | None,
     frontmatter_mode: str,
     expected_content_hash: str | None = None,
+    idempotency_key: str | None = None,
 ) -> JSONValue:
     """Execute alexandria write note.
 
@@ -404,6 +417,8 @@ async def _alexandria_write_note(
         frontmatter: Frontmatter used by this operation.
         frontmatter_mode: Frontmatter mode used by this operation.
         expected_content_hash: Expected content hash used for validation.
+
+        idempotency_key: Retry-stable identity for the canonical write receipt.
 
     Returns:
         JSONValue result produced by alexandria write note.
@@ -433,6 +448,8 @@ async def _alexandria_write_note(
         payload["project"] = project
     if expected_content_hash is not None:
         payload["expected_content_hash"] = expected_content_hash
+    if idempotency_key is not None:
+        payload["idempotency_key"] = idempotency_key
     return await client.post(endpoint, payload)
 
 

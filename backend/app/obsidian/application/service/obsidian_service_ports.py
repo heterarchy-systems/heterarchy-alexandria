@@ -15,6 +15,7 @@ from app.obsidian.domain.entities.obsidian_note import (
     ObsidianVaultLocation,
     ObsidianVaultStatus,
 )
+from app.shared.exceptions.obsidian_exceptions import ObsidianValidationError
 from app.shared.types.extra_types import JSONObject
 
 
@@ -115,6 +116,30 @@ class ObsidianRecoveryPort(
         Returns:
             Obsidian reindex result.
         """
+
+    async def revalidate_note_index(
+        self, *, path: str, expected_source_hash: str | None = None
+    ) -> ObsidianNote:
+        """Re-parse one note's exact source and refresh its index row.
+
+        Optional bounded note-local repair: recovery planners use it to fix
+        stale index rows without a broad reindex. Sources that do not expose
+        per-note writes report the capability as unavailable.
+
+        Args:
+            path: Vault-relative Markdown path of the note to revalidate.
+            expected_source_hash: Exact raw source revision admitted by the plan.
+
+        Returns:
+            The refreshed authoritative note.
+
+        Raises:
+            ObsidianValidationError: When the capability is unavailable or the
+                source no longer parses.
+        """
+        raise ObsidianValidationError(
+            "NOTE_REVALIDATION_UNAVAILABLE: this source cannot revalidate single notes"
+        )
 
 
 class ObsidianMutationPort(ObsidianReadPort, ABC):

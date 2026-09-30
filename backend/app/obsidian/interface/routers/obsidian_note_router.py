@@ -19,6 +19,9 @@ from app.obsidian.domain.contracts.obsidian_batch_contracts import (
     BatchWriteOperation,
 )
 from app.obsidian.domain.event_enum.obsidian_enums import ObsidianWriteMode
+from app.obsidian.interface.routers.obsidian_mutation_router import (
+    router as mutation_router,
+)
 from app.obsidian.interface.routers.obsidian_relation_router import (
     router as relation_router,
 )
@@ -47,6 +50,8 @@ from app.obsidian.interface.schemas.obsidian.obsidian_schema import (
     ObsidianBatchWriteItemResult,
     ObsidianBatchWriteRequest,
     ObsidianBatchWriteResponse,
+    ObsidianFrontmatterRepairRequest,
+    ObsidianFrontmatterRepairResponse,
     ObsidianNoteRawReadResponse,
     ObsidianNoteRepairRequest,
     ObsidianNoteResponse,
@@ -70,6 +75,7 @@ router = APIRouter()
 router.include_router(report_bundle_router)
 router.include_router(relation_router)
 router.include_router(verified_upsert_router)
+router.include_router(mutation_router)
 
 
 @router.post(
@@ -311,6 +317,38 @@ async def repair_obsidian_note_raw(
         raw_content=request.raw_content,
     )
     return ObsidianNoteResponse.from_entity(note)
+
+
+@router.post(
+    "/notes/repair-frontmatter",
+    response_model=ObsidianFrontmatterRepairResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Repair Obsidian frontmatter only",
+    description=(
+        "Replace one note's frontmatter block after a byte-hash CAS check while "
+        "preserving the durable body bytes exactly; server-owned frontmatter "
+        "fields are stripped and reported."
+    ),
+)
+@router_exception_status(OBSIDIAN_ROUTE_EXCEPTION_MAPPING)
+@inject
+async def repair_obsidian_note_frontmatter(
+    request: Annotated[
+        ObsidianFrontmatterRepairRequest,
+        Depends(model_validate_json_body(ObsidianFrontmatterRepairRequest)),
+    ],
+    service: Annotated[
+        ObsidianService,
+        Depends(Provide[ApplicationContainer.obsidian.obsidian_service]),
+    ],
+) -> ObsidianFrontmatterRepairResponse:
+    """Repair one note's frontmatter without touching durable body bytes."""
+    result = await service.repair_note_frontmatter(
+        path=request.path,
+        expected_content_hash=request.expected_content_hash,
+        replacement_frontmatter=request.replacement_frontmatter,
+    )
+    return ObsidianFrontmatterRepairResponse.from_entity(result)
 
 
 @router.get(

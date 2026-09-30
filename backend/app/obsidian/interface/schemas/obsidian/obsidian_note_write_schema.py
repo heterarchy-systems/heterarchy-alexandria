@@ -80,6 +80,13 @@ class ObsidianSaveNoteRequest(StrictSchemaModel):
         ),
         described_field("Expected content hash for this Obsidian save note request."),
     ] = None
+    idempotency_key: Annotated[
+        str | None,
+        StringConstraints(strict=True, min_length=1, max_length=512),
+        described_field(
+            "Retry-stable mutation identity; omitted keys derive from the exact request."
+        ),
+    ] = None
 
     @field_validator("tags", mode="before")
     @classmethod
@@ -127,6 +134,7 @@ class ObsidianSaveNoteRequest(StrictSchemaModel):
             source=self.source,
             frontmatter=self.frontmatter,
             expected_content_hash=self.expected_content_hash,
+            idempotency_key=self.idempotency_key,
         )
 
 
