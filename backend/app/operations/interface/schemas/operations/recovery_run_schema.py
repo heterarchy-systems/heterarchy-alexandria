@@ -35,6 +35,14 @@ from app.shared.types.extra_types import JSONObject
 class RecoveryRunRequestSchema(RecoveryPlanRequestSchema):
     """Request schema for starting a recovery run."""
 
+    expected_plan_hash: Annotated[
+        str,
+        StringConstraints(
+            strict=True, min_length=64, max_length=64, pattern="^[0-9a-f]{64}$"
+        ),
+        described_field("Exact source-bound plan hash admitted by a prior dry-run."),
+    ]
+
     def to_contract(self) -> RecoveryPlanRequest:
         """Convert schema to application request contract.
 
@@ -46,6 +54,7 @@ class RecoveryRunRequestSchema(RecoveryPlanRequestSchema):
             actor=self.actor,
             idempotency_key=self.idempotency_key,
             parent_run_id=self.parent_run_id,
+            expected_plan_hash=self.expected_plan_hash,
         )
 
 
@@ -70,6 +79,7 @@ class RecoveryRunRetryRequestSchema(RecoveryRunRequestSchema):
             actor=self.actor,
             idempotency_key=self.idempotency_key,
             parent_run_id=None,
+            expected_plan_hash=self.expected_plan_hash,
         )
 
 
@@ -128,6 +138,13 @@ class RecoveryRunStepResultResponse(StrictSchemaModel):
 
 class RecoveryRunResponse(StrictSchemaModel):
     """Recovery run response."""
+
+    admitted_plan_hash: Annotated[
+        str | None,
+        described_field(
+            "Recorded admitted plan hash; null when evidence is unavailable."
+        ),
+    ] = None
 
     id: Annotated[
         str, described_field("Stable identifier for this recovery run response.")
@@ -205,6 +222,7 @@ class RecoveryRunResponse(StrictSchemaModel):
         """
         return cls(
             id=run.id,
+            admitted_plan_hash=run.admitted_plan_hash,
             parent_run_id=run.parent_run_id,
             idempotency_key=run.idempotency_key,
             trigger=run.trigger,

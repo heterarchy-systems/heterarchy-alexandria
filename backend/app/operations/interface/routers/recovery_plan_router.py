@@ -14,6 +14,9 @@ from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild
     ObsidianGraphProjectionRebuildService,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
+from app.operations.application.recovery.execution.recovery_run_contracts import (
+    RecoveryCallbacks,
+)
 from app.operations.application.recovery.planning.recovery_plan_service import (
     RecoveryPlanService,
 )
@@ -56,6 +59,10 @@ async def recovery_plan(
             Provide[ApplicationContainer.obsidian.graph_projection_rebuild_service]
         ),
     ],
+    callbacks: Annotated[
+        RecoveryCallbacks | None,
+        Depends(Provide[ApplicationContainer.recovery_callbacks]),
+    ] = None,
 ) -> RecoveryPlanResponse:
     """Return recovery dry-run plan.
 
@@ -76,6 +83,13 @@ async def recovery_plan(
         obsidian_service=obsidian_service,
         reconciliation_service=reconciliation_service,
         graph_projection_service=graph_projection_service,
+        embedding_recovery_callback=None if callbacks is None else callbacks.embedding,
+        graph_rebuild_callback=None if callbacks is None else callbacks.graph,
+        link_diagnostics_callback=None if callbacks is None else callbacks.links,
+        dlq_reconcile_callback=None if callbacks is None else callbacks.dlq,
+        current_compact_reader_callback=None
+        if callbacks is None
+        else callbacks.current,
     )
     plan = await service.plan(request.to_contract())
     return RecoveryPlanResponse.from_entity(plan)

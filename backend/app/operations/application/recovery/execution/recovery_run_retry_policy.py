@@ -70,9 +70,11 @@ def _recovery_steps() -> list[RecoveryPlanStep]:
     """
     return [
         RecoveryPlanStep("snapshot_sources", "Snapshot source vault metadata", False),
-        RecoveryPlanStep("reindex_vault", "Rebuild Obsidian index cache", True),
-        RecoveryPlanStep("reindex_embeddings", "Rebuild retrieval embeddings", True),
-        RecoveryPlanStep("verify_readiness", "Verify operational readiness", False),
+        RecoveryPlanStep("VAULT_REINDEX", "Rebuild Obsidian index cache", True),
+        RecoveryPlanStep("EMBEDDING_REINDEX", "Rebuild retrieval embeddings", True),
+        RecoveryPlanStep(
+            "CURRENT_READINESS_CHECK", "Verify operational readiness", False
+        ),
     ]
 
 
@@ -91,6 +93,7 @@ def _blocked_run(plan: RecoveryPlan, manifest_path: Path) -> RecoveryRun:
         id=plan.id,
         parent_run_id=plan.parent_run_id,
         idempotency_key=plan.idempotency_key,
+        admitted_plan_hash=plan.plan_hash,
         trigger=plan.trigger,
         actor=plan.actor,
         status=RecoveryRunStatus.BLOCKED,

@@ -7,6 +7,8 @@ from types import SimpleNamespace
 
 import anyio
 import pytest
+from fastapi import HTTPException, Request
+
 from app.operations.application.recovery.execution.recovery_run_service import (
     RecoveryRunService,
 )
@@ -24,7 +26,6 @@ from app.operations.interface.schemas.operations.recovery_run_schema import (
     RecoveryRunRequestSchema,
     RecoveryRunRetryRequestSchema,
 )
-from fastapi import HTTPException, Request
 
 
 def _request() -> Request:
@@ -86,7 +87,9 @@ def test_recovery_run_route_returns_current_contract(
 
     async def scenario():
         return await recovery_run(
-            request=RecoveryRunRequestSchema(idempotency_key="key-run-1"),
+            request=RecoveryRunRequestSchema(
+                idempotency_key="key-run-1", expected_plan_hash="0" * 64
+            ),
             http_request=_request(),
             database=SimpleNamespace(),
             context_service=SimpleNamespace(),
@@ -137,7 +140,7 @@ def test_retry_unknown_recovery_run_returns_404(
         with pytest.raises(HTTPException) as raised:
             await retry_recovery_run(
                 run_id="missing",
-                request=RecoveryRunRetryRequestSchema(),
+                request=RecoveryRunRetryRequestSchema(expected_plan_hash="0" * 64),
                 http_request=_request(),
                 database=SimpleNamespace(),
                 context_service=SimpleNamespace(),

@@ -14,6 +14,8 @@ from app.operations.domain.entities.recovery_plan import (
 from app.operations.domain.event_enum.operational_readiness_enums import (
     OperationalReadinessStatus,
 )
+from app.shared.serialization.orjson_codec import dumps_pretty_json
+from app.shared.types.extra_types import JSONObject
 
 
 def _default_idempotency_key(
@@ -96,13 +98,18 @@ def _diagnosis(
     return list(readiness.warnings)
 
 
+_MAX_PLANNED_NOTE_REPAIRS = 50
+
+
 def _steps(
     readiness: OperationalReadinessSnapshot,
+    error_note_paths: list[str] | None = None,
 ) -> list[RecoveryPlanStep]:
     """Execute steps.
 
     Args:
         readiness: Readiness used by this operation.
+        error_note_paths: Bounded index-error note paths for note-local repair.
 
     Returns:
         list[RecoveryPlanStep] result produced by steps.
@@ -113,7 +120,12 @@ def _steps(
                 "inspect_memory_reconciliation",
                 "Inspect reconciliation diagnostics without rebuilding storage",
                 False,
-            )
+            ),
+            RecoveryPlanStep(
+                "CURRENT_READINESS_CHECK",
+                "Check current readiness after independent diagnostics",
+                False,
+            ),
         ]
     if not readiness.database.reachable:
         return [
@@ -127,14 +139,18 @@ def _steps(
     steps = [
         RecoveryPlanStep("snapshot_sources", "Snapshot source vault metadata", False)
     ]
-    if {
-        "obsidian_stale_notes_present",
-        "obsidian_error_notes_present",
-        "rag_fts_not_healthy",
-    } & warning_set:
+    if error_note_paths:
         steps.append(
             RecoveryPlanStep(
-                "reindex_vault", "Rebuild Obsidian and lexical indexes", True
+                "REPAIR_MANAGED_FRONTMATTER",
+                "Re-parse and revalidate index-error notes in place",
+                True,
+            )
+        )
+    if {"obsidian_stale_notes_present", "rag_fts_not_healthy"} & warning_set:
+        steps.append(
+            RecoveryPlanStep(
+                "VAULT_REINDEX", "Rebuild Obsidian and lexical indexes", True
             )
         )
     if {
@@ -145,13 +161,132 @@ def _steps(
         "rag_status_warnings_present",
     } & warning_set:
         steps.append(
-            RecoveryPlanStep("reindex_embeddings", "Rebuild retrieval embeddings", True)
+            RecoveryPlanStep("EMBEDDING_REINDEX", "Rebuild retrieval embeddings", True)
         )
-    if len(steps) > 1:
+    needs_graph_rebuild = readiness.graph.status in {
+        "unavailable",
+        "uninitialized",
+        "unknown",
+    } or any(step.code == "VAULT_REINDEX" for step in steps)
+    if needs_graph_rebuild:
         steps.append(
-            RecoveryPlanStep("verify_readiness", "Verify operational readiness", False)
+            RecoveryPlanStep(
+                "GRAPH_REVALIDATE",
+                "Revalidate the PostgreSQL graph projection",
+                True,
+            )
+        )
+    if readiness.graph.last_run_issue_total > 0 or needs_graph_rebuild:
+        steps.append(
+            RecoveryPlanStep(
+                "LINK_REVALIDATE",
+                "Inspect bounded graph link diagnostics",
+                False,
+            )
+        )
+    if {
+        "maintenance_dlq_present",
+        "maintenance_dlq_unknown_outcome",
+    } & warning_set:
+        steps.append(
+            RecoveryPlanStep(
+                "DLQ_RECONCILE",
+                "Reconcile maintenance dead-letter effects without retry",
+                False,
+            )
+        )
+    if steps:
+        steps.append(
+            RecoveryPlanStep(
+                "CURRENT_READINESS_CHECK",
+                "Verify current operational readiness",
+                False,
+            )
         )
     return steps
+
+
+def _plan_hash(
+    steps: list[RecoveryPlanStep],
+    diagnosis: list[str],
+    source_snapshot: RecoverySourceSnapshot,
+) -> str:
+    """Hash one plan's bounded semantic content and source revision.
+
+    The hash covers the planned step order, the diagnosis, and the full
+    source manifest, so any source drift between dry-run and apply changes
+    the hash and fails the apply fence.
+
+    Args:
+        steps: Planned steps in execution order.
+        diagnosis: Bounded diagnosis codes.
+        source_snapshot: Source manifest snapshot.
+
+    Returns:
+        Deterministic plan hash.
+    """
+    manifest: JSONObject = {}
+    for note_path, token in source_snapshot.markdown_manifest.items():
+        manifest[note_path] = token
+    payload: JSONObject = {
+        "steps": [step.code for step in steps],
+        "diagnosis": sorted(diagnosis),
+        "manifest": manifest,
+    }
+    return sha256(
+        dumps_pretty_json(payload),
+    ).hexdigest()
+
+
+def _missing_step_capabilities(
+    steps: list[RecoveryPlanStep],
+    *,
+    embedding_recovery_available: bool,
+    graph_rebuild_available: bool,
+    link_diagnostics_available: bool,
+    dlq_reconcile_available: bool,
+    current_compact_reader_available: bool,
+) -> list[str]:
+    """Return explicit blockers for cause-specific steps without an owner.
+
+    Args:
+        steps: Planned recovery steps.
+        embedding_recovery_available: Whether configured bounded embedding recovery exists.
+        graph_rebuild_available: Whether the existing graph rebuild owner is wired.
+        link_diagnostics_available: Whether bounded link diagnostics are wired.
+        dlq_reconcile_available: Whether the read-only DLQ reconciler is wired.
+        current_compact_reader_available: Whether the CURRENT compact reader is wired.
+
+    Returns:
+        Stable prerequisite blocker codes.
+    """
+    codes = {step.code for step in steps}
+    blockers: list[str] = []
+    if "EMBEDDING_REINDEX" in codes and not embedding_recovery_available:
+        blockers.append("embedding_recovery_unavailable")
+    if "GRAPH_REVALIDATE" in codes and not graph_rebuild_available:
+        blockers.append("graph_rebuild_unavailable")
+    if "LINK_REVALIDATE" in codes and not link_diagnostics_available:
+        blockers.append("link_diagnostics_unavailable")
+    if "DLQ_RECONCILE" in codes and not dlq_reconcile_available:
+        blockers.append("dlq_reconcile_unavailable")
+    if "CURRENT_READINESS_CHECK" in codes and not current_compact_reader_available:
+        blockers.append("current_compact_reader_unavailable")
+    return blockers
+
+
+def _bounded_error_note_paths(
+    index_errors: list[str],
+) -> list[str]:
+    """Bound the planned note-local repair list.
+
+    Args:
+        index_errors: Index-error note paths from the vault status scan.
+
+    Returns:
+        Bounded, de-duplicated note paths in stable order.
+    """
+    return list(dict.fromkeys(index_errors))[:_MAX_PLANNED_NOTE_REPAIRS]
 
 
 def _next_actions(

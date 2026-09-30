@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import tempfile
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from fcntl import LOCK_EX, flock
@@ -108,6 +108,7 @@ class RecoveryRunManifestPayload(RecoveryPersistencePayload):
     id: str
     parent_run_id: str | None = None
     idempotency_key: str
+    admitted_plan_hash: str | None = None
     trigger: str
     actor: str
     status: RecoveryRunStatus
@@ -289,7 +290,7 @@ def _write_manifest(run: RecoveryRun) -> None:
 
 
 @contextmanager
-def _active_record_guard() -> Iterator[None]:
+def _active_record_guard() -> Generator[None]:
     """Fence admission and conditional updates of the existing active record."""
     directory = _recovery_dir()
     directory.mkdir(parents=True, exist_ok=True)
@@ -354,6 +355,7 @@ def _run_payload(run: RecoveryRun) -> RecoveryRunManifestPayload:
         id=run.id,
         parent_run_id=run.parent_run_id,
         idempotency_key=run.idempotency_key,
+        admitted_plan_hash=run.admitted_plan_hash,
         trigger=run.trigger,
         actor=run.actor,
         status=run.status,
@@ -449,6 +451,7 @@ def _run_from_payload(
         id=payload.id,
         parent_run_id=payload.parent_run_id,
         idempotency_key=payload.idempotency_key,
+        admitted_plan_hash=payload.admitted_plan_hash,
         trigger=payload.trigger,
         actor=payload.actor,
         status=payload.status,

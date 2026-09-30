@@ -45,6 +45,9 @@ class _FakeObsidianService:
     async def status(self) -> ObsidianVaultStatus:
         return self._status
 
+    async def latest_compile_receipt(self):
+        return None
+
 
 class _HealthyPostgresSession:
     async def __aenter__(self) -> _HealthyPostgresSession:

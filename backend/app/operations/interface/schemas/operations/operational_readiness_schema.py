@@ -177,6 +177,13 @@ class OperationalCompileReceiptSnapshotResponse(StrictSchemaModel):
     """Latest knowledge compile receipt evidence."""
 
     available: Annotated[bool, described_field("Whether a receipt is persisted.")]
+    required: Annotated[
+        bool, described_field("Whether this path requires compiler evidence.")
+    ]
+    status: Annotated[
+        str, described_field("Receipt necessity, validity and revision state.")
+    ]
+    blockers: Annotated[list[str], described_field("Blocking receipt failures.")]
     applied_at: Annotated[
         datetime | None,
         described_field("Timestamp of the last successful compile application."),
@@ -213,6 +220,9 @@ class OperationalCompileReceiptSnapshotResponse(StrictSchemaModel):
         """Map the readiness entity to the HTTP contract."""
         return cls(
             available=snapshot.available,
+            required=snapshot.required,
+            status=snapshot.status.value,
+            blockers=list(snapshot.blockers),
             applied_at=snapshot.applied_at,
             plan_fingerprint=snapshot.plan_fingerprint,
             policy_version=snapshot.policy_version,

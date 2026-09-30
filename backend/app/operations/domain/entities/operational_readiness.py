@@ -24,6 +24,7 @@ from app.operations.domain.entities.operational_runtime_provenance import (
     unchecked_runtime_provenance_snapshot,
 )
 from app.operations.domain.event_enum.operational_readiness_enums import (
+    CompileReceiptStatus,
     OperationalReadinessStatus,
 )
 from app.shared.types.extra_types import JSONObject
@@ -113,10 +114,7 @@ def unchecked_compile_receipt_snapshot() -> OperationalCompileReceiptSnapshot:
     Returns:
         Snapshot marked unavailable with the unchecked warning.
     """
-    return OperationalCompileReceiptSnapshot(
-        available=False,
-        warnings=("compile_receipt_unchecked",),
-    )
+    return OperationalCompileReceiptSnapshot()
 
 
 @dataclass(frozen=True, slots=True)
@@ -124,6 +122,9 @@ class OperationalCompileReceiptSnapshot:
     """Latest knowledge compile receipt surfaced as readiness evidence."""
 
     available: bool = False
+    required: bool = False
+    status: CompileReceiptStatus = CompileReceiptStatus.NOT_APPLICABLE
+    blockers: tuple[str, ...] = ()
     applied_at: datetime | None = None
     plan_fingerprint: str | None = None
     policy_version: str | None = None
@@ -131,7 +132,7 @@ class OperationalCompileReceiptSnapshot:
     removed_documents: int | None = None
     embedding_invalidated_documents: int | None = None
     diagnostic_count: int | None = None
-    warnings: tuple[str, ...] = ("compile_receipt_unchecked",)
+    warnings: tuple[str, ...] = ()
 
 
 @dataclass(slots=True)

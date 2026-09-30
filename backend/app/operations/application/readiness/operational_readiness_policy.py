@@ -289,6 +289,9 @@ def _blockers(warnings: list[str]) -> list[str]:
         list[str] result produced by blockers.
     """
     blocking_codes = {
+        "compile_receipt_required",
+        "compile_receipt_invalid",
+        "compile_receipt_stale",
         "database_unreachable",
         "database_integrity_not_healthy",
         "vault_not_found",

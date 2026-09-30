@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
+import anyio
+import anyio.to_thread
+
 from app.memory.application.contexts.records.context_service_ports import (
     ContextRecoveryPort,
 )
@@ -15,6 +20,7 @@ from app.operations.application.readiness.operational_readiness_service import (
 from app.operations.application.recovery.execution.recovery_run_contracts import (
     ContextRecoveryPortFactory,
     ObsidianRecoveryPortFactory,
+    RecoveryDiagnosticCallback,
     resolve_recovery_service,
 )
 from app.operations.application.recovery.execution.recovery_run_source_preservation import (
@@ -23,13 +29,6 @@ from app.operations.application.recovery.execution.recovery_run_source_preservat
 from app.operations.domain.entities.recovery_plan import RecoveryPlan
 from app.shared.infrastructure.database import Database
 from app.shared.types.extra_types import JSONObject
-
-_REPRESENTATIVE_QUERY = "운영 안정성 자동 복구 루프"
-_REPRESENTATIVE_NOTE_ID = "prd_operational_readiness_recovery_v0_1"
-_REPRESENTATIVE_PATH_SUFFIX = (
-    "Contexts/Projects/heterarchy-alexandria/dev-size/PRD/"
-    "PRD - 운영 안정성 및 자동 복구 루프.md"
-)
 
 
 class RecoveryRunVerificationService:
@@ -44,6 +43,7 @@ class RecoveryRunVerificationService:
         obsidian_service_factory: ObsidianRecoveryPortFactory | None = None,
         *,
         graph_projection_service: GraphProjectionReadinessPort,
+        current_compact_reader_callback: RecoveryDiagnosticCallback | None = None,
     ) -> None:
         """Initialize recovery verification dependencies.
 
@@ -63,8 +63,16 @@ class RecoveryRunVerificationService:
             lambda: obsidian_service
         )
         self._graph_projection_service = graph_projection_service
+        self._current_compact_reader_callback = current_compact_reader_callback
 
-    async def verify_readiness(self, plan: RecoveryPlan) -> JSONObject:
+    async def verify_readiness(
+        self,
+        plan: RecoveryPlan,
+        *,
+        compile_receipt_required: bool = False,
+        expected_compile_policy_version: str | None = None,
+        expected_compile_plan_fingerprint: str | None = None,
+    ) -> JSONObject:
         """Verify runtime readiness.
 
         Args:
@@ -87,15 +95,30 @@ class RecoveryRunVerificationService:
                     obsidian_service=obsidian_service,
                     ignore_active_recovery_run_id=plan.id,
                     graph_projection_service=self._graph_projection_service,
+                    compile_receipt_required=compile_receipt_required,
+                    expected_compile_policy_version=expected_compile_policy_version,
+                    expected_compile_plan_fingerprint=expected_compile_plan_fingerprint,
                 ).snapshot()
+                source_path = plan.source_snapshot.representative_path
+                relative_path = (
+                    None
+                    if source_path is None
+                    else str(
+                        Path(source_path).relative_to(plan.source_snapshot.vault_path)
+                    )
+                )
                 representative = await self.verify_representative_search(
-                    obsidian_service
+                    obsidian_service, relative_path
                 )
             except Exception:
                 await session.rollback()
                 raise
             await session.commit()
-        source_preservation = _source_preservation_result(plan.source_snapshot)
+        source_preservation = await anyio.to_thread.run_sync(
+            _source_preservation_result,
+            plan.source_snapshot,
+            limiter=anyio.to_thread.current_default_thread_limiter(),
+        )
         warnings = list(snapshot.warnings)
         blockers = list(snapshot.blockers)
         if representative["matched"] is not True:
@@ -104,7 +127,7 @@ class RecoveryRunVerificationService:
         if source_preservation["preserved"] is not True:
             warnings.append("source_markdown_changed")
             blockers.append("source_markdown_changed")
-        return {
+        result: JSONObject = {
             "status": snapshot.status.value,
             "ready": (
                 snapshot.ready
@@ -116,109 +139,90 @@ class RecoveryRunVerificationService:
             "source_preservation": source_preservation,
             "representative_search": representative,
         }
+        if self._current_compact_reader_callback is not None:
+            try:
+                result[
+                    "current_compact"
+                ] = await self._current_compact_reader_callback()
+            except Exception as exc:  # pragma: no cover - provider-specific errors
+                result["current_compact"] = {
+                    "available": False,
+                    "error": type(exc).__name__,
+                }
+                result["warnings"] = [
+                    *warnings,
+                    "current_compact_unavailable",
+                ]
+                result["blockers"] = [
+                    *blockers,
+                    "current_compact_unavailable",
+                ]
+                result["ready"] = False
+        return result
 
     async def verify_representative_search(
         self,
         obsidian_service: ObsidianRecoveryPort,
+        source_path: str | None,
     ) -> JSONObject:
-        """Verify representative retrieval behavior.
+        """Verify actual admitted source retrieval and exact identity read-back.
 
         Args:
-            obsidian_service: Obsidian service used for the representative verification.
+            obsidian_service: Canonical search/read owner.
+            source_path: Representative managed path from the admitted snapshot.
 
         Returns:
-            Verification result.
+            Bounded search evidence and canonical id/path/body match.
         """
-        hits = await obsidian_service.search(
-            ObsidianSearchQuery(query=_REPRESENTATIVE_QUERY, limit=5),
-            refresh=True,
-        )
-        matches: list[JSONObject] = [
-            {
-                "id": hit.note.note_id,
-                "path": hit.note.relative_path,
-                "title": hit.note.title,
-            }
-            for hit in hits
-        ]
-        matched_path = next(
-            (
-                str(match["path"])
-                for match in matches
-                if match["id"] == _REPRESENTATIVE_NOTE_ID
-                and str(match["path"]).endswith(_REPRESENTATIVE_PATH_SUFFIX)
-            ),
-            None,
-        )
-        readback = await self.verify_representative_readback(
-            obsidian_service,
-            matched_path,
-        )
-        matched = matched_path is not None and readback["matched"] is True
-        return {
-            "query": _REPRESENTATIVE_QUERY,
-            "expected_id": _REPRESENTATIVE_NOTE_ID,
-            "expected_path_suffix": _REPRESENTATIVE_PATH_SUFFIX,
-            "matched": matched,
-            "matches": matches,
-            "readback": readback,
-        }
-
-    async def verify_representative_readback(
-        self,
-        obsidian_service: ObsidianRecoveryPort,
-        matched_path: str | None,
-    ) -> JSONObject:
-        """Verify representative readback behavior.
-
-        Args:
-            obsidian_service: Obsidian service used for the representative verification.
-            matched_path: Representative vault path returned by the search verification.
-
-        Returns:
-            Verification result.
-        """
-        if matched_path is None:
+        if source_path is None:
             return {
                 "matched": False,
-                "id_read": None,
-                "path_read": None,
-                "error": None,
+                "matches": [],
+                "error": "representative_source_missing",
             }
         try:
-            by_id = await obsidian_service.read_note(_REPRESENTATIVE_NOTE_ID)
-            by_path = await obsidian_service.read_note_by_path(matched_path)
-        except Exception as exc:  # pragma: no cover - exact read failures vary
-            return {
-                "matched": False,
-                "id_read": None,
-                "path_read": None,
-                "error": str(exc),
-            }
-        id_read = _representative_readback_note_payload(by_id)
-        path_read = _representative_readback_note_payload(by_path)
+            source = await obsidian_service.read_note_by_path(source_path)
+            hits = await obsidian_service.search(
+                ObsidianSearchQuery(query=source.title[:255], limit=5),
+                refresh=True,
+            )
+            by_id = await obsidian_service.read_note(source.note_id)
+        except Exception as exc:
+            return {"matched": False, "matches": [], "error": type(exc).__name__}
         return {
-            "matched": (
-                id_read["id"] == _REPRESENTATIVE_NOTE_ID
-                and str(id_read["path"]).endswith(_REPRESENTATIVE_PATH_SUFFIX)
-                and path_read["id"] == _REPRESENTATIVE_NOTE_ID
-                and str(path_read["path"]).endswith(_REPRESENTATIVE_PATH_SUFFIX)
-                and id_read["path"] == path_read["path"]
-            ),
-            "id_read": id_read,
-            "path_read": path_read,
-            "error": None,
+            "query": source.title[:255],
+            "expected_id": source.note_id,
+            "expected_path": source_path,
+            "matched": any(
+                hit.note.note_id == source.note_id
+                and hit.note.relative_path == source_path
+                for hit in hits
+            )
+            and by_id.relative_path == source_path
+            and by_id.content_hash == source.content_hash,
+            "matches": [
+                {
+                    "id": hit.note.note_id,
+                    "path": hit.note.relative_path,
+                    "title": hit.note.title,
+                }
+                for hit in hits
+            ],
+            "readback": {
+                "id_read": _representative_readback_note_payload(by_id),
+                "path_read": _representative_readback_note_payload(source),
+            },
         }
 
 
 def _representative_readback_note_payload(note: ObsidianNote) -> JSONObject:
-    """Execute representative readback note payload.
+    """Serialize exact canonical identity and body digest for verification.
 
     Args:
-        note: Note used by this operation.
+        note: Canonical note read by its owning service.
 
     Returns:
-        JSONObject result produced by representative readback note payload.
+        Bounded source identity evidence.
     """
     return {
         "id": note.note_id,

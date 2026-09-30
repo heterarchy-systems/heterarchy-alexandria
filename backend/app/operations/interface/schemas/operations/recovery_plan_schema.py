@@ -52,6 +52,14 @@ class RecoveryPlanRequestSchema(StrictSchemaModel):
         StringConstraints(strict=True, min_length=1),
         described_field("Parent run identifier for this recovery plan request."),
     ] = None
+    expected_plan_hash: Annotated[
+        str | None,
+        StringConstraints(strict=True, min_length=64, max_length=64),
+        described_field(
+            "Exact plan hash admitted by a prior dry-run; a mismatch fails "
+            "the apply fence closed."
+        ),
+    ] = None
 
     def to_contract(self) -> RecoveryPlanRequest:
         """Convert schema to application request contract.
@@ -64,6 +72,7 @@ class RecoveryPlanRequestSchema(StrictSchemaModel):
             actor=self.actor,
             idempotency_key=self.idempotency_key,
             parent_run_id=self.parent_run_id,
+            expected_plan_hash=self.expected_plan_hash,
         )
 
 
@@ -203,6 +212,19 @@ class RecoveryPlanResponse(StrictSchemaModel):
         list[RecoveryPlanStepResponse],
         described_field("Steps for this recovery plan response."),
     ] = schema_list_default()
+    plan_hash: Annotated[
+        str,
+        described_field(
+            "Deterministic hash over planned steps, diagnosis, and the source "
+            "manifest; required unchanged by the apply fence."
+        ),
+    ]
+    error_note_repairs: Annotated[
+        list[str],
+        described_field(
+            "Bounded index-error note paths planned for note-local repair."
+        ),
+    ] = schema_list_default()
     estimated_reindex_scope: Annotated[
         dict[str, int | str | None],
         described_field("Estimated reindex scope for this recovery plan response."),
@@ -247,6 +269,8 @@ class RecoveryPlanResponse(StrictSchemaModel):
                 plan.source_snapshot
             ),
             steps=[RecoveryPlanStepResponse.from_entity(step) for step in plan.steps],
+            plan_hash=plan.plan_hash,
+            error_note_repairs=list(plan.error_note_repairs),
             estimated_reindex_scope=dict(plan.estimated_reindex_scope),
             service_impact=list(plan.service_impact),
             next_actions=list(plan.next_actions),

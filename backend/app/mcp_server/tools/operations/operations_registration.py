@@ -41,6 +41,7 @@ def register_operations_tools(
         actor: str = DEFAULT_SOURCE_AGENT,
         idempotency_key: str | None = None,
         parent_run_id: str | None = None,
+        expected_plan_hash: str | None = None,
     ) -> JSONValue:
         """Diagnose and plan recovery, or apply an explicit idempotent repair.
 
@@ -50,6 +51,7 @@ def register_operations_tools(
             actor: Operator or agent requesting the plan.
             idempotency_key: Required when dry_run is false.
             parent_run_id: Optional parent recovery run identifier.
+            expected_plan_hash: Required unchanged plan hash when applying.
 
         Returns:
             Backend recovery plan or run response.
@@ -61,6 +63,7 @@ def register_operations_tools(
             actor=actor,
             idempotency_key=idempotency_key,
             parent_run_id=parent_run_id,
+            expected_plan_hash=expected_plan_hash,
         )
 
     @server.tool(name="alexandria_recovery_run_status")

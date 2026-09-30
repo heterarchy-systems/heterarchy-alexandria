@@ -8,6 +8,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import anyio
+import anyio.to_thread
+
 from app.obsidian.application.service.notes.obsidian_index_error_repair_service import (
     ObsidianIndexErrorRepairService,
 )
@@ -51,9 +54,13 @@ from app.obsidian.domain.entities.obsidian_note import (
     ObsidianVaultSourceSnapshot,
     ObsidianVaultStatus,
 )
+from app.obsidian.infrastructure.obsidian_report_bundle_run_store import (
+    ObsidianReportBundleRunStore,
+)
 from app.obsidian.infrastructure.obsidian_vault_config_store import (
     ObsidianVaultConfigStore,
 )
+from app.shared.types.extra_types import JSONObject
 
 
 class ObsidianVaultOperations(ObsidianReadinessPort, ObsidianDataIntegrityPort):
@@ -103,6 +110,19 @@ class ObsidianVaultOperations(ObsidianReadinessPort, ObsidianDataIntegrityPort):
             Current vault and index status.
         """
         return await self._vault_lifecycle_service.status()
+
+    async def latest_compile_receipt(self) -> JSONObject | None:
+        """Read canonical compiler evidence through the existing durable run store.
+
+        Returns:
+            Persisted receipt, or None when compilation has not been used.
+        """
+        store = ObsidianReportBundleRunStore(vault_path=self._vault_path)
+        return await anyio.to_thread.run_sync(
+            store.load,
+            "compile-receipt:latest",
+            limiter=anyio.to_thread.current_default_thread_limiter(),
+        )
 
     async def configure_vault_settings(
         self,

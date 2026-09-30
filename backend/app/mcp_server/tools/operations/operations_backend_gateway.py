@@ -63,6 +63,7 @@ async def _recovery_run(
     actor: str = DEFAULT_SOURCE_AGENT,
     idempotency_key: str | None = None,
     parent_run_id: str | None = None,
+    expected_plan_hash: str | None = None,
 ) -> JSONValue:
     """Start or return an idempotent operational recovery run.
 
@@ -72,11 +73,18 @@ async def _recovery_run(
         actor: Operator or agent requesting recovery.
         idempotency_key: Required idempotency key for the explicit apply.
         parent_run_id: Optional parent recovery run identifier.
+        expected_plan_hash: Exact plan hash admitted by a prior dry-run.
 
     Returns:
         Recovery run response.
     """
     required_idempotency_key = _required_recovery_run_idempotency_key(idempotency_key)
+    if (
+        expected_plan_hash is None
+        or len(expected_plan_hash) != 64
+        or any(char not in "0123456789abcdef" for char in expected_plan_hash)
+    ):
+        raise ValueError("expected_plan_hash is required for recovery apply")
     payload: JSONObject = {
         "trigger": trigger,
         "actor": actor,
@@ -84,6 +92,7 @@ async def _recovery_run(
     }
     if parent_run_id is not None:
         payload["parent_run_id"] = parent_run_id
+    payload["expected_plan_hash"] = expected_plan_hash
     response = await client.post("/operations/recovery/runs", payload)
     return response
 
@@ -112,6 +121,7 @@ async def alexandria_recover(
     actor: str = DEFAULT_SOURCE_AGENT,
     idempotency_key: str | None = None,
     parent_run_id: str | None = None,
+    expected_plan_hash: str | None = None,
 ) -> JSONValue:
     """Plan recovery by default, or apply an explicit idempotent repair.
 
@@ -122,6 +132,7 @@ async def alexandria_recover(
         actor: Operator or agent requesting recovery.
         idempotency_key: Optional idempotency key for planning and required for apply.
         parent_run_id: Optional parent recovery run identifier.
+        expected_plan_hash: Exact plan hash required when applying a prior plan.
 
     Returns:
         Recovery plan or recovery run response.
@@ -140,6 +151,7 @@ async def alexandria_recover(
         actor=actor,
         idempotency_key=idempotency_key,
         parent_run_id=parent_run_id,
+        expected_plan_hash=expected_plan_hash,
     )
 
 

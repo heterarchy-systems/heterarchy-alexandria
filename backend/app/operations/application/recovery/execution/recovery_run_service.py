@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import UTC, datetime
 from functools import partial
 
 import anyio
+import anyio.to_thread
 
 from app.memory.application.contexts.records.context_service_ports import (
     ContextRecoveryPort,
@@ -17,7 +19,9 @@ from app.operations.application.readiness.operational_readiness_service import (
 )
 from app.operations.application.recovery.execution.recovery_run_contracts import (
     ContextRecoveryPortFactory,
+    EmbeddingRecoveryCallback,
     ObsidianRecoveryPortFactory,
+    RecoveryDiagnosticCallback,
 )
 from app.operations.application.recovery.execution.recovery_run_errors import (
     RecoveryInProgressError,
@@ -98,6 +102,13 @@ class RecoveryRunService:
         obsidian_service_factory: ObsidianRecoveryPortFactory | None = None,
         *,
         graph_projection_service: GraphProjectionReadinessPort,
+        embedding_recovery_callback: EmbeddingRecoveryCallback | None = None,
+        graph_rebuild_callback: RecoveryDiagnosticCallback | None = None,
+        link_diagnostics_callback: RecoveryDiagnosticCallback | None = None,
+        dlq_reconcile_callback: RecoveryDiagnosticCallback | None = None,
+        current_compact_reader_callback: RecoveryDiagnosticCallback | None = None,
+        embedding_batch_size: int = 250,
+        embedding_max_batches: int = 40,
     ) -> None:
         """Create service.
 
@@ -118,6 +129,12 @@ class RecoveryRunService:
             obsidian_service=obsidian_service,
             context_service_factory=context_service_factory,
             obsidian_service_factory=obsidian_service_factory,
+            embedding_recovery_callback=embedding_recovery_callback,
+            graph_rebuild_callback=graph_rebuild_callback,
+            link_diagnostics_callback=link_diagnostics_callback,
+            dlq_reconcile_callback=dlq_reconcile_callback,
+            embedding_batch_size=embedding_batch_size,
+            embedding_max_batches=embedding_max_batches,
         )
         self._graph_projection_service = graph_projection_service
         self._verification = RecoveryRunVerificationService(
@@ -127,7 +144,15 @@ class RecoveryRunService:
             context_service_factory=context_service_factory,
             obsidian_service_factory=obsidian_service_factory,
             graph_projection_service=graph_projection_service,
+            current_compact_reader_callback=current_compact_reader_callback,
         )
+        self._embedding_recovery_callback = embedding_recovery_callback
+        self._graph_rebuild_callback = graph_rebuild_callback
+        self._link_diagnostics_callback = link_diagnostics_callback
+        self._dlq_reconcile_callback = dlq_reconcile_callback
+        self._current_compact_reader_callback = current_compact_reader_callback
+        self._embedding_batch_size = embedding_batch_size
+        self._embedding_max_batches = embedding_max_batches
 
     async def start(self, request: RecoveryPlanRequest) -> RecoveryRun:
         """Start or return an idempotent manual recovery run.
@@ -143,10 +168,26 @@ class RecoveryRunService:
             context_service=self._context_service,
             obsidian_service=self._obsidian_service,
             graph_projection_service=self._graph_projection_service,
+            embedding_recovery_callback=self._embedding_recovery_callback,
+            graph_rebuild_callback=self._graph_rebuild_callback,
+            link_diagnostics_callback=self._link_diagnostics_callback,
+            dlq_reconcile_callback=self._dlq_reconcile_callback,
+            current_compact_reader_callback=self._current_compact_reader_callback,
         ).plan(request)
         manifest_path = _manifest_path(plan)
         if manifest_path.exists():
-            return _run_from_manifest(manifest_path)
+            recorded = _run_from_manifest(manifest_path)
+            if (
+                request.expected_plan_hash is None
+                or request.expected_plan_hash != recorded.admitted_plan_hash
+            ):
+                return replace(
+                    recorded,
+                    status=RecoveryRunStatus.BLOCKED,
+                    error_code="RECOVERY_PLAN_IDEMPOTENCY_CONFLICT",
+                    error_summary="The replay does not name the recorded admitted plan; the durable run is unchanged",
+                )
+            return recorded
         active_lock = await _record_io(_read_active_lock)
         if active_lock is not None:
             raise RecoveryInProgressError(
@@ -155,6 +196,17 @@ class RecoveryRunService:
             )
         if not plan.automatic_execution_allowed:
             run = _blocked_run(plan=plan, manifest_path=manifest_path)
+            await _record_io(partial(_write_manifest, run))
+            return run
+        if request.expected_plan_hash != plan.plan_hash:
+            # Apply fence: source revision drifted between dry-run and apply,
+            # so the agent must re-plan instead of applying a stale plan.
+            run = _blocked_run(plan=plan, manifest_path=manifest_path)
+            run.error_code = "RECOVERY_PLAN_DRIFT"
+            run.error_summary = (
+                "expected_plan_hash does not match the current plan hash; "
+                "re-plan before applying"
+            )
             await _record_io(partial(_write_manifest, run))
             return run
 
@@ -172,6 +224,7 @@ class RecoveryRunService:
         current_step: str | None = None
         try:
             for planned_step in plan.steps:
+                recorded_before_fence = False
                 current_step = await _record_io(
                     partial(_checkpoint_active_step, plan, planned_step.code)
                 )
@@ -182,7 +235,32 @@ class RecoveryRunService:
                         parent_run=parent_run,
                         parent_success_steps=parent_success_steps,
                     )
-                elif current_step == "reindex_vault":
+                elif current_step in {
+                    "REPAIR_MANAGED_FRONTMATTER",
+                    "repair_error_notes",
+                }:
+                    result = await _execute_or_skip_step(
+                        current_step,
+                        lambda: self._mutations.repair_error_notes(
+                            plan.error_note_repairs,
+                            plan.source_snapshot.markdown_manifest,
+                        ),
+                        parent_run=parent_run,
+                        parent_success_steps=parent_success_steps,
+                    )
+                    rebuild_results["error_note_repairs"] = result.result
+                    # Record partial success before the fence: successfully
+                    # repaired notes stay truthfully recorded even when the
+                    # lane stops for notes that need manual repair.
+                    step_results.append(result)
+                    recorded_before_fence = True
+                    _require_step_success(result, error_code="NOTE_REPAIR_FAILED")
+                    _require_empty_result_list(
+                        result,
+                        key="requires_manual_repair",
+                        error_code="NOTE_REPAIR_REQUIRED",
+                    )
+                elif current_step in {"VAULT_REINDEX", "reindex_vault"}:
                     result = await _execute_or_skip_step(
                         current_step,
                         self._mutations.reindex_vault,
@@ -196,7 +274,7 @@ class RecoveryRunService:
                         key="errors",
                         error_code="VAULT_REINDEX_FAILED",
                     )
-                elif current_step == "reindex_embeddings":
+                elif current_step in {"EMBEDDING_REINDEX", "reindex_embeddings"}:
                     result = await _execute_or_skip_step(
                         current_step,
                         self._mutations.reindex_embeddings,
@@ -208,30 +286,105 @@ class RecoveryRunService:
                         result,
                         error_code="EMBEDDING_REINDEX_FAILED",
                     )
-                    _require_empty_result_list(
-                        result,
-                        key="warnings",
-                        error_code="EMBEDDING_REINDEX_REQUIRED",
-                    )
-                elif current_step == "verify_readiness":
+                    # A bounded recovery owner may truthfully report that its
+                    # configured batch ceiling was reached. Keep that evidence
+                    # and continue to CURRENT_READINESS_CHECK so the final
+                    # readiness result records the incomplete continuation.
+                elif current_step in {
+                    "CURRENT_READINESS_CHECK",
+                    "verify_readiness",
+                }:
+                    vault_result = rebuild_results.get("vault")
+                    compile_required = False
+                    expected_policy_version: str | None = None
+                    expected_plan_fingerprint: str | None = None
+                    if isinstance(vault_result, dict):
+                        raw_policy = vault_result.get("policy_version")
+                        raw_plan = vault_result.get("plan_fingerprint")
+                        if isinstance(raw_policy, str) and raw_policy:
+                            expected_policy_version = raw_policy
+                        if isinstance(raw_plan, str) and raw_plan:
+                            expected_plan_fingerprint = raw_plan
+                        compile_required = True
+                        if (
+                            expected_policy_version is None
+                            or expected_plan_fingerprint is None
+                        ):
+                            raise RecoveryStepFailedError(
+                                error_code="COMPILE_RECEIPT_EVIDENCE_MISSING",
+                                error_summary=(
+                                    "Vault reindex completed without native compile "
+                                    "plan and policy evidence"
+                                ),
+                            )
                     result = await _execute_or_skip_step(
                         current_step,
-                        lambda: self._verification.verify_readiness(plan),
+                        lambda compile_required=compile_required, expected_policy_version=expected_policy_version, expected_plan_fingerprint=expected_plan_fingerprint: (
+                            self._verification.verify_readiness(
+                                plan,
+                                compile_receipt_required=compile_required,
+                                expected_compile_policy_version=expected_policy_version,
+                                expected_compile_plan_fingerprint=expected_plan_fingerprint,
+                            )
+                        ),
                         parent_run=parent_run,
                         parent_success_steps=parent_success_steps,
                     )
-                    verification_results = result.result
+                    verification_results = {**verification_results, **result.result}
                     if verification_results.get("ready") is not True:
                         raise RecoveryStepFailedError(
                             error_code="READINESS_VERIFICATION_FAILED",
                             error_summary="Operational readiness did not become READY.",
+                        )
+                elif current_step == "GRAPH_REVALIDATE":
+                    result = await _execute_or_skip_step(
+                        current_step,
+                        self._mutations.revalidate_graph,
+                        parent_run=parent_run,
+                        parent_success_steps=parent_success_steps,
+                    )
+                    rebuild_results["graph"] = result.result
+                    _require_step_success(result, error_code="GRAPH_REVALIDATE_FAILED")
+                    _require_empty_result_list(
+                        result,
+                        key="errors",
+                        error_code="GRAPH_REVALIDATE_FAILED",
+                    )
+                elif current_step == "LINK_REVALIDATE":
+                    result = await _execute_or_skip_step(
+                        current_step,
+                        self._mutations.revalidate_links,
+                        parent_run=parent_run,
+                        parent_success_steps=parent_success_steps,
+                    )
+                    verification_results["links"] = result.result
+                    _require_step_success(result, error_code="LINK_REVALIDATE_FAILED")
+                    _require_empty_result_list(
+                        result,
+                        key="issues",
+                        error_code="LINK_REVALIDATE_FAILED",
+                    )
+                elif current_step == "DLQ_RECONCILE":
+                    result = await _execute_or_skip_step(
+                        current_step,
+                        self._mutations.reconcile_dead_letters,
+                        parent_run=parent_run,
+                        parent_success_steps=parent_success_steps,
+                    )
+                    verification_results["dlq"] = result.result
+                    _require_step_success(result, error_code="DLQ_RECONCILE_FAILED")
+                    if result.result.get("ready") is not True:
+                        raise RecoveryStepFailedError(
+                            error_code="DLQ_RECONCILIATION_REQUIRED",
+                            error_summary="Unresolved DLQ evidence requires reconciliation before dependent recovery.",
                         )
                 else:
                     raise RecoveryStepFailedError(
                         error_code="UNSUPPORTED_RECOVERY_STEP",
                         error_summary=f"Unsupported recovery step: {current_step}",
                     )
-                step_results.append(result)
+                if not recorded_before_fence:
+                    step_results.append(result)
             status = RecoveryRunStatus.COMPLETED
         except RecoveryStepFailedError as exc:
             status = RecoveryRunStatus.FAILED
@@ -246,6 +399,7 @@ class RecoveryRunService:
             id=plan.id,
             parent_run_id=plan.parent_run_id,
             idempotency_key=plan.idempotency_key,
+            admitted_plan_hash=plan.plan_hash,
             trigger=plan.trigger,
             actor=plan.actor,
             status=status,

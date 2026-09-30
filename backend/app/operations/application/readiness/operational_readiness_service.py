@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from functools import partial
 from typing import Protocol
 
 import anyio
+import anyio.to_thread
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.memory.application.contexts.records.context_service_ports import (
@@ -41,6 +41,9 @@ from app.obsidian.infrastructure.markdown.paths import (
 from app.operations.application.backup.operational_recovery_history import (
     _active_recovery_run_id,
     _last_successful_recovery_run_id,
+)
+from app.operations.application.readiness.operational_compile_receipt_policy import (
+    compile_receipt_snapshot,
 )
 from app.operations.application.readiness.operational_data_integrity_service import (
     OperationalDataIntegrityService,
@@ -82,12 +85,12 @@ from app.operations.domain.entities.operational_runtime_provenance import (
     unchecked_runtime_provenance_snapshot,
 )
 from app.operations.domain.event_enum.operational_readiness_enums import (
+    CompileReceiptStatus,
     OperationalReadinessStatus,
 )
 from app.shared.exceptions.memory_context_exceptions import MemoryContextDomainError
 from app.shared.exceptions.obsidian_exceptions import ObsidianDomainError
 from app.shared.infrastructure.database import Database
-from app.shared.types.extra_types import JSONValue
 
 __all__ = (
     "ContextReadinessPort",
@@ -188,6 +191,9 @@ class OperationalReadinessService:
         projection_integrity_service: ContextProjectionIntegrityService | None = None,
         *,
         graph_projection_service: GraphProjectionReadinessPort,
+        compile_receipt_required: bool = False,
+        expected_compile_policy_version: str | None = None,
+        expected_compile_plan_fingerprint: str | None = None,
     ) -> None:
         """Create service.
 
@@ -203,6 +209,10 @@ class OperationalReadinessService:
             retrieval_canary_service: Optional bounded real-search readiness probe.
             projection_integrity_service: Optional persisted full projection integrity reader.
             graph_projection_service: Optional graph projection status reader.
+            compile_receipt_required: Whether this path requires compiler evidence.
+            expected_compile_policy_version: Current compiler policy fingerprint when known.
+            expected_compile_plan_fingerprint: Exact compile plan expected by the
+                successful compile path when known.
         """
         self._database = database
         self._database_probe = OperationalDatabaseProbe(database)
@@ -215,6 +225,9 @@ class OperationalReadinessService:
         self._retrieval_canary_service = retrieval_canary_service
         self._projection_integrity_service = projection_integrity_service
         self._graph_projection_service = graph_projection_service
+        self._compile_receipt_required = compile_receipt_required
+        self._expected_compile_policy_version = expected_compile_policy_version
+        self._expected_compile_plan_fingerprint = expected_compile_plan_fingerprint
 
     async def snapshot(self) -> OperationalReadinessSnapshot:
         """Return current read-only operational readiness.
@@ -229,6 +242,9 @@ class OperationalReadinessService:
             self._readiness_cache
             if self._ignore_active_recovery_run_id is None
             and active_recovery_run_id is None
+            and not self._compile_receipt_required
+            and self._expected_compile_policy_version is None
+            and self._expected_compile_plan_fingerprint is None
             else None
         )
         if cache is not None:
@@ -404,26 +420,23 @@ class OperationalReadinessService:
                 )
         try:
             raw_receipt = await self._obsidian_service.latest_compile_receipt()
-            if not isinstance(raw_receipt, dict):
-                raise ValueError("compile receipt is not an object")
-            applied_at = raw_receipt.get("applied_at")
-            compile_receipt = OperationalCompileReceiptSnapshot(
-                available=True,
-                applied_at=_receipt_applied_at(applied_at),
-                plan_fingerprint=_receipt_str(raw_receipt, "plan_fingerprint"),
-                policy_version=_receipt_str(raw_receipt, "policy_version"),
-                changed_documents=_receipt_int(raw_receipt, "changed_documents"),
-                removed_documents=_receipt_int(raw_receipt, "removed_documents"),
-                embedding_invalidated_documents=_receipt_int(
-                    raw_receipt, "embedding_invalidated_documents"
-                ),
-                diagnostic_count=_receipt_int(raw_receipt, "diagnostic_count"),
-                warnings=(),
+        except AttributeError:
+            raw_receipt = None
+            compile_receipt = compile_receipt_snapshot(
+                None, required=self._compile_receipt_required
             )
-        except (AttributeError, OSError, TypeError, ValueError):
+        except (ObsidianDomainError, OSError, TypeError, ValueError):
             compile_receipt = OperationalCompileReceiptSnapshot(
-                available=False,
-                warnings=("compile_receipt_unavailable",),
+                required=self._compile_receipt_required,
+                status=CompileReceiptStatus.INVALID,
+                blockers=("compile_receipt_invalid",),
+            )
+        else:
+            compile_receipt = compile_receipt_snapshot(
+                raw_receipt,
+                required=self._compile_receipt_required,
+                expected_policy_version=self._expected_compile_policy_version,
+                expected_plan_fingerprint=self._expected_compile_plan_fingerprint,
             )
         last_successful_recovery_run_id = _last_successful_recovery_run_id()
         warnings = _warnings(
@@ -448,6 +461,8 @@ class OperationalReadinessService:
                 warnings.append(warning)
         if active_recovery_run_id is not None:
             warnings.append("recovery_in_progress")
+        warnings.extend(compile_receipt.warnings)
+        warnings.extend(compile_receipt.blockers)
         blockers = _blockers(warnings)
         status = _status(
             database=database,
@@ -479,50 +494,3 @@ class OperationalReadinessService:
             compile_receipt=compile_receipt,
         )
         return snapshot
-
-
-def _receipt_str(record: Mapping[str, object], key: str) -> str | None:
-    """Narrow one compile receipt field to a non-empty string.
-
-    Args:
-        record: Raw receipt record.
-        key: Field name.
-
-    Returns:
-        String value, or None when absent or mistyped.
-    """
-    value = record.get(key)
-    return value if isinstance(value, str) and value else None
-
-
-def _receipt_int(record: Mapping[str, object], key: str) -> int | None:
-    """Narrow one compile receipt field to a non-boolean integer.
-
-    Args:
-        record: Raw receipt record.
-        key: Field name.
-
-    Returns:
-        Integer value, or None when absent or mistyped.
-    """
-    value = record.get(key)
-    if isinstance(value, bool) or not isinstance(value, int):
-        return None
-    return value
-
-
-def _receipt_applied_at(value: JSONValue) -> datetime | None:
-    """Parse the receipt applied-at ISO string into a datetime.
-
-    Args:
-        value: Raw field value.
-
-    Returns:
-        Parsed datetime, or None when absent or malformed.
-    """
-    if not isinstance(value, str) or not value:
-        return None
-    try:
-        return datetime.fromisoformat(value)
-    except ValueError:
-        return None

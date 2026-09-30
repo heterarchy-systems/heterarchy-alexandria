@@ -5,6 +5,17 @@ from __future__ import annotations
 from enum import StrEnum
 
 
+class CompileReceiptStatus(StrEnum):
+    """Necessity and validity of persisted compiler evidence."""
+
+    REQUIRED_AND_PRESENT = "REQUIRED_AND_PRESENT"
+    REQUIRED_MISSING = "REQUIRED_MISSING"
+    OPTIONAL_PRESENT = "OPTIONAL_PRESENT"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+    INVALID = "INVALID"
+    STALE = "STALE"
+
+
 class OperationalReadinessStatus(StrEnum):
     """Operational readiness states for knowledge retrieval safety."""
 

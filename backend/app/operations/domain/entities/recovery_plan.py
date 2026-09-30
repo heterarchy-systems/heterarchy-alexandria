@@ -64,12 +64,15 @@ class RecoveryPlan:
     next_actions: tuple[str, ...]
     readiness: OperationalReadinessSnapshot
     warnings: tuple[str, ...] = field(default_factory=tuple)
+    plan_hash: str = ""
+    error_note_repairs: tuple[str, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
         """Normalize recovery plan collections to immutable values."""
         self.diagnosis = tuple(self.diagnosis)
         self.blocked_reasons = tuple(self.blocked_reasons)
         self.steps = tuple(self.steps)
+        self.error_note_repairs = tuple(self.error_note_repairs)
         self.estimated_reindex_scope = MappingProxyType(
             dict(self.estimated_reindex_scope)
         )

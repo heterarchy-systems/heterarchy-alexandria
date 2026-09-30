@@ -53,6 +53,7 @@ class RecoveryRun:
     error_summary: str | None
     next_actions: tuple[str, ...]
     manifest_path: str
+    admitted_plan_hash: str | None = None
 
     def __post_init__(self) -> None:
         """Normalize recovery run collections to immutable values."""

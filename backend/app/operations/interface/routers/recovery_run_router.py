@@ -12,6 +12,9 @@ from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild
     ObsidianGraphProjectionRebuildService,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
+from app.operations.application.recovery.execution.recovery_run_contracts import (
+    RecoveryCallbacks,
+)
 from app.operations.application.recovery.execution.recovery_run_errors import (
     RecoveryInProgressError,
 )
@@ -64,6 +67,10 @@ async def recovery_run(
         Callable[[], ObsidianService | Awaitable[ObsidianService]],
         Depends(Provide[ApplicationContainer.obsidian.obsidian_service.provider]),
     ],
+    callbacks: Annotated[
+        RecoveryCallbacks | None,
+        Depends(Provide[ApplicationContainer.recovery_callbacks]),
+    ] = None,
 ) -> RecoveryRunResponse:
     """Start or return an idempotent recovery run.
 
@@ -87,6 +94,19 @@ async def recovery_run(
         context_service_factory=context_service_factory,
         obsidian_service_factory=obsidian_service_factory,
         graph_projection_service=graph_projection_service,
+        embedding_recovery_callback=None if callbacks is None else callbacks.embedding,
+        graph_rebuild_callback=None if callbacks is None else callbacks.graph,
+        link_diagnostics_callback=None if callbacks is None else callbacks.links,
+        dlq_reconcile_callback=None if callbacks is None else callbacks.dlq,
+        current_compact_reader_callback=None
+        if callbacks is None
+        else callbacks.current,
+        embedding_batch_size=250
+        if callbacks is None
+        else callbacks.embedding_batch_size,
+        embedding_max_batches=40
+        if callbacks is None
+        else callbacks.embedding_max_batches,
     )
     try:
         run = await service.start(request.to_contract())
@@ -136,6 +156,10 @@ async def retry_recovery_run(
         Callable[[], ObsidianService | Awaitable[ObsidianService]],
         Depends(Provide[ApplicationContainer.obsidian.obsidian_service.provider]),
     ],
+    callbacks: Annotated[
+        RecoveryCallbacks | None,
+        Depends(Provide[ApplicationContainer.recovery_callbacks]),
+    ] = None,
 ) -> RecoveryRunResponse:
     """Retry a persisted recovery run.
 
@@ -160,6 +184,19 @@ async def retry_recovery_run(
         context_service_factory=context_service_factory,
         obsidian_service_factory=obsidian_service_factory,
         graph_projection_service=graph_projection_service,
+        embedding_recovery_callback=None if callbacks is None else callbacks.embedding,
+        graph_rebuild_callback=None if callbacks is None else callbacks.graph,
+        link_diagnostics_callback=None if callbacks is None else callbacks.links,
+        dlq_reconcile_callback=None if callbacks is None else callbacks.dlq,
+        current_compact_reader_callback=None
+        if callbacks is None
+        else callbacks.current,
+        embedding_batch_size=250
+        if callbacks is None
+        else callbacks.embedding_batch_size,
+        embedding_max_batches=40
+        if callbacks is None
+        else callbacks.embedding_max_batches,
     )
     try:
         run = await service.retry(run_id, request.to_contract())

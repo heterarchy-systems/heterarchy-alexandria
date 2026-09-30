@@ -60,14 +60,16 @@ def test_recovery_plan_route_returns_read_only_plan_payload(tmp_path: Path) -> N
             context_service=_FakeContextService(),
             obsidian_service=_FakeObsidianService(tmp_path / "vault"),
             reconciliation_service=None,
+            callbacks=None,
         )
         return response.model_dump(mode="json")
 
     payload = anyio.run(scenario)
 
-    assert payload["status"] == "RECOVERY_REQUIRED"
+    assert payload["status"] == "BLOCKED"
     assert payload["dry_run"] is True
-    assert payload["automatic_execution_allowed"] is True
+    assert payload["automatic_execution_allowed"] is False
     assert payload["idempotency_key"] == "route-key"
     assert "rag_embedding_reindex_required" in payload["diagnosis"]
+    assert "embedding_recovery_unavailable" in payload["blocked_reasons"]
     assert payload["steps"][0]["code"] == "snapshot_sources"

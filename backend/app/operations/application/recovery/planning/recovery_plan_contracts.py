@@ -13,3 +13,4 @@ class RecoveryPlanRequest:
     actor: str = "operator"
     idempotency_key: str | None = None
     parent_run_id: str | None = None
+    expected_plan_hash: str | None = None
