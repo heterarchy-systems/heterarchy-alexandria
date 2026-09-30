@@ -364,6 +364,7 @@ def test_mcp_tools_map_to_non_destructive_backend_endpoints() -> None:
         await alexandria_recover(
             client,
             dry_run=False,
+            expected_plan_hash="0" * 64,
             trigger="manual",
             actor="pytest",
             idempotency_key="mcp-run-key",
@@ -395,6 +396,7 @@ def test_mcp_tools_map_to_non_destructive_backend_endpoints() -> None:
         "trigger": "manual",
         "actor": "pytest",
         "idempotency_key": "mcp-run-key",
+        "expected_plan_hash": "0" * 64,
     }
     assert all(method != "DELETE" for method, _ in methods_and_paths)
 
@@ -414,6 +416,20 @@ def test_mcp_recovery_run_requires_explicit_idempotency_key() -> None:
         raise AssertionError("alexandria_recover accepted apply without a key")
 
     assert error_message == "idempotency_key is required when recovery dry_run is false"
+
+
+def test_mcp_recovery_apply_requires_the_preview_hash_before_backend_effects() -> None:
+    """An unfenced repair never reaches the backend transport."""
+    client, calls = _client()
+
+    async def scenario():
+        with pytest.raises(ValueError, match="expected_plan_hash"):
+            await alexandria_recover(
+                client, dry_run=False, idempotency_key="missing-preview"
+            )
+
+    anyio.run(scenario)
+    assert calls == []
     assert calls == []
 
 
