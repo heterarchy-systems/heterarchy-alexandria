@@ -154,6 +154,13 @@ class MemoryCompactReviewResponse(StrictSchemaModel):
         list[str],
         described_field("Recommended actions for this memory compact review response."),
     ]
+    review_hash: Annotated[
+        str,
+        described_field(
+            "Deterministic receipt hash binding the reviewed body, source refs, "
+            "coverage, project, and current source evidence."
+        ),
+    ]
 
     @classmethod
     def from_result(
@@ -180,4 +187,35 @@ class MemoryCompactReviewResponse(StrictSchemaModel):
             contradictions=list(result.contradictions),
             stale_reasons=list(result.stale_reasons),
             recommended_actions=list(result.recommended_actions),
+            review_hash=result.review_hash,
         )
+
+
+class MemoryCompactMarkCurrentRequest(StrictSchemaModel):
+    """Optional review-receipt fence for CURRENT promotion."""
+
+    expected_review_hash: Annotated[
+        str | None,
+        StringConstraints(strict=True, min_length=64, max_length=64),
+        described_field(
+            "Reviewed-receipt hash admitted by a prior review; a mismatch "
+            "rejects the promotion before any CURRENT supersession."
+        ),
+    ] = None
+
+
+class MemoryCompactDraftEditRequest(StrictSchemaModel):
+    """Final semantic draft replacement bound to the prior read snapshot."""
+
+    markdown_body: Annotated[
+        str,
+        StringConstraints(strict=True, min_length=1),
+        described_field("Final body that must pass a new 20/20 review."),
+    ]
+    expected_draft_hash: Annotated[
+        str,
+        StringConstraints(
+            strict=True, min_length=64, max_length=64, pattern="^[0-9a-f]{64}$"
+        ),
+        described_field("Exact draft state hash from the prior read."),
+    ]

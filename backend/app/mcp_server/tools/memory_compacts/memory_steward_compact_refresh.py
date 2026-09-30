@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 
 from app.mcp_server.type_validate.memory.memory_steward_readiness_schemas import (
@@ -27,6 +28,9 @@ def refresh_compact_payload(
     project: str | None,
     readiness: ReadinessSummaryPayload,
     covered_to: str,
+    source_refs: Sequence[CompactSourceRefPayload] | None = None,
+    semantic_template: Mapping[str, str] | str | None = None,
+    final_markdown: str | None = None,
 ) -> CompactRefreshDraftPayload:
     """Build a validated CURRENT compact refresh draft.
 
@@ -34,6 +38,9 @@ def refresh_compact_payload(
         project: Optional project filter for the compact.
         readiness: Validated readiness evidence.
         covered_to: Coverage end timestamp.
+        source_refs: Optional project-specific source references.
+        semantic_template: Optional section content supplied by the project.
+        final_markdown: Optional final agent-edited body.
 
     Returns:
         Validated compact refresh draft.
@@ -41,20 +48,30 @@ def refresh_compact_payload(
     previous_id = readiness.current_memory_compact.id
     previous_updated_at = readiness.current_memory_compact.updated_at
     covered_from = previous_updated_at if previous_updated_at else covered_to
+    selected_source_refs = tuple(
+        source_refs
+        if source_refs is not None
+        else refresh_source_refs(previous_id=previous_id, covered_to=covered_to)
+    )
+    markdown_body = (
+        final_markdown
+        if final_markdown is not None
+        else refresh_markdown_body(
+            project=project,
+            readiness=readiness,
+            covered_from=covered_from,
+            covered_to=covered_to,
+            source_refs=selected_source_refs,
+            semantic_template=semantic_template,
+        )
+    )
     return CompactRefreshDraftPayload(
         project=project,
         covered_from=covered_from,
         covered_to=covered_to,
         status=MemoryCompactStatus.CURRENT.value,
-        markdown_body=refresh_markdown_body(
-            project=project,
-            readiness=readiness,
-            covered_from=covered_from,
-            covered_to=covered_to,
-        ),
-        source_refs=tuple(
-            refresh_source_refs(previous_id=previous_id, covered_to=covered_to)
-        ),
+        markdown_body=markdown_body,
+        source_refs=selected_source_refs,
     )
 
 
@@ -97,6 +114,8 @@ def refresh_markdown_body(
     readiness: ReadinessSummaryPayload,
     covered_from: JSONValue,
     covered_to: str,
+    source_refs: Sequence[CompactSourceRefPayload] | None = None,
+    semantic_template: Mapping[str, str] | str | None = None,
 ) -> str:
     """Build markdown body for a CURRENT compact refresh.
 
@@ -105,46 +124,64 @@ def refresh_markdown_body(
         readiness: Validated readiness evidence.
         covered_from: Coverage start timestamp or JSON value.
         covered_to: Coverage end timestamp.
+        source_refs: Source references whose facts may be cited.
+        semantic_template: Optional project-specific section content.
 
     Returns:
         Markdown body for the refresh compact.
     """
+    if isinstance(semantic_template, str):
+        return semantic_template
     project_text = project or "default"
     warning_text = ", ".join(readiness.warnings) if readiness.warnings else "none"
     action_lines = next_action_markdown_lines(readiness.next_actions)
     compact = readiness.current_memory_compact
     rag = readiness.rag
-    source_refs = refresh_source_refs(previous_id=compact.id, covered_to=covered_to)
+    selected_source_refs = tuple(source_refs or ())
+    template_sections = {
+        key.lower().replace(" ", "_"): value
+        for key, value in (semantic_template or {}).items()
+    }
+    durable_decisions = template_sections.get(
+        "durable_decisions",
+        "- Decisions must be grounded in the supplied source references.",
+    )
+    current_state = template_sections.get(
+        "current_state",
+        "- Current readiness evidence is recorded below for review.",
+    )
+    risks_blockers = template_sections.get(
+        "risks_blockers",
+        "- Source freshness and unresolved blockers remain review gates.",
+    )
+    next_actions = template_sections.get(
+        "next_actions",
+        "\n".join(action_lines),
+    )
     return "\n".join(
         [
-            "# heterarchy-alexandria Current Memory Compact — Steward Refresh",
+            "# Current Memory Compact Draft",
             "",
             "## Durable Decisions",
-            "- Obsidian Markdown remains the durable source of truth.",
-            "- RAG/index readiness gates must pass before trusting refreshed memory.",
-            "- Explicit vault moves use safe plan/apply workflows.",
+            durable_decisions,
             "",
             "## Current State",
-            f"- Project: `{project_text}`",
-            f"- Readiness status: `{readiness.status}`",
-            f"- Warnings: `{warning_text}`",
+            current_state,
+            f"- Readiness status from the owning service: `{readiness.status}`",
+            f"- Project scope: `{project_text}`",
             f"- RAG FTS: `{rag.fts}`",
             f"- RAG vector: `{rag.vector}`",
             f"- RAG embedding: `{rag.embedding}`",
-            f"- Previous compact id: `{compact.id}`",
-            f"- Previous compact updated_at: `{compact.updated_at}`",
-            f"- Previous compact age_days: `{compact.age_days}`",
+            f"- Previous compact id from the owning service: `{compact.id}`",
+            f"- Previous compact updated_at from the owning service: `{compact.updated_at}`",
+            f"- Previous compact age_days from the owning service: `{compact.age_days}`",
             "",
             "## Risks and Blockers",
-            (
-                f"- Active warnings: `{warning_text}`"
-                if readiness.warnings
-                else "- No active readiness warnings."
-            ),
-            "- Treat stale or missing compact state as needs-attention until refreshed.",
+            risks_blockers,
+            f"- Active readiness warnings from the owning service: `{warning_text}`",
             "",
             "## Next Actions",
-            *action_lines,
+            next_actions,
             "",
             "## Coverage",
             f"- covered_from: `{covered_from}`",
@@ -152,14 +189,7 @@ def refresh_markdown_body(
             f"- project: `{project_text}`",
             "",
             "## Evidence Summary",
-            *evidence_summary_lines(source_refs),
-            "",
-            "## Operating Guidance",
-            "- Bridge Codex/Hermes to the Obsidian-first second brain.",
-            "- Run Memory Steward readiness before claiming the library is operational.",
-            "- Refresh this compact when readiness reports stale/missing compact state.",
-            "- Prefer safe move plans and report-backed apply flows for vault changes.",
-            "- Continue validating backend changes with `cd backend && make ci`.",
+            *evidence_summary_lines(list(selected_source_refs)),
             "",
         ]
     )

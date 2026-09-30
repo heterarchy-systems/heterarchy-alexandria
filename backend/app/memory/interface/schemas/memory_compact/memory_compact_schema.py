@@ -6,6 +6,10 @@ from typing import Annotated
 
 from pydantic import StringConstraints
 
+from app.memory.application.memory_compacts.lifecycle.memory_compact_signature import (
+    _body_hash,
+    compact_state_hash,
+)
 from app.memory.domain.entities.memory_compact import (
     MemoryCompact,
     MemoryCompactSourceRef,
@@ -197,6 +201,23 @@ class MemoryCompactRagGateResponse(StrictSchemaModel):
 class MemoryCompactResponse(StrictSchemaModel):
     """Response schema for one Memory Compact."""
 
+    draft_hash: Annotated[
+        str | None,
+        described_field("Current snapshot fence for canonical DRAFT editing."),
+    ] = None
+    reviewed_body_hash: Annotated[
+        str | None, described_field("Body hash admitted by the last promotion review.")
+    ] = None
+    current_body_hash: Annotated[
+        str | None, described_field("Current canonical semantic body hash.")
+    ] = None
+    review_attestation_status: Annotated[
+        str, described_field("VERIFIED, STALE or MISSING body-review evidence.")
+    ] = "MISSING"
+    review_receipt_hash: Annotated[
+        str | None, described_field("Persisted source/body review receipt.")
+    ] = None
+
     id: Annotated[
         str, described_field("Stable identifier for this memory compact response.")
     ]
@@ -323,6 +344,18 @@ class MemoryCompactResponse(StrictSchemaModel):
             review_score=compact.review_score,
             review_max_score=compact.review_max_score,
             reviewed_at=compact.reviewed_at,
+            draft_hash=compact_state_hash(compact)
+            if compact.status is MemoryCompactStatus.DRAFT
+            else None,
+            reviewed_body_hash=compact.reviewed_body_hash,
+            current_body_hash=_body_hash(compact.markdown_body),
+            review_attestation_status="MISSING"
+            if compact.reviewed_body_hash is None
+            else "VERIFIED"
+            if compact.reviewed_body_hash == _body_hash(compact.markdown_body)
+            and compact.review_score == compact.review_max_score == 20
+            else "STALE",
+            review_receipt_hash=compact.review_receipt_hash,
             source_set_hash=compact.source_set_hash,
             compaction_policy_version=compact.compaction_policy_version,
             generation_revision=compact.generation_revision,

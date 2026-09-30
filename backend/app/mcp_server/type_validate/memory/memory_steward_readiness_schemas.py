@@ -307,6 +307,8 @@ class CompactSourceRefPayload(MemoryStewardReadinessPayload):
     title: str
     detail_path: str
 
+    source_hash: str | None = None
+
 
 class CompactRefreshDraftPayload(MemoryStewardReadinessPayload):
     """Validated compact refresh draft fields."""

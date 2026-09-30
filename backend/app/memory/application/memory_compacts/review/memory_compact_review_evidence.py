@@ -91,13 +91,23 @@ def _stale_reasons(
     observations = {
         _observation_key(observation): observation
         for observation in source_observations
-        if observation.current_source_hash is not None
     }
     reasons: list[str] = []
     for source_ref in source_refs:
         observation = observations.get(_source_ref_key(source_ref))
         if observation is None:
             observation = observations.get((source_ref.source_id, None))
+        if observation is not None and not observation.available:
+            reason = observation.unavailable_reason or "source_unavailable"
+            reasons.append(f"source_unavailable:{source_ref.source_id}:{reason}")
+            continue
+        if (
+            observation is not None
+            and source_ref.source_hash is not None
+            and observation.current_source_hash is None
+        ):
+            reasons.append(f"source_hash_unavailable:{source_ref.source_id}")
+            continue
         if (
             observation is not None
             and source_ref.source_hash is not None

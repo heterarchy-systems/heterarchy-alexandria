@@ -6,11 +6,13 @@ from datetime import datetime
 from pathlib import Path
 
 import anyio
+from tests.memory.compact_source_fixture import DeterministicCompactSourceReader
 
 from app.mcp_server.tools.memory_compacts.memory_steward_compact_refresh import (
     refresh_compact_payload,
 )
 from app.mcp_server.type_validate.memory.memory_steward_readiness_schemas import (
+    CompactSourceRefPayload,
     CurrentCompactPayload,
     RagStatusPayload,
     ReadinessSummaryPayload,
@@ -83,7 +85,13 @@ def test_refresh_compact_payload_passes_memory_compact_current_review_gate(
             repository=ObsidianMemoryCompactRepository(
                 vault_path=tmp_path / "vault",
                 relative_dir="Alexandria/Memory Compacts",
-            )
+            ),
+            source_reader=DeterministicCompactSourceReader(
+                {
+                    source_ref.source_id: f"fixture-refresh:{index}"
+                    for index, source_ref in enumerate(draft.source_refs)
+                }
+            ),
         )
         compact = await service.create(
             MemoryCompactCreate(
@@ -123,6 +131,68 @@ def test_refresh_compact_payload_passes_memory_compact_current_review_gate(
         "review_score": 20,
         "review_max_score": 20,
     }
+
+
+def test_refresh_compact_payload_accepts_project_sources_and_semantic_template() -> (
+    None
+):
+    """Project-aware drafts use supplied facts without cross-project guidance."""
+    draft = refresh_compact_payload(
+        project="evidence-intelligence",
+        readiness=_readiness_summary(),
+        covered_to="2026-07-15T00:00:00Z",
+        source_refs=(
+            CompactSourceRefPayload(
+                source_type="context",
+                source_id="evidence-source-1",
+                title="Evidence source one",
+                detail_path="/contexts/evidence-source-1",
+            ),
+        ),
+        semantic_template={
+            "durable_decisions": "- Preserve evidence lineage from supplied sources.",
+            "current_state": "- Evidence review is awaiting the supplied source read.",
+            "risks_blockers": "- Source freshness remains to be verified.",
+            "next_actions": "- Read the supplied evidence source before promotion.",
+        },
+    )
+
+    assert "Evidence source one" in draft.markdown_body
+    assert "heterarchy-alexandria" not in draft.markdown_body
+    assert "Operating Guidance" not in draft.markdown_body
+    assert draft.source_refs[0].source_id == "evidence-source-1"
+
+
+def test_refresh_compact_payload_preserves_final_markdown_exactly() -> None:
+    """Agent semantic edits are carried as the body that review will inspect."""
+    final_markdown = """## Durable Decisions
+- Preserve this reviewed decision.
+
+## Current State
+- Current evidence is available for this project.
+
+## Risks and Blockers
+- No unresolved blockers are recorded.
+
+## Next Actions
+- Recheck source evidence before promotion.
+
+## Coverage
+- covered_from: 2026-07-01T00:00:00Z
+- covered_to: 2026-07-15T00:00:00Z
+- project: evidence-intelligence
+
+## Evidence Summary
+- evidence-source-1 — Evidence source one.
+"""
+    draft = refresh_compact_payload(
+        project="evidence-intelligence",
+        readiness=_readiness_summary(),
+        covered_to="2026-07-15T00:00:00Z",
+        final_markdown=final_markdown,
+    )
+
+    assert draft.markdown_body == final_markdown
 
 
 def _parse_timestamp(value: str) -> datetime:

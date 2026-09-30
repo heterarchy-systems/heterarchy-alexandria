@@ -13,6 +13,7 @@ import anyio
 import pytest
 from sqlalchemy import event, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+from tests.memory.compact_source_fixture import DeterministicCompactSourceReader
 
 from app.memory.application.contexts.records.context_service import ContextService
 from app.memory.application.integration.obsidian_canonical_context_gateway import (
@@ -23,6 +24,9 @@ from app.memory.application.integration.obsidian_context_read_mapper import (
 )
 from app.memory.application.memory_compacts.lifecycle.memory_compact_service import (
     MemoryCompactService,
+)
+from app.memory.application.memory_compacts.review.memory_compact_source_gateway import (
+    CanonicalMemoryCompactSourceReader,
 )
 from app.memory.application.reconciliation.candidates.context_memory_candidate_recall_source import (
     ContextMemoryCandidateRecallSource,
@@ -191,11 +195,17 @@ async def _build_cycle(
         plan_service=MemoryReconciliationPlanService(),
         repository=reconciliation_repository,
     )
+    compact_repository = ObsidianMemoryCompactRepository(
+        vault_path=vault_path,
+        relative_dir="Alexandria/Memory Compacts",
+    )
     compact_service = MemoryCompactService(
-        repository=ObsidianMemoryCompactRepository(
-            vault_path=vault_path,
-            relative_dir="Alexandria/Memory Compacts",
-        )
+        repository=compact_repository,
+        source_reader=CanonicalMemoryCompactSourceReader(
+            obsidian=obsidian,
+            contexts=context_service,
+            compacts=compact_repository,
+        ),
     )
     canonical_mutation = ObsidianMemoryCanonicalMutationGateway(obsidian)
     apply_service = MemoryReconciliationApplyService(
@@ -330,6 +340,11 @@ def test_memory_cycle_real_postgres_vault_clean_apply_replay_and_raw_stale(
                 records=(record,),
             )
             before_files = _files(vault_path)
+            receipt_directory = vault_path / ".alexandria" / "report-bundle-runs"
+            before_receipts = {
+                path.name: path.read_bytes()
+                for path in receipt_directory.glob("*.json")
+            }
             dry_request = _request(MemoryCycleOperation.DRY_RUN, key="real-clean")
             query_count = 0
 
@@ -354,7 +369,9 @@ def test_memory_cycle_real_postgres_vault_clean_apply_replay_and_raw_stale(
             assert dry_run.elapsed_ms >= 0
             assert dry_run.query_count is None
             assert query_count > 0
-            assert not plan_path.exists()
+            assert {
+                path.name: path.read_bytes() for path in plan_path.glob("*.json")
+            } == before_receipts
             assert _files(vault_path) == before_files
             plan_count = await session.scalar(
                 select(func.count()).select_from(MemoryReconciliationPlanORM)
@@ -496,7 +513,8 @@ def test_memory_cycle_real_postgres_vault_contradiction_stays_review_bound(
                 repository=ObsidianMemoryCompactRepository(
                     vault_path=vault_path,
                     relative_dir="Alexandria/Memory Compacts",
-                )
+                ),
+                source_reader=DeterministicCompactSourceReader(),
             )
             with pytest.raises(MemoryCompactNotFoundError):
                 await current.current(project="real-cycle")

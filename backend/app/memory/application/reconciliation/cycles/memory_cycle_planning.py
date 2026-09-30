@@ -331,14 +331,23 @@ def compact_source_hashes_match(
     compact: MemoryCompact,
     source_snapshot: tuple[MemoryCycleSourceSnapshot, ...],
 ) -> bool:
-    """Verify every Compact source ref against the admitted source set."""
+    """Verify each selected Compact ref against the admitted source set.
+
+    A Compact may intentionally summarize a subset of the consulted cycle
+    sources. Every persisted ref must still bind to one exact source identity
+    and post-apply hash, and an identity may occur only once.
+    """
     expected = {item.context_id: item.content_hash for item in source_snapshot}
-    if len(compact.source_refs) != len(expected):
-        return False
-    return all(
-        source_ref.source_hash == expected.get(source_ref.source_id)
-        for source_ref in compact.source_refs
-    )
+    seen: set[str] = set()
+    for source_ref in compact.source_refs:
+        if source_ref.source_id in seen:
+            return False
+        seen.add(source_ref.source_id)
+        if source_ref.source_id not in expected:
+            return False
+        if source_ref.source_hash != expected[source_ref.source_id]:
+            return False
+    return True
 
 
 def compact_payload_for_sources(

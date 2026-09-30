@@ -62,6 +62,8 @@ def serialize_compact(compact: MemoryCompact) -> str:
         "review_verdict": compact.review_verdict.value
         if compact.review_verdict is not None
         else None,
+        "reviewed_body_hash": compact.reviewed_body_hash,
+        "review_receipt_hash": compact.review_receipt_hash,
         "review_score": str(compact.review_score)
         if compact.review_score is not None
         else None,

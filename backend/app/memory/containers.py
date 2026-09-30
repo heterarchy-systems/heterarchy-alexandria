@@ -18,6 +18,9 @@ from app.memory.application.memory_compacts.lifecycle.memory_compact_service imp
 from app.memory.application.memory_compacts.resume_package.resume_package_service import (
     MemoryResumePackageService,
 )
+from app.memory.application.memory_compacts.review.memory_compact_source_gateway import (
+    CanonicalMemoryCompactSourceReader,
+)
 from app.memory.application.reconciliation.candidates.context_memory_candidate_recall_source import (
     ContextMemoryCandidateRecallSource,
 )
@@ -188,6 +191,12 @@ class MemoryContainer(containers.DeclarativeContainer):
     memory_compact_service = providers.Factory(
         MemoryCompactService,
         repository=memory_compact_repo,
+        source_reader=providers.Factory(
+            CanonicalMemoryCompactSourceReader,
+            obsidian=obsidian_service,
+            contexts=context_service,
+            compacts=memory_compact_repo,
+        ),
     )
     memory_resume_package_service = providers.Factory(
         MemoryResumePackageService,

@@ -6,6 +6,11 @@ from pathlib import Path
 
 import anyio
 import pytest
+from fastapi import HTTPException
+from fastapi.testclient import TestClient
+from tests.memory.compact_source_fixture import DeterministicCompactSourceReader
+from tests.shared.provider_overrides import override_library_provider
+
 from app.main import app
 from app.memory.application.memory_compacts.lifecycle.memory_compact_service import (
     MemoryCompactService,
@@ -25,17 +30,20 @@ from app.memory.interface.schemas.memory_compact.memory_compact_schema import (
 )
 from app.shared.serialization.orjson_codec import dumps_json
 from app.shared.types.extra_types import JSONObject
-from fastapi import HTTPException
-from fastapi.testclient import TestClient
-from tests.shared.provider_overrides import override_library_provider
 
 
-def _open_service(vault_path: Path) -> MemoryCompactService:
+def _open_service(
+    vault_path: Path,
+    source_hashes: dict[str, str] | None = None,
+) -> MemoryCompactService:
     return MemoryCompactService(
         repository=ObsidianMemoryCompactRepository(
             vault_path=vault_path,
             relative_dir="Alexandria/Memory Compacts",
-        )
+        ),
+        source_reader=DeterministicCompactSourceReader(
+            {"ctx-hash": "hash-before", **(source_hashes or {})}
+        ),
     )
 
 
@@ -300,8 +308,11 @@ def test_current_memory_compact_response_warns_when_timestamp_missing(
 
 def test_memory_compact_api_reviews_quality_rubric(tmp_path: Path) -> None:
     """Review endpoint should expose verdict, scores, refs, stale reasons, actions."""
-    service = _open_service(tmp_path / "vault")
-    payload = _payload()
+    service = _open_service(
+        tmp_path / "vault",
+        source_hashes={"ctx-hash": "hash-after"},
+    )
+    payload = _payload("DRAFT")
     payload["source_refs"] = [
         {
             "source_type": "CONTEXT",
@@ -625,6 +636,7 @@ def test_mark_current_route_blocks_when_rag_unhealthy(tmp_path: Path) -> None:
         with pytest.raises(HTTPException) as raised:
             await mark_memory_compact_current(
                 compact_id=created.id,
+                request=None,
                 service=service,
                 context_service=_FakeContextService(RagHealthState.REINDEX_REQUIRED),
             )
@@ -656,6 +668,7 @@ def test_mark_current_route_blocks_when_rag_status_lookup_fails(
         with pytest.raises(HTTPException) as raised:
             await mark_memory_compact_current(
                 compact_id=created.id,
+                request=None,
                 service=service,
                 context_service=_FailingContextService(),
             )
@@ -684,6 +697,7 @@ def test_mark_current_route_allows_when_rag_healthy(tmp_path: Path) -> None:
         created = await service.create(_request(_payload("DRAFT")).to_create())
         current = await mark_memory_compact_current(
             compact_id=created.id,
+            request=None,
             service=service,
             context_service=_FakeContextService(RagHealthState.HEALTHY),
         )

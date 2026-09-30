@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from fcntl import LOCK_EX, LOCK_NB, LOCK_UN, flock
 from pathlib import Path
@@ -47,7 +47,7 @@ class MemoryCompactCreationLock:
         self._depth = 0
 
     @asynccontextmanager
-    async def hold(self) -> AsyncIterator[None]:
+    async def hold(self) -> AsyncGenerator[None]:
         """Acquire the filesystem lock without blocking the event loop.
 
         Yields:

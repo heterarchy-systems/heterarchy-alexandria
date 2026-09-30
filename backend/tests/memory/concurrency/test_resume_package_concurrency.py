@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import multiprocessing
 from datetime import UTC, datetime
+from hashlib import sha256
 from pathlib import Path
 from typing import Protocol
 
 import anyio
 import pytest
+from tests.memory.compact_source_fixture import DeterministicCompactSourceReader
 
 from app.memory.application.contexts.linting.context_lint import (
     ContextLintInput,
@@ -45,7 +47,6 @@ from app.memory.infrastructure.repositories.memory_compacts.note_store import (
     MemoryCompactNoteStore,
 )
 from app.shared.exceptions.memory_compact_exceptions import (
-    MemoryCompactNotFoundError,
     MemoryResumePackageEvidenceNotFoundError,
     MemoryResumePackageRequestConflictError,
 )
@@ -148,7 +149,14 @@ def _compact_service(vault_path: Path) -> MemoryCompactService:
         repository=ObsidianMemoryCompactRepository(
             vault_path=vault_path,
             relative_dir=_COMPACT_DIR,
-        )
+        ),
+        source_reader=DeterministicCompactSourceReader(
+            {
+                EVIDENCE_CONTEXT_ID: sha256(
+                    f"Evidence content for {EVIDENCE_CONTEXT_ID}.".encode()
+                ).hexdigest()
+            }
+        ),
     )
 
 
@@ -451,7 +459,7 @@ def test_failure_between_store_effects_never_yields_two_current(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A crash after supersede but before the new CURRENT write recovers on retry."""
+    """A crash while superseding after candidate write recovers on retry."""
     vault = tmp_path / "vault"
 
     async def scenario() -> tuple[int, str]:
@@ -460,16 +468,21 @@ def test_failure_between_store_effects_never_yields_two_current(
             _draft(summary="Crash recovery revision one", request_id="req-crash-1")
         )
         original_write = MemoryCompactNoteStore.write
-        superseded_seen = False
+        candidate_written = False
+        failure_raised = False
 
         def failing_write(store: MemoryCompactNoteStore, compact) -> None:
-            nonlocal superseded_seen
-            if compact.status is MemoryCompactStatus.SUPERSEDED:
-                superseded_seen = True
-            if compact.status is MemoryCompactStatus.CURRENT:
-                assert superseded_seen
+            nonlocal candidate_written, failure_raised
+            if (
+                compact.status is MemoryCompactStatus.SUPERSEDED
+                and candidate_written
+                and not failure_raised
+            ):
+                failure_raised = True
                 raise RuntimeError("injected failure between store effects")
             original_write(store, compact)
+            if compact.status is MemoryCompactStatus.CURRENT:
+                candidate_written = True
 
         with monkeypatch.context() as patch_context:
             patch_context.setattr(MemoryCompactNoteStore, "write", failing_write)
@@ -485,8 +498,9 @@ def test_failure_between_store_effects_never_yields_two_current(
             else:
                 raise AssertionError("injected failure did not fire")
 
-        with pytest.raises(MemoryCompactNotFoundError):
-            await _compact_service(vault).current(project=PROJECT)
+        current_after_failure = await _compact_service(vault).current(project=PROJECT)
+        assert current_after_failure is not None
+        assert current_after_failure.id == first.package_id
         assert first.package_revision == 1
         retry = await service.create_resume_package(
             _draft(summary="Crash recovery revision two", request_id="req-crash-2")

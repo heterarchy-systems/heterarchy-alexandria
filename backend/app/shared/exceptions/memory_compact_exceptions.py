@@ -25,3 +25,7 @@ class MemoryResumePackageEvidenceNotFoundError(MemoryResumePackageValidationErro
 
 class MemoryResumePackageRequestConflictError(MemoryResumePackageValidationError):
     """Raised when a sealed request id is retried with different content."""
+
+
+class MemoryCompactReviewConflictError(MemoryCompactDomainError):
+    """The compact body or review drifted from the reviewed receipt."""

@@ -9,6 +9,7 @@ from time import perf_counter
 from typing import Final, Protocol
 
 import anyio
+import anyio.to_thread
 from pydantic import TypeAdapter
 
 from app.memory.application.contexts.records.context_service_ports import (
@@ -303,11 +304,12 @@ class MemoryCycleService:
                 raise MemoryCycleStalePlanError(
                     "MEMORY_CYCLE_IDEMPOTENCY_CONFLICT: checkpoint plan hash differs"
                 )
-            if await self._verify_checkpoint(checkpoint, request):
+            failure = await self._verify_checkpoint(checkpoint, request)
+            if failure is None:
                 return replace(checkpoint.result, replayed=True)
             raise MemoryCycleRecoveryRequiredError(
                 "MEMORY_CYCLE_RECOVERY_REQUIRED: durable checkpoint readback did not "
-                "match canonical source, child results, or Compact"
+                "match canonical source, child results, or Compact: " + failure
             )
 
         preview = await self._preview(request)
@@ -334,6 +336,7 @@ class MemoryCycleService:
         child_outcomes: list[MemoryCycleChildOutcome] = []
         phases = list(admitted.phases)
         warnings = list(admitted.warnings)
+        checkpoint_sources = preview.result.source_snapshot
         for plan in preview.plans:
             try:
                 persisted = (
@@ -346,11 +349,20 @@ class MemoryCycleService:
                 if persisted.requires_review:
                     await self._commit_projection()
                     child_outcomes.append(_review_child_outcome(persisted))
+                    checkpoint_sources = await self._source_fence.refresh(
+                        preview.result.source_snapshot,
+                        extra_context_ids=tuple(
+                            context_id
+                            for outcome in child_outcomes
+                            for context_id in outcome.affected_context_ids
+                        ),
+                    )
                     await self._save_checkpoint(
                         _checkpoint_for_result(
                             replace(
                                 admitted,
                                 child_outcomes=tuple(child_outcomes),
+                                source_snapshot=checkpoint_sources,
                                 warnings=tuple(dict.fromkeys(warnings)),
                             ),
                             MemoryCycleCheckpointState.ADMITTED,
@@ -379,11 +391,20 @@ class MemoryCycleService:
                         ),
                     )
                 )
+                checkpoint_sources = await self._source_fence.refresh(
+                    preview.result.source_snapshot,
+                    extra_context_ids=tuple(
+                        context_id
+                        for outcome in child_outcomes
+                        for context_id in outcome.affected_context_ids
+                    ),
+                )
                 await self._save_checkpoint(
                     _checkpoint_for_result(
                         replace(
                             admitted,
                             child_outcomes=tuple(child_outcomes),
+                            source_snapshot=checkpoint_sources,
                             warnings=tuple(dict.fromkeys(warnings)),
                         ),
                         MemoryCycleCheckpointState.ADMITTED,
@@ -408,6 +429,7 @@ class MemoryCycleService:
                         admitted,
                         status=MemoryCycleStatus.PARTIAL,
                         child_outcomes=tuple(child_outcomes),
+                        source_snapshot=checkpoint_sources,
                         phases=tuple(phases),
                         warnings=tuple(dict.fromkeys(warnings)),
                         elapsed_ms=0.0,
@@ -433,6 +455,7 @@ class MemoryCycleService:
                     admitted,
                     status=MemoryCycleStatus.PARTIAL,
                     child_outcomes=tuple(child_outcomes),
+                    source_snapshot=checkpoint_sources,
                     phases=tuple(phases),
                     warnings=tuple(dict.fromkeys(warnings)),
                     elapsed_ms=0.0,
@@ -561,6 +584,7 @@ class MemoryCycleService:
                 admitted,
                 status=MemoryCycleStatus.PARTIAL,
                 child_outcomes=tuple(child_outcomes),
+                source_snapshot=post_apply_sources,
                 compact_change=compact_change,
                 phases=tuple(phases),
                 warnings=tuple(dict.fromkeys(warnings)),
@@ -700,13 +724,13 @@ class MemoryCycleService:
         self,
         checkpoint: MemoryCycleCheckpoint,
         request: MemoryCycleRequest,
-    ) -> bool:
-        """Verify replay state before returning a durable prior result."""
+    ) -> str | None:
+        """Return a specific failing replay fence, or None after complete readback."""
         if checkpoint.state is MemoryCycleCheckpointState.ADMITTED:
-            return False
+            return "admission_not_completed"
         current_sources = await self._source_fence.refresh(checkpoint.source_snapshot)
         if current_sources != checkpoint.source_snapshot:
-            return False
+            return "source_revision_drift"
         for plan_id, result_id in zip(
             checkpoint.child_plan_ids,
             checkpoint.child_result_ids,
@@ -714,26 +738,26 @@ class MemoryCycleService:
         ):
             plan = await self._reconciliation_repository.get_plan(plan_id)
             if plan is None:
-                return False
+                return "child_plan_missing"
             if result_id is None:
                 if not plan.requires_review:
-                    return False
+                    return "child_result_unresolved"
                 continue
             result = await self._reconciliation_repository.get_result(result_id)
             if result is None or result.plan_id != plan_id:
-                return False
+                return "child_result_identity_mismatch"
         compact_id = checkpoint.compact_id
         compact_change = checkpoint.result.compact_change
         if compact_id is None:
-            return False
+            return "compact_not_recorded"
         try:
             compact = await self._compact_service.get(compact_id)
         except MemoryCompactNotFoundError:
-            return False
+            return "compact_source_missing"
         if compact_change is None:
-            return False
+            return "compact_change_missing"
         if compact_change.content_hash != hash_text(compact.markdown_body):
-            return False
+            return "compact_body_hash_drift"
         if (
             compact_change.status is MemoryCompactStatus.CURRENT
             and not compact_source_hashes_match(
@@ -741,7 +765,7 @@ class MemoryCycleService:
                 checkpoint.source_snapshot,
             )
         ):
-            return False
+            return "compact_source_ref_hash_drift"
         if compact_change.status is MemoryCompactStatus.CURRENT:
             current_compacts, _ = await self._compact_service.list_compacts(
                 project=request.project,
@@ -750,8 +774,8 @@ class MemoryCycleService:
                 offset=0,
             )
             if len(current_compacts) != 1 or current_compacts[0].id != compact.id:
-                return False
-        return True
+                return "current_compact_identity_drift"
+        return None
 
 
 def _validate_request(request: MemoryCycleRequest) -> None:

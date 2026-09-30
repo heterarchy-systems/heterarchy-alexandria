@@ -7,9 +7,8 @@ from pathlib import Path
 
 import anyio
 import pytest
-from app.memory.application.memory_compacts.review.memory_compact_review_contracts import (
-    MemoryCompactSourceObservation,
-)
+from tests.memory.compact_source_fixture import DeterministicCompactSourceReader
+
 from app.memory.application.memory_compacts.lifecycle.memory_compact_service import (
     MemoryCompactService,
 )
@@ -27,12 +26,18 @@ from app.memory.infrastructure.repositories.memory_compact_repository import (
 from app.shared.exceptions.memory_compact_exceptions import MemoryCompactValidationError
 
 
-def _service(vault_path: Path) -> MemoryCompactService:
+def _service(
+    vault_path: Path,
+    source_hashes: dict[str, str] | None = None,
+) -> MemoryCompactService:
     return MemoryCompactService(
         repository=ObsidianMemoryCompactRepository(
             vault_path=vault_path,
             relative_dir="Alexandria/Memory Compacts",
-        )
+        ),
+        source_reader=DeterministicCompactSourceReader(
+            {"ctx-hash": "hash-before", **(source_hashes or {})}
+        ),
     )
 
 
@@ -389,7 +394,7 @@ def test_memory_compact_service_preserves_source_hash_evidence(
                 covered_from=datetime(2026, 5, 1, tzinfo=UTC),
                 covered_to=datetime(2026, 5, 10, tzinfo=UTC),
                 markdown_body=_compact_body(),
-                status=MemoryCompactStatus.CURRENT,
+                status=MemoryCompactStatus.DRAFT,
                 source_refs=[_source_ref("ctx-hash", source_hash="hash-before")],
             )
         )
@@ -441,27 +446,21 @@ def test_memory_compact_service_review_blocks_stale_source_hash(
     """Review should block when observed source evidence changed."""
 
     async def scenario() -> tuple[MemoryCompactReviewVerdict, list[str], list[str]]:
-        service = _service(tmp_path / "vault")
+        service = _service(
+            tmp_path / "vault",
+            source_hashes={"ctx-hash": "hash-after"},
+        )
         compact = await service.create(
             MemoryCompactCreate(
                 project="heterarchy-alexandria",
                 covered_from=datetime(2026, 5, 1, tzinfo=UTC),
                 covered_to=datetime(2026, 5, 10, tzinfo=UTC),
                 markdown_body=_compact_body(),
-                status=MemoryCompactStatus.CURRENT,
+                status=MemoryCompactStatus.DRAFT,
                 source_refs=[_source_ref("ctx-hash", source_hash="hash-before")],
             )
         )
-        review = await service.review(
-            compact.id,
-            source_observations=(
-                MemoryCompactSourceObservation(
-                    source_id="ctx-hash",
-                    detail_path="/memory/contexts/ctx-hash",
-                    current_source_hash="hash-after",
-                ),
-            ),
-        )
+        review = await service.review(compact.id)
 
         return (
             review.verdict,

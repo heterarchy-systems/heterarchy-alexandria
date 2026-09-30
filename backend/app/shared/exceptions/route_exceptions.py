@@ -15,6 +15,7 @@ from app.shared.exceptions.connections_exceptions import (
 from app.shared.exceptions.exception_decorators import RouteExceptionStatusMapping
 from app.shared.exceptions.memory_compact_exceptions import (
     MemoryCompactNotFoundError,
+    MemoryCompactReviewConflictError,
     MemoryCompactValidationError,
     MemoryResumePackageRequestConflictError,
 )
@@ -46,6 +47,7 @@ MEMORY_COMPACT_ROUTE_EXCEPTION_MAPPING: RouteExceptionStatusMapping = {
     BoundaryValidationError: status.HTTP_400_BAD_REQUEST,
     MemoryCompactNotFoundError: status.HTTP_404_NOT_FOUND,
     MemoryCompactValidationError: status.HTTP_400_BAD_REQUEST,
+    MemoryCompactReviewConflictError: status.HTTP_409_CONFLICT,
     MemoryResumePackageRequestConflictError: status.HTTP_409_CONFLICT,
 }
 

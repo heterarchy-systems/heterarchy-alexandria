@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
+
 from mcp.server import MCPServer
 
 from app.mcp_server.backend_api_client import AlexandriaApiClient
@@ -54,6 +56,10 @@ def register_memory_steward_tools(
         apply: bool = False,
         force: bool = False,
         covered_to: str | None = None,
+        draft_only: bool = False,
+        source_refs: Sequence[Mapping[str, JSONValue]] | None = None,
+        semantic_template: Mapping[str, str] | str | None = None,
+        final_markdown: str | None = None,
     ) -> JSONValue:
         """Plan or apply a CURRENT Memory Compact refresh from readiness evidence.
 
@@ -63,6 +69,11 @@ def register_memory_steward_tools(
             apply: Apply used by this operation.
             force: Whether to force the operation instead of using current state.
             covered_to: Covered to used by this operation.
+            draft_only: Create a DRAFT for semantic editing instead of
+                promoting CURRENT directly.
+            source_refs: Optional project-specific source references.
+            semantic_template: Optional project-specific section content.
+            final_markdown: Optional final agent-edited Markdown body.
 
         Returns:
             JSONValue result produced by tool memory steward refresh current compact.
@@ -74,6 +85,10 @@ def register_memory_steward_tools(
             apply=apply,
             force=force,
             covered_to=covered_to,
+            draft_only=draft_only,
+            source_refs=source_refs,
+            semantic_template=semantic_template,
+            final_markdown=final_markdown,
         )
 
     @server.tool(name="alexandria_memory_steward_diagnose")

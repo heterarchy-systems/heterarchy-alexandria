@@ -42,6 +42,8 @@ class MemoryCompact:
     review_score: int | None = None
     review_max_score: int | None = None
     reviewed_at: datetime | None = None
+    reviewed_body_hash: str | None = None
+    review_receipt_hash: str | None = None
     metadata_warnings: tuple[str, ...] = ()
     deduplicated: bool = False
     source_set_hash: str | None = None

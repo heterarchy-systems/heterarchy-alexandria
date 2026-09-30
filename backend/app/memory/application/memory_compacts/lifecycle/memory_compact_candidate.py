@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from hashlib import sha256
 
 from app.memory.application.memory_compacts.lifecycle.memory_compact_policy import (
     ensure_review_passes,
@@ -47,6 +48,8 @@ def normalized_create(payload: MemoryCompactCreate) -> MemoryCompactCreate:
         review_score=payload.review_score,
         review_max_score=payload.review_max_score,
         reviewed_at=payload.reviewed_at,
+        reviewed_body_hash=payload.reviewed_body_hash,
+        review_receipt_hash=payload.review_receipt_hash,
     )
     _validate_create(normalized)
     if normalized.status is not MemoryCompactStatus.CURRENT:
@@ -93,6 +96,8 @@ def candidate_compact(payload: MemoryCompactCreate) -> MemoryCompact:
         review_score=payload.review_score,
         review_max_score=payload.review_max_score,
         reviewed_at=payload.reviewed_at,
+        reviewed_body_hash=payload.reviewed_body_hash,
+        review_receipt_hash=payload.review_receipt_hash,
     )
 
 
@@ -120,6 +125,8 @@ def with_review_metadata(
         review_score=review.total_score,
         review_max_score=review.max_score,
         reviewed_at=datetime.now(UTC),
+        reviewed_body_hash=sha256(payload.markdown_body.strip().encode()).hexdigest(),
+        review_receipt_hash=review.review_hash,
     )
 
 

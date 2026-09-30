@@ -8,6 +8,7 @@ from pathlib import Path
 
 import anyio
 import pytest
+from tests.memory.compact_source_fixture import DeterministicCompactSourceReader
 
 from app.memory.application.contexts.linting.context_lint import (
     ContextLintInput,
@@ -113,7 +114,10 @@ def _context_record(context_id: str, content: str) -> ContextRecord:
     )
 
 
-def _compact_service(vault_path: Path) -> MemoryCompactService:
+def _compact_service(
+    vault_path: Path,
+    source_hashes: dict[str, str] | None = None,
+) -> MemoryCompactService:
     """Build a Memory Compact facade over one tmp_path vault.
 
     Args:
@@ -126,7 +130,8 @@ def _compact_service(vault_path: Path) -> MemoryCompactService:
         repository=ObsidianMemoryCompactRepository(
             vault_path=vault_path,
             relative_dir="Alexandria/Memory Compacts",
-        )
+        ),
+        source_reader=DeterministicCompactSourceReader(source_hashes),
     )
 
 
@@ -143,8 +148,12 @@ def _service(
     Returns:
         Resume package service over the compact path.
     """
+    source_hashes = {
+        context_id: sha256(record.content.encode()).hexdigest()
+        for context_id, record in records.items()
+    }
     return MemoryResumePackageService(
-        compact_service=_compact_service(vault_path),
+        compact_service=_compact_service(vault_path, source_hashes),
         evidence_source=_StaticEvidenceSource(records),
     )
 
@@ -300,8 +309,16 @@ def test_resume_package_revision_increments_and_supersedes_previous_for_same_lin
         )
         previous = await service.get_resume_package(first.package_id)
         current = await service.get_resume_package(second.package_id)
-        compact_current = await _compact_service(vault).current(project=PROJECT)
-        listed, total = await _compact_service(vault).list_compacts(project=PROJECT)
+        source_hashes = {
+            context_id: sha256(record.content.encode()).hexdigest()
+            for context_id, record in _records().items()
+        }
+        compact_current = await _compact_service(vault, source_hashes).current(
+            project=PROJECT
+        )
+        listed, total = await _compact_service(vault, source_hashes).list_compacts(
+            project=PROJECT
+        )
 
         assert first.package_revision == 1
         assert second.package_revision == 2
@@ -330,7 +347,13 @@ def test_resume_package_identical_draft_is_deduplicated_without_new_store_entry(
         service = _service(vault, _records())
         first = await service.create_resume_package(_draft())
         duplicate = await service.create_resume_package(_draft())
-        listed, total = await _compact_service(vault).list_compacts(project=PROJECT)
+        source_hashes = {
+            context_id: sha256(record.content.encode()).hexdigest()
+            for context_id, record in _records().items()
+        }
+        listed, total = await _compact_service(vault, source_hashes).list_compacts(
+            project=PROJECT
+        )
         note_paths = list((vault / "Alexandria" / "Memory Compacts").rglob("*.md"))
 
         assert duplicate.package_id == first.package_id
@@ -363,7 +386,13 @@ def test_resume_package_missing_evidence_ref_raises_and_persists_nothing(
             await service.create_resume_package(
                 _draft(evidence_context_ids=("ctx-goal", "ctx-missing"))
             )
-        _listed, total = await _compact_service(vault).list_compacts(project=PROJECT)
+        source_hashes = {
+            context_id: sha256(record.content.encode()).hexdigest()
+            for context_id, record in _records().items()
+        }
+        _listed, total = await _compact_service(vault, source_hashes).list_compacts(
+            project=PROJECT
+        )
         note_paths = list((vault / "Alexandria" / "Memory Compacts").rglob("*.md"))
         return total, len(note_paths)
 

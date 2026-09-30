@@ -6,6 +6,7 @@ import re
 
 from app.memory.application.memory_compacts.review.memory_compact_review_contracts import (
     MemoryCompactReviewResult,
+    MemoryCompactSourceObservation,
 )
 from app.memory.domain.event_enum.memory_compact_enums import (
     MemoryCompactReviewVerdict,
@@ -48,12 +49,15 @@ def ensure_review_passes(review: MemoryCompactReviewResult) -> None:
     Args:
         review: Structured Memory Compact review result.
     """
-    if review.verdict is MemoryCompactReviewVerdict.PASS:
+    if (
+        review.verdict is MemoryCompactReviewVerdict.PASS
+        and review.total_score == review.max_score == 20
+    ):
         return
     reasons = [*review.missing_refs, *review.contradictions, *review.stale_reasons]
     if not reasons:
         reasons = list(review.recommended_actions)
-    reason_text = ",".join(reasons) if reasons else "rubric_not_passed"
+    reason_text = ",".join(reasons) if reasons else "CURRENT_requires_20_of_20"
     raise MemoryCompactValidationError(
         f"Current memory compact review failed: {review.verdict.value}: {reason_text}"
     )
@@ -69,3 +73,22 @@ def _normalize_section_heading(value: str) -> str:
         Normalized section heading.
     """
     return re.sub(r"[^a-z0-9]+", " ", value.lower()).strip()
+
+
+def ensure_current_sources_publishable(
+    observations: tuple[MemoryCompactSourceObservation, ...],
+) -> None:
+    """Reject private scope facts before a project/global CURRENT promotion.
+
+    Args:
+        observations: Authority-owned source disclosure evidence.
+
+    Raises:
+        MemoryCompactValidationError: For private or workspace source disclosure.
+    """
+    private = {"AGENT", "USER", "SESSION", "WORKSPACE"}
+    if any(
+        observation.source_scope in private or observation.source_visibility in private
+        for observation in observations
+    ):
+        raise MemoryCompactValidationError("CURRENT_PRIVATE_SOURCE_NOT_PUBLISHABLE")

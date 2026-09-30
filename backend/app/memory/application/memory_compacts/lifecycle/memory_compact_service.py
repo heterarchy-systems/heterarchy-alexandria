@@ -17,6 +17,7 @@ from app.memory.application.memory_compacts.lifecycle.memory_compact_query_servi
 from app.memory.application.memory_compacts.review.memory_compact_review_contracts import (
     MemoryCompactReviewResult,
     MemoryCompactSourceObservation,
+    MemoryCompactSourceReader,
 )
 from app.memory.domain.entities.memory_compact import MemoryCompact
 from app.memory.domain.event_enum.memory_compact_enums import MemoryCompactStatus
@@ -26,6 +27,7 @@ from app.memory.domain.repositories.memory_compacts.memory_compact_repository im
 from app.memory.domain.repositories.memory_compacts.memory_compact_repository_contracts import (
     MemoryCompactCreate,
 )
+from app.shared.exceptions.memory_compact_exceptions import MemoryCompactValidationError
 
 
 class MemoryCompactService:
@@ -37,17 +39,26 @@ class MemoryCompactService:
     application contract.
     """
 
-    def __init__(self, repository: IMemoryCompactRepository) -> None:
+    def __init__(
+        self,
+        repository: IMemoryCompactRepository,
+        source_reader: MemoryCompactSourceReader | None = None,
+    ) -> None:
         """Initialize service dependencies.
 
         Args:
             repository: Persistence port for Memory Compact artifacts.
+            source_reader: Owning source reader used for current evidence.
         """
         self._query_service = MemoryCompactQueryService(repository)
-        self._creation_service = MemoryCompactCreationService(repository)
+        self._creation_service = MemoryCompactCreationService(
+            repository,
+            source_reader=source_reader,
+        )
         self._lifecycle_service = MemoryCompactLifecycleService(
             repository=repository,
             query_service=self._query_service,
+            source_reader=source_reader,
         )
         self._repository = repository
 
@@ -128,16 +139,43 @@ class MemoryCompactService:
         """
         return await self._query_service.current(project=project)
 
-    async def mark_current(self, compact_id: str) -> MemoryCompact:
+    async def edit_draft(
+        self, compact_id: str, markdown_body: str, expected_state_hash: str
+    ) -> MemoryCompact:
+        """Edit the final draft body through its canonical owner and exact fence.
+
+        Args:
+            compact_id: Existing draft identity.
+            markdown_body: Final semantic replacement body.
+            expected_state_hash: State digest from the previous draft read.
+
+        Returns:
+            Draft requiring a fresh review before promotion.
+        """
+        if not markdown_body.strip():
+            raise MemoryCompactValidationError("Draft body must not be empty")
+        return await self._repository.edit_draft(
+            compact_id, markdown_body, expected_state_hash
+        )
+
+    async def mark_current(
+        self,
+        compact_id: str,
+        expected_review_hash: str | None = None,
+    ) -> MemoryCompact:
         """Mark one compact as current.
 
         Args:
             compact_id: Memory Compact identifier.
+            expected_review_hash: Optional reviewed-receipt hash fence.
 
         Returns:
             Updated current Memory Compact entity.
         """
-        return await self._lifecycle_service.mark_current(compact_id)
+        return await self._lifecycle_service.mark_current(
+            compact_id,
+            expected_review_hash=expected_review_hash,
+        )
 
     async def archive(self, compact_id: str) -> MemoryCompact:
         """Archive one Memory Compact.

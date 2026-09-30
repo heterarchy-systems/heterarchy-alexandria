@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from app.memory.application.memory_compacts.lifecycle.memory_compact_signature import (
+    reviewed_compact_hash,
+)
 from app.memory.application.memory_compacts.review.memory_compact_review_contracts import (
     MemoryCompactReviewResult,
     MemoryCompactRubricScore,
@@ -88,5 +91,12 @@ def review_memory_compact(
             missing_refs=missing_refs,
             stale_reasons=stale_reasons,
             contradictions=contradictions,
+        ),
+        review_hash=reviewed_compact_hash(
+            compact,
+            verdict=verdict.value,
+            total_score=total_score,
+            max_score=len(_RUBRIC) * 2,
+            source_observations=source_observations,
         ),
     )

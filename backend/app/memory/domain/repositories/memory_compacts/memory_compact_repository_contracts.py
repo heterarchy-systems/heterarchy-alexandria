@@ -36,6 +36,8 @@ class MemoryCompactCreate:
     review_score: int | None = None
     review_max_score: int | None = None
     reviewed_at: datetime | None = None
+    reviewed_body_hash: str | None = None
+    review_receipt_hash: str | None = None
 
     def __post_init__(self) -> None:
         """Normalize source references to the immutable internal representation."""

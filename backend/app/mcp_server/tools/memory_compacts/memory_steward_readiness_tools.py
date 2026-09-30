@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
+
 from app.mcp_server.backend_api_client import AlexandriaApiClient, AlexandriaApiError
 from app.mcp_server.tools.memory_compacts.memory_compact_tools import (
     alexandria_create_memory_compact,
@@ -26,6 +28,7 @@ from app.mcp_server.type_validate.memory.memory_steward_readiness_policy import 
     review_blocking_warnings,
 )
 from app.mcp_server.type_validate.memory.memory_steward_readiness_schemas import (
+    CompactSourceRefPayload,
     CurrentCompactPayload,
     CurrentCompactReviewPayload,
     NextActionPayload,
@@ -68,7 +71,7 @@ async def alexandria_memory_steward_readiness(
     compact = parse_current_compact(current_compact)
     compact_review = await _current_compact_review(client, compact)
     compact_age_days = compact.calculated_age_days()
-    bounded_max_age_days = max(int(max_compact_age_days), 1)
+    bounded_max_age_days = max(max_compact_age_days, 1)
     warnings = readiness_warnings(
         rag=rag,
         compact=compact,
@@ -140,7 +143,7 @@ def _rag_status_unavailable_readiness(
     """
     warnings = ["rag_status_unavailable"]
     next_actions = readiness_next_actions(warnings=warnings)
-    bounded_max_age_days = max(int(max_compact_age_days), 1)
+    bounded_max_age_days = max(max_compact_age_days, 1)
     output = ReadinessToolOutputPayload(
         ready=False,
         status="needs_attention",
@@ -211,6 +214,10 @@ async def alexandria_memory_steward_refresh_current_compact(
     apply: bool = False,
     force: bool = False,
     covered_to: str | None = None,
+    draft_only: bool = False,
+    source_refs: Sequence[Mapping[str, JSONValue]] | None = None,
+    semantic_template: Mapping[str, str] | str | None = None,
+    final_markdown: str | None = None,
 ) -> JSONValue:
     """Plan or apply a CURRENT Memory Compact refresh from readiness evidence.
 
@@ -221,6 +228,12 @@ async def alexandria_memory_steward_refresh_current_compact(
         apply: Create the compact when refresh is required or forced.
         force: Create a compact even when readiness is already fresh.
         covered_to: Optional deterministic coverage end timestamp.
+        draft_only: Create a DRAFT for agent semantic editing instead of a
+            direct CURRENT promotion; the draft must pass review through
+            alexandria_apply_reviewed_memory_compact before promotion.
+        source_refs: Optional project-specific source references.
+        semantic_template: Optional project-specific section content.
+        final_markdown: Optional final agent-edited Markdown body.
 
     Returns:
         Refresh plan, optional creation result, and post-refresh readiness.
@@ -245,7 +258,14 @@ async def alexandria_memory_steward_refresh_current_compact(
         project=project,
         readiness=readiness,
         covered_to=covered_to or utc_now_text(),
+        source_refs=_validated_source_refs(source_refs),
+        semantic_template=semantic_template,
+        final_markdown=final_markdown,
     )
+    if draft_only:
+        compact_draft = compact_draft.model_copy(
+            update={"status": MemoryCompactStatus.DRAFT.value}
+        )
     created: JSONValue | None = None
     post_refresh_readiness = model_validate_json_value(
         ReadinessToolOutputPayload,
@@ -258,17 +278,22 @@ async def alexandria_memory_steward_refresh_current_compact(
             covered_to=compact_draft.covered_to,
             markdown_body=compact_draft.markdown_body,
             project=project,
-            status=MemoryCompactStatus.CURRENT,
+            status=MemoryCompactStatus.DRAFT
+            if draft_only
+            else MemoryCompactStatus.CURRENT,
             source_refs=source_ref_dicts(compact_draft),
         )
-        post_refresh_payload = await alexandria_memory_steward_readiness(
-            client, project=project, max_compact_age_days=max_compact_age_days
-        )
-        post_refresh_readiness = model_validate_json_value(
-            ReadinessToolOutputPayload,
-            result_object(post_refresh_payload),
-        )
-        refresh_status = "refreshed"
+        if draft_only:
+            refresh_status = "draft_created"
+        else:
+            post_refresh_payload = await alexandria_memory_steward_readiness(
+                client, project=project, max_compact_age_days=max_compact_age_days
+            )
+            post_refresh_readiness = model_validate_json_value(
+                ReadinessToolOutputPayload,
+                result_object(post_refresh_payload),
+            )
+            refresh_status = "refreshed"
 
     output = RefreshCurrentCompactOutputPayload(
         status=refresh_status,
@@ -286,3 +311,15 @@ async def alexandria_memory_steward_refresh_current_compact(
         post_refresh_readiness=post_refresh_readiness,
     )
     return output.model_dump(mode="json")
+
+
+def _validated_source_refs(
+    source_refs: Sequence[Mapping[str, JSONValue]] | None,
+) -> tuple[CompactSourceRefPayload, ...] | None:
+    """Validate project source references at the MCP boundary."""
+    if source_refs is None:
+        return None
+    return tuple(
+        model_validate_json_value(CompactSourceRefPayload, dict(source_ref))
+        for source_ref in source_refs
+    )

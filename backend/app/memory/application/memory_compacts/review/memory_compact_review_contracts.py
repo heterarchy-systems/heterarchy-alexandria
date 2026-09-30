@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
+from app.memory.domain.entities.memory_compact import MemoryCompactSourceRef
 from app.memory.domain.event_enum.memory_compact_enums import (
     MemoryCompactReviewVerdict,
 )
@@ -16,6 +18,16 @@ class MemoryCompactSourceObservation:
     source_id: str
     detail_path: str | None = None
     current_source_hash: str | None = None
+    available: bool = True
+    unavailable_reason: str | None = None
+    source_revision: str | None = None
+    source_scope: str | None = None
+    source_visibility: str | None = None
+
+
+type MemoryCompactSourceReader = Callable[
+    [MemoryCompactSourceRef], Awaitable[MemoryCompactSourceObservation]
+]
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -42,3 +54,4 @@ class MemoryCompactReviewResult:
     contradictions: tuple[str, ...] = ()
     stale_reasons: tuple[str, ...] = ()
     recommended_actions: tuple[str, ...] = ()
+    review_hash: str = ""

@@ -30,8 +30,8 @@ async def alexandria_list_memory_compact_artifacts(
         Backend Memory Compact list response.
     """
     query: JSONObject = {
-        "limit": min(max(int(limit), 1), 50),
-        "offset": max(int(offset), 0),
+        "limit": min(max(limit, 1), 50),
+        "offset": max(offset, 0),
     }
     if project is not None:
         query["project"] = project
@@ -106,6 +106,29 @@ async def alexandria_get_memory_compact(
         Backend Memory Compact response.
     """
     return await client.get(f"/memory/compacts/{quote(compact_id, safe='')}")
+
+
+async def alexandria_edit_memory_compact_draft(
+    client: AlexandriaApiClient,
+    compact_id: str,
+    markdown_body: str,
+    expected_draft_hash: str,
+) -> JSONValue:
+    """Edit only the last observed draft and invalidate its previous review.
+
+    Args:
+        client: Existing backend HTTP boundary.
+        compact_id: Canonical draft identity.
+        markdown_body: Final semantic body.
+        expected_draft_hash: Prior draft snapshot fence.
+
+    Returns:
+        Fresh draft response requiring re-review before promotion.
+    """
+    return await client.post(
+        f"/memory/compacts/{quote(compact_id, safe='')}/draft",
+        {"markdown_body": markdown_body, "expected_draft_hash": expected_draft_hash},
+    )
 
 
 async def alexandria_review_memory_compact(
@@ -186,3 +209,29 @@ def _source_observation_payloads(
             payload["current_source_hash"] = current_source_hash
         payloads.append(payload)
     return payloads
+
+
+async def alexandria_mark_memory_compact_current(
+    client: AlexandriaApiClient,
+    compact_id: str,
+    expected_review_hash: str | None = None,
+) -> JSONValue:
+    """Promote one reviewed Memory Compact to CURRENT behind a receipt fence.
+
+    Args:
+        client: Backend HTTP client.
+        compact_id: Memory Compact identifier.
+        expected_review_hash: Reviewed-receipt hash admitted by a prior review.
+
+    Returns:
+        Backend Memory Compact response.
+    """
+    payload: JSONObject = (
+        {}
+        if expected_review_hash is None
+        else {"expected_review_hash": expected_review_hash}
+    )
+    return await client.post(
+        f"/memory/compacts/{quote(compact_id, safe='')}/mark-current",
+        payload,
+    )

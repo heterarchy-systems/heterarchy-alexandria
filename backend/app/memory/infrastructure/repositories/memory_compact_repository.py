@@ -15,6 +15,9 @@ from app.memory.application.memory_compacts.lifecycle.memory_compact_provenance 
     MEMORY_COMPACT_POLICY_VERSION,
     memory_compact_source_set_hash,
 )
+from app.memory.application.memory_compacts.lifecycle.memory_compact_signature import (
+    compact_state_hash,
+)
 from app.memory.domain.entities.memory_compact import (
     MemoryCompact,
     MemoryCompactSourceRef,
@@ -38,7 +41,10 @@ from app.memory.infrastructure.repositories.memory_compacts.critical_task import
 from app.memory.infrastructure.repositories.memory_compacts.note_store import (
     MemoryCompactNoteStore,
 )
-from app.shared.exceptions.memory_compact_exceptions import MemoryCompactNotFoundError
+from app.shared.exceptions.memory_compact_exceptions import (
+    MemoryCompactNotFoundError,
+    MemoryCompactReviewConflictError,
+)
 from app.shared.infrastructure.identifiers import new_uuid
 from app.shared.types.types_convert_utils import aware_utc_datetime
 
@@ -84,22 +90,26 @@ class MemoryCompactCreateRepositoryDelegate:
             review_score=payload.review_score,
             review_max_score=payload.review_max_score,
             reviewed_at=payload.reviewed_at,
+            reviewed_body_hash=payload.reviewed_body_hash,
+            review_receipt_hash=payload.review_receipt_hash,
             source_set_hash=memory_compact_source_set_hash(source_refs),
             compaction_policy_version=MEMORY_COMPACT_POLICY_VERSION,
             generation_revision=MEMORY_COMPACT_GENERATION_REVISION,
             generated_at=now,
         )
-        persistence_task = asyncio.ensure_future(
-            asyncify(_persist_created_compact)(self._store, compact)
-        )
-        await wait_for_critical_task(persistence_task)
-        return compact
+        async with self._creation_lock.hold():
+            persistence_task = asyncio.ensure_future(
+                asyncify(_persist_created_compact)(self._store, compact)
+            )
+            await wait_for_critical_task(persistence_task)
+            return _require_compact(self._store, compact_id)
 
 
 class MemoryCompactQueryRepositoryDelegate:
     """Read and page Memory Compact notes over a shared Obsidian note store."""
 
     _store: MemoryCompactNoteStore
+    _creation_lock: MemoryCompactCreationLock
 
     async def get(self, compact_id: str) -> MemoryCompact | None:
         """Read one compact by id.
@@ -110,7 +120,8 @@ class MemoryCompactQueryRepositoryDelegate:
         Returns:
             Matching compact, or None when absent.
         """
-        return self._store.get(compact_id)
+        async with self._creation_lock.hold():
+            return self._store.get(compact_id)
 
     async def list_compacts(
         self,
@@ -134,10 +145,11 @@ class MemoryCompactQueryRepositoryDelegate:
         Returns:
             Page of compacts and total matching count.
         """
-        stored_compacts = await asyncify(
-            self._store.read_all,
-            abandon_on_cancel=True,
-        )()
+        async with self._creation_lock.hold():
+            stored_compacts = await asyncify(
+                self._store.read_all,
+                abandon_on_cancel=True,
+            )()
         compacts = _filter_compacts(
             stored_compacts,
             project=project,
@@ -158,11 +170,13 @@ class MemoryCompactQueryRepositoryDelegate:
         Returns:
             Current compact, or None when absent.
         """
-        compacts = [
-            item
-            for item in self._store.read_all()
-            if item.status is MemoryCompactStatus.CURRENT and item.project == project
-        ]
+        async with self._creation_lock.hold():
+            compacts = [
+                item
+                for item in self._store.read_all()
+                if item.status is MemoryCompactStatus.CURRENT
+                and item.project == project
+            ]
         compacts.sort(key=lambda item: item.updated_at, reverse=True)
         return compacts[0] if compacts else None
 
@@ -171,6 +185,43 @@ class MemoryCompactLifecycleRepositoryDelegate:
     """Mutate Memory Compact lifecycle over a shared Obsidian note store."""
 
     _store: MemoryCompactNoteStore
+    _creation_lock: MemoryCompactCreationLock
+
+    async def edit_draft(
+        self, compact_id: str, markdown_body: str, expected_state_hash: str
+    ) -> MemoryCompact:
+        """Edit only an unchanged DRAFT and invalidate all prior review evidence.
+
+        Args:
+            compact_id: Existing canonical draft identity.
+            markdown_body: Final semantic body supplied by the caller.
+            expected_state_hash: Exact state digest observed before editing.
+
+        Returns:
+            Edited DRAFT with no reusable quality/promotion receipt.
+        """
+        async with self._creation_lock.hold():
+            compact = _require_compact(self._store, compact_id)
+            if (
+                compact.status is not MemoryCompactStatus.DRAFT
+                or compact_state_hash(compact) != expected_state_hash
+            ):
+                raise MemoryCompactReviewConflictError(
+                    "MEMORY_COMPACT_DRAFT_CONFLICT: re-read the unchanged DRAFT before editing"
+                )
+            updated = replace(
+                compact,
+                markdown_body=markdown_body.strip(),
+                updated_at=datetime.now(UTC),
+                review_verdict=None,
+                review_score=None,
+                review_max_score=None,
+                reviewed_at=None,
+                reviewed_body_hash=None,
+                review_receipt_hash=None,
+            )
+            self._store.write(updated)
+            return updated
 
     async def mark_current(
         self,
@@ -179,6 +230,9 @@ class MemoryCompactLifecycleRepositoryDelegate:
         review_score: int | None = None,
         review_max_score: int | None = None,
         reviewed_at: datetime | None = None,
+        expected_state_hash: str | None = None,
+        reviewed_body_hash: str | None = None,
+        review_receipt_hash: str | None = None,
     ) -> MemoryCompact:
         """Mark one compact current and supersede prior current for project.
 
@@ -188,28 +242,61 @@ class MemoryCompactLifecycleRepositoryDelegate:
             review_score: Latest quality review total score.
             review_max_score: Latest quality review maximum score.
             reviewed_at: Review timestamp.
+            reviewed_body_hash: Exact reviewed body identity.
+            review_receipt_hash: Admitted source/body review receipt.
+            expected_state_hash: Hash of the exact target state reviewed before
+                persistence.
 
         Returns:
             Updated current compact.
         """
-        compact = _require_compact(self._store, compact_id)
-        _supersede_current_project(
-            self._store,
-            compact.project,
-            excluded_id=compact.id,
-        )
-        updated = replace(
-            compact,
-            status=MemoryCompactStatus.CURRENT,
-            updated_at=datetime.now(UTC),
-            archived_at=None,
-            review_verdict=review_verdict,
-            review_score=review_score,
-            review_max_score=review_max_score,
-            reviewed_at=reviewed_at,
-        )
-        self._store.write(updated)
-        return updated
+        async with self._creation_lock.hold():
+            compact = _require_compact(self._store, compact_id)
+            if (
+                expected_state_hash is not None
+                and compact_state_hash(compact) != expected_state_hash
+            ):
+                raise MemoryCompactReviewConflictError(
+                    "MEMORY_COMPACT_REVIEW_CONFLICT: compact state changed "
+                    "before persistence; re-review before applying"
+                )
+            snapshot = tuple(
+                item
+                for item in self._store.read_all()
+                if item.project == compact.project
+            )
+            updated = replace(
+                compact,
+                status=MemoryCompactStatus.CURRENT,
+                updated_at=datetime.now(UTC),
+                archived_at=None,
+                review_verdict=review_verdict,
+                review_score=review_score,
+                review_max_score=review_max_score,
+                reviewed_at=reviewed_at,
+                reviewed_body_hash=reviewed_body_hash,
+                review_receipt_hash=review_receipt_hash,
+            )
+            try:
+                self._store.write(updated)
+                _supersede_current_project(
+                    self._store,
+                    compact.project,
+                    excluded_id=compact.id,
+                )
+                _assert_single_current(self._store, updated)
+            except BaseException:
+                try:
+                    _restore_compact_snapshot(
+                        self._store, snapshot, candidate_id=compact.id
+                    )
+                except BaseException as rollback_error:
+                    raise MemoryCompactReviewConflictError(
+                        "MEMORY_COMPACT_REVIEW_CONFLICT: promotion failed and "
+                        "the previous compact state could not be restored"
+                    ) from rollback_error
+                raise
+            return updated
 
     async def archive(self, compact_id: str) -> MemoryCompact:
         """Archive one compact.
@@ -220,16 +307,17 @@ class MemoryCompactLifecycleRepositoryDelegate:
         Returns:
             Archived compact.
         """
-        compact = _require_compact(self._store, compact_id)
-        now = datetime.now(UTC)
-        updated = replace(
-            compact,
-            status=MemoryCompactStatus.ARCHIVED,
-            updated_at=now,
-            archived_at=now,
-        )
-        self._store.write(updated)
-        return updated
+        async with self._creation_lock.hold():
+            compact = _require_compact(self._store, compact_id)
+            now = datetime.now(UTC)
+            updated = replace(
+                compact,
+                status=MemoryCompactStatus.ARCHIVED,
+                updated_at=now,
+                archived_at=now,
+            )
+            self._store.write(updated)
+            return updated
 
     async def delete(self, compact_id: str) -> None:
         """Hard delete one compact note.
@@ -237,8 +325,9 @@ class MemoryCompactLifecycleRepositoryDelegate:
         Args:
             compact_id: Memory Compact identifier.
         """
-        _require_compact(self._store, compact_id)
-        self._store.delete(compact_id)
+        async with self._creation_lock.hold():
+            _require_compact(self._store, compact_id)
+            self._store.delete(compact_id)
 
 
 class ObsidianMemoryCompactRepository(
@@ -276,13 +365,21 @@ def _persist_created_compact(
         store: Store used by this operation.
         compact: Compact used by this operation.
     """
-    if compact.status is MemoryCompactStatus.CURRENT:
-        _supersede_current_project(
-            store,
-            compact.project,
-            excluded_id=None,
-        )
-    store.write(compact)
+    snapshot = tuple(
+        item for item in store.read_all() if item.project == compact.project
+    )
+    try:
+        store.write(compact)
+        if compact.status is MemoryCompactStatus.CURRENT:
+            _supersede_current_project(
+                store,
+                compact.project,
+                excluded_id=compact.id,
+            )
+            _assert_single_current(store, compact)
+    except BaseException:
+        _restore_compact_snapshot(store, snapshot, candidate_id=compact.id)
+        raise
 
 
 def _require_compact(
@@ -330,6 +427,37 @@ def _supersede_current_project(
                     updated_at=now,
                 )
             )
+
+
+def _assert_single_current(
+    store: MemoryCompactNoteStore,
+    expected_current: MemoryCompact,
+) -> None:
+    """Verify the persisted project has exactly one CURRENT compact."""
+    current = [
+        compact
+        for compact in store.read_all()
+        if compact.project == expected_current.project
+        and compact.status is MemoryCompactStatus.CURRENT
+    ]
+    if len(current) != 1 or current[0].id != expected_current.id:
+        raise MemoryCompactReviewConflictError(
+            "MEMORY_COMPACT_REVIEW_CONFLICT: promotion did not persist exactly "
+            "one CURRENT compact"
+        )
+
+
+def _restore_compact_snapshot(
+    store: MemoryCompactNoteStore,
+    snapshot: tuple[MemoryCompact, ...],
+    *,
+    candidate_id: str,
+) -> None:
+    """Restore the bounded project snapshot after a failed promotion."""
+    if candidate_id not in {compact.id for compact in snapshot}:
+        store.delete(candidate_id)
+    for compact in snapshot:
+        store.write(compact)
 
 
 def _filter_compacts(

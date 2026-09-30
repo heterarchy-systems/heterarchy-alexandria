@@ -146,6 +146,8 @@ def _compact_from_frontmatter(
             review_verdict=_optional_review_verdict(
                 _frontmatter_text(frontmatter, "review_verdict")
             ),
+            reviewed_body_hash=_frontmatter_text(frontmatter, "reviewed_body_hash"),
+            review_receipt_hash=_frontmatter_text(frontmatter, "review_receipt_hash"),
             review_score=_optional_int(_frontmatter_text(frontmatter, "review_score")),
             review_max_score=_optional_int(
                 _frontmatter_text(frontmatter, "review_max_score")

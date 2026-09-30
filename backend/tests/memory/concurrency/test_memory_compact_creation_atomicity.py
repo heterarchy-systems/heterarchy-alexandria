@@ -14,6 +14,8 @@ from typing import Protocol
 
 import anyio
 import pytest
+from tests.memory.compact_source_fixture import DeterministicCompactSourceReader
+
 from app.memory.application.memory_compacts.lifecycle.memory_compact_service import (
     MemoryCompactService,
 )
@@ -120,7 +122,10 @@ def _create_in_process(
             vault_path=vault_path,
             create_gate=create_gate,
         )
-        service = MemoryCompactService(repository=repository)
+        service = MemoryCompactService(
+            repository=repository,
+            source_reader=DeterministicCompactSourceReader(),
+        )
         compact = await service.create(_payload(reverse_sources=reverse_sources))
         return compact.id, compact.deduplicated
 
@@ -187,7 +192,8 @@ def test_identical_compact_creation_completes_at_high_same_loop_concurrency(
                 repository=ObsidianMemoryCompactRepository(
                     vault_path=vault_path,
                     relative_dir="Alexandria/Memory Compacts",
-                )
+                ),
+                source_reader=DeterministicCompactSourceReader(),
             )
             for _ in range(64)
         ]
@@ -315,13 +321,15 @@ def test_creation_guard_waits_for_cancelled_persistence_worker(
             repository=ObsidianMemoryCompactRepository(
                 vault_path=vault_path,
                 relative_dir="Alexandria/Memory Compacts",
-            )
+            ),
+            source_reader=DeterministicCompactSourceReader(),
         )
         competing_service = MemoryCompactService(
             repository=ObsidianMemoryCompactRepository(
                 vault_path=vault_path,
                 relative_dir="Alexandria/Memory Compacts",
-            )
+            ),
+            source_reader=DeterministicCompactSourceReader(),
         )
         owner_task = asyncio.create_task(
             owner_service.create(_payload(reverse_sources=False))

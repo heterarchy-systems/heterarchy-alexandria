@@ -19,6 +19,8 @@ from app.memory.domain.event_enum.memory_compact_enums import (
     MemoryCompactStatus,
 )
 from app.memory.interface.schemas.memory_compact.memory_compact_review_schema import (
+    MemoryCompactDraftEditRequest,
+    MemoryCompactMarkCurrentRequest,
     MemoryCompactReviewRequest,
     MemoryCompactReviewResponse,
 )
@@ -213,6 +215,10 @@ async def create_memory_compact(
 @inject
 async def mark_memory_compact_current(
     compact_id: str,
+    request: Annotated[
+        MemoryCompactMarkCurrentRequest | None,
+        Depends(model_validate_optional_json_body(MemoryCompactMarkCurrentRequest)),
+    ],
     service: Annotated[
         MemoryCompactService,
         Depends(Provide[ApplicationContainer.memory.memory_compact_service]),
@@ -225,6 +231,7 @@ async def mark_memory_compact_current(
 
     Args:
         compact_id: Memory Compact identifier.
+        request: Optional reviewed-receipt fence for the promotion.
         service: Memory Compact application service.
         context_service: Context/RAG service for the CURRENT healthy gate.
 
@@ -232,7 +239,10 @@ async def mark_memory_compact_current(
         Updated current Memory Compact response.
     """
     rag_gate = await _ensure_rag_healthy_for_current(context_service)
-    compact = await service.mark_current(compact_id)
+    compact = await service.mark_current(
+        compact_id,
+        expected_review_hash=None if request is None else request.expected_review_hash,
+    )
     return MemoryCompactResponse.from_entity(compact, rag_gate=rag_gate)
 
 
@@ -458,3 +468,33 @@ def _rag_health_recovery_tools(blockers: list[str]) -> list[str]:
     if not tools:
         tools.append("alexandria_check_context_rag_status")
     return tools
+
+
+@router.post("/{compact_id}/draft", response_model=MemoryCompactResponse)
+@router_exception_status(MEMORY_COMPACT_ROUTE_EXCEPTION_MAPPING)
+@inject
+async def edit_memory_compact_draft(
+    compact_id: str,
+    request: Annotated[
+        MemoryCompactDraftEditRequest,
+        Depends(model_validate_json_body(MemoryCompactDraftEditRequest)),
+    ],
+    service: Annotated[
+        MemoryCompactService,
+        Depends(Provide[ApplicationContainer.memory.memory_compact_service]),
+    ],
+) -> MemoryCompactResponse:
+    """Replace only an unchanged DRAFT; prior CURRENT remains untouched.
+
+    Args:
+        compact_id: Canonical draft identity.
+        request: Final semantic body and prior read fence.
+        service: Existing Compact lifecycle owner.
+
+    Returns:
+        Edited draft with invalidated review evidence.
+    """
+    compact = await service.edit_draft(
+        compact_id, request.markdown_body, request.expected_draft_hash
+    )
+    return MemoryCompactResponse.from_entity(compact)
