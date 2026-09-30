@@ -85,7 +85,7 @@ class AlexandriaApiSettings(BaseSettings):
         Returns:
             Bounded timeout value.
         """
-        return max(1.0, float(value))
+        return max(1.0, value)
 
 
 class AlexandriaApiConfigurationError(Exception):

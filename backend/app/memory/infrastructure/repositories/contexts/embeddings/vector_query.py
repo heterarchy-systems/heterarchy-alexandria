@@ -115,7 +115,7 @@ def build_context_vector_query(
 
     statement = statement.order_by(distance.asc()).limit(bindparam("limit"))
     vector_query = ContextVectorQuery(
-        statement=cast(ContextVectorStatement, statement),
+        statement=statement,
         parameters=parameters,
     )
     return vector_query

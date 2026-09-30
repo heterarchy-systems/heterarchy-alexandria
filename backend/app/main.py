@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import AsyncIterator, Awaitable
+from collections.abc import AsyncGenerator, Awaitable
 from contextlib import asynccontextmanager, suppress
 from typing import cast
 
@@ -78,7 +78,6 @@ from app.operations.interface.routers.retrieval_diagnostics_router import (
     router as retrieval_diagnostics_router,
 )
 from app.platform.config.app_config import AppConfig
-from app.platform.config.redis_config import RedisConfig
 from app.platform.health_router import install_health_routes
 from app.platform.lifecycle.dependency_health_enums import PlatformDependency
 from app.platform.lifecycle.state import LifecycleState
@@ -92,7 +91,6 @@ from app.platform.middleware.redis_status_cache import (
 )
 from app.platform.middleware.request_logging import install_request_logging_middleware
 from app.shared.infrastructure.database import Database
-from app.shared.security.secret_cipher import SecretCipher
 
 logger = logging.getLogger(__name__)
 
@@ -184,7 +182,7 @@ def create_app(app_config: AppConfig) -> FastAPI:
             lifecycle.dependencies.mark_unavailable(PlatformDependency.DATABASE)
 
     @asynccontextmanager
-    async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
         """Start and stop shared application resources.
 
         Args:
@@ -201,7 +199,7 @@ def create_app(app_config: AppConfig) -> FastAPI:
         database = await cast(Awaitable[Database], container.database())
         local_oauth_runtime = None
         if app_config.mcp_auth_mode is McpAuthMode.LOCAL_OAUTH2:
-            secret_cipher = cast(SecretCipher, container.secret_cipher())
+            secret_cipher = container.secret_cipher()
             local_oauth_runtime = build_local_mcp_oauth_runtime(
                 config=app_config,
                 database=database,
@@ -294,7 +292,7 @@ def create_app(app_config: AppConfig) -> FastAPI:
     install_database_session_middleware(app, resolve_database=resolve_database)
     install_redis_status_cache_middleware(
         app,
-        cast(RedisConfig, container.redis_config()),
+        container.redis_config(),
         resolve_redis_client,
     )
     install_public_surface_access_middleware(app)

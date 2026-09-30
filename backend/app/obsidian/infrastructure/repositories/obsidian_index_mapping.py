@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import cast
 
 from app.obsidian.domain.entities.obsidian_note import (
     ObsidianEdge,
@@ -19,7 +18,6 @@ from app.obsidian.infrastructure.models.obsidian_index_models import (
     ObsidianEdgeORM,
     ObsidianFileORM,
 )
-from app.shared.types.extra_types import JSONObject
 
 
 def note_from_model(model: ObsidianFileORM) -> ObsidianNote:
@@ -41,7 +39,7 @@ def note_from_model(model: ObsidianFileORM) -> ObsidianNote:
         project=model.project,
         source=model.source,
         content_hash=model.content_hash,
-        frontmatter=cast(JSONObject, model.frontmatter_json),
+        frontmatter=model.frontmatter_json,
         body=model.body,
         index_status=ObsidianIndexStatus(model.index_status),
         error_message=model.error_message,

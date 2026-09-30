@@ -11,7 +11,6 @@ from app.shared.exceptions.common_exceptions import (
     RedisExceptionAware,
     RedisExceptionDecorator,
     RedisExceptionHandler,
-    RedisExceptionKwargs,
     RedisExceptionPayload,
     RedisExceptionPolicy,
     RedisExceptionPolicyMap,
@@ -106,7 +105,7 @@ def redis_exceptions(
                     error=error,
                     mapping=mapping,
                 )
-                payload_kwargs = cast(RedisExceptionKwargs, kwargs)
+                payload_kwargs = kwargs
                 message_id = cast(
                     str,
                     payload_kwargs.get("message_id", args[0] if args else ""),

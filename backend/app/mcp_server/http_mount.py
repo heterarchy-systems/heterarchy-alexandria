@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -77,7 +77,7 @@ async def mcp_streamable_http_lifespan(
     client: AlexandriaApiClient | None = None,
     transport_host: str = DEFAULT_MCP_TRANSPORT_HOST,
     local_oauth_runtime: LocalMcpOAuthRuntime | None = None,
-) -> AsyncIterator[ASGIApp]:
+) -> AsyncGenerator[ASGIApp]:
     """Run one restart-safe FastMCP Streamable HTTP app lifespan.
 
     Args:

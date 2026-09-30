@@ -8,6 +8,7 @@ from functools import partial
 from typing import Final
 
 import anyio
+import anyio.to_thread
 from pydantic import TypeAdapter
 
 from app.obsidian.application.notes.lifecycle.obsidian_authoritative_read import (

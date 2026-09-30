@@ -11,13 +11,13 @@ type EmbeddingVector = tuple[float, ...]
 
 
 def normalize_embedding_vector(
-    vector: Iterable[float],
+    vector: Iterable[float | int],
     expected_dimensions: int | None = None,
 ) -> EmbeddingVector:
     """Normalize a finite embedding vector into an immutable tuple.
 
     Args:
-        vector: Ordered numeric embedding values.
+        vector: Ordered integer or floating-point values, normalized to floats.
         expected_dimensions: Required vector length when known.
 
     Returns:

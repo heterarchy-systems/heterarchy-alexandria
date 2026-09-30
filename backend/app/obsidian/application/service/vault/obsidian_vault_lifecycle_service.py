@@ -445,8 +445,8 @@ class ObsidianVaultLifecycleService:
             for upsert in plan["upserts"]
             if upsert["embedding"]["action"] == "REEMBED"
         )
-        plan_fingerprint = str(plan["plan_fingerprint"])
-        policy_version = str(plan["policy_version"])
+        plan_fingerprint = plan["plan_fingerprint"]
+        policy_version = plan["policy_version"]
         diagnostic_count = len(plan["diagnostics"])
         if self._context_reindex_hook is not None:
             invalidated_note_ids = tuple(

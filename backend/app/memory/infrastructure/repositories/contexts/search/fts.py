@@ -134,6 +134,6 @@ def build_context_fts_query(recall: ContextFtsRecall) -> ContextFtsQuery | None:
         parameters["kind"] = recall_filter.kind.value
     statement = statement.order_by(rank.desc()).limit(bindparam("limit"))
     return ContextFtsQuery(
-        statement=cast(ContextFtsStatement, statement),
+        statement=statement,
         parameters=parameters,
     )

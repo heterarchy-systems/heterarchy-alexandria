@@ -67,8 +67,8 @@ class MemoryCompactQueryService:
             status=status,
             covered_after=covered_after,
             covered_before=covered_before,
-            limit=min(max(int(limit), 1), 200),
-            offset=max(int(offset), 0),
+            limit=min(max(limit, 1), 200),
+            offset=max(offset, 0),
         )
 
     async def current(self, project: str | None = None) -> MemoryCompact:

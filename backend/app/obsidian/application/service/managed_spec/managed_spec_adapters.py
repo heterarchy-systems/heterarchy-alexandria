@@ -7,6 +7,7 @@ from functools import partial
 from typing import Final
 
 import anyio
+import anyio.to_thread
 from pydantic import TypeAdapter
 
 from app.memory.domain.event_enum.context_enums import ContextSourceType

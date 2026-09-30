@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Protocol
 
@@ -40,7 +40,7 @@ def create_redis_client(redis_url: str, max_connections: int = 8) -> Redis:
 @asynccontextmanager
 async def initialize_redis_client(
     config: RedisConnectionSettings,
-) -> AsyncIterator[Redis | None]:
+) -> AsyncGenerator[Redis | None]:
     """Provision and close one optional process-wide Redis client.
 
     Args:

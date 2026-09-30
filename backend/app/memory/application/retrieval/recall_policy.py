@@ -208,7 +208,7 @@ def match_confidence(match: ContextSearchMatch, *, exact: bool) -> float:
     if exact:
         return 1.0
     evidence_scores = tuple(
-        min(max(float(value), 0.0), 1.0)
+        min(max(value, 0.0), 1.0)
         for value in (
             match.score,
             match.fts_score,

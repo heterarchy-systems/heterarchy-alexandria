@@ -9,6 +9,7 @@ from functools import partial
 from typing import cast
 
 import anyio
+import anyio.to_thread
 from pydantic import TypeAdapter
 
 from app.obsidian.application.graph.diagnostics.obsidian_graph_note_diagnostics_service import (

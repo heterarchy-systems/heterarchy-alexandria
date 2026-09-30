@@ -201,7 +201,7 @@ class ObsidianIndexQueryStore:
             if note.index_status != ObsidianIndexStatus.INDEXED:
                 continue
             chunk = chunks.get(chunk_id)
-            chunk_text = note.body if chunk is None else str(chunk[0])
+            chunk_text = note.body if chunk is None else chunk[0]
             heading_path = None if chunk is None else chunk[1]
             excerpt = obsidian_excerpt(chunk_text)
             hits.append(

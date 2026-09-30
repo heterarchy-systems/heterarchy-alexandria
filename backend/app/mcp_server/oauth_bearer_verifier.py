@@ -6,7 +6,6 @@ import base64
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import cast
 
 import httpx
 from cryptography.exceptions import InvalidSignature
@@ -185,7 +184,7 @@ def _rsa_public_key(key: RsaJsonWebKeyPayload) -> rsa.RSAPublicKey:
         n=int.from_bytes(_decode_base64url(key.n), "big"),
     )
     public_key = public_numbers.public_key()
-    return cast(rsa.RSAPublicKey, public_key)
+    return public_key
 
 
 def _audience_matches(aud: str | tuple[str, ...], expected: str) -> bool:

@@ -159,7 +159,7 @@ def register_context_brief_tool(
             Backend budgeted brief response payload.
         """
         pairs = [
-            (str(pair[0]), str(pair[1]))
+            (pair[0], pair[1])
             for pair in (previously_delivered or ())
             if len(pair) == 2
         ]

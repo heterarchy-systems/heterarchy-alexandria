@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator, AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from sqlalchemy import text
@@ -145,7 +145,7 @@ class Database:
         return self._session_scope.session()
 
     @asynccontextmanager
-    async def request_session(self) -> AsyncIterator[AsyncSession]:
+    async def request_session(self) -> AsyncGenerator[AsyncSession]:
         """Bind one managed session to the current request context.
 
         Yields:

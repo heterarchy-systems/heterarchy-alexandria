@@ -50,7 +50,7 @@ async def alexandria_preview_memory_reconciliation(
     """
     payload: JSONObject = {
         "candidate": schema_payload(candidate, exclude_none=True),
-        "recall_limit": min(max(int(recall_limit), 1), 100),
+        "recall_limit": min(max(recall_limit, 1), 100),
     }
     if idempotency_key is not None and idempotency_key.strip():
         payload["idempotency_key"] = idempotency_key.strip()
@@ -164,7 +164,7 @@ async def alexandria_list_memory_reconciliation_review_queue(
     """
     return await client.get(
         "/memory/reconciliation/review-queue",
-        params={"limit": min(max(int(limit), 1), 1000)},
+        params={"limit": min(max(limit, 1), 1000)},
     )
 
 
@@ -204,7 +204,7 @@ async def alexandria_list_memory_conflicts(
     Returns:
         JSONValue: Operation result.
     """
-    query: JSONObject = {"limit": min(max(int(limit), 1), 1000)}
+    query: JSONObject = {"limit": min(max(limit, 1), 1000)}
     if status is not None:
         query["status"] = status.value
     return await client.get("/memory/reconciliation/conflicts", params=query)

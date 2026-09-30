@@ -39,7 +39,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if isinstance(result, int):
             return result
     except typer.Exit as exc:
-        return int(exc.exit_code or 0)
+        return exc.exit_code or 0
     except click.ClickException as exc:
         exc.show(file=sys.stderr)
         return exc.exit_code

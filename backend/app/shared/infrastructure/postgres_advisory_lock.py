@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from hashlib import sha256
 
@@ -53,7 +53,7 @@ class PostgresAdvisoryLock(IndexWriteProcessLock):
         self,
         wait: bool,
         shared: bool,
-    ) -> AsyncIterator[None]:
+    ) -> AsyncGenerator[None]:
         """Acquire and release one session-level advisory lock.
 
         Args:

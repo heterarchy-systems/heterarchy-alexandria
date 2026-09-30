@@ -123,7 +123,7 @@ class ContextRecordQueryStore:
             statement.order_by(ContextORM.updated_at.desc()).limit(limit).offset(offset)
         )
         rows = await self._session.execute(page)
-        return [map_context_row(row) for row in rows.scalars().all()], int(count or 0)
+        return [map_context_row(row) for row in rows.scalars().all()], (count or 0)
 
     async def chunks(self, context_id: str) -> list[ContextChunkRecord]:
         """Read ordered chunks for one Context.

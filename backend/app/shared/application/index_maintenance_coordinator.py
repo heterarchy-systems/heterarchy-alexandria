@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from abc import ABC, abstractmethod
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from dataclasses import dataclass
 from typing import Literal
@@ -90,7 +90,7 @@ class IndexMaintenanceCoordinator:
         self,
         name: str,
         wait: bool = False,
-    ) -> AsyncIterator[None]:
+    ) -> AsyncGenerator[None]:
         """Enter one exclusive maintenance operation.
 
         Args:
@@ -104,7 +104,7 @@ class IndexMaintenanceCoordinator:
             yield
 
     @asynccontextmanager
-    async def write_operation(self, name: str) -> AsyncIterator[None]:
+    async def write_operation(self, name: str) -> AsyncGenerator[None]:
         """Enter one short write operation.
 
         Args:
@@ -125,7 +125,7 @@ class IndexMaintenanceCoordinator:
         name: str,
         wait: bool,
         requested_mode: IndexLeaseMode,
-    ) -> AsyncIterator[None]:
+    ) -> AsyncGenerator[None]:
         """Execute lease.
 
         Args:

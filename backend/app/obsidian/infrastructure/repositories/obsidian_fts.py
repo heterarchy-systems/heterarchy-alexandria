@@ -209,7 +209,7 @@ def build_obsidian_fts_query(
             parameters[parameter_name] = [tag]
     statement = statement.order_by(rank.desc()).limit(bindparam("limit"))
     return ObsidianFtsQuery(
-        statement=cast(ObsidianFtsStatement, statement),
+        statement=statement,
         parameters=parameters,
     )
 

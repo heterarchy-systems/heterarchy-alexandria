@@ -216,10 +216,10 @@ class ObsidianContextEmbeddingStore:
             )
             .distinct()
         )
-        total = int(total_rows or 0)
-        current = int(current_rows or 0)
+        total = total_rows or 0
+        current = current_rows or 0
         stale = max(total - current, 0)
-        missing = int(missing_rows or 0)
+        missing = missing_rows or 0
         return ContextEmbeddingSourceStatus(
             source_name="obsidian_vault",
             status=RagHealthState.HEALTHY

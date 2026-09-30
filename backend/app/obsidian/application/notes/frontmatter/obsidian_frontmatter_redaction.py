@@ -114,7 +114,7 @@ def _redacted_mapping(value: dict[str, JSONValue]) -> tuple[JSONObject, list[str
     payload: JSONObject = {}
     warnings: list[str] = []
     for key, item in value.items():
-        field_name = str(key)
+        field_name = key
         if _is_safe_false_secret_audit_field(field_name, item):
             payload[field_name] = False
             continue

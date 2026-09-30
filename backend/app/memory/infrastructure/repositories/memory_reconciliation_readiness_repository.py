@@ -90,7 +90,7 @@ class SqlAlchemyMemoryReconciliationReadinessRepository(
         value = await self._session.scalar(
             select(func.count()).select_from(MemoryReconciliationPlanORM)
         )
-        return int(value or 0)
+        return value or 0
 
     async def _count_review_plans(self) -> int:
         """Execute count review plans.
@@ -103,7 +103,7 @@ class SqlAlchemyMemoryReconciliationReadinessRepository(
             .select_from(MemoryReconciliationPlanORM)
             .where(MemoryReconciliationPlanORM.requires_review.is_(True))
         )
-        return int(value or 0)
+        return value or 0
 
     async def _count_results(self) -> int:
         """Execute count results.
@@ -114,7 +114,7 @@ class SqlAlchemyMemoryReconciliationReadinessRepository(
         value = await self._session.scalar(
             select(func.count()).select_from(MemoryReconciliationResultORM)
         )
-        return int(value or 0)
+        return value or 0
 
     async def _count_results_by_status(
         self,
@@ -133,7 +133,7 @@ class SqlAlchemyMemoryReconciliationReadinessRepository(
             .select_from(MemoryReconciliationResultORM)
             .where(MemoryReconciliationResultORM.status == status.value)
         )
-        return int(value or 0)
+        return value or 0
 
     async def _count_conflicts(self, status: MemoryConflictStatus) -> int:
         """Execute count conflicts.
@@ -149,7 +149,7 @@ class SqlAlchemyMemoryReconciliationReadinessRepository(
             .select_from(MemoryConflictSetORM)
             .where(MemoryConflictSetORM.status == status.value)
         )
-        return int(value or 0)
+        return value or 0
 
     async def _count_temporal_states(self) -> int:
         """Execute count temporal states.
@@ -160,7 +160,7 @@ class SqlAlchemyMemoryReconciliationReadinessRepository(
         value = await self._session.scalar(
             select(func.count()).select_from(ContextTemporalStateORM)
         )
-        return int(value or 0)
+        return value or 0
 
     async def _count_hard_delete_results(self) -> int:
         """Execute count hard delete results.
@@ -173,7 +173,7 @@ class SqlAlchemyMemoryReconciliationReadinessRepository(
             .select_from(MemoryReconciliationResultORM)
             .where(MemoryReconciliationResultORM.hard_delete_performed.is_(True))
         )
-        return int(value or 0)
+        return value or 0
 
     async def _latest_failure(self) -> MemoryReconciliationResultORM | None:
         """Execute latest failure.

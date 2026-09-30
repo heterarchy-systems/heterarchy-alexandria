@@ -22,7 +22,7 @@ def _bounded_packet_budget(limit: int) -> int:
     Returns:
         int result produced by bounded packet budget.
     """
-    return min(max(int(limit), 1_000), 120_000)
+    return min(max(limit, 1_000), 120_000)
 
 
 def _bounded_source_ref_limit(limit: int) -> int:
@@ -34,7 +34,7 @@ def _bounded_source_ref_limit(limit: int) -> int:
     Returns:
         int result produced by bounded source ref limit.
     """
-    return min(max(int(limit), 1), 100)
+    return min(max(limit, 1), 100)
 
 
 def _bounded_search_limit(limit: int) -> int:
@@ -46,7 +46,7 @@ def _bounded_search_limit(limit: int) -> int:
     Returns:
         int result produced by bounded search limit.
     """
-    bounded_limit = min(max(int(limit), 1), 50)
+    bounded_limit = min(max(limit, 1), 50)
     return bounded_limit
 
 

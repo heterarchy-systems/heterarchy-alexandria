@@ -6,6 +6,7 @@ from functools import partial
 from pathlib import Path
 
 import anyio
+import anyio.to_thread
 
 from app.obsidian.application.notes.obsidian_note_indexer import (
     _read_source_text,
