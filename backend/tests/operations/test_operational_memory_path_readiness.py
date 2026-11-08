@@ -5,8 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable
 
 import anyio
-
 import pytest
+from tests.config_test_data import app_config_values
 
 from app.memory.application.contexts.records.context_service_ports import (
     ContextRetrievalCanaryPort,
@@ -85,9 +85,11 @@ def _config(
     """Build isolated typed application settings for one provenance scenario."""
     return AppConfig(
         _env_file=None,
-        app_env=environment,
-        runtime_revision=runtime_revision,
-        runtime_expected_revision=expected_revision,
+        **app_config_values(
+            app_env=environment,
+            runtime_revision=runtime_revision,
+            runtime_expected_revision=expected_revision,
+        ),
     )
 
 

@@ -17,7 +17,7 @@ from app.obsidian.domain.contracts.obsidian_graph_diagnostics_contracts import (
 from app.obsidian.domain.repositories.obsidian_graph_diagnostics_compute_provider import (
     IObsidianGraphDiagnosticsComputeProvider,
 )
-from app.shared.infrastructure.native_compute_extension import (
+from app.shared.infrastructure.native_compute.native_compute_extension import (
     NativeComputeContractModule,
     load_native_compute_module,
 )
@@ -44,13 +44,24 @@ class _DiagnosticEdgeWire(TypedDict):
     source_kind: str
 
 
+class _OrphanCensusWire(TypedDict):
+    project: str | None
+    cursor: str | None
+    limit: int
+
+
+class _RelationSuggestionsWire(TypedDict):
+    seed_note_id: str
+    limit: int
+
+
 class _DiagnosticWire(TypedDict):
     contract_version: int
     graph_compute_version: int
     notes: list[_DiagnosticNoteWire]
     edges: list[_DiagnosticEdgeWire]
-    orphan_census: JSONObject | None
-    relation_suggestions: JSONObject | None
+    orphan_census: _OrphanCensusWire | None
+    relation_suggestions: _RelationSuggestionsWire | None
 
 
 # protocol-contract: structural-seam
@@ -103,24 +114,18 @@ class NativeObsidianGraphDiagnosticsComputeProvider(
             orphan_census=(
                 None
                 if orphan_request is None
-                else cast(
-                    JSONObject,
-                    {
-                        "project": orphan_request.project,
-                        "cursor": orphan_request.cursor,
-                        "limit": orphan_request.limit,
-                    },
+                else _OrphanCensusWire(
+                    project=orphan_request.project,
+                    cursor=orphan_request.cursor,
+                    limit=orphan_request.limit,
                 )
             ),
             relation_suggestions=(
                 None
                 if suggestion_request is None
-                else cast(
-                    JSONObject,
-                    {
-                        "seed_note_id": suggestion_request.seed_note_id,
-                        "limit": suggestion_request.limit,
-                    },
+                else _RelationSuggestionsWire(
+                    seed_note_id=suggestion_request.seed_note_id,
+                    limit=suggestion_request.limit,
                 )
             ),
         )

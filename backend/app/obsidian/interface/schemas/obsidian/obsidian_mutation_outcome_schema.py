@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Literal
 
-from pydantic import StringConstraints, field_validator, model_validator
+from pydantic import Field, StringConstraints, field_validator, model_validator
 
 from app.obsidian.domain.entities.obsidian_mutation_outcome import (
     MutationOperationKind,
@@ -14,11 +14,7 @@ from app.obsidian.domain.entities.obsidian_mutation_outcome import (
 from app.obsidian.domain.event_enum.obsidian_mutation_enums import (
     ObsidianMutationOutcomeStatus,
 )
-from app.shared.schemas.common_schemas import (
-    StrictSchemaModel,
-    described_field,
-    exclude_none_field,
-)
+from app.shared.schemas.common_schemas import StrictSchemaModel, exclude_none_field
 
 
 class ObsidianMutationOutcomeRequestSchema(StrictSchemaModel):
@@ -26,12 +22,12 @@ class ObsidianMutationOutcomeRequestSchema(StrictSchemaModel):
 
     operation: Annotated[
         Literal["verified_upsert", "relate", "note_write"],
-        described_field("Fenced mutation kind that recorded the durable receipt."),
+        Field(description="Fenced mutation kind that recorded the durable receipt."),
     ] = "note_write"
     idempotency_key: Annotated[
         str | None,
         StringConstraints(strict=True, min_length=1, max_length=512),
-        described_field("Idempotency key the original mutation was sent with."),
+        Field(description="Idempotency key the original mutation was sent with."),
     ] = None
     mutation_id: Annotated[
         str | None,
@@ -41,7 +37,7 @@ class ObsidianMutationOutcomeRequestSchema(StrictSchemaModel):
             max_length=75,
             pattern="^note-write:[0-9a-f]{64}$",
         ),
-        described_field("Direct note-write receipt selector."),
+        Field(description="Direct note-write receipt selector."),
     ] = None
 
     @model_validator(mode="after")
@@ -64,58 +60,60 @@ class ObsidianMutationOutcomeResponseSchema(StrictSchemaModel):
 
     operation: Annotated[
         MutationOperationKind,
-        described_field("Fenced mutation kind that was queried."),
+        Field(description="Fenced mutation kind that was queried."),
     ]
     idempotency_key: Annotated[
-        str | None, described_field("Idempotency key that was queried.")
+        str | None, Field(description="Idempotency key that was queried.")
     ]
     status: Annotated[
         ObsidianMutationOutcomeStatus,
-        described_field("Retry-safety verdict assembled from durable fence evidence."),
+        Field(
+            description="Retry-safety verdict assembled from durable fence evidence."
+        ),
     ]
     checkpoint_state: Annotated[
         str | None,
-        described_field("Recorded fence state when a checkpoint exists."),
+        Field(description="Recorded fence state when a checkpoint exists."),
         exclude_none_field(),
     ] = None
     canonical_path: Annotated[
         str | None,
-        described_field("Canonical source path the mutation targeted."),
+        Field(description="Canonical source path the mutation targeted."),
         exclude_none_field(),
     ] = None
     note_id: Annotated[
         str | None,
-        described_field("Canonical note identifier from fence or readback."),
+        Field(description="Canonical note identifier from fence or readback."),
         exclude_none_field(),
     ] = None
     content_hash: Annotated[
         str | None,
-        described_field("Canonical source content hash evidence."),
+        Field(description="Canonical source content hash evidence."),
         exclude_none_field(),
     ] = None
     version: Annotated[
         int | None,
-        described_field("Canonical source version when available."),
+        Field(description="Canonical source version when available."),
         exclude_none_field(),
     ] = None
     evidence: Annotated[
         list[str],
-        described_field("Bounded evidence codes supporting this verdict."),
+        Field(description="Bounded evidence codes supporting this verdict."),
     ]
     mutation_id: Annotated[
-        str | None, described_field("Stable opaque mutation receipt identifier.")
+        str | None, Field(description="Stable opaque mutation receipt identifier.")
     ] = None
     operation_identity: Annotated[
-        str | None, described_field("Fingerprint of the admitted logical request.")
+        str | None, Field(description="Fingerprint of the admitted logical request.")
     ] = None
     committed_at: Annotated[
-        datetime | None, described_field("Observed primary source commit timestamp.")
+        datetime | None, Field(description="Observed primary source commit timestamp.")
     ] = None
     error_summary: Annotated[
-        str | None, described_field("Bounded failure category, excluding payloads.")
+        str | None, Field(description="Bounded failure category, excluding payloads.")
     ] = None
     replayed: Annotated[
-        bool, described_field("Whether an exact readback replaced a new write.")
+        bool, Field(description="Whether an exact readback replaced a new write.")
     ] = False
 
     @field_validator("committed_at")

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import Field
+
 from app.operations.domain.entities.operational_capability import (
     OperationalCapability,
     OperationalCapabilitySnapshot,
@@ -12,11 +14,7 @@ from app.operations.domain.event_enum.operational_capability_enums import (
     OperationalCapabilityFreshness,
     OperationalCapabilityState,
 )
-from app.shared.schemas.common_schemas import (
-    StrictSchemaModel,
-    described_field,
-    schema_list_default,
-)
+from app.shared.schemas.common_schemas import StrictSchemaModel, schema_list_default
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 
 
@@ -25,28 +23,30 @@ class OperationalCapabilityResponse(StrictSchemaModel):
 
     state: Annotated[
         OperationalCapabilityState,
-        described_field("State for this operational capability response."),
+        Field(description="State for this operational capability response."),
     ]
     ready: Annotated[
-        bool, described_field("Ready for this operational capability response.")
+        bool, Field(description="Ready for this operational capability response.")
     ]
     blockers: Annotated[
-        list[str], described_field("Blockers for this operational capability response.")
+        list[str],
+        Field(description="Blockers for this operational capability response."),
     ] = schema_list_default()
     warnings: Annotated[
-        list[str], described_field("Warnings for this operational capability response.")
+        list[str],
+        Field(description="Warnings for this operational capability response."),
     ] = schema_list_default()
     source_revision: Annotated[
         str | None,
-        described_field("Indexed source revision for this capability response."),
+        Field(description="Indexed source revision for this capability response."),
     ] = None
     projection_revision: Annotated[
         str | None,
-        described_field("Projection revision for this capability response."),
+        Field(description="Projection revision for this capability response."),
     ] = None
     freshness: Annotated[
         OperationalCapabilityFreshness,
-        described_field("Freshness evidence for this capability response."),
+        Field(description="Freshness evidence for this capability response."),
     ] = OperationalCapabilityFreshness.UNKNOWN
 
     @classmethod
@@ -71,49 +71,49 @@ class OperationalCapabilitySnapshotResponse(StrictSchemaModel):
 
     checked_at: Annotated[
         AwareTimestamp,
-        described_field(
-            "Checked at for this operational capability snapshot response."
+        Field(
+            description="Checked at for this operational capability snapshot response."
         ),
     ]
     core_memory: Annotated[
         OperationalCapabilityResponse,
-        described_field(
-            "Core memory for this operational capability snapshot response."
+        Field(
+            description="Core memory for this operational capability snapshot response."
         ),
     ]
     semantic_retrieval: Annotated[
         OperationalCapabilityResponse,
-        described_field(
-            "Semantic retrieval for this operational capability snapshot response."
+        Field(
+            description="Semantic retrieval for this operational capability snapshot response."
         ),
     ]
     source: Annotated[
         OperationalCapabilityResponse,
-        described_field("Canonical source capability evidence."),
+        Field(description="Canonical source capability evidence."),
     ]
     metadata_index: Annotated[
         OperationalCapabilityResponse,
-        described_field("Metadata index capability evidence."),
+        Field(description="Metadata index capability evidence."),
     ]
     fts: Annotated[
         OperationalCapabilityResponse,
-        described_field("FTS capability evidence."),
+        Field(description="FTS capability evidence."),
     ]
     vector: Annotated[
         OperationalCapabilityResponse,
-        described_field("Vector capability evidence."),
+        Field(description="Vector capability evidence."),
     ]
     embedding: Annotated[
         OperationalCapabilityResponse,
-        described_field("Embedding capability evidence."),
+        Field(description="Embedding capability evidence."),
     ]
     graph: Annotated[
         OperationalCapabilityResponse,
-        described_field("Graph capability evidence."),
+        Field(description="Graph capability evidence."),
     ]
     reconciliation: Annotated[
         OperationalCapabilityResponse,
-        described_field("Reconciliation capability evidence."),
+        Field(description="Reconciliation capability evidence."),
     ]
 
     @classmethod

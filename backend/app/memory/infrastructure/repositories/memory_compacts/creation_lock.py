@@ -9,14 +9,10 @@ from contextlib import asynccontextmanager
 from fcntl import LOCK_EX, LOCK_NB, LOCK_UN, flock
 from pathlib import Path
 
-from asyncer import asyncify
-
-from app.memory.infrastructure.repositories.memory_compacts.critical_task import (
-    wait_for_critical_task,
-)
 from app.memory.infrastructure.repositories.memory_compacts.obsidian_markdown_path_policy import (
     resolve_base_dir,
 )
+from app.shared.infrastructure.critical_task import run_critical_sync
 
 _CREATION_LOCK_NAME = ".memory-compact-creation.lock"
 _LOCK_RETRY_DELAY_SECONDS = 0.01
@@ -80,7 +76,11 @@ class MemoryCompactCreationLock:
         self._depth = 1
 
     async def _release_one(self) -> None:
-        """Release one acquisition, keeping the lock held while nested."""
+        """Release one acquisition, keeping the lock held while nested.
+
+        Raises:
+            RuntimeError: When lock release is attempted without a held descriptor.
+        """
         self._depth -= 1
         if self._depth > 0:
             return
@@ -92,25 +92,35 @@ class MemoryCompactCreationLock:
             raise RuntimeError(
                 "creation lock release attempted without a held descriptor"
             )
-        release_task = asyncio.ensure_future(asyncify(_release)(descriptor))
-        await wait_for_critical_task(release_task)
+        await run_critical_sync(lambda: _release(descriptor))
 
     async def _acquire_without_cancellation_leak(self) -> int:
-        """Acquire without cancellation leak.
+        """Open and lock the creation lock file without leaking descriptors on cancellation.
 
         Returns:
-            int result produced by acquire without cancellation leak.
+            Locked OS file descriptor for the creation lock file.
+
+        Raises:
+            asyncio.CancelledError: If the task is cancelled while opening or waiting for the lock.
+            BaseException: If locking fails after opening the file descriptor.
         """
-        open_task = asyncio.ensure_future(asyncify(self._open_descriptor)())
+        descriptor: int | None = None
+
+        def open_descriptor() -> int:
+            """Open the lock file descriptor and capture it for cancellation cleanup.
+
+            Returns:
+                Opened OS file descriptor.
+            """
+            nonlocal descriptor
+            descriptor = self._open_descriptor()
+            return descriptor
+
         try:
-            descriptor = await wait_for_critical_task(open_task)
+            descriptor = await run_critical_sync(open_descriptor)
         except asyncio.CancelledError:
-            if (
-                open_task.done()
-                and not open_task.cancelled()
-                and open_task.exception() is None
-            ):
-                os.close(open_task.result())
+            if descriptor is not None:
+                os.close(descriptor)
             raise
         try:
             while True:
@@ -124,20 +134,20 @@ class MemoryCompactCreationLock:
             raise
 
     def _open_descriptor(self) -> int:
-        """Open descriptor.
+        """Create parent directories and open the lock file descriptor.
 
         Returns:
-            int result produced by open descriptor.
+            Opened read-write OS file descriptor.
         """
         self._path.parent.mkdir(parents=True, exist_ok=True)
         return os.open(self._path, os.O_CREAT | os.O_RDWR, 0o600)
 
 
 def _release(descriptor: int) -> None:
-    """Execute release.
+    """Unlock and close a held creation lock file descriptor.
 
     Args:
-        descriptor: Descriptor used by this operation.
+        descriptor: OS file descriptor to unlock and close.
     """
     try:
         flock(descriptor, LOCK_UN)

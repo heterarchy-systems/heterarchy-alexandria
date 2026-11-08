@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import StringConstraints
+from pydantic import Field, StringConstraints
 
 from app.obsidian.domain.contracts.obsidian_contracts import (
     ObsidianVaultMoveApplyRequest,
@@ -22,7 +22,7 @@ from app.obsidian.interface.schemas.obsidian.obsidian_string_types import (
     ObsidianPathText,
     ObsidianQueryText,
 )
-from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
+from app.shared.schemas.common_schemas import StrictSchemaModel
 
 
 class ObsidianVaultPathSearchRequest(StrictSchemaModel):
@@ -30,11 +30,11 @@ class ObsidianVaultPathSearchRequest(StrictSchemaModel):
 
     query: Annotated[
         ObsidianQueryText,
-        described_field("Query for this Obsidian vault path search request."),
+        Field(description="Query for this Obsidian vault path search request."),
     ]
     scope_path: Annotated[
         str | None,
-        described_field("Scope path for this Obsidian vault path search request."),
+        Field(description="Scope path for this Obsidian vault path search request."),
     ] = None
 
 
@@ -43,16 +43,16 @@ class ObsidianVaultMoveRequestSchema(StrictSchemaModel):
 
     source_path: Annotated[
         ObsidianPathText,
-        described_field("Source path for this Obsidian vault move request."),
+        Field(description="Source path for this Obsidian vault move request."),
     ]
     destination_path: Annotated[
         ObsidianPathText,
-        described_field("Destination path for this Obsidian vault move request."),
+        Field(description="Destination path for this Obsidian vault move request."),
     ]
     reason: Annotated[
         str,
         StringConstraints(strict=True, min_length=1),
-        described_field("Reason for this Obsidian vault move request."),
+        Field(description="Reason for this Obsidian vault move request."),
     ]
 
     def to_command(self) -> ObsidianVaultMoveRequest:
@@ -73,8 +73,8 @@ class ObsidianVaultMovePlanRequestSchema(StrictSchemaModel):
 
     moves: Annotated[
         list[ObsidianVaultMoveRequestSchema],
-        described_field(
-            "Moves for this Obsidian vault move plan request.", min_length=1
+        Field(
+            description="Moves for this Obsidian vault move plan request.", min_length=1
         ),
     ]
 
@@ -94,21 +94,22 @@ class ObsidianVaultMoveApplyRequestSchema(StrictSchemaModel):
 
     moves: Annotated[
         list[ObsidianVaultMoveRequestSchema],
-        described_field(
-            "Moves for this Obsidian vault move apply request.", min_length=1
+        Field(
+            description="Moves for this Obsidian vault move apply request.",
+            min_length=1,
         ),
     ]
     report_path: Annotated[
         str | None,
-        described_field("Report path for this Obsidian vault move apply request."),
+        Field(description="Report path for this Obsidian vault move apply request."),
     ] = None
     reindex: Annotated[
-        bool, described_field("Reindex for this Obsidian vault move apply request.")
+        bool, Field(description="Reindex for this Obsidian vault move apply request.")
     ] = True
     verification_query: Annotated[
         str | None,
-        described_field(
-            "Verification query for this Obsidian vault move apply request."
+        Field(
+            description="Verification query for this Obsidian vault move apply request."
         ),
     ] = None
 
@@ -131,16 +132,19 @@ class ObsidianVaultMoveCandidateResponse(StrictSchemaModel):
 
     source_path: Annotated[
         str,
-        described_field("Source path for this Obsidian vault move candidate response."),
+        Field(
+            description="Source path for this Obsidian vault move candidate response."
+        ),
     ]
     destination_path: Annotated[
         str,
-        described_field(
-            "Destination path for this Obsidian vault move candidate response."
+        Field(
+            description="Destination path for this Obsidian vault move candidate response."
         ),
     ]
     reason: Annotated[
-        str, described_field("Reason for this Obsidian vault move candidate response.")
+        str,
+        Field(description="Reason for this Obsidian vault move candidate response."),
     ]
 
     @classmethod
@@ -167,14 +171,17 @@ class ObsidianVaultMoveSkipResponse(StrictSchemaModel):
     """One skipped move candidate with reason."""
 
     source_path: Annotated[
-        str, described_field("Source path for this Obsidian vault move skip response.")
+        str,
+        Field(description="Source path for this Obsidian vault move skip response."),
     ]
     destination_path: Annotated[
         str,
-        described_field("Destination path for this Obsidian vault move skip response."),
+        Field(
+            description="Destination path for this Obsidian vault move skip response."
+        ),
     ]
     reason: Annotated[
-        str, described_field("Reason for this Obsidian vault move skip response.")
+        str, Field(description="Reason for this Obsidian vault move skip response.")
     ]
 
     @classmethod
@@ -198,25 +205,25 @@ class ObsidianVaultMovePlanResponse(StrictSchemaModel):
     """Dry-run move plan response."""
 
     status: Annotated[
-        str, described_field("Status for this Obsidian vault move plan response.")
+        str, Field(description="Status for this Obsidian vault move plan response.")
     ]
     hard_delete_performed: Annotated[
         bool,
-        described_field(
-            "Hard delete performed for this Obsidian vault move plan response."
+        Field(
+            description="Hard delete performed for this Obsidian vault move plan response."
         ),
     ]
     moves: Annotated[
         list[ObsidianVaultMoveCandidateResponse],
-        described_field("Moves for this Obsidian vault move plan response."),
+        Field(description="Moves for this Obsidian vault move plan response."),
     ]
     skipped: Annotated[
         list[ObsidianVaultMoveSkipResponse],
-        described_field("Skipped for this Obsidian vault move plan response."),
+        Field(description="Skipped for this Obsidian vault move plan response."),
     ]
     ambiguous: Annotated[
         list[ObsidianVaultMoveSkipResponse],
-        described_field("Ambiguous for this Obsidian vault move plan response."),
+        Field(description="Ambiguous for this Obsidian vault move plan response."),
     ]
 
     @classmethod
@@ -251,16 +258,16 @@ class ObsidianVaultMoveAppliedResponse(StrictSchemaModel):
 
     source_path: Annotated[
         str,
-        described_field("Source path for this Obsidian vault move applied response."),
+        Field(description="Source path for this Obsidian vault move applied response."),
     ]
     destination_path: Annotated[
         str,
-        described_field(
-            "Destination path for this Obsidian vault move applied response."
+        Field(
+            description="Destination path for this Obsidian vault move applied response."
         ),
     ]
     reason: Annotated[
-        str, described_field("Reason for this Obsidian vault move applied response.")
+        str, Field(description="Reason for this Obsidian vault move applied response.")
     ]
 
     @classmethod
@@ -288,20 +295,20 @@ class ObsidianVaultMoveVerificationResponse(StrictSchemaModel):
 
     source_root_loose_notes_remaining: Annotated[
         int,
-        described_field(
-            "Source root loose notes remaining for this Obsidian vault move verification response."
+        Field(
+            description="Source root loose notes remaining for this Obsidian vault move verification response."
         ),
     ]
     reindex_status: Annotated[
         str,
-        described_field(
-            "Reindex status for this Obsidian vault move verification response."
+        Field(
+            description="Reindex status for this Obsidian vault move verification response."
         ),
     ]
     verification_hits: Annotated[
         int,
-        described_field(
-            "Verification hits for this Obsidian vault move verification response."
+        Field(
+            description="Verification hits for this Obsidian vault move verification response."
         ),
     ]
 
@@ -310,40 +317,40 @@ class ObsidianVaultMoveReportResponse(StrictSchemaModel):
     """Safe move application report response."""
 
     status: Annotated[
-        str, described_field("Status for this Obsidian vault move report response.")
+        str, Field(description="Status for this Obsidian vault move report response.")
     ]
     hard_delete_performed: Annotated[
         bool,
-        described_field(
-            "Hard delete performed for this Obsidian vault move report response."
+        Field(
+            description="Hard delete performed for this Obsidian vault move report response."
         ),
     ]
     moved: Annotated[
         list[ObsidianVaultMoveAppliedResponse],
-        described_field("Moved for this Obsidian vault move report response."),
+        Field(description="Moved for this Obsidian vault move report response."),
     ]
     skipped: Annotated[
         list[ObsidianVaultMoveSkipResponse],
-        described_field("Skipped for this Obsidian vault move report response."),
+        Field(description="Skipped for this Obsidian vault move report response."),
     ]
     ambiguous: Annotated[
         list[ObsidianVaultMoveSkipResponse],
-        described_field("Ambiguous for this Obsidian vault move report response."),
+        Field(description="Ambiguous for this Obsidian vault move report response."),
     ]
     verification: Annotated[
         ObsidianVaultMoveVerificationResponse,
-        described_field("Verification for this Obsidian vault move report response."),
+        Field(description="Verification for this Obsidian vault move report response."),
     ]
     report_markdown_path: Annotated[
         str,
-        described_field(
-            "Report markdown path for this Obsidian vault move report response."
+        Field(
+            description="Report markdown path for this Obsidian vault move report response."
         ),
     ]
     report_json_path: Annotated[
         str,
-        described_field(
-            "Report JSON path for this Obsidian vault move report response."
+        Field(
+            description="Report JSON path for this Obsidian vault move report response."
         ),
     ]
 

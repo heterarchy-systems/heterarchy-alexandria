@@ -5,21 +5,30 @@ from __future__ import annotations
 from typing import ClassVar, cast
 
 import anyio
-import app.shared.infrastructure.redis_client as redis_client_module
 import pytest
-from app.container import create_operational_readiness_cache
+from redis.asyncio import Redis
+
+import app.shared.infrastructure.redis_client as redis_client_module
+from app.container import (
+    create_external_api_rate_limiter,
+    create_maintenance_job_submitter,
+    create_operational_readiness_cache,
+)
+from app.operations.application.readiness.external_api_rate_limit import (
+    RedisExternalApiRateLimiter,
+)
 from app.operations.application.readiness.operational_readiness_cache import (
     NoopOperationalReadinessCache,
 )
 from app.operations.infrastructure.redis_operational_readiness_cache import (
     RedisOperationalReadinessCache,
 )
+from app.platform.config.redis_config import MaintenanceQueueConfig
 from app.platform.config.redis_config import RedisConfig
 from app.shared.infrastructure.redis_client import (
     create_redis_client,
     initialize_redis_client,
 )
-from redis.asyncio import Redis
 
 
 class _FakeRedisClient:
@@ -136,3 +145,24 @@ def test_readiness_cache_reuses_the_shared_client() -> None:
     cache = create_operational_readiness_cache(config, client)
 
     assert isinstance(cache, RedisOperationalReadinessCache)
+
+
+def test_disabled_maintenance_queue_preserves_shared_redis_adapters() -> None:
+    """Disabling maintenance delivery leaves Redis cache and rate limits active."""
+    client = cast(Redis, _FakeRedisClient())
+    redis_config = RedisConfig(_env_file=None, url="redis://cache:6379/0")
+    queue_config = MaintenanceQueueConfig(
+        _env_file=None,
+        redis_url="redis://cache:6379/0",
+        queue_enabled=False,
+    )
+
+    assert create_maintenance_job_submitter(client, queue_config) is None
+    assert isinstance(
+        create_operational_readiness_cache(redis_config, client),
+        RedisOperationalReadinessCache,
+    )
+    assert isinstance(
+        create_external_api_rate_limiter(redis_config, client),
+        RedisExternalApiRateLimiter,
+    )

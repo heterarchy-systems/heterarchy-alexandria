@@ -6,7 +6,7 @@ from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, status
 
 from app.container import ApplicationContainer
-from app.obsidian.application.service.notes.obsidian_report_bundle_service import (
+from app.obsidian.application.notes.report_bundles.obsidian_report_bundle_service import (
     ObsidianReportBundleService,
 )
 from app.obsidian.interface.schemas.obsidian.obsidian_report_bundle_schema import (

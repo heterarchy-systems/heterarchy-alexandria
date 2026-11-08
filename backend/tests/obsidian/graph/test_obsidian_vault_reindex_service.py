@@ -36,7 +36,6 @@ from app.obsidian.infrastructure.models import (
 from app.obsidian.infrastructure.repositories.obsidian_index_repository import (
     SqlAlchemyObsidianIndexRepository,
 )
-from app.platform.config.app_config import AppConfig
 from app.shared.application.index_maintenance_coordinator import (
     IndexMaintenanceCoordinator,
 )
@@ -148,7 +147,6 @@ def test_composite_reindex_refreshes_graph_from_new_canonical_markdown(
             )
             graph_repository = FakeObsidianGraphProjectionRepository()
             graph_service = ObsidianGraphProjectionRebuildService(
-                config=AppConfig(_env_file=None),
                 source_builder=ObsidianGraphProjectionSourceBuilder(
                     compute_provider=create_native_obsidian_graph_projection_compute_provider(),
                     source=SqlAlchemyObsidianGraphProjectionSource(session=session),
@@ -230,7 +228,6 @@ def test_report_bundle_order_always_materializes_expected_incoming_edges(
             )
             graph_repository = FakeObsidianGraphProjectionRepository()
             graph_service = ObsidianGraphProjectionRebuildService(
-                config=AppConfig(_env_file=None),
                 source_builder=ObsidianGraphProjectionSourceBuilder(
                     compute_provider=create_native_obsidian_graph_projection_compute_provider(),
                     source=SqlAlchemyObsidianGraphProjectionSource(session=session),

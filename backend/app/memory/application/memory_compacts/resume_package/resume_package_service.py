@@ -28,8 +28,10 @@ from app.memory.application.memory_compacts.resume_package.resume_package_contra
     ResumePackageSeal,
     ResumePackageView,
 )
-from app.memory.application.memory_compacts.resume_package.resume_package_markdown import (
-    parse_resume_package_markdown,
+from app.memory.application.memory_compacts.resume_package.resume_package_parser import (
+    ResumePackageMarkdownParser,
+)
+from app.memory.application.memory_compacts.resume_package.resume_package_renderer import (
     render_resume_package_markdown,
 )
 from app.memory.domain.entities.context_read_models import ContextRecord
@@ -212,7 +214,7 @@ class MemoryResumePackageService:
                 canonical resume package.
         """
         compact = await self._compact_service.get(package_id)
-        parsed = parse_resume_package_markdown(compact.markdown_body)
+        parsed = ResumePackageMarkdownParser.parse(compact.markdown_body)
         return ResumePackageView(
             package_id=compact.id,
             project=compact.project,
@@ -353,7 +355,7 @@ class MemoryResumePackageService:
             Sealed package identity read back from storage.
         """
         compact = await self._compact_service.get(package_id)
-        parsed = parse_resume_package_markdown(compact.markdown_body)
+        parsed = ResumePackageMarkdownParser.parse(compact.markdown_body)
         return ResumePackageSeal(
             package_id=compact.id,
             package_revision=parsed.package_revision,
@@ -383,7 +385,7 @@ def _lineage_entry_if_matching(
         this lineage.
     """
     try:
-        parsed = parse_resume_package_markdown(compact.markdown_body)
+        parsed = ResumePackageMarkdownParser.parse(compact.markdown_body)
     except MemoryResumePackageValidationError:
         return None
     if parsed.lineage_id != lineage_id:

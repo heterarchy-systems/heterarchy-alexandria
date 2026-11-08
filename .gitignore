@@ -278,3 +278,5 @@ backend/.fastembed_cache
 # build target symlinks (SSD cache convention)
 native/target
 .codex/
+# Feature settings contain local deployment values and credentials.
+module_setting_envs/*_settings.env

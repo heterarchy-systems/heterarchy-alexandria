@@ -5,17 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Annotated, Literal
 
-from pydantic import StringConstraints, model_validator
+from pydantic import Field, StringConstraints, model_validator
 
 from app.memory.domain.event_enum.context_enums import (
     ContextRecallLifecycleStatus,
     ContextScope,
 )
-from app.shared.schemas.common_schemas import (
-    StrictSchemaModel,
-    described_field,
-    schema_list_default,
-)
+from app.shared.schemas.common_schemas import StrictSchemaModel, schema_list_default
 from benchmarks.memory_eval_contracts import MemoryEvalCase, MemoryEvalQueryClass
 
 MEMORY_EVAL_SCHEMA_VERSION = 1
@@ -27,80 +23,82 @@ class MemoryEvalCaseSchema(StrictSchemaModel):
     case_id: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=120),
-        described_field("Stable unique identifier for this memory-evaluation case."),
+        Field(description="Stable unique identifier for this memory-evaluation case."),
     ]
     query: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=1000),
-        described_field("Search query exercised by this memory-evaluation case."),
+        Field(description="Search query exercised by this memory-evaluation case."),
     ]
     query_class: Annotated[
         MemoryEvalQueryClass,
-        described_field("Memory ability exercised by this evaluation case."),
+        Field(description="Memory ability exercised by this evaluation case."),
     ]
     project: Annotated[
         str | None,
-        described_field("Optional project routing identity for this evaluation case."),
+        Field(
+            description="Optional project routing identity for this evaluation case."
+        ),
     ] = None
     include_scopes: Annotated[
         list[ContextScope],
-        described_field("Explicit recall scopes used by this evaluation case."),
+        Field(description="Explicit recall scopes used by this evaluation case."),
     ] = schema_list_default()
     include_lifecycle_statuses: Annotated[
         list[ContextRecallLifecycleStatus],
-        described_field("Optional lifecycle states visible to this evaluation case."),
+        Field(description="Optional lifecycle states visible to this evaluation case."),
     ] = schema_list_default()
     expected_context_ids: Annotated[
         list[str],
-        described_field(
-            "Accepted current Context identifiers for this evaluation case."
+        Field(
+            description="Accepted current Context identifiers for this evaluation case."
         ),
     ] = schema_list_default()
     expected_titles: Annotated[
         list[str],
-        described_field("Accepted current note titles for this evaluation case."),
+        Field(description="Accepted current note titles for this evaluation case."),
     ] = schema_list_default()
     forbidden_context_ids: Annotated[
         list[str],
-        described_field(
-            "Obsolete or incorrect Context identifiers forbidden in recall."
+        Field(
+            description="Obsolete or incorrect Context identifiers forbidden in recall."
         ),
     ] = schema_list_default()
     forbidden_titles: Annotated[
         list[str],
-        described_field("Obsolete or incorrect note titles forbidden in recall."),
+        Field(description="Obsolete or incorrect note titles forbidden in recall."),
     ] = schema_list_default()
     required_graph_relations: Annotated[
         list[str],
-        described_field("Graph relation names required for a successful graph case."),
+        Field(description="Graph relation names required for a successful graph case."),
     ] = schema_list_default()
     minimum_graph_distance: Annotated[
         int,
-        described_field(
-            "Minimum graph evidence distance required for a graph-evaluation case.",
+        Field(
+            description="Minimum graph evidence distance required for a graph-evaluation case.",
             ge=0,
             le=20,
         ),
     ] = 0
     minimum_expected_matches: Annotated[
         int,
-        described_field(
-            "Minimum distinct expected memories that must be preserved in results.",
+        Field(
+            description="Minimum distinct expected memories that must be preserved in results.",
             ge=0,
             le=50,
         ),
     ] = 1
     expected_abstention: Annotated[
         bool,
-        described_field(
-            "Whether the correct retrieval behavior is to return no memory."
+        Field(
+            description="Whether the correct retrieval behavior is to return no memory."
         ),
     ] = False
     rationale: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=2000),
-        described_field(
-            "Human-reviewed reason this case has the declared truth contract."
+        Field(
+            description="Human-reviewed reason this case has the declared truth contract."
         ),
     ]
 
@@ -182,11 +180,11 @@ class MemoryEvalCorpusSchema(StrictSchemaModel):
 
     schema_version: Annotated[
         Literal[1],
-        described_field("Memory Evaluation Suite corpus schema version."),
+        Field(description="Memory Evaluation Suite corpus schema version."),
     ]
     cases: Annotated[
         list[MemoryEvalCaseSchema],
-        described_field("Explicit versioned truth cases in this evaluation corpus."),
+        Field(description="Explicit versioned truth cases in this evaluation corpus."),
     ]
 
     @model_validator(mode="after")

@@ -3,18 +3,18 @@
 from __future__ import annotations
 
 import os
-
 from pathlib import Path
 from threading import Event
 
 import anyio
 import pytest
-from app.main import app as default_app, create_app
-from app.memory.domain.entities.context_read_models import ContextReindexResult
-from app.platform.config.app_config import AppConfig
-from app.shared.infrastructure.database import Database
 from dependency_injector import providers
 from fastapi.testclient import TestClient
+from tests.config_test_data import application_container
+
+from app.main import app as default_app, create_app
+from app.memory.domain.entities.context_read_models import ContextReindexResult
+from app.shared.infrastructure.database import Database
 
 _ROUTER_PACKAGES = [
     "app.connections.interface.routers",
@@ -60,8 +60,7 @@ def test_create_app_runs_enabled_embedding_recovery_after_startup(
 
     anyio.run(prepare_database)
     monkeypatch.setenv("DATABASE_URL", database_url)
-    config = AppConfig(
-        _env_file=None,
+    config = application_container(
         rag_embedding_recovery_on_startup=True,
         obsidian_vault_path=str(tmp_path / "vault"),
         obsidian_vault_config_path=str(tmp_path / "vault-config.json"),

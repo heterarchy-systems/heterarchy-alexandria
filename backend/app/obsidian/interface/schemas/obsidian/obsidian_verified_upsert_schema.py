@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, cast
+from typing import Annotated
 
 from pydantic import Field, StringConstraints, field_validator, model_validator
 
@@ -23,11 +23,7 @@ from app.obsidian.domain.event_enum.obsidian_enums import AlexandriaNoteType
 from app.obsidian.interface.schemas.obsidian.obsidian_logical_identity_schema import (
     ObsidianLogicalIdentitySchema,
 )
-from app.shared.schemas.common_schemas import (
-    StrictSchemaModel,
-    described_field,
-    schema_list_default,
-)
+from app.shared.schemas.common_schemas import StrictSchemaModel, schema_list_default
 from app.shared.type_validation.frontmatter_metadata_normalization import (
     normalize_string_collection,
 )
@@ -39,26 +35,26 @@ class ObsidianVerifiedUpsertRequestSchema(StrictSchemaModel):
 
     identity: Annotated[
         ObsidianLogicalIdentitySchema,
-        described_field("Canonical logical identity for this verified upsert."),
+        Field(description="Canonical logical identity for this verified upsert."),
     ]
     title: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=512),
-        described_field("Canonical note title for this verified upsert."),
+        Field(description="Canonical note title for this verified upsert."),
     ]
     body: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=4_000_000),
-        described_field("Canonical Markdown body for this verified upsert."),
+        Field(description="Canonical Markdown body for this verified upsert."),
     ]
     alexandria_type: Annotated[
         AlexandriaNoteType,
-        described_field("Managed Alexandria note type for this verified upsert."),
+        Field(description="Managed Alexandria note type for this verified upsert."),
     ]
     idempotency_key: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=512),
-        described_field("Retry-stable key for this verified upsert."),
+        Field(description="Retry-stable key for this verified upsert."),
     ]
     expected_content_hash: Annotated[
         str | None,
@@ -68,20 +64,20 @@ class ObsidianVerifiedUpsertRequestSchema(StrictSchemaModel):
             max_length=64,
             pattern="^[0-9a-fA-F]{64}$",
         ),
-        described_field("Optional compare-and-swap hash for an existing note."),
+        Field(description="Optional compare-and-swap hash for an existing note."),
     ] = None
     tags: Annotated[
         list[str],
-        described_field("Typed tags for this verified upsert.", max_length=64),
+        Field(description="Typed tags for this verified upsert.", max_length=64),
     ] = schema_list_default()
     provenance: Annotated[
         ContextProvenanceBoundary,
-        described_field("Typed provenance for this verified upsert."),
+        Field(description="Typed provenance for this verified upsert."),
     ] = Field(default_factory=ContextProvenanceBoundary)
     source: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=128),
-        described_field("Source actor label for this verified upsert."),
+        Field(description="Source actor label for this verified upsert."),
     ] = "agent"
 
     @field_validator("tags", mode="before")
@@ -114,17 +110,14 @@ class ObsidianVerifiedUpsertRequestSchema(StrictSchemaModel):
                 else self.expected_content_hash.lower()
             ),
             tags=tuple(self.tags),
-            provenance=cast(
-                ContextProvenancePayload,
-                {
-                    "source_actor_id": provenance.source_actor_id,
-                    "source_actor_type": provenance.source_actor_type,
-                    "source_run_id": provenance.source_run_id,
-                    "external_run_id": provenance.external_run_id,
-                    "artifact_refs": list(provenance.artifact_refs),
-                    "evidence_refs": list(provenance.evidence_refs),
-                    "confidence": provenance.confidence,
-                },
+            provenance=ContextProvenancePayload(
+                source_actor_id=provenance.source_actor_id,
+                source_actor_type=provenance.source_actor_type,
+                source_run_id=provenance.source_run_id,
+                external_run_id=provenance.external_run_id,
+                artifact_refs=list(provenance.artifact_refs),
+                evidence_refs=list(provenance.evidence_refs),
+                confidence=provenance.confidence,
             ),
             source=self.source,
         )
@@ -135,17 +128,17 @@ class ObsidianVerifiedUpsertSelectorSchema(StrictSchemaModel):
 
     identity: Annotated[
         ObsidianLogicalIdentitySchema | None,
-        described_field("Logical identity selector for verified note diagnostics."),
+        Field(description="Logical identity selector for verified note diagnostics."),
     ] = None
     note_id: Annotated[
         str | None,
         StringConstraints(strict=True, min_length=1, max_length=256),
-        described_field("Exact note identifier selector."),
+        Field(description="Exact note identifier selector."),
     ] = None
     path: Annotated[
         str | None,
         StringConstraints(strict=True, min_length=1, max_length=2048),
-        described_field("Exact managed path selector."),
+        Field(description="Exact managed path selector."),
     ] = None
 
     @model_validator(mode="after")
@@ -179,55 +172,56 @@ class ObsidianVerifiedUpsertResponse(StrictSchemaModel):
 
     operation: Annotated[
         ObsidianVerifiedUpsertOperation,
-        described_field("Observed verified-upsert operation."),
+        Field(description="Observed verified-upsert operation."),
     ]
     idempotency_key: Annotated[
-        str, described_field("Retry key for the verified-upsert response.")
+        str, Field(description="Retry key for the verified-upsert response.")
     ]
     logical_identity: Annotated[
         ObsidianLogicalIdentitySchema,
-        described_field("Logical identity resolved by the verified upsert."),
+        Field(description="Logical identity resolved by the verified upsert."),
     ]
-    note_id: Annotated[str, described_field("Canonical note identifier.")]
-    canonical_path: Annotated[str, described_field("Canonical managed note path.")]
-    content_hash: Annotated[str, described_field("Read-back source content hash.")]
-    version: Annotated[int | None, described_field("Canonical source version.")]
+    note_id: Annotated[str, Field(description="Canonical note identifier.")]
+    canonical_path: Annotated[str, Field(description="Canonical managed note path.")]
+    content_hash: Annotated[str, Field(description="Read-back source content hash.")]
+    version: Annotated[int | None, Field(description="Canonical source version.")]
     storage_status: Annotated[
         ObsidianVerifiedProjectionStatus,
-        described_field("Durable source storage evidence."),
+        Field(description="Durable source storage evidence."),
     ]
     readback_verified: Annotated[
-        bool, described_field("Whether canonical source readback matched the write.")
+        bool, Field(description="Whether canonical source readback matched the write.")
     ]
     metadata_status: Annotated[
         ObsidianVerifiedProjectionStatus,
-        described_field("Metadata/index projection evidence."),
+        Field(description="Metadata/index projection evidence."),
     ]
     fts_status: Annotated[
         ObsidianVerifiedProjectionStatus,
-        described_field("FTS projection evidence."),
+        Field(description="FTS projection evidence."),
     ]
     vector_status: Annotated[
         ObsidianVerifiedProjectionStatus,
-        described_field("Vector projection evidence."),
+        Field(description="Vector projection evidence."),
     ]
     graph_edge_index_status: Annotated[
         ObsidianVerifiedProjectionStatus,
-        described_field("Indexed graph-edge evidence."),
+        Field(description="Indexed graph-edge evidence."),
     ]
     graph_projection_status: Annotated[
         ObsidianVerifiedProjectionStatus,
-        described_field("Graph projection evidence."),
+        Field(description="Graph projection evidence."),
     ]
     duplicate_safety: Annotated[
         ObsidianVerifiedDuplicateSafety,
-        described_field("Logical duplicate-safety evidence."),
+        Field(description="Logical duplicate-safety evidence."),
     ]
     warnings: Annotated[
-        list[str], described_field("Bounded warnings for this verified upsert.")
+        list[str], Field(description="Bounded warnings for this verified upsert.")
     ]
     error_code: Annotated[
-        str | None, described_field("Stable error code when degraded evidence exists.")
+        str | None,
+        Field(description="Stable error code when degraded evidence exists."),
     ]
 
     @classmethod
@@ -262,28 +256,28 @@ class ObsidianVerifiedUpsertResponse(StrictSchemaModel):
 class ObsidianVerifiedUpsertVerificationResponse(StrictSchemaModel):
     """Source and projection diagnosis for one logical note selector."""
 
-    source_readable: Annotated[bool, described_field("Source readability evidence.")]
+    source_readable: Annotated[bool, Field(description="Source readability evidence.")]
     canonical_identity_resolved: Annotated[
-        bool, described_field("Canonical identity resolution evidence.")
+        bool, Field(description="Canonical identity resolution evidence.")
     ]
-    indexed: Annotated[bool, described_field("Metadata index evidence.")]
+    indexed: Annotated[bool, Field(description="Metadata index evidence.")]
     vector_current: Annotated[
-        bool | None, described_field("Vector freshness evidence when available.")
+        bool | None, Field(description="Vector freshness evidence when available.")
     ]
     graph_current: Annotated[
-        bool | None, described_field("Graph freshness evidence when available.")
+        bool | None, Field(description="Graph freshness evidence when available.")
     ]
     duplicate_safe: Annotated[
-        bool | None, described_field("Duplicate safety evidence.")
+        bool | None, Field(description="Duplicate safety evidence.")
     ]
     temporal_authority_consistent: Annotated[
-        bool | None, described_field("Temporal/authority evidence when available.")
+        bool | None, Field(description="Temporal/authority evidence when available.")
     ]
-    note_id: Annotated[str | None, described_field("Resolved note identifier.")]
-    canonical_path: Annotated[str | None, described_field("Resolved managed path.")]
-    content_hash: Annotated[str | None, described_field("Observed source hash.")]
-    version: Annotated[int | None, described_field("Observed source version.")]
-    warnings: Annotated[list[str], described_field("Bounded verification warnings.")]
+    note_id: Annotated[str | None, Field(description="Resolved note identifier.")]
+    canonical_path: Annotated[str | None, Field(description="Resolved managed path.")]
+    content_hash: Annotated[str | None, Field(description="Observed source hash.")]
+    version: Annotated[int | None, Field(description="Observed source version.")]
+    warnings: Annotated[list[str], Field(description="Bounded verification warnings.")]
 
     @classmethod
     def from_entity(

@@ -10,6 +10,8 @@ from typing_extensions import TypedDict
 from app.memory.domain.event_enum.context_enums import (
     ContextAccessActorType,
     ContextAccessMethod,
+    ContextBriefDeliveryStatus,
+    ContextBriefOmissionReason,
     ContextContentFormat,
     ContextGraphDirection,
     ContextGraphSignalType,
@@ -24,6 +26,11 @@ from app.memory.domain.event_enum.context_enums import (
     RagStrategy,
 )
 from app.shared.types.extra_types import JSONObject, JSONValue
+
+MAX_CONTEXTS_PER_PACK = 10
+MAX_CONTEXT_PACK_CHARACTERS = 20_000
+MAX_CONTEXT_BRIEF_BYTES = MAX_CONTEXT_PACK_CHARACTERS
+MAX_CONTEXTS_PER_BRIEF = MAX_CONTEXTS_PER_PACK
 
 type ContextRetrievalSource = Literal["context_vault", "obsidian_vault"]
 
@@ -207,12 +214,6 @@ class ContextPackPayload(TypedDict, closed=True):
     recall_scopes: list[ContextScope]
     matches: list[ContextSearchMatchPayload]
     context_pack: str
-
-
-type ContextBriefDeliveryStatus = Literal["new", "changed"]
-type ContextBriefOmissionReason = Literal[
-    "record_budget", "byte_budget", "section_truncated"
-]
 
 
 class ContextRefetchReferencePayload(TypedDict, closed=True):

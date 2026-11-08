@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from asyncer import asyncify
+from functools import partial
 
 from app.memory.application.retrieval.embeddings.embedding_contract import (
     EmbeddingProvider,
@@ -19,6 +19,7 @@ from app.memory.domain.repositories.contexts.context_search_source import (
     IContextSearchSource,
 )
 from app.shared.exceptions.memory_context_exceptions import MemoryContextValidationError
+from app.shared.infrastructure.critical_task import run_critical_sync
 
 
 class ContextVectorRecallService:
@@ -87,4 +88,4 @@ async def _embed_query(provider: EmbeddingProvider, text: str) -> list[float]:
     Returns:
         list[float] result produced by embed query.
     """
-    return await asyncify(provider.embed_query, abandon_on_cancel=True)(text)
+    return await run_critical_sync(partial(provider.embed_query, text))

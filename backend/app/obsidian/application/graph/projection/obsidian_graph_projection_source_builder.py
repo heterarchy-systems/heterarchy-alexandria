@@ -14,6 +14,7 @@ from app.obsidian.domain.repositories.obsidian_graph_projection_compute_provider
 from app.obsidian.domain.repositories.obsidian_graph_projection_source_repository import (
     IObsidianGraphProjectionSourceRepository,
 )
+from app.shared.infrastructure.critical_task import run_critical_sync
 
 
 class ObsidianGraphProjectionSourceBuilder(
@@ -51,4 +52,11 @@ class ObsidianGraphProjectionSourceBuilder(
         """
         notes = await self._source.list_projection_notes()
         edges = await self._source.list_projection_edges()
-        return self._compute_provider.compute(notes, edges, self._batch_size)
+        compute_provider = self._compute_provider
+        batch_size = self._batch_size
+
+        def compute_projection() -> ObsidianGraphProjectionSourceSnapshot:
+            return compute_provider.compute(notes, edges, batch_size)
+
+        # Source rows are per-call values; the async source/session stays in this task.
+        return await run_critical_sync(compute_projection)

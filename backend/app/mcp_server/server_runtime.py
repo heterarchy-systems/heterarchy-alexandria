@@ -8,7 +8,7 @@ from collections.abc import Sequence
 from mcp.server import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
 
-from app.mcp_server.backend_api_client import AlexandriaApiClient, AlexandriaApiSettings
+from app.mcp_server.backend_api_client import AlexandriaApiClient
 from app.mcp_server.local_oauth.approval import register_local_oauth_approval_route
 from app.mcp_server.local_oauth.runtime import LocalMcpOAuthRuntime
 from app.mcp_server.tools.contexts.context_lifecycle_registration import (
@@ -45,7 +45,7 @@ from app.mcp_server.tools.obsidian.obsidian_relation_registration import (
 from app.mcp_server.tools.obsidian.vault_maintenance_registration import (
     register_vault_maintenance_tools,
 )
-from app.mcp_server.tools.obsidian.verified_upsert_registration import (
+from app.mcp_server.tools.obsidian.verified_upsert.verified_upsert_registration import (
     register_verified_upsert_tools,
 )
 from app.mcp_server.tools.operations.maintenance_registration import (
@@ -62,6 +62,7 @@ from app.mcp_server.tools.reconciliation.memory_reconciliation_registration impo
 )
 from app.mcp_server.toolset_revision import ToolsetRevisionMCPServer
 from app.mcp_server.type_validate.mcp_transport_enums import McpTransport
+from app.mcp_server.type_validate.oauth.config_contracts import McpApiConfig
 
 DEFAULT_MCP_TRANSPORT_HOST = "0.0.0.0"
 DEFAULT_MCP_STREAMABLE_HTTP_PATH = "/mcp"
@@ -84,9 +85,7 @@ def build_mcp_server(
         under ``alexandria.toolset_revision``.
     """
     api_client = (
-        AlexandriaApiClient(AlexandriaApiSettings.from_env())
-        if client is None
-        else client
+        AlexandriaApiClient(McpApiConfig.from_env()) if client is None else client
     )
     instructions = (
         "Use alexandria_recall for ordinary memory retrieval and "
@@ -115,8 +114,8 @@ def build_mcp_server(
             auth=local_oauth_runtime.auth_settings,
         )
         register_local_oauth_approval_route(
-            server,
-            local_oauth_runtime.provider,
+            server=server,
+            approval_service=local_oauth_runtime.approval_service,
         )
     register_memory_reconciliation_tools(server, api_client)
     register_context_recall_tools(server, api_client)

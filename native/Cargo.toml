@@ -2,9 +2,14 @@
 members = [
     "crates/heterarchy-alexandria-core",
     "crates/heterarchy-alexandria-py",
+    "crates/heterarchy-alexandria-model-buffer",
     "xtask",
 ]
 resolver = "3"
+exclude = ["vendor/fastembed"]
+
+[patch.crates-io]
+fastembed = { path = "vendor/fastembed" }
 
 [workspace.package]
 version = "0.1.0"
@@ -13,7 +18,8 @@ rust-version = "1.98"
 license = "MIT"
 
 [workspace.dependencies]
-fastembed = { version = "5.17.4", default-features = false, features = ["ort-download-binaries-rustls-tls", "hf-hub-rustls-tls"] }
+libc = "=0.2.189"
+fastembed = { version = "5.17.4", default-features = false, features = ["ort-download-binaries-rustls-tls"] }
 pyo3 = { version = "0.29.2", default-features = false, features = ["macros"] }
 pyo3-build-config = "0.29.2"
 caseless = "0.2"

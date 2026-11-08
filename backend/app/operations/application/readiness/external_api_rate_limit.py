@@ -24,11 +24,11 @@ class ExternalApiRateLimitedError(ExternalApiRateLimitError):
     """Raised when an outbound provider has exhausted its Redis budget."""
 
     def __init__(self, provider: str, retry_after_seconds: int) -> None:
-        """Initialize ExternalApiRateLimitedError state and dependencies.
+        """Record the provider namespace and retry backoff window for a rejected call.
 
         Args:
-            provider: Provider used by this operation.
-            retry_after_seconds: Retry after seconds used by this operation.
+            provider: Normalized external provider budget namespace.
+            retry_after_seconds: Seconds until the fixed rate-limit window resets.
         """
         super().__init__(f"external API rate limit exceeded for {provider}")
         self.provider = provider
@@ -87,13 +87,13 @@ class RedisExternalApiRateLimiter(ExternalApiRateLimiter):
         window_seconds: int,
         key_prefix: str = "alexandria:rate:v1",
     ) -> None:
-        """Initialize RedisExternalApiRateLimiter state and dependencies.
+        """Configure a Redis-backed fixed-window rate limiter for external APIs.
 
         Args:
-            client: Client used by this operation.
-            default_limit: Default limit used by this operation.
-            window_seconds: Window seconds used by this operation.
-            key_prefix: Key prefix used by this operation.
+            client: Shared asynchronous Redis client instance.
+            default_limit: Default permit count per window when no override is passed.
+            window_seconds: Fixed rate-limit window duration in seconds.
+            key_prefix: Redis key namespace prefix for rate-limit buckets.
         """
         self._limiter = RedisFixedWindowRateLimiter(client, key_prefix)
         self._default_limit = default_limit
@@ -111,6 +111,10 @@ class RedisExternalApiRateLimiter(ExternalApiRateLimiter):
             provider: External provider budget namespace.
             subject: Stable caller or workload identity.
             limit: Optional permit limit overriding the configured default.
+
+        Raises:
+            ExternalApiRateLimiterUnavailableError: If the Redis rate limiter fails or is unreachable.
+            ExternalApiRateLimitedError: If the provider rate-limit budget is exhausted.
         """
         normalized_provider = _normalized_provider(provider)
         subject_digest = hashlib.sha256(subject.encode("utf-8")).hexdigest()
@@ -133,13 +137,16 @@ class RedisExternalApiRateLimiter(ExternalApiRateLimiter):
 
 
 def _normalized_provider(provider: str) -> str:
-    """Execute normalized provider.
+    """Normalize a provider identifier into a safe Redis key segment.
 
     Args:
-        provider: Provider used by this operation.
+        provider: Raw external provider identifier.
 
     Returns:
-        str result produced by normalized provider.
+        Lowercased, hyphen-sanitized provider namespace string.
+
+    Raises:
+        ValueError: If no supported alphanumeric characters remain after sanitization.
     """
     normalized = _PROVIDER_PATTERN.sub("-", provider.strip().lower()).strip("-")
     if not normalized:

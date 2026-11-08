@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import ConfigDict, field_validator
+from pydantic import ConfigDict, Field, field_validator
 
-from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
+from app.shared.schemas.common_schemas import StrictSchemaModel
 from app.shared.serialization.orjson_codec import loads_json
 from app.shared.type_validation.strict_json_value import model_validate_json_value
 from app.shared.types.extra_types import JSONObject, JSONValue
@@ -34,7 +34,7 @@ class McpToolsResultPayload(McpProtocolPayloadSchema):
 
     tools: Annotated[
         tuple[McpToolPayload, ...],
-        described_field("Tools for this MCP tools result payload."),
+        Field(description="Tools for this MCP tools result payload."),
     ] = ()
 
     @field_validator("tools", mode="before")
@@ -58,7 +58,7 @@ class McpToolsListResponsePayload(McpProtocolPayloadSchema):
 
     result: Annotated[
         McpToolsResultPayload,
-        described_field("Result for this MCP tools list response payload."),
+        Field(description="Result for this MCP tools list response payload."),
     ] = McpToolsResultPayload()
 
 
@@ -140,10 +140,10 @@ class McpSmokeToolsResultPayload(McpProtocolPayloadSchema):
     mcp_url: str
     required_tools: Annotated[
         tuple[str, ...],
-        described_field("Required tools for this MCP smoke tools result payload."),
+        Field(description="Required tools for this MCP smoke tools result payload."),
     ] = ()
     missing_tools: Annotated[
         tuple[str, ...],
-        described_field("Missing tools for this MCP smoke tools result payload."),
+        Field(description="Missing tools for this MCP smoke tools result payload."),
     ] = ()
     tool_count: int

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
+from collections.abc import Sequence
+
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -18,6 +21,9 @@ from app.mcp_server.local_oauth.orm import (
     McpOAuthAuthorizationCodeORM,
     McpOAuthClientORM,
     McpOAuthTokenORM,
+)
+from app.mcp_server.local_oauth.persistence.oauth_mutation_lock import (
+    lock_oauth_mutation,
 )
 from app.shared.types.extra_types import JSONObject
 
@@ -49,17 +55,17 @@ class LocalOAuthGrantRepository:
             client_rows = tuple(
                 (await session.execute(select(McpOAuthClientORM))).scalars().all()
             )
-            token_rows = tuple(
-                (await session.execute(select(McpOAuthTokenORM))).scalars().all()
+            tokens_by_client: defaultdict[str, list[McpOAuthTokenORM]] = defaultdict(
+                list
             )
+            for token_row in (
+                await session.execute(select(McpOAuthTokenORM))
+            ).scalars():
+                tokens_by_client[token_row.client_id].append(token_row)
         return tuple(
             _client_connection_record(
                 client_row=client_row,
-                token_rows=tuple(
-                    token_row
-                    for token_row in token_rows
-                    if token_row.client_id == client_row.client_id
-                ),
+                token_rows=tokens_by_client.get(client_row.client_id, ()),
                 now=now,
             )
             for client_row in client_rows
@@ -117,6 +123,7 @@ class LocalOAuthGrantRepository:
         Returns:
             LocalOAuthAuthorizationCodeRecord | None: Value produced by exchange_authorization_code."""
         async with self._session_factory() as session, session.begin():
+            await lock_oauth_mutation(session=session)
             row = await session.get(McpOAuthAuthorizationCodeORM, code_hash)
             if row is None or row.consumed_at is not None or row.expires_at <= now:
                 return None
@@ -202,6 +209,7 @@ class LocalOAuthGrantRepository:
         Returns:
             LocalOAuthTokenRecord | None: Value produced by rotate_refresh_token."""
         async with self._session_factory() as session, session.begin():
+            await lock_oauth_mutation(session=session)
             old_row = await session.get(McpOAuthTokenORM, old_refresh_hash)
             if (
                 old_row is None
@@ -248,6 +256,7 @@ class LocalOAuthGrantRepository:
             token_hash: Value supplied to revoke_token_family.
             now: Value supplied to revoke_token_family."""
         async with self._session_factory() as session, session.begin():
+            await lock_oauth_mutation(session=session)
             row = await session.get(McpOAuthTokenORM, token_hash)
             if row is None:
                 return
@@ -277,6 +286,7 @@ class LocalOAuthGrantRepository:
             Number of refresh-token rows extended.
         """
         async with self._session_factory() as session, session.begin():
+            await lock_oauth_mutation(session=session)
             rows = tuple(
                 (
                     await session.execute(
@@ -299,7 +309,7 @@ class LocalOAuthGrantRepository:
 
 def _client_connection_record(
     client_row: McpOAuthClientORM,
-    token_rows: tuple[McpOAuthTokenORM, ...],
+    token_rows: Sequence[McpOAuthTokenORM],
     now: int,
 ) -> LocalOAuthClientConnectionRecord:
     """Execute client connection record.

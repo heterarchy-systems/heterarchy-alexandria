@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections import Counter
 
 from app.obsidian.application.graph.projection.obsidian_graph_projection_source_builder import (
@@ -30,6 +31,7 @@ from app.obsidian.infrastructure.graph.native_obsidian_graph_projection_reads im
 from app.obsidian.infrastructure.graph.sqlalchemy_obsidian_graph_projection_source import (
     SqlAlchemyObsidianGraphProjectionSource,
 )
+from app.shared.infrastructure.critical_task import run_critical_sync
 from app.shared.infrastructure.database import Database
 
 _PROJECTION_VERSION = 1
@@ -50,6 +52,7 @@ class PostgreSqlObsidianGraphProjectionRepository(IObsidianGraphProjectionReposi
         self._compute_provider = compute_provider
         self._batch_size = batch_size
         self._state: ObsidianGraphProjectionState | None = None
+        self._cold_load_lock = asyncio.Lock()
         self._staging_run_id: str | None = None
         self._staging_version: int | None = None
         self._staging_nodes: list[ObsidianGraphProjectionNode] = []
@@ -119,36 +122,56 @@ class PostgreSqlObsidianGraphProjectionRepository(IObsidianGraphProjectionReposi
         note_id: str,
         limit: int,
     ) -> tuple[ObsidianGraphRelatedNote, ...]:
-        return related_notes((await self._ensure_state()).projection, note_id, limit)
+        state = await self._ensure_state()
+        projection = state.projection
+
+        def read_related_notes() -> tuple[ObsidianGraphRelatedNote, ...]:
+            return related_notes(projection, note_id, limit)
+
+        # Published states are replaced as a whole; the captured projection stays stable.
+        return await run_critical_sync(read_related_notes)
 
     async def context_evidence(
         self,
         note_ids: tuple[str, ...],
     ) -> tuple[ObsidianGraphContextEvidence, ...]:
-        return context_evidence((await self._ensure_state()).projection, note_ids)
+        state = await self._ensure_state()
+        projection = state.projection
+
+        def read_context_evidence() -> tuple[ObsidianGraphContextEvidence, ...]:
+            return context_evidence(projection, note_ids)
+
+        return await run_critical_sync(read_context_evidence)
 
     async def _ensure_state(self) -> ObsidianGraphProjectionState:
         state = self._state
         if state is not None:
             return state
-        session_factory = self._database.session_factory()
-        async with session_factory() as session:
-            builder = ObsidianGraphProjectionSourceBuilder(
-                source=SqlAlchemyObsidianGraphProjectionSource(session),
-                compute_provider=self._compute_provider,
-                batch_size=self._batch_size,
+        async with self._cold_load_lock:
+            state = self._state
+            if state is not None:
+                return state
+            session_factory = self._database.session_factory()
+            async with session_factory() as session:
+                builder = ObsidianGraphProjectionSourceBuilder(
+                    source=SqlAlchemyObsidianGraphProjectionSource(session),
+                    compute_provider=self._compute_provider,
+                    batch_size=self._batch_size,
+                )
+                snapshot = await builder.build()
+            state = ObsidianGraphProjectionState(
+                initialized=True,
+                run_id="postgresql-current",
+                projection_version=_PROJECTION_VERSION,
+                projection=snapshot.projection,
+                issue_total=len(snapshot.issues),
+                issue_counts=_issue_counts(snapshot.issues),
             )
-            snapshot = await builder.build()
-        state = ObsidianGraphProjectionState(
-            initialized=True,
-            run_id="postgresql-current",
-            projection_version=_PROJECTION_VERSION,
-            projection=snapshot.projection,
-            issue_total=len(snapshot.issues),
-            issue_counts=_issue_counts(snapshot.issues),
-        )
-        self._state = state
-        return state
+            active_state = self._state
+            if active_state is not None:
+                return active_state
+            self._state = state
+            return state
 
     def _require_staging(self, run_id: str, projection_version: int) -> None:
         if (

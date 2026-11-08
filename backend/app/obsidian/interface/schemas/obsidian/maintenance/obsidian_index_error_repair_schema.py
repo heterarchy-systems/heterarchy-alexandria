@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import Field
+
 from app.obsidian.domain.entities.obsidian_index_error_repair import (
     ObsidianIndexErrorRepairCandidate,
     ObsidianIndexErrorRepairPlan,
@@ -14,7 +16,7 @@ from app.obsidian.domain.event_enum.obsidian_enums import ObsidianIndexErrorCode
 from app.obsidian.interface.schemas.obsidian.obsidian_string_types import (
     ObsidianRepairPlanHash,
 )
-from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
+from app.shared.schemas.common_schemas import StrictSchemaModel
 
 
 class ObsidianIndexErrorRepairCandidateResponse(StrictSchemaModel):
@@ -22,32 +24,32 @@ class ObsidianIndexErrorRepairCandidateResponse(StrictSchemaModel):
 
     note_path: Annotated[
         str,
-        described_field(
-            "Note path for this Obsidian index error repair candidate response."
+        Field(
+            description="Note path for this Obsidian index error repair candidate response."
         ),
     ]
     error_code: Annotated[
         ObsidianIndexErrorCode,
-        described_field(
-            "Error code for this Obsidian index error repair candidate response."
+        Field(
+            description="Error code for this Obsidian index error repair candidate response."
         ),
     ]
     original_sha256: Annotated[
         str,
-        described_field(
-            "Original SHA-256 for this Obsidian index error repair candidate response."
+        Field(
+            description="Original SHA-256 for this Obsidian index error repair candidate response."
         ),
     ]
     replacements: Annotated[
         dict[str, str],
-        described_field(
-            "Replacements for this Obsidian index error repair candidate response."
+        Field(
+            description="Replacements for this Obsidian index error repair candidate response."
         ),
     ]
     reason: Annotated[
         str,
-        described_field(
-            "Reason for this Obsidian index error repair candidate response."
+        Field(
+            description="Reason for this Obsidian index error repair candidate response."
         ),
     ]
 
@@ -78,19 +80,19 @@ class ObsidianIndexErrorRepairSkipResponse(StrictSchemaModel):
 
     note_path: Annotated[
         str,
-        described_field(
-            "Note path for this Obsidian index error repair skip response."
+        Field(
+            description="Note path for this Obsidian index error repair skip response."
         ),
     ]
     error_code: Annotated[
         ObsidianIndexErrorCode,
-        described_field(
-            "Error code for this Obsidian index error repair skip response."
+        Field(
+            description="Error code for this Obsidian index error repair skip response."
         ),
     ]
     reason: Annotated[
         str,
-        described_field("Reason for this Obsidian index error repair skip response."),
+        Field(description="Reason for this Obsidian index error repair skip response."),
     ]
 
     @classmethod
@@ -118,29 +120,33 @@ class ObsidianIndexErrorRepairPlanResponse(StrictSchemaModel):
 
     plan_hash: Annotated[
         str,
-        described_field(
-            "Plan hash for this Obsidian index error repair plan response."
+        Field(
+            description="Plan hash for this Obsidian index error repair plan response."
         ),
     ]
     dry_run: Annotated[
         bool,
-        described_field("Dry run for this Obsidian index error repair plan response."),
+        Field(
+            description="Dry run for this Obsidian index error repair plan response."
+        ),
     ]
     backup_required: Annotated[
         bool,
-        described_field(
-            "Backup required for this Obsidian index error repair plan response."
+        Field(
+            description="Backup required for this Obsidian index error repair plan response."
         ),
     ]
     candidates: Annotated[
         list[ObsidianIndexErrorRepairCandidateResponse],
-        described_field(
-            "Candidates for this Obsidian index error repair plan response."
+        Field(
+            description="Candidates for this Obsidian index error repair plan response."
         ),
     ]
     skipped: Annotated[
         list[ObsidianIndexErrorRepairSkipResponse],
-        described_field("Skipped for this Obsidian index error repair plan response."),
+        Field(
+            description="Skipped for this Obsidian index error repair plan response."
+        ),
     ]
 
     @classmethod
@@ -176,8 +182,8 @@ class ObsidianIndexErrorRepairApplyRequest(StrictSchemaModel):
 
     expected_plan_hash: Annotated[
         ObsidianRepairPlanHash,
-        described_field(
-            "Expected plan hash for this Obsidian index error repair apply request."
+        Field(
+            description="Expected plan hash for this Obsidian index error repair apply request."
         ),
     ]
 
@@ -187,48 +193,50 @@ class ObsidianIndexErrorRepairReportResponse(StrictSchemaModel):
 
     status: Annotated[
         str,
-        described_field("Status for this Obsidian index error repair report response."),
+        Field(
+            description="Status for this Obsidian index error repair report response."
+        ),
     ]
     plan_hash: Annotated[
         str,
-        described_field(
-            "Plan hash for this Obsidian index error repair report response."
+        Field(
+            description="Plan hash for this Obsidian index error repair report response."
         ),
     ]
     applied_count: Annotated[
         int,
-        described_field(
-            "Applied count for this Obsidian index error repair report response."
+        Field(
+            description="Applied count for this Obsidian index error repair report response."
         ),
     ]
     backup_root: Annotated[
         str,
-        described_field(
-            "Backup root for this Obsidian index error repair report response."
+        Field(
+            description="Backup root for this Obsidian index error repair report response."
         ),
     ]
     report_markdown_path: Annotated[
         str,
-        described_field(
-            "Report markdown path for this Obsidian index error repair report response."
+        Field(
+            description="Report markdown path for this Obsidian index error repair report response."
         ),
     ]
     report_json_path: Annotated[
         str,
-        described_field(
-            "Report JSON path for this Obsidian index error repair report response."
+        Field(
+            description="Report JSON path for this Obsidian index error repair report response."
         ),
     ]
     residual_error_notes: Annotated[
         int,
-        described_field(
-            "Residual error notes for this Obsidian index error repair report response."
+        Field(
+            description="Residual error notes for this Obsidian index error repair report response."
         ),
     ]
     residual_error_paths: Annotated[
         list[str],
-        described_field(
-            "Residual error paths for this Obsidian index error repair report response."
+        Field(
+            description="Residual error paths for this Obsidian index error repair report response."
         ),
     ]
 

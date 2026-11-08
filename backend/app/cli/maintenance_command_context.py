@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from app.cli.maintenance_gateway import MaintenanceGateway
-from app.mcp_server.backend_api_client import AlexandriaApiClient, AlexandriaApiSettings
+from app.mcp_server.backend_api_client import AlexandriaApiClient
+from app.platform.config.mcp_config import McpApiConfig
 
 
 def build_maintenance_gateway() -> MaintenanceGateway:
@@ -12,4 +13,4 @@ def build_maintenance_gateway() -> MaintenanceGateway:
     Returns:
         Maintenance gateway bound to the configured Alexandria backend.
     """
-    return MaintenanceGateway(AlexandriaApiClient(AlexandriaApiSettings.from_env()))
+    return MaintenanceGateway(AlexandriaApiClient(McpApiConfig.from_env()))

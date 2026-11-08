@@ -19,12 +19,14 @@ from tests.operations.test_operational_readiness_service import (
 from app.obsidian.infrastructure.obsidian_report_bundle_run_store import (
     ObsidianReportBundleRunStore,
 )
-from app.operations.application.readiness.operational_compile_receipt_policy import (
-    compile_receipt_snapshot,
-)
-from app.operations.application.readiness.operational_readiness_policy import _blockers
 from app.operations.application.readiness.operational_readiness_service import (
     OperationalReadinessService,
+)
+from app.operations.application.readiness.policy.operational_compile_receipt_policy import (
+    compile_receipt_snapshot,
+)
+from app.operations.application.readiness.policy.operational_readiness_policy import (
+    readiness_blockers,
 )
 from app.operations.interface.schemas.operations.operational_readiness_schema import (
     OperationalCompileReceiptSnapshotResponse,
@@ -72,7 +74,7 @@ def test_compile_receipt_classification_and_blocker_consistency(
     assert response["status"] == status
     assert response["required"] == required
     assert response["available"] == present
-    assert bool(_blockers(list(snapshot.blockers))) == blocked
+    assert bool(readiness_blockers(list(snapshot.blockers))) == blocked
     if status == "NOT_APPLICABLE":
         assert snapshot.warnings == snapshot.blockers == ()
 

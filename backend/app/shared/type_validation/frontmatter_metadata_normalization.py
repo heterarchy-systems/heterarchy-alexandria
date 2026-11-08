@@ -2,35 +2,19 @@
 
 from __future__ import annotations
 
-from enum import StrEnum
-
+from app.shared.type_validation.frontmatter_metadata_enums import (
+    BooleanField,
+    StringCollectionField,
+)
 from app.shared.types.extra_types import JSONValue
 
-
-class StringCollectionField(StrEnum):
-    """Known frontmatter fields whose values normalize to string lists."""
-
-    TAGS = "tags"
-    ARTIFACT_REFS = "artifact_refs"
-    EVIDENCE_REFS = "evidence_refs"
-    CONFLICT_SET_IDS = "conflict_set_ids"
-    EVIDENCE_URLS = "evidence_urls"
-    LINKED_NOTE_IDS = "linked_note_ids"
-    REDACTION_WARNINGS = "redaction_warnings"
-    REQUIRED_TOOLS = "required_tools"
-    SUPERSEDES = "supersedes"
-    WHEN_NOT_TO_USE = "when_not_to_use"
-    WHEN_TO_USE = "when_to_use"
-
-
-class BooleanField(StrEnum):
-    """Known frontmatter fields whose values normalize to booleans."""
-
-    ACTIVATE_REQUESTED = "activate_requested"
-    IS_CURRENT = "is_current"
-    REQUIRES_HUMAN_REVIEW = "requires_human_review"
-    SAFE_TO_PUBLISH = "safe_to_publish"
-    SOURCE_OF_TRUTH = "source_of_truth"
+__all__ = (
+    "BooleanField",
+    "StringCollectionField",
+    "normalize_boolean_metadata",
+    "normalize_known_frontmatter_metadata",
+    "normalize_string_collection",
+)
 
 
 def normalize_string_collection(value: JSONValue) -> list[str]:
@@ -104,13 +88,16 @@ def normalize_known_frontmatter_metadata(frontmatter: dict[str, JSONValue]) -> N
 def _string_collection_input(
     value: JSONValue,
 ) -> list[JSONValue] | tuple[JSONValue, ...]:
-    """Execute string collection input.
+    """Coerce a raw frontmatter value into a flat sequence for string validation.
 
     Args:
-        value: Value being processed.
+        value: Raw JSON-compatible metadata value.
 
     Returns:
-        list[JSONValue] | tuple[JSONValue, ...] result produced by string collection input.
+        Sequence of candidate items to normalize.
+
+    Raises:
+        ValueError: If `value` is not a string/sequence/null or uses a legacy collection literal.
     """
     if value is None:
         return []
@@ -133,13 +120,13 @@ def _string_collection_input(
 
 
 def _looks_like_collection_representation(value: str) -> bool:
-    """Execute looks like collection representation.
+    """Return whether a string looks like a serialized Python collection literal.
 
     Args:
-        value: Value being processed.
+        value: Trimmed string candidate to inspect.
 
     Returns:
-        Whether looks like collection representation.
+        True when the string is bracketed like a tuple, list, set, or dict repr.
     """
     if value.startswith("(") and value.endswith(")"):
         return True

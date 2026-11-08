@@ -19,7 +19,7 @@ from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild
 from app.obsidian.application.graph.projection.obsidian_graph_projection_source_builder import (
     ObsidianGraphProjectionSourceBuilder,
 )
-from app.obsidian.application.service.notes.obsidian_report_bundle_service import (
+from app.obsidian.application.notes.report_bundles.obsidian_report_bundle_service import (
     ObsidianReportBundleService,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
@@ -55,7 +55,6 @@ from app.obsidian.infrastructure.obsidian_vault_config_store import (
 from app.obsidian.infrastructure.repositories.obsidian_index_repository import (
     SqlAlchemyObsidianIndexRepository,
 )
-from app.platform.config.app_config import AppConfig
 from app.shared.application.index_maintenance_coordinator import (
     IndexMaintenanceCoordinator,
 )
@@ -118,7 +117,6 @@ def test_report_bundle_is_idempotent_and_verifies_expected_owner_edges(
             )
             graph_repository = _FailingActivationGraphRepository()
             graph_rebuild = ObsidianGraphProjectionRebuildService(
-                config=AppConfig(_env_file=None),
                 source_builder=ObsidianGraphProjectionSourceBuilder(
                     compute_provider=create_native_obsidian_graph_projection_compute_provider(),
                     source=SqlAlchemyObsidianGraphProjectionSource(session=session),
@@ -299,7 +297,6 @@ def test_report_bundle_missing_owner_fails_before_source_mutation(
             )
             graph_repository = FakeObsidianGraphProjectionRepository()
             graph_rebuild = ObsidianGraphProjectionRebuildService(
-                config=AppConfig(_env_file=None),
                 source_builder=ObsidianGraphProjectionSourceBuilder(
                     compute_provider=create_native_obsidian_graph_projection_compute_provider(),
                     source=SqlAlchemyObsidianGraphProjectionSource(session=session),

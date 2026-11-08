@@ -6,7 +6,7 @@ from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, Request, status
 
 from app.container import ApplicationContainer
-from app.obsidian.application.service.notes.obsidian_relate_service import (
+from app.obsidian.application.notes.relations.obsidian_relate_service import (
     ObsidianRelateService,
 )
 from app.obsidian.interface.schemas.obsidian.obsidian_relation_schema import (

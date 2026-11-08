@@ -19,11 +19,11 @@ from app.obsidian.domain.event_enum.obsidian_enums import (
     ObsidianEdgeSourceKind,
     ObsidianRelationType,
 )
-from app.shared.infrastructure.native_compute_extension import (
+from app.shared.infrastructure.native_compute.native_compute_extension import (
     NativeComputeContractModule,
     load_native_compute_module,
 )
-from app.shared.infrastructure.native_wire_values import (
+from app.shared.infrastructure.native_compute.native_wire_values import (
     wire_array,
     wire_object,
     wire_required_text,

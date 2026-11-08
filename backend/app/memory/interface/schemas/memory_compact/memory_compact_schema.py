@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import StringConstraints
+from pydantic import Field, StringConstraints
 
 from app.memory.application.memory_compacts.lifecycle.memory_compact_signature import (
-    _body_hash,
+    body_hash,
     compact_state_hash,
 )
 from app.memory.domain.entities.memory_compact import (
@@ -17,16 +17,13 @@ from app.memory.domain.entities.memory_compact import (
 from app.memory.domain.event_enum.memory_compact_enums import (
     MemoryCompactReviewVerdict,
     MemoryCompactStatus,
+    MemoryStewardReadinessWarningCode,
 )
 from app.memory.domain.repositories.memory_compacts.memory_compact_repository_contracts import (
     MemoryCompactCreate,
     MemoryCompactSourceRefCreate,
 )
-from app.shared.schemas.common_schemas import (
-    StrictSchemaModel,
-    described_field,
-    schema_list_default,
-)
+from app.shared.schemas.common_schemas import StrictSchemaModel, schema_list_default
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 from app.shared.types.extra_types import JSONObject
 
@@ -38,25 +35,25 @@ class MemoryCompactSourceRefRequest(StrictSchemaModel):
 
     source_type: Annotated[
         NonBlankString,
-        described_field("Source type for this memory compact source ref request."),
+        Field(description="Source type for this memory compact source ref request."),
     ]
     source_id: Annotated[
         NonBlankString,
-        described_field(
-            "Source identifier for this memory compact source ref request."
+        Field(
+            description="Source identifier for this memory compact source ref request."
         ),
     ]
     title: Annotated[
         NonBlankString,
-        described_field("Title for this memory compact source ref request."),
+        Field(description="Title for this memory compact source ref request."),
     ]
     detail_path: Annotated[
         NonBlankString,
-        described_field("Detail path for this memory compact source ref request."),
+        Field(description="Detail path for this memory compact source ref request."),
     ]
     source_hash: Annotated[
         str | None,
-        described_field("Source hash for this memory compact source ref request."),
+        Field(description="Source hash for this memory compact source ref request."),
     ] = None
 
     def to_create(self) -> MemoryCompactSourceRefCreate:
@@ -78,28 +75,28 @@ class MemoryCompactCreateRequest(StrictSchemaModel):
     """Request schema for creating a Memory Compact."""
 
     project: Annotated[
-        str | None, described_field("Project for this memory compact create request.")
+        str | None, Field(description="Project for this memory compact create request.")
     ] = None
     covered_from: Annotated[
         AwareTimestamp,
-        described_field("Covered from for this memory compact create request."),
+        Field(description="Covered from for this memory compact create request."),
     ]
     covered_to: Annotated[
         AwareTimestamp,
-        described_field("Covered to for this memory compact create request."),
+        Field(description="Covered to for this memory compact create request."),
     ]
     markdown_body: Annotated[
         str,
         StringConstraints(strict=True, min_length=1),
-        described_field("Markdown body for this memory compact create request."),
+        Field(description="Markdown body for this memory compact create request."),
     ]
     status: Annotated[
         MemoryCompactStatus,
-        described_field("Status for this memory compact create request."),
+        Field(description="Status for this memory compact create request."),
     ] = MemoryCompactStatus.DRAFT
     source_refs: Annotated[
         list[MemoryCompactSourceRefRequest],
-        described_field("Source refs for this memory compact create request."),
+        Field(description="Source refs for this memory compact create request."),
     ] = schema_list_default()
 
     def to_create(self) -> MemoryCompactCreate:
@@ -125,34 +122,36 @@ class MemoryCompactSourceRefResponse(StrictSchemaModel):
 
     id: Annotated[
         str,
-        described_field(
-            "Stable identifier for this memory compact source ref response."
+        Field(
+            description="Stable identifier for this memory compact source ref response."
         ),
     ]
     compact_id: Annotated[
         str,
-        described_field(
-            "Compact identifier for this memory compact source ref response."
+        Field(
+            description="Compact identifier for this memory compact source ref response."
         ),
     ]
     source_type: Annotated[
-        str, described_field("Source type for this memory compact source ref response.")
+        str,
+        Field(description="Source type for this memory compact source ref response."),
     ]
     source_id: Annotated[
         str,
-        described_field(
-            "Source identifier for this memory compact source ref response."
+        Field(
+            description="Source identifier for this memory compact source ref response."
         ),
     ]
     title: Annotated[
-        str, described_field("Title for this memory compact source ref response.")
+        str, Field(description="Title for this memory compact source ref response.")
     ]
     detail_path: Annotated[
-        str, described_field("Detail path for this memory compact source ref response.")
+        str,
+        Field(description="Detail path for this memory compact source ref response."),
     ]
     source_hash: Annotated[
         str | None,
-        described_field("Source hash for this memory compact source ref response."),
+        Field(description="Source hash for this memory compact source ref response."),
     ]
 
     @classmethod
@@ -182,19 +181,19 @@ class MemoryCompactRagGateResponse(StrictSchemaModel):
     """RAG healthy-gate result attached to CURRENT create/promote responses."""
 
     gate_status: Annotated[
-        str, described_field("Gate status for this memory compact RAG gate response.")
+        str, Field(description="Gate status for this memory compact RAG gate response.")
     ]
     checked_at: Annotated[
         AwareTimestamp,
-        described_field("Checked at for this memory compact RAG gate response."),
+        Field(description="Checked at for this memory compact RAG gate response."),
     ]
     fingerprint: Annotated[
         JSONObject | None,
-        described_field("Fingerprint for this memory compact RAG gate response."),
+        Field(description="Fingerprint for this memory compact RAG gate response."),
     ]
     warnings: Annotated[
         list[str],
-        described_field("Warnings for this memory compact RAG gate response."),
+        Field(description="Warnings for this memory compact RAG gate response."),
     ] = schema_list_default()
 
 
@@ -203,110 +202,113 @@ class MemoryCompactResponse(StrictSchemaModel):
 
     draft_hash: Annotated[
         str | None,
-        described_field("Current snapshot fence for canonical DRAFT editing."),
+        Field(description="Current snapshot fence for canonical DRAFT editing."),
     ] = None
     reviewed_body_hash: Annotated[
-        str | None, described_field("Body hash admitted by the last promotion review.")
+        str | None,
+        Field(description="Body hash admitted by the last promotion review."),
     ] = None
     current_body_hash: Annotated[
-        str | None, described_field("Current canonical semantic body hash.")
+        str | None, Field(description="Current canonical semantic body hash.")
     ] = None
     review_attestation_status: Annotated[
-        str, described_field("VERIFIED, STALE or MISSING body-review evidence.")
+        str, Field(description="VERIFIED, STALE or MISSING body-review evidence.")
     ] = "MISSING"
     review_receipt_hash: Annotated[
-        str | None, described_field("Persisted source/body review receipt.")
+        str | None, Field(description="Persisted source/body review receipt.")
     ] = None
 
     id: Annotated[
-        str, described_field("Stable identifier for this memory compact response.")
+        str, Field(description="Stable identifier for this memory compact response.")
     ]
     project: Annotated[
-        str | None, described_field("Project for this memory compact response.")
+        str | None, Field(description="Project for this memory compact response.")
     ]
     covered_from: Annotated[
         AwareTimestamp,
-        described_field("Covered from for this memory compact response."),
+        Field(description="Covered from for this memory compact response."),
     ]
     covered_to: Annotated[
-        AwareTimestamp, described_field("Covered to for this memory compact response.")
+        AwareTimestamp,
+        Field(description="Covered to for this memory compact response."),
     ]
     markdown_body: Annotated[
-        str, described_field("Markdown body for this memory compact response.")
+        str, Field(description="Markdown body for this memory compact response.")
     ]
     status: Annotated[
-        MemoryCompactStatus, described_field("Status for this memory compact response.")
+        MemoryCompactStatus,
+        Field(description="Status for this memory compact response."),
     ]
     source_refs: Annotated[
         list[MemoryCompactSourceRefResponse],
-        described_field("Source refs for this memory compact response."),
+        Field(description="Source refs for this memory compact response."),
     ]
     created_at: Annotated[
         AwareTimestamp,
-        described_field("Creation timestamp for this memory compact response."),
+        Field(description="Creation timestamp for this memory compact response."),
     ]
     updated_at: Annotated[
         AwareTimestamp,
-        described_field("Last-update timestamp for this memory compact response."),
+        Field(description="Last-update timestamp for this memory compact response."),
     ]
     archived_at: Annotated[
         AwareTimestamp | None,
-        described_field("Archived at for this memory compact response."),
+        Field(description="Archived at for this memory compact response."),
     ]
     review_verdict: Annotated[
         MemoryCompactReviewVerdict | None,
-        described_field("Review verdict for this memory compact response."),
+        Field(description="Review verdict for this memory compact response."),
     ]
     review_score: Annotated[
-        int | None, described_field("Review score for this memory compact response.")
+        int | None, Field(description="Review score for this memory compact response.")
     ]
     review_max_score: Annotated[
         int | None,
-        described_field("Review max score for this memory compact response."),
+        Field(description="Review max score for this memory compact response."),
     ]
     reviewed_at: Annotated[
         AwareTimestamp | None,
-        described_field("Reviewed at for this memory compact response."),
+        Field(description="Reviewed at for this memory compact response."),
     ]
     source_set_hash: Annotated[
         str | None,
-        described_field("Deterministic source-set hash for Compact 2.0 provenance."),
+        Field(description="Deterministic source-set hash for Compact 2.0 provenance."),
     ]
     compaction_policy_version: Annotated[
         str | None,
-        described_field("Compaction policy version that generated this artifact."),
+        Field(description="Compaction policy version that generated this artifact."),
     ]
     generation_revision: Annotated[
         int | None,
-        described_field("Generation revision for this compact artifact."),
+        Field(description="Generation revision for this compact artifact."),
     ]
     generated_at: Annotated[
         AwareTimestamp | None,
-        described_field("Generation timestamp for this compact artifact."),
+        Field(description="Generation timestamp for this compact artifact."),
     ]
     source_count: Annotated[
         int,
-        described_field("Source count derived from canonical source references."),
+        Field(description="Source count derived from canonical source references."),
     ]
     expansion_refs: Annotated[
         list[str],
-        described_field(
-            "Stable source expansion paths derived from source references."
+        Field(
+            description="Stable source expansion paths derived from source references."
         ),
     ]
     provenance_complete: Annotated[
         bool,
-        described_field("Whether the Compact 2.0 provenance seal is complete."),
+        Field(description="Whether the Compact 2.0 provenance seal is complete."),
     ]
     warnings: Annotated[
-        list[str], described_field("Warnings for this memory compact response.")
+        list[str], Field(description="Warnings for this memory compact response.")
     ] = schema_list_default()
     deduplicated: Annotated[
-        bool, described_field("Deduplicated for this memory compact response.")
+        bool, Field(description="Deduplicated for this memory compact response.")
     ] = False
     rag_gate: Annotated[
         MemoryCompactRagGateResponse | None,
-        described_field("RAG gate for this memory compact response."),
+        Field(description="RAG gate for this memory compact response."),
     ] = None
 
     @classmethod
@@ -348,11 +350,11 @@ class MemoryCompactResponse(StrictSchemaModel):
             if compact.status is MemoryCompactStatus.DRAFT
             else None,
             reviewed_body_hash=compact.reviewed_body_hash,
-            current_body_hash=_body_hash(compact.markdown_body),
+            current_body_hash=body_hash(compact.markdown_body),
             review_attestation_status="MISSING"
             if compact.reviewed_body_hash is None
             else "VERIFIED"
-            if compact.reviewed_body_hash == _body_hash(compact.markdown_body)
+            if compact.reviewed_body_hash == body_hash(compact.markdown_body)
             and compact.review_score == compact.review_max_score == 20
             else "STALE",
             review_receipt_hash=compact.review_receipt_hash,
@@ -376,21 +378,21 @@ class MemoryCompactListResponse(StrictSchemaModel):
 
     items: Annotated[
         list[MemoryCompactResponse],
-        described_field("Items for this memory compact list response."),
+        Field(description="Items for this memory compact list response."),
     ]
     total: Annotated[
-        int, described_field("Total for this memory compact list response.")
+        int, Field(description="Total for this memory compact list response.")
     ]
 
 
 def _response_warnings(warnings: list[str]) -> list[str]:
-    """Execute response warnings.
+    """Deduplicate and normalize compact warning codes for HTTP responses.
 
     Args:
-        warnings: Warnings used by this operation.
+        warnings: Raw metadata and freshness warning codes.
 
     Returns:
-        list[str] result produced by response warnings.
+        Deduplicated list of normalized current compact warning codes.
     """
     normalized: list[str] = []
     seen: set[str] = set()
@@ -404,16 +406,19 @@ def _response_warnings(warnings: list[str]) -> list[str]:
 
 
 def _current_warning_code(warning: str) -> str:
-    """Execute current warning code.
+    """Normalize legacy compact metadata warning codes to current compact codes.
 
     Args:
-        warning: Warning used by this operation.
+        warning: Raw warning code string.
 
     Returns:
-        str result produced by current warning code.
+        Canonical current compact warning code string.
     """
-    if warning == "memory_compact_stale":
-        return "current_memory_compact_stale"
-    if warning == "memory_compact_timestamp_missing":
-        return "current_memory_compact_timestamp_missing"
+    if warning == MemoryStewardReadinessWarningCode.MEMORY_COMPACT_STALE.value:
+        return MemoryStewardReadinessWarningCode.CURRENT_MEMORY_COMPACT_STALE.value
+    if (
+        warning
+        == MemoryStewardReadinessWarningCode.MEMORY_COMPACT_TIMESTAMP_MISSING.value
+    ):
+        return MemoryStewardReadinessWarningCode.CURRENT_MEMORY_COMPACT_TIMESTAMP_MISSING.value
     return warning

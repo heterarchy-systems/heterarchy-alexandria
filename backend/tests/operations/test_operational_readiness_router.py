@@ -10,6 +10,7 @@ import anyio
 import pytest
 from dependency_injector import providers
 from fastapi.testclient import TestClient
+from tests.config_test_data import application_container
 from tests.operations.operational_readiness_fakes import HealthyGraphProjectionService
 
 from app.main import app as default_app, create_app
@@ -33,7 +34,6 @@ from app.operations.interface.routers.operational_readiness_router import (
     operational_capabilities,
     operational_readiness,
 )
-from app.platform.config.app_config import AppConfig
 from app.shared.infrastructure.database import Database
 
 _ROUTER_PACKAGES = [
@@ -264,13 +264,12 @@ def test_fastapi_resolves_readiness_and_recovery_dependencies(
     anyio.run(database.initialize)
     anyio.run(database.shutdown)
     monkeypatch.setenv("DATABASE_URL", database_url)
-    config = AppConfig(
-        _env_file=None,
-        obsidian_vault_path=str(tmp_path / "vault"),
-        obsidian_vault_config_path=str(tmp_path / "vault-config.json"),
-        operational_backup_root=str(tmp_path / "backups"),
+    app = create_app(
+        application_container(
+            obsidian_vault_path=str(tmp_path / "vault"),
+            obsidian_vault_config_path=str(tmp_path / "vault-config.json"),
+        )
     )
-    app = create_app(config)
     root_container = app.state.container
 
     try:

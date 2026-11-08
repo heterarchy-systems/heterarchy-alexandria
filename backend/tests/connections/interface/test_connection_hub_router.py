@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from fastapi.testclient import TestClient
+from tests.config_test_data import app_config_values, mcp_config_values
+
 from app.main import app
 from app.mcp_server.type_validate.oauth.mcp_auth_enums import McpAuthMode
 from app.platform.config.app_config import AppConfig
-from fastapi.testclient import TestClient
+from app.platform.config.mcp_config import McpConfig
 
 
 def test_connection_hub_page_has_secure_external_assets() -> None:
@@ -71,21 +74,29 @@ def test_connection_hub_status_redacts_runtime_secrets() -> None:
 def test_connection_hub_status_prefers_configured_public_mcp_resource() -> None:
     """The copyable endpoint must use the public OAuth resource, not localhost."""
     with TestClient(app) as client:
-        previous = getattr(app.state, "app_config", None)
-        app.state.app_config = AppConfig(
+        previous_app_config = getattr(app.state, "app_config", None)
+        previous_mcp_config = getattr(app.state, "mcp_config", None)
+        app.state.app_config = AppConfig(_env_file=None, **app_config_values())
+        app.state.mcp_config = McpConfig(
             _env_file=None,
-            mcp_auth_mode=McpAuthMode.LOCAL_OAUTH2,
-            mcp_oauth_issuer="https://alexandria.example",
-            mcp_oauth_resource="https://alexandria.example/mcp",
-            mcp_local_approval_key="test-approval-key-24-chars",
+            **mcp_config_values(
+                mcp_auth_mode=McpAuthMode.LOCAL_OAUTH2,
+                mcp_oauth_issuer="https://alexandria.example",
+                mcp_oauth_resource="https://alexandria.example/mcp",
+                mcp_local_approval_key="test-approval-key-24-chars",
+            ),
         )
         try:
             response = client.get("/connect/status")
         finally:
-            if previous is None:
+            if previous_app_config is None:
                 delattr(app.state, "app_config")
             else:
-                app.state.app_config = previous
+                app.state.app_config = previous_app_config
+            if previous_mcp_config is None:
+                delattr(app.state, "mcp_config")
+            else:
+                app.state.mcp_config = previous_mcp_config
 
     assert response.status_code == 200
     assert response.json()["mcp_endpoint"] == "https://alexandria.example/mcp"

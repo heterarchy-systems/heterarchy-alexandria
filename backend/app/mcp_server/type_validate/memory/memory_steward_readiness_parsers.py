@@ -77,13 +77,13 @@ def source_ref_dicts(draft: CompactRefreshDraftPayload) -> list[dict[str, str]]:
 
 
 def _object_or_empty(payload: JSONValue) -> JSONObject:
-    """Execute object or empty.
+    """Coerce a JSON value into a dictionary, defaulting non-dicts to an empty dict.
 
     Args:
-        payload: Validated payload for this operation.
+        payload: Raw JSON payload to inspect.
 
     Returns:
-        JSONObject result produced by object or empty.
+        The input dictionary when payload is a dict, or an empty dictionary.
     """
     if isinstance(payload, dict):
         return payload

@@ -11,16 +11,16 @@ from app.memory.application.memory_compacts.review.memory_compact_review_contrac
     MemoryCompactSourceObservation,
 )
 from app.memory.application.memory_compacts.review.memory_compact_review_evidence import (
-    _contradictions,
-    _missing_ref_reasons,
-    _recommended_actions,
-    _stale_reasons,
+    contradictions as find_contradictions,
+    missing_ref_reasons,
+    recommended_actions,
+    stale_reasons as find_stale_reasons,
 )
 from app.memory.application.memory_compacts.review.memory_compact_review_scoring import (
-    _REQUIRED_TWO_SCORE_CODES,
-    _RUBRIC,
-    _markdown_sections,
-    _score_rubric_item,
+    REQUIRED_TWO_SCORE_CODES,
+    RUBRIC,
+    markdown_sections,
+    score_rubric_item,
 )
 from app.memory.domain.entities.memory_compact import MemoryCompact
 from app.memory.domain.event_enum.memory_compact_enums import (
@@ -48,12 +48,12 @@ def review_memory_compact(
     Returns:
         Structured review verdict, rubric scores, and recommended actions.
     """
-    sections = _markdown_sections(compact.markdown_body)
-    missing_refs = _missing_ref_reasons(compact.source_refs)
-    stale_reasons = _stale_reasons(compact.source_refs, source_observations)
-    contradictions = _contradictions(compact.markdown_body)
+    sections = markdown_sections(compact.markdown_body)
+    missing_refs = missing_ref_reasons(compact.source_refs)
+    stale_reasons = find_stale_reasons(compact.source_refs, source_observations)
+    contradictions = find_contradictions(compact.markdown_body)
     scores = tuple(
-        _score_rubric_item(
+        score_rubric_item(
             spec=spec,
             compact=compact,
             sections=sections,
@@ -61,14 +61,14 @@ def review_memory_compact(
             stale_reasons=stale_reasons,
             contradictions=contradictions,
         )
-        for spec in _RUBRIC
+        for spec in RUBRIC
     )
     total_score = sum(score.score for score in scores)
     score_by_code = {score.code: score.score for score in scores}
     blocking_reasons = bool(missing_refs or stale_reasons or contradictions)
     required_zero = any(score.required and score.score == 0 for score in scores)
     required_two_missing = any(
-        score_by_code[code] < 2 for code in _REQUIRED_TWO_SCORE_CODES
+        score_by_code[code] < 2 for code in REQUIRED_TWO_SCORE_CODES
     )
     if blocking_reasons:
         verdict = MemoryCompactReviewVerdict.BLOCKED
@@ -80,12 +80,12 @@ def review_memory_compact(
         compact_id=compact.id,
         verdict=verdict,
         total_score=total_score,
-        max_score=len(_RUBRIC) * 2,
+        max_score=len(RUBRIC) * 2,
         scores=scores,
         missing_refs=missing_refs,
         contradictions=contradictions,
         stale_reasons=stale_reasons,
-        recommended_actions=_recommended_actions(
+        recommended_actions=recommended_actions(
             verdict=verdict,
             scores=scores,
             missing_refs=missing_refs,
@@ -96,7 +96,7 @@ def review_memory_compact(
             compact,
             verdict=verdict.value,
             total_score=total_score,
-            max_score=len(_RUBRIC) * 2,
+            max_score=len(RUBRIC) * 2,
             source_observations=source_observations,
         ),
     )

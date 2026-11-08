@@ -30,6 +30,9 @@ class OperationalRetrievalCanaryService:
             context_service: Context search boundary used by production retrieval.
             query: Bounded canary query.
             limit: Result limit, which must exercise multi-candidate retrieval.
+
+        Raises:
+            ValueError: If `limit` is less than 3.
         """
         if limit < 3:
             raise ValueError("RETRIEVAL_CANARY_LIMIT_INVALID: limit must be at least 3")
@@ -38,7 +41,7 @@ class OperationalRetrievalCanaryService:
         self._limit = limit
 
     async def snapshot(self) -> OperationalRetrievalCanarySnapshot:
-        """Execute all required retrieval lanes sequentially.
+        """Probe all required retrieval lanes sequentially.
 
         Returns:
             Per-lane real-search health through Context Pack construction.
@@ -56,7 +59,7 @@ class OperationalRetrievalCanaryService:
         )
 
     async def _probe(self, strategy: RagStrategy) -> OperationalRetrievalCanaryResult:
-        """Execute one required retrieval lane and return a sanitized result.
+        """Probe one required retrieval lane and return a sanitized result.
 
         Args:
             strategy: Retrieval strategy exercised by this canary probe.

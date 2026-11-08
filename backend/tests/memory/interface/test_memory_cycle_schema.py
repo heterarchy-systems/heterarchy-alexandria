@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import TypeAdapter, ValidationError
 
-from app.memory.interface.schemas.reconciliation.cycles.memory_cycle_schema import (
+from app.memory.interface.schemas.reconciliation.cycles.memory_cycle_request_schema import (
     MemoryCycleRequestSchema,
 )
 

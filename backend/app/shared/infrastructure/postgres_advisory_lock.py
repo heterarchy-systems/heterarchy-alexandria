@@ -149,6 +149,6 @@ class PostgresAdvisoryLock(IndexWriteProcessLock):
             released = await connection.scalar(select(unlock_function(self._key)))
             if released is not True:
                 raise RuntimeError("PostgreSQL advisory lock release failed")
-        except (Exception, asyncio.CancelledError):
+        except Exception, asyncio.CancelledError:
             await raw_connection.invalidate()
             raise

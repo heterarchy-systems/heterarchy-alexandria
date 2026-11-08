@@ -15,6 +15,9 @@ from app.obsidian.domain.entities.obsidian_note import (
     ObsidianVaultLocation,
     ObsidianVaultStatus,
 )
+from app.obsidian.domain.entities.obsidian_raw_source_snapshot import (
+    ObsidianRawSourceSnapshot,
+)
 from app.shared.exceptions.obsidian_exceptions import ObsidianValidationError
 from app.shared.types.extra_types import JSONObject
 
@@ -47,14 +50,14 @@ class ObsidianReadinessPort(ABC):
 
 
 class ObsidianDataIntegrityPort(ABC):
-    """Expose managed Markdown paths for integrity diagnostics."""
+    """Expose bounded canonical source for integrity diagnostics."""
 
     @abstractmethod
-    async def managed_markdown_paths(self) -> list[str]:
-        """Return every managed Markdown path regardless of index validity.
+    async def raw_source_snapshot(self) -> ObsidianRawSourceSnapshot:
+        """Return raw managed Markdown and explicit scan completeness.
 
         Returns:
-            Vault-relative managed Markdown paths.
+            Bounded raw text snapshot without PostgreSQL index access.
         """
 
 

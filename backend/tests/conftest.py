@@ -17,6 +17,13 @@ from alembic.config import Config
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from tests.config_test_data import (
+    config_environment_values,
+    embedding_artifact_config_values,
+    maintenance_queue_config_values,
+    redis_config_values,
+    service_config_values,
+)
 
 from app.platform.config.database_config import DatabaseConfig
 
@@ -40,12 +47,28 @@ _test_cleanup_max_elapsed = 0.0
 
 _TEST_ALEXANDRIA_ROOT.mkdir(parents=True, exist_ok=True)
 
+# Explicit test configuration for each independently required feature boundary.
+os.environ.update(config_environment_values("SERVICE_", service_config_values()))
+os.environ.update(
+    config_environment_values(
+        "SERVICE_RAG_EMBEDDING_",
+        embedding_artifact_config_values(ort_load_config_from_model=0),
+    )
+)
+os.environ["ALEXANDRIA_API_URL"] = "http://localhost:8000"
+os.environ["ALEXANDRIA_API_TIMEOUT_SECONDS"] = "30.0"
+os.environ.update(config_environment_values("SERVICE_REDIS_", redis_config_values()))
+os.environ.update(
+    config_environment_values(
+        "SERVICE_REDIS_MAINTENANCE_", maintenance_queue_config_values()
+    )
+)
+
 # Environment variables take precedence over the private repository .env file.
 # Set them before test modules import the global FastAPI application container.
 os.environ["DATABASE_URL"] = _TEST_DATABASE_URL
 os.environ["SERVICE_OBSIDIAN_VAULT_PATH"] = str(_TEST_VAULT_PATH)
 os.environ["SERVICE_ALEXANDRIA_OBSIDIAN_ROOT"] = "Alexandria"
-os.environ["SERVICE_GRAPH_READ_MODEL"] = "postgresql"
 os.environ["SERVICE_REDIS_URL"] = ""
 os.environ["SERVICE_RAG_EMBEDDING_RECOVERY_ON_STARTUP"] = "false"
 os.environ["SERVICE_RAG_EMBEDDING_RECOVERY_ON_VAULT_REINDEX"] = "false"
@@ -129,7 +152,7 @@ def _isolate_postgres_test_state(
 
 
 @pytest.fixture(autouse=True)
-def _override_retrieval_kernel_for_host_tests() -> None:
+def _override_retrieval_kernel_for_host_tests() -> Iterator[None]:
     """Use the deterministic tests-only retrieval provider outside native E2E gates."""
     from dependency_injector import providers
     from tests.memory.context_retrieval_kernel_test_provider import (
@@ -139,10 +162,19 @@ def _override_retrieval_kernel_for_host_tests() -> None:
     from app.main import app
 
     provider = app.state.container.memory.retrieval_kernel_provider
-    with provider.override(
-        providers.Object(create_test_context_retrieval_kernel_provider())
-    ):
-        yield
+    try:
+        with provider.override(
+            providers.Object(create_test_context_retrieval_kernel_provider())
+        ):
+            yield
+    finally:
+        for candidate in app.state.container.traverse():
+            if (
+                isinstance(candidate, providers.Provider)
+                and not candidate.is_async_mode_enabled()
+                and not candidate.is_async_mode_undefined()
+            ):
+                candidate.reset_async_mode()
 
 
 @pytest.fixture

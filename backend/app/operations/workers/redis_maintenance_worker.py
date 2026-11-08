@@ -22,6 +22,7 @@ from app.obsidian.domain.contracts.obsidian_batch_contracts import (
 )
 from app.operations.application.maintenance_job_queue import (
     MaintenanceJobDelivery,
+    MaintenanceJobNotAdmitted,
     MaintenanceQueueUnavailableError,
 )
 from app.operations.domain.entities.maintenance_job import (
@@ -40,22 +41,26 @@ from app.operations.infrastructure.redis_maintenance_job_queue import (
     RedisMaintenanceJobSubmitter,
     create_maintenance_worker_client,
 )
-from app.platform.config.app_config import AppConfig
-from app.platform.config.maintenance_queue_config import MaintenanceQueueConfig
+from app.platform.config.memory_config import EmbeddingConfig
+from app.platform.config.redis_config import MaintenanceQueueConfig
 from app.shared.infrastructure.database import Database
 
 logger = logging.getLogger(__name__)
 
 
 async def run_worker() -> None:
-    """Run bounded consumer loops until the process receives a stop signal."""
+    """Wait for shutdown when disabled; otherwise run bounded consumer loops."""
     config = MaintenanceQueueConfig()
+    stop_event = asyncio.Event()
+    _install_signal_handlers(stop_event)
+    if not config.queue_enabled:
+        await stop_event.wait()
+        return
+
     client = create_maintenance_worker_client(config)
     submitter = RedisMaintenanceJobSubmitter(client, config)
     consumer = RedisMaintenanceJobConsumer(client, config, submitter)
     container = _create_worker_container(config)
-    stop_event = asyncio.Event()
-    _install_signal_handlers(stop_event)
     try:
         database = await cast(Awaitable[Database], container.database())
         await cast(Awaitable[bool], client.ping())
@@ -94,11 +99,9 @@ def _create_worker_container(config: MaintenanceQueueConfig) -> ApplicationConta
         Created worker container.
     """
     container = ApplicationContainer()
-    container.app_config.override(
+    container.embedding_config.override(
         providers.Object(
-            AppConfig().model_copy(
-                update={"rag_embedding_threads": config.embedding_threads}
-            ),
+            EmbeddingConfig(rag_embedding_threads=config.embedding_threads),
         )
     )
     container.graph_signal_provider.override(providers.Object(None))
@@ -153,7 +156,18 @@ async def _process_delivery(
         database: Database used by this operation.
         container: Container used by this operation.
     """
-    attempt = await consumer.mark_running(delivery)
+    admission = await consumer.mark_running(delivery)
+    if isinstance(admission, MaintenanceJobNotAdmitted):
+        logger.warning(
+            "maintenance job execution was not admitted",
+            extra={
+                "job_id": delivery.job.job_id,
+                "stream_id": delivery.stream_id,
+                "acknowledgement_repaired": admission.acknowledgement_repaired,
+            },
+        )
+        return
+    attempt = admission
     try:
         result = await _execute_job(delivery, database, container)
     except asyncio.CancelledError:
@@ -175,6 +189,16 @@ async def _process_delivery(
             attempt,
             error_summary,
         )
+        if terminal is None:
+            logger.warning(
+                "maintenance job failure outcome was fenced out",
+                extra={
+                    "job_id": delivery.job.job_id,
+                    "stream_id": delivery.stream_id,
+                    "attempt": attempt,
+                },
+            )
+            return
         logger.warning(
             "maintenance job failure transition persisted",
             extra={
@@ -185,7 +209,17 @@ async def _process_delivery(
             },
         )
         return
-    await consumer.mark_succeeded(delivery, result)
+    published = await consumer.mark_succeeded(delivery, attempt, result)
+    if not published:
+        logger.warning(
+            "maintenance job success outcome was fenced out",
+            extra={
+                "job_id": delivery.job.job_id,
+                "stream_id": delivery.stream_id,
+                "attempt": attempt,
+            },
+        )
+        return
     if delivery.job.kind is MaintenanceJobKind.BATCH_NOTE_WRITE:
         try:
             await _delete_batch_payload(delivery.job.source_id, database)

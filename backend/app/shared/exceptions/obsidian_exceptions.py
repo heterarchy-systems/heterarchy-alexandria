@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal
+from typing import Literal, Protocol
 
 from app.shared.types.extra_types import JSONObject
 
-if TYPE_CHECKING:
-    from app.obsidian.domain.entities.obsidian_note import ObsidianNote
+
+# protocol-contract: structural-seam
+class StoredObsidianNoteProtocol(Protocol):
+    """Minimal note readback contract carried by stored-projection errors."""
+
+    note_id: str
+    relative_path: str
 
 
 class ObsidianDomainError(RuntimeError):
@@ -46,12 +51,14 @@ class ObsidianIndexWriteError(ObsidianDomainError):
     """Raised when one rebuildable Obsidian index write fails."""
 
 
-class ObsidianStoredProjectionError(ObsidianValidationError):
+class ObsidianStoredProjectionError[
+    NoteT: StoredObsidianNoteProtocol = StoredObsidianNoteProtocol
+](ObsidianValidationError):
     """Raised when Markdown is durable but a derived projection failed."""
 
     def __init__(
         self,
-        note: ObsidianNote,
+        note: NoteT,
         failed_stage: Literal["metadata_index", "context_supersession"],
     ) -> None:
         """Create a typed stored-with-projection-warning failure.
@@ -63,7 +70,7 @@ class ObsidianStoredProjectionError(ObsidianValidationError):
         super().__init__(
             "INDEX_WRITE_FAILED: canonical Markdown was preserved for reindex"
         )
-        self.note = note
+        self.note: NoteT = note
         self.failed_stage = failed_stage
 
 
@@ -86,12 +93,12 @@ class ObsidianIdentityConflictError(ObsidianDomainError):
         """Create a machine-readable identity conflict.
 
         Args:
-            operation: Operation used by this operation.
-            requested_note_id: Identifier for requested note.
-            requested_path: Requested path used by this operation.
-            id_target_path: Id target path used by this operation.
-            path_target_id: Identifier for path target.
-            recommended_operation: Recommended operation used by this operation.
+            operation: Attempted write operation name.
+            requested_note_id: Requested note identifier selector, if provided.
+            requested_path: Requested relative path selector, if provided.
+            id_target_path: Existing path bound to the requested note_id, if any.
+            path_target_id: Existing note_id bound to the requested path, if any.
+            recommended_operation: Safe next operation for the caller.
         """
         super().__init__("IDENTITY_CONFLICT")
         self._detail: JSONObject = {
@@ -109,7 +116,7 @@ class ObsidianIdentityConflictError(ObsidianDomainError):
         """Return the stable HTTP error detail.
 
         Returns:
-            Result produced by route_detail.
+            Machine-readable identity conflict detail payload.
         """
         return dict(self._detail)
 
@@ -125,8 +132,8 @@ class ObsidianWriteTargetNotFoundError(ObsidianDomainError):
         """Create a machine-readable missing-target error.
 
         Args:
-            requested_note_id: Identifier for requested note.
-            requested_path: Requested path used by this operation.
+            requested_note_id: Requested note identifier selector, if provided.
+            requested_path: Requested relative path selector, if provided.
         """
         super().__init__("WRITE_TARGET_NOT_FOUND")
         self._detail: JSONObject = {
@@ -142,7 +149,7 @@ class ObsidianWriteTargetNotFoundError(ObsidianDomainError):
         """Return the stable HTTP error detail.
 
         Returns:
-            Result produced by route_detail.
+            Machine-readable missing-target detail payload.
         """
         return dict(self._detail)
 
@@ -151,14 +158,14 @@ class ObsidianIdempotencyConflictError(ObsidianDomainError):
     """Raised when one idempotency key is reused for a different request."""
 
     def __init__(self) -> None:
-        """Initialize ObsidianIdempotencyConflictError state and dependencies."""
+        """Create an idempotency key reuse conflict error."""
         super().__init__("IDEMPOTENCY_KEY_REUSED")
 
     def route_detail(self) -> JSONObject:
         """Return a secret-free stable HTTP error detail.
 
         Returns:
-            Result produced by route_detail.
+            Machine-readable idempotency conflict detail payload.
         """
         return {
             "error_code": "IDEMPOTENCY_KEY_REUSED",
@@ -171,12 +178,20 @@ class ObsidianCheckpointRecoveryRequiredError(ObsidianValidationError):
     """Refuse new mutation when a durable operation record cannot be trusted."""
 
     def __init__(self, checkpoint_id: str) -> None:
-        """Retain a non-secret record identity for safe durable investigation."""
+        """Retain a non-secret record identity for safe durable investigation.
+
+        Args:
+            checkpoint_id: Identifier of the unreadable or invalid checkpoint.
+        """
         super().__init__("CHECKPOINT_RECOVERY_REQUIRED")
         self.checkpoint_id = checkpoint_id
 
     def route_detail(self) -> JSONObject:
-        """Return actionable failure without treating corruption as absence."""
+        """Return actionable failure without treating corruption as absence.
+
+        Returns:
+            Machine-readable checkpoint recovery guidance payload.
+        """
         return {
             "error_code": "CHECKPOINT_RECOVERY_REQUIRED",
             "cause": "The existing durable operation checkpoint is invalid or unreadable.",

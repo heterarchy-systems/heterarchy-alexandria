@@ -21,10 +21,11 @@ from app.obsidian.infrastructure.models.obsidian_index_models import ObsidianFil
 from app.obsidian.infrastructure.repositories.obsidian_index_repository import (
     SqlAlchemyObsidianIndexRepository,
 )
-from app.obsidian.interface.schemas.obsidian.obsidian_schema import (
+from app.obsidian.interface.schemas.obsidian.notes.obsidian_note_schema import (
     ObsidianNoteResponse,
 )
 from app.shared.infrastructure.database import Database
+from app.shared.types.extra_types import JSONObject
 
 _OBSIDIAN_MODELS_LOADED = _obsidian_index_models
 
@@ -34,7 +35,7 @@ def test_dogfood_metadata_round_trips_through_markdown_index_and_search(
 ) -> None:
     """Typed metadata should survive canonical save, search, and full reindex."""
 
-    async def scenario() -> tuple[str, dict[str, object], dict[str, object], int, int]:
+    async def scenario() -> tuple[str, JSONObject, JSONObject, int, int]:
         database = Database(
             database_url=os.environ["DATABASE_URL"],
             create_schema=True,

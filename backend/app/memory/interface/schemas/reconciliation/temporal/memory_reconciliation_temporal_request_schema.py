@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import StringConstraints, field_validator
+from pydantic import Field, StringConstraints, field_validator
 
 from app.memory.domain.contracts.memory_reconciliation_contracts import (
     MemoryTemporalRecallRequest,
@@ -21,11 +21,7 @@ from app.memory.domain.event_enum.reconciliation_enums import (
 from app.memory.interface.schemas.reconciliation.reconciliation_string_types import (
     ReconciliationScopeFilterText,
 )
-from app.shared.schemas.common_schemas import (
-    StrictSchemaModel,
-    described_field,
-    schema_list_default,
-)
+from app.shared.schemas.common_schemas import StrictSchemaModel, schema_list_default
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 from app.shared.types.types_convert_utils import enum_value
 
@@ -36,66 +32,70 @@ class MemoryTemporalRecallHttpRequest(StrictSchemaModel):
     query: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=10000),
-        described_field("Query for this memory temporal recall HTTP request."),
+        Field(description="Query for this memory temporal recall HTTP request."),
     ]
     mode: Annotated[
         MemoryTemporalRecallMode,
-        described_field("Mode for this memory temporal recall HTTP request."),
+        Field(description="Mode for this memory temporal recall HTTP request."),
     ] = MemoryTemporalRecallMode.CURRENT
     as_of: Annotated[
         AwareTimestamp | None,
-        described_field("As of for this memory temporal recall HTTP request."),
+        Field(description="As of for this memory temporal recall HTTP request."),
     ] = None
     strategy: Annotated[
         RagStrategy,
-        described_field("Strategy for this memory temporal recall HTTP request."),
+        Field(description="Strategy for this memory temporal recall HTTP request."),
     ] = RagStrategy.HYBRID
     limit: Annotated[
         int,
-        described_field(
-            "Limit for this memory temporal recall HTTP request.", ge=1, le=100
+        Field(
+            description="Limit for this memory temporal recall HTTP request.",
+            ge=1,
+            le=100,
         ),
     ] = 5
     project: Annotated[
         ReconciliationScopeFilterText,
-        described_field("Project for this memory temporal recall HTTP request."),
+        Field(description="Project for this memory temporal recall HTTP request."),
     ] = None
     kind: Annotated[
         ContextKind | None,
-        described_field("Kind for this memory temporal recall HTTP request."),
+        Field(description="Kind for this memory temporal recall HTTP request."),
     ] = None
     include_scopes: Annotated[
         list[ContextScope],
-        described_field("Include scopes for this memory temporal recall HTTP request."),
+        Field(
+            description="Include scopes for this memory temporal recall HTTP request."
+        ),
     ] = schema_list_default()
     workspace_id: Annotated[
         ReconciliationScopeFilterText,
-        described_field(
-            "Workspace identifier for this memory temporal recall HTTP request."
+        Field(
+            description="Workspace identifier for this memory temporal recall HTTP request."
         ),
     ] = None
     agent_id: Annotated[
         ReconciliationScopeFilterText,
-        described_field(
-            "Agent identifier for this memory temporal recall HTTP request."
+        Field(
+            description="Agent identifier for this memory temporal recall HTTP request."
         ),
     ] = None
     user_id: Annotated[
         ReconciliationScopeFilterText,
-        described_field(
-            "User identifier for this memory temporal recall HTTP request."
+        Field(
+            description="User identifier for this memory temporal recall HTTP request."
         ),
     ] = None
     session_id: Annotated[
         ReconciliationScopeFilterText,
-        described_field(
-            "Session identifier for this memory temporal recall HTTP request."
+        Field(
+            description="Session identifier for this memory temporal recall HTTP request."
         ),
     ] = None
     include_lifecycle_statuses: Annotated[
         list[ContextRecallLifecycleStatus],
-        described_field(
-            "Include lifecycle statuses for this memory temporal recall HTTP request."
+        Field(
+            description="Include lifecycle statuses for this memory temporal recall HTTP request."
         ),
     ] = schema_list_default()
 

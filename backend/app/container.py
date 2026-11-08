@@ -2,32 +2,18 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator, Awaitable, Callable
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import cast
 
 from dependency_injector import containers, providers
-from pydantic import TypeAdapter
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.mcp_server.runtime_tool_catalog import registered_runtime_tool_names
-from app.memory.application.contexts.embedding.context_embedding_recovery_service import (
-    ContextEmbeddingRecoveryService,
-)
 from app.memory.application.contexts.graph.context_graph_candidate_expansion_service import (
     ContextGraphCandidateExpansionService,
     GraphProjectionSnapshotSource,
-)
-from app.memory.application.contexts.records.context_service import ContextService
-from app.memory.application.contexts.records.context_service_ports import (
-    ContextRecoveryPort,
-)
-from app.memory.application.integration.context_projection_integrity_service import (
-    ContextProjectionIntegrityService,
-)
-from app.memory.application.memory_compacts.lifecycle.memory_compact_service import (
-    MemoryCompactService,
 )
 from app.memory.application.reconciliation.cycles.memory_cycle_service import (
     MemoryCycleService,
@@ -35,15 +21,11 @@ from app.memory.application.reconciliation.cycles.memory_cycle_service import (
 from app.memory.application.reconciliation.cycles.memory_cycle_source_fence import (
     MemoryCycleSourceFence,
 )
-from app.memory.application.reconciliation.runtime.memory_reconciliation_readiness_service import (
-    MemoryReconciliationReadinessService,
-)
 from app.memory.application.retrieval.obsidian_exact_selector_resolver import (
     ObsidianExactSelectorResolver,
 )
-from app.memory.application.retrieval.recall_service import RecallService
+from app.memory.application.retrieval.recall.recall_service import RecallService
 from app.memory.containers import MemoryContainer
-from app.memory.domain.entities.context_read_models import ContextReindexResult
 from app.memory.domain.repositories.contexts.graph.context_graph_candidate_expansion_provider import (
     IContextGraphCandidateExpansionProvider,
 )
@@ -53,28 +35,10 @@ from app.memory.domain.repositories.contexts.graph.context_graph_signal_provider
 from app.memory.infrastructure.repositories.contexts.obsidian.obsidian_graph_candidate_hydrator import (
     ObsidianGraphCandidateHydrator,
 )
-from app.obsidian.application.graph.diagnostics.obsidian_graph_issue_list_service import (
-    ObsidianGraphIssueListService,
-)
 from app.obsidian.application.graph.projection.obsidian_graph_context_signal_service import (
     ObsidianGraphContextSignalService,
 )
-from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild_service import (
-    ObsidianGraphProjectionRebuildReport,
-    ObsidianGraphProjectionRebuildService,
-)
-from app.obsidian.application.service.notes.obsidian_mutation_outcome_service import (
-    ObsidianMutationOutcomeService,
-)
-from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.obsidian.containers import ObsidianContainer
-from app.obsidian.domain.contracts.obsidian_graph_issue_contracts import (
-    ObsidianGraphIssueListQuery,
-    ObsidianGraphIssueListResult,
-)
-from app.obsidian.domain.entities.obsidian_mutation_outcome import (
-    ObsidianMutationOutcome,
-)
 from app.obsidian.domain.repositories.obsidian_graph_candidate_selection_compute_provider import (
     IObsidianGraphCandidateSelectionComputeProvider,
 )
@@ -99,9 +63,6 @@ from app.operations.application.diagnostics.operational_retrieval_diagnostics_se
 from app.operations.application.maintenance_batch_note_write_service import (
     MaintenanceBatchNoteWriteService,
 )
-from app.operations.application.maintenance_dlq_service import (
-    MaintenanceDeadLetterLifecycleService,
-)
 from app.operations.application.maintenance_job_queue import MaintenanceJobSubmitter
 from app.operations.application.readiness.external_api_rate_limit import (
     ExternalApiRateLimiter,
@@ -112,19 +73,8 @@ from app.operations.application.readiness.operational_readiness_cache import (
     NoopOperationalReadinessCache,
     OperationalReadinessCache,
 )
-from app.operations.application.readiness.operational_readiness_service import (
-    GraphProjectionReadinessPort,
-    OperationalReadinessService,
-)
-from app.operations.application.readiness.operational_retrieval_canary_service import (
-    OperationalRetrievalCanaryService,
-)
 from app.operations.application.readiness.operational_runtime_provenance_service import (
     OperationalRuntimeProvenanceService,
-)
-from app.operations.application.recovery.execution.recovery_run_contracts import (
-    RecoveryCallbacks,
-    resolve_recovery_service,
 )
 from app.operations.application.skill_contract.skill_contract_status_service import (
     SkillContractStatusService,
@@ -136,9 +86,6 @@ from app.operations.application.steward.memory_steward_service import (
     MemoryStewardDiagnoseService,
     MemoryStewardSealService,
 )
-from app.operations.infrastructure.maintenance_job_payload_store import (
-    MaintenanceJobPayloadStore,
-)
 from app.operations.infrastructure.redis_maintenance_job_queue import (
     RedisMaintenanceJobSubmitter,
 )
@@ -146,10 +93,20 @@ from app.operations.infrastructure.redis_operational_readiness_cache import (
     RedisOperationalReadinessCache,
     RedisReadinessClient,
 )
+from app.platform.composition.operations import create_operational_readiness_service
+from app.platform.composition.recovery import (
+    create_maintenance_dlq_service,
+    create_recovery_callbacks,
+)
 from app.platform.config.app_config import AppConfig
 from app.platform.config.database_config import DatabaseConfig
-from app.platform.config.maintenance_queue_config import MaintenanceQueueConfig
-from app.platform.config.redis_config import RedisConfig
+from app.platform.config.mcp_config import McpApiConfig, McpConfig
+from app.platform.config.memory_config import EmbeddingConfig
+from app.platform.config.redis_config import (
+    MaintenanceQueueConfig,
+    RedisConfig,
+)
+from app.platform.config.vault_config import VaultConfig
 from app.shared.application.index_maintenance_coordinator import (
     IndexMaintenanceCoordinator,
 )
@@ -157,7 +114,6 @@ from app.shared.infrastructure.database import Database
 from app.shared.infrastructure.postgres_advisory_lock import PostgresAdvisoryLock
 from app.shared.infrastructure.redis_client import initialize_redis_client
 from app.shared.security.secret_cipher import SecretCipher, SecretCipherSettings
-from app.shared.types.extra_types import JSONObject, JSONValue
 
 
 @asynccontextmanager
@@ -215,7 +171,7 @@ def create_maintenance_job_submitter(
     Returns:
         Redis-backed job submitter when the queue is enabled; otherwise None.
     """
-    if client is None or config.redis_url is None:
+    if not config.queue_enabled or client is None or config.redis_url is None:
         return None
     return RedisMaintenanceJobSubmitter(client, config)
 
@@ -313,239 +269,6 @@ def create_graph_candidate_expansion_provider(
     )
 
 
-def create_operational_readiness_service(
-    config: AppConfig,
-    database: Database,
-    context_service: ContextService,
-    obsidian_service: ObsidianService,
-    reconciliation_service: MemoryReconciliationReadinessService | None,
-    readiness_cache: OperationalReadinessCache,
-    projection_integrity_service: ContextProjectionIntegrityService,
-    runtime_provenance_service: OperationalRuntimeProvenanceService,
-    graph_projection_service: GraphProjectionReadinessPort,
-) -> OperationalReadinessService:
-    """Assemble one request-scoped operational readiness object graph.
-
-    Args:
-        config: Validated application configuration.
-        database: Shared database lifecycle coordinator.
-        context_service: Request-scoped Context application service.
-        obsidian_service: Request-scoped canonical Vault application service.
-        reconciliation_service: Optional memory reconciliation diagnostics service.
-        readiness_cache: Bounded fail-open readiness cache.
-        projection_integrity_service: Persisted projection-integrity reader.
-        runtime_provenance_service: Application-scoped immutable provenance probe.
-        graph_projection_service: Canonical PostgreSQL graph status reader.
-
-    Returns:
-        Request-scoped readiness service sharing one Context service with its canary.
-    """
-    retrieval_canary_service = OperationalRetrievalCanaryService(
-        context_service=context_service,
-        query=config.readiness_canary_query,
-        limit=config.readiness_canary_limit,
-    )
-    return OperationalReadinessService(
-        database=database,
-        context_service=context_service,
-        obsidian_service=obsidian_service,
-        reconciliation_service=reconciliation_service,
-        readiness_cache=readiness_cache,
-        runtime_provenance_service=runtime_provenance_service,
-        retrieval_canary_service=retrieval_canary_service,
-        projection_integrity_service=projection_integrity_service,
-        graph_projection_service=graph_projection_service,
-    )
-
-
-def create_maintenance_dlq_service(
-    database: Database,
-    queue: MaintenanceJobSubmitter | None,
-    archive_namespace: str,
-    outcome_factory: Callable[
-        [], ObsidianMutationOutcomeService | Awaitable[ObsidianMutationOutcomeService]
-    ],
-) -> MaintenanceDeadLetterLifecycleService | None:
-    """Compose DLQ coordination with its existing durable/effect owners.
-
-    Args:
-        database: Existing PostgreSQL transaction owner.
-        queue: Existing Redis queue, absent when disabled.
-        archive_namespace: Configured DLQ stream identity.
-        outcome_factory: Request-scoped canonical note receipt reader.
-
-    Returns:
-        Enabled lifecycle service or explicit disabled capability.
-    """
-    if queue is None:
-        return None
-
-    async def read_payload(identity: str) -> dict[str, JSONValue] | None:
-        async with database.request_session() as session:
-            return await MaintenanceJobPayloadStore(session).load(identity)
-
-    async def write_archive(identity: str, body: dict[str, JSONValue]) -> bool:
-        async with database.request_session() as session:
-            return await MaintenanceJobPayloadStore(session).save_if_absent(
-                identity, "maintenance_dlq_retirement", body
-            )
-
-    async def read_outcome(identity: str) -> ObsidianMutationOutcome:
-        async with database.request_session():
-            service = await resolve_recovery_service(outcome_factory)
-            return await service.note_write_outcome(identity)
-
-    return MaintenanceDeadLetterLifecycleService(
-        queue,
-        archive_namespace=archive_namespace,
-        payload_reader=read_payload,
-        archive_reader=read_payload,
-        archive_writer=write_archive,
-        note_outcome_reader=read_outcome,
-    )
-
-
-def create_recovery_callbacks(
-    config: AppConfig,
-    database: Database,
-    embedding_owner: ContextEmbeddingRecoveryService,
-    graph_factory: Callable[
-        [],
-        ObsidianGraphProjectionRebuildService
-        | Awaitable[ObsidianGraphProjectionRebuildService],
-    ],
-    links_factory: Callable[
-        [], ObsidianGraphIssueListService | Awaitable[ObsidianGraphIssueListService]
-    ],
-    compact_factory: Callable[
-        [], MemoryCompactService | Awaitable[MemoryCompactService]
-    ],
-    queue: MaintenanceJobSubmitter | None,
-    dlq_service: MaintenanceDeadLetterLifecycleService | None,
-) -> RecoveryCallbacks:
-    """Bind recovery to existing owners with independent transactions and bounded reads.
-
-    Args:
-        config: Loaded batch ceilings.
-        database: Canonical request transaction owner.
-        embedding_owner: Existing resumable embedding invalidation owner.
-        graph_factory: Session-bound graph rebuild provider.
-        links_factory: Session-bound Rust graph diagnostics provider.
-        compact_factory: Existing CURRENT source reader provider.
-        queue: Optional existing Redis maintenance queue.
-        dlq_service: Optional receipt-based DLQ reconciler.
-
-    Returns:
-        Capability bindings; construction performs no recovery effects.
-    """
-
-    async def embeddings(
-        context: ContextRecoveryPort, batch_size: int, max_batches: int
-    ) -> JSONObject:
-        if (batch_size, max_batches) != (
-            config.rag_embedding_recovery_batch_size,
-            config.rag_embedding_recovery_max_batches,
-        ):
-            raise ValueError("embedding recovery bounds differ from configured owner")
-        batches: list[ContextReindexResult] = []
-        result = await embedding_owner.recover(context, batch_observer=batches.append)
-        return {
-            "scanned": result.scanned,
-            "updated": result.updated,
-            "skipped": result.skipped,
-            "warnings": list(result.warnings),
-            "batches": [
-                {
-                    "scanned": batch.scanned,
-                    "updated": batch.updated,
-                    "skipped": batch.skipped,
-                    "warnings": list(batch.warnings),
-                }
-                for batch in batches
-            ],
-            "batch_size": batch_size,
-            "max_batches": max_batches,
-        }
-
-    async def graph() -> JSONObject:
-        async with database.request_session():
-            service = await resolve_recovery_service(graph_factory)
-            result = await service.rebuild()
-            return cast(
-                JSONObject,
-                TypeAdapter(ObsidianGraphProjectionRebuildReport).dump_python(
-                    result, mode="json"
-                ),
-            )
-
-    async def links() -> JSONObject:
-        async with database.request_session():
-            service = await resolve_recovery_service(links_factory)
-            result = await service.list_issues(ObsidianGraphIssueListQuery(limit=50))
-            return cast(
-                JSONObject,
-                TypeAdapter(ObsidianGraphIssueListResult).dump_python(
-                    result, mode="json"
-                ),
-            )
-
-    async def dlq() -> JSONObject:
-        if queue is None or dlq_service is None:
-            return {"enabled": False, "ready": True, "entries": [], "truncated": False}
-        entries = await queue.list_dead_letters(51)
-        results: list[JSONObject] = []
-        ready = len(entries) <= 50
-        for entry in entries[:50]:
-            outcome = await dlq_service.reconcile(entry.entry_id)
-            unresolved = (
-                not outcome.source_available
-                or outcome.outcome_class.value in {"UNKNOWN_OUTCOME", "CONFLICT"}
-                or any(
-                    item.status in {"UNKNOWN", "RECONCILIATION_REQUIRED", "CONFLICTED"}
-                    for item in outcome.items
-                )
-            )
-            ready = ready and not unresolved
-            results.append(
-                {
-                    "entry_id": entry.entry_id,
-                    "ready": not unresolved,
-                    "outcomes": [
-                        {"status": item.status, "effect_identity": item.effect_identity}
-                        for item in outcome.items
-                    ],
-                }
-            )
-        return {
-            "enabled": True,
-            "ready": ready,
-            "entries": results,
-            "truncated": len(entries) > 50,
-        }
-
-    async def current() -> JSONObject:
-        async with database.request_session():
-            service = await resolve_recovery_service(compact_factory)
-            compact = await service.current()
-            return {
-                "project": None,
-                "available": compact is not None,
-                "compact_id": None if compact is None else compact.id,
-                "status": "NOT_APPLICABLE" if compact is None else compact.status.value,
-                "scope": "default_project",
-            }
-
-    return RecoveryCallbacks(
-        embedding=embeddings,
-        graph=graph,
-        links=links,
-        dlq=dlq,
-        current=current,
-        embedding_batch_size=config.rag_embedding_recovery_batch_size,
-        embedding_max_batches=config.rag_embedding_recovery_max_batches,
-    )
-
-
 class ApplicationContainer(containers.DeclarativeContainer):
     """Root container for shared application resources."""
 
@@ -559,6 +282,10 @@ class ApplicationContainer(containers.DeclarativeContainer):
     )
 
     app_config = providers.Singleton(AppConfig)
+    mcp_config = providers.Singleton(McpConfig)
+    mcp_api_config = providers.Singleton(McpApiConfig)
+    embedding_config = providers.Singleton(EmbeddingConfig)
+    vault_config = providers.Singleton(VaultConfig)
     secret_cipher = providers.Singleton(create_secret_cipher, config=app_config)
     database_config = providers.Singleton(DatabaseConfig)
     redis_config = providers.Singleton(RedisConfig)
@@ -620,7 +347,8 @@ class ApplicationContainer(containers.DeclarativeContainer):
     memory = providers.Container(
         MemoryContainer,
         db_session=db_session,
-        app_config=app_config,
+        embedding_config=embedding_config,
+        vault_config=vault_config,
         graph_signal_provider=graph_signal_provider,
         graph_candidate_expansion_provider=graph_candidate_expansion_provider,
         index_maintenance_coordinator=index_maintenance_coordinator,
@@ -631,6 +359,8 @@ class ApplicationContainer(containers.DeclarativeContainer):
         db_session=db_session,
         database=database,
         app_config=app_config,
+        embedding_config=embedding_config,
+        vault_config=vault_config,
         memory_context_service=memory.context_service,
         memory_embedding_recovery_service=memory.context_embedding_recovery_service,
         graph_projection_repository=graph_projection_repository,
@@ -695,7 +425,7 @@ class ApplicationContainer(containers.DeclarativeContainer):
     )
     recovery_callbacks = providers.Factory(
         create_recovery_callbacks,
-        config=app_config,
+        config=embedding_config,
         database=database,
         embedding_owner=memory.context_embedding_recovery_service,
         graph_factory=obsidian.graph_projection_rebuild_service.provider,

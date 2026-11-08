@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
+from pydantic import Field
+
+from app.shared.schemas.common_schemas import StrictSchemaModel
 
 
 class ProtocolErrorResponse(StrictSchemaModel):
@@ -12,5 +14,5 @@ class ProtocolErrorResponse(StrictSchemaModel):
 
     detail: Annotated[
         str,
-        described_field("Human-readable detail for the rejected protocol request."),
+        Field(description="Human-readable detail for the rejected protocol request."),
     ]

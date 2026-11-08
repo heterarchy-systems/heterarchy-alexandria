@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import cast
-
 from app.obsidian.application.graph.diagnostics.obsidian_graph_note_diagnostics_support import (
     ObsidianGraphNoteIndexDiagnostic,
     ObsidianGraphNoteLinkValidationReport,
@@ -18,13 +16,11 @@ from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild
     ObsidianGraphProjectionStatusReport,
 )
 from app.obsidian.application.notes.obsidian_note_indexer import note_index_from_path
+from app.obsidian.domain.contracts.obsidian_contracts import ObsidianNoteIndex
 from app.obsidian.domain.entities.obsidian_note import ObsidianNote
 from app.obsidian.domain.event_enum.obsidian_enums import ObsidianIndexStatus
 from app.obsidian.domain.repositories.obsidian_graph_projection_source_repository import (
     IObsidianGraphProjectionSourceRepository,
-)
-from app.obsidian.domain.repositories.obsidian_index_query_repository import (
-    IObsidianIndexQueryRepository,
 )
 from app.obsidian.domain.repositories.obsidian_index_repository import (
     IObsidianIndexRepository,
@@ -42,6 +38,7 @@ from app.shared.exceptions.obsidian_exceptions import (
     ObsidianNotFoundError,
     ObsidianValidationError,
 )
+from app.shared.infrastructure.critical_task import run_critical_sync
 
 
 class ObsidianGraphNoteDiagnosticsService:
@@ -49,7 +46,7 @@ class ObsidianGraphNoteDiagnosticsService:
 
     def __init__(
         self,
-        repository: IObsidianIndexQueryRepository,
+        repository: IObsidianIndexRepository,
         source: IObsidianGraphProjectionSourceRepository,
         projection_service: ObsidianGraphProjectionRebuildService,
         vault_config_store: ObsidianVaultConfigStore | None = None,
@@ -58,7 +55,7 @@ class ObsidianGraphNoteDiagnosticsService:
         """Create per-note graph diagnostics service.
 
         Args:
-            repository: Indexed-note query repository.
+            repository: Indexed-note query and write repository.
             source: Read-only graph projection source rows.
             projection_service: Existing graph projection status provider.
             vault_config_store: Vault config store used by this operation.
@@ -161,23 +158,29 @@ class ObsidianGraphNoteDiagnosticsService:
         ):
             raise ObsidianValidationError("note graph rebuild is not configured")
         selector = _selector(note_id=note_id, path=path)
-        note = await self._selected_note(selector)
-        if note is None:
-            raise ObsidianNotFoundError("Obsidian note graph target was not found")
-        config = self._vault_config_store.current()
-        absolute = resolve_note_path(config.vault_path, note.relative_path)
-        payload = note_index_from_path(
-            absolute,
-            note.relative_path,
-            alexandria_root=config.alexandria_root,
-        )
-        if payload is None:
-            raise ObsidianValidationError(
-                "Obsidian note is missing Alexandria frontmatter"
-            )
-        write_repository = cast(IObsidianIndexRepository, self._repository)
         async with self._index_maintenance_coordinator.operation("note_graph_rebuild"):
-            await write_repository.upsert_note(payload)
+            note = await self._selected_note(selector)
+            if note is None:
+                raise ObsidianNotFoundError("Obsidian note graph target was not found")
+
+            vault_config_store = self._vault_config_store
+            relative_path = note.relative_path
+
+            def index_canonical_note() -> ObsidianNoteIndex | None:
+                config = vault_config_store.current()
+                absolute = resolve_note_path(config.vault_path, relative_path)
+                return note_index_from_path(
+                    absolute,
+                    relative_path,
+                    alexandria_root=config.alexandria_root,
+                )
+
+            payload = await run_critical_sync(index_canonical_note)
+            if payload is None:
+                raise ObsidianValidationError(
+                    "Obsidian note is missing Alexandria frontmatter"
+                )
+            await self._repository.upsert_note(payload)
         projection = await self._projection_service.rebuild(
             include_issue_details=True,
         )

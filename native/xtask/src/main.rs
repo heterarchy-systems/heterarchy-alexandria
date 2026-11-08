@@ -6,9 +6,12 @@ use std::path::{Component, Path, PathBuf};
 use std::process::{self, Command};
 use toml::Value;
 
-const EXPECTED_MEMBERS: [&str; 3] = [
+const MODEL_BUFFER_MEMBER: &str = "crates/heterarchy-alexandria-model-buffer";
+const MODEL_BUFFER_PACKAGE: &str = "heterarchy-alexandria-model-buffer";
+const EXPECTED_MEMBERS: [&str; 4] = [
     "crates/heterarchy-alexandria-core",
     "crates/heterarchy-alexandria-py",
+    MODEL_BUFFER_MEMBER,
     "xtask",
 ];
 const EXPECTED_FEATURES: [&str; 10] = [
@@ -44,6 +47,33 @@ const FORBIDDEN_CORE_SOURCE_MARKERS: [&str; 7] = [
 ];
 
 type TaskResult<T> = Result<T, String>;
+
+#[derive(Debug, Deserialize)]
+struct CargoMetadata {
+    target_directory: PathBuf,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct NativeArtifactPaths {
+    target_directory: PathBuf,
+    fastembed_cache_directory: PathBuf,
+}
+
+impl NativeArtifactPaths {
+    fn resolve(repository_root: &Path) -> TaskResult<Self> {
+        let target_directory = cargo_target_directory(repository_root)?;
+        let configured_cache = env::var_os("ALEXANDRIA_FASTEMBED_PARITY_CACHE");
+        let fastembed_cache_directory = resolve_fastembed_cache_directory(
+            repository_root,
+            &target_directory,
+            configured_cache.as_deref(),
+        )?;
+        Ok(Self {
+            target_directory,
+            fastembed_cache_directory,
+        })
+    }
+}
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -97,7 +127,7 @@ fn main() {
 fn run() -> TaskResult<()> {
     let mut arguments = env::args().skip(1);
     let command = arguments.next().ok_or_else(|| {
-        "missing command; expected rules|fmt|check|test|python-ci|ci|perf|extended|doctor|deps"
+        "missing command; expected rules|fmt|check|test|python-ci|ci|perf|extended|doctor|deps|gil-policy"
             .to_owned()
     })?;
     if arguments.next().is_some() {
@@ -116,6 +146,7 @@ fn run() -> TaskResult<()> {
         "extended" => run_extended(&repository_root),
         "doctor" => run_doctor(&repository_root),
         "deps" => run_deps(&repository_root),
+        "gil-policy" => run_gil_policy_probe(&repository_root),
         _ => Err(format!("unknown xtask command: {command}")),
     }
 }
@@ -286,8 +317,77 @@ fn verify_workspace_inheritance(manifest: &Value, member: &str) -> TaskResult<()
         .and_then(|lints| lints.get("workspace"))
         .and_then(Value::as_bool)
         .unwrap_or(false);
+    if member == MODEL_BUFFER_MEMBER {
+        if inherits_lints {
+            return Err(
+                "approved model buffer must declare its exact local lint boundary".to_owned(),
+            );
+        }
+        return verify_model_buffer_manifest(manifest);
+    }
     if !inherits_lints {
         return Err(format!("{member} must declare [lints] workspace = true"));
+    }
+    Ok(())
+}
+
+fn verify_model_buffer_manifest(manifest: &Value) -> TaskResult<()> {
+    if manifest
+        .get("package")
+        .and_then(|p| p.get("name"))
+        .and_then(Value::as_str)
+        != Some(MODEL_BUFFER_PACKAGE)
+    {
+        return Err("unsafe approval is limited to the exact model buffer package".to_owned());
+    }
+    let lints = manifest
+        .get("lints")
+        .and_then(Value::as_table)
+        .ok_or_else(|| "model buffer must declare local lints".to_owned())?;
+    let rust_lints = lints
+        .get("rust")
+        .and_then(Value::as_table)
+        .ok_or_else(|| "model buffer must declare Rust lints".to_owned())?;
+    for (name, level) in [
+        ("unsafe_code", "allow"),
+        ("unsafe_op_in_unsafe_fn", "deny"),
+        ("unused_must_use", "deny"),
+        ("warnings", "deny"),
+    ] {
+        require_lint_level(rust_lints, name, level)?;
+    }
+    let clippy = lints
+        .get("clippy")
+        .and_then(Value::as_table)
+        .ok_or_else(|| "model buffer must declare Clippy lints".to_owned())?;
+    for (name, level) in [
+        ("all", "deny"),
+        ("pedantic", "warn"),
+        ("dbg_macro", "deny"),
+        ("expect_used", "deny"),
+        ("panic", "deny"),
+        ("todo", "deny"),
+        ("unimplemented", "deny"),
+        ("unwrap_used", "deny"),
+    ] {
+        require_lint_level(clippy, name, level)?;
+    }
+    let dependencies = dependency_table(manifest);
+    if dependencies.len() != 1
+        || dependencies
+            .get("libc")
+            .and_then(|dependency| dependency.get("workspace"))
+            .and_then(Value::as_bool)
+            != Some(true)
+    {
+        return Err("model buffer may only reuse workspace libc".to_owned());
+    }
+    for section in ["dev-dependencies", "build-dependencies", "target"] {
+        if manifest.get(section).is_some() {
+            return Err(format!(
+                "model buffer has unreviewed dependency section {section}"
+            ));
+        }
     }
     Ok(())
 }
@@ -302,6 +402,9 @@ fn verify_dependency_direction(repository_root: &Path) -> TaskResult<()> {
         read_toml(&repository_root.join("native/crates/heterarchy-alexandria-py/Cargo.toml"))?;
 
     let core_dependencies = dependency_table(&core_manifest);
+    if core_dependencies.contains_key(MODEL_BUFFER_PACKAGE) {
+        return Err("core must not depend on the platform model-buffer boundary".to_owned());
+    }
     if core_dependencies.contains_key("pyo3") {
         return Err("core crate must not depend on PyO3".to_owned());
     }
@@ -310,6 +413,13 @@ fn verify_dependency_direction(repository_root: &Path) -> TaskResult<()> {
     }
 
     let adapter_dependencies = dependency_table(&adapter_manifest);
+    let buffer_path = adapter_dependencies
+        .get(MODEL_BUFFER_PACKAGE)
+        .and_then(|dependency| dependency.get("path"))
+        .and_then(Value::as_str);
+    if buffer_path != Some("../heterarchy-alexandria-model-buffer") {
+        return Err("adapter must use the approved local model-buffer boundary".to_owned());
+    }
     let core_dependency = adapter_dependencies
         .get("heterarchy-alexandria-core")
         .ok_or_else(|| "Python adapter must depend on heterarchy-alexandria-core".to_owned())?;
@@ -566,7 +676,7 @@ fn verify_forbidden_python_imports_removed(
     ];
     for forbidden_import in &feature.forbidden_python_imports_when_rust {
         for python_root in &python_roots {
-            if let Some(path) = find_marker(python_root, "py", forbidden_import)? {
+            if let Some(path) = find_python_import_marker(python_root, forbidden_import)? {
                 return Err(format!(
                     "{feature_name}: forbidden Python import marker {forbidden_import} remains in {}",
                     path.display()
@@ -603,6 +713,26 @@ fn find_marker(root: &Path, extension: &str, marker: &str) -> TaskResult<Option<
         }
     }
     Ok(None)
+}
+
+fn find_python_import_marker(root: &Path, marker: &str) -> TaskResult<Option<PathBuf>> {
+    for path in files_with_extension(root, "py")? {
+        if contains_python_module_marker(&read_file(&path)?, marker) {
+            return Ok(Some(path));
+        }
+    }
+    Ok(None)
+}
+
+fn contains_python_module_marker(source: &str, marker: &str) -> bool {
+    source.match_indices(marker).any(|(offset, matched)| {
+        // A retired package marker also forbids its submodules, but does not
+        // name unrelated modules such as fastembed_runtime or fastembed_tools.
+        source[offset + matched.len()..]
+            .chars()
+            .next()
+            .is_none_or(|next| next != '_' && !next.is_alphanumeric())
+    })
 }
 
 fn files_with_extension(root: &Path, extension: &str) -> TaskResult<Vec<PathBuf>> {
@@ -718,6 +848,33 @@ fn run_tests(repository_root: &Path) -> TaskResult<()> {
         ],
         &environment,
     )?;
+    run_command(
+        repository_root,
+        "cargo",
+        &[
+            "test",
+            "--manifest-path",
+            "native/Cargo.toml",
+            "--locked",
+            "-p",
+            MODEL_BUFFER_PACKAGE,
+            "--doc",
+        ],
+    )?;
+    run_command(
+        repository_root,
+        "cargo",
+        &[
+            "test",
+            "--manifest-path",
+            "native/Cargo.toml",
+            "--locked",
+            "-p",
+            "fastembed",
+            "--lib",
+            "owned_initializer_",
+        ],
+    )?;
     run_document_analysis_ffi_parity(repository_root, &python)?;
     println!("test: PASS");
     Ok(())
@@ -725,7 +882,8 @@ fn run_tests(repository_root: &Path) -> TaskResult<()> {
 
 fn run_python_ci(repository_root: &Path) -> TaskResult<()> {
     let python = backend_python_executable(repository_root)?;
-    let library = build_debug_python_extension(repository_root, &python)?;
+    let artifact_paths = NativeArtifactPaths::resolve(repository_root)?;
+    let library = build_debug_python_extension(repository_root, &python, &artifact_paths)?;
     let environment = [(
         "HETERARCHY_ALEXANDRIA_NATIVE_LIBRARY",
         library.to_string_lossy().into_owned(),
@@ -740,11 +898,34 @@ fn run_python_ci(repository_root: &Path) -> TaskResult<()> {
     Ok(())
 }
 
+fn run_gil_policy_probe(repository_root: &Path) -> TaskResult<()> {
+    let python = env::var("ALEXANDRIA_FREE_THREADED_PYTHON").map_err(|error| {
+        format!(
+            "gil-policy: set ALEXANDRIA_FREE_THREADED_PYTHON to an already-installed CPython 3.14t interpreter: {error}"
+        )
+    })?;
+    let python_path = Path::new(&python);
+    if !python_path.is_absolute() || !python_path.is_file() {
+        return Err(format!(
+            "gil-policy: interpreter path must be absolute and already installed: {}",
+            python_path.display()
+        ));
+    }
+    run_command(
+        repository_root,
+        &python,
+        &["-I", "native/tests/pyo3_gil_policy_probe.py"],
+    )?;
+    println!("gil-policy: PASS");
+    Ok(())
+}
+
 fn run_document_analysis_ffi_parity(repository_root: &Path, python: &Path) -> TaskResult<()> {
     require_ffi_parity_artifacts(repository_root)?;
-    let expected_library = native_python_library_path(repository_root, "debug");
+    let artifact_paths = NativeArtifactPaths::resolve(repository_root)?;
+    let expected_library = native_python_library_path(&artifact_paths.target_directory, "debug");
     run_native_import_mode_contract(repository_root, python, &expected_library, "linked")?;
-    let library = build_debug_python_extension(repository_root, python)?;
+    let library = build_debug_python_extension(repository_root, python, &artifact_paths)?;
     run_native_import_mode_contract(repository_root, python, &library, "extension")?;
     run_ffi_parity_scripts(repository_root, &library)
 }
@@ -767,15 +948,141 @@ fn run_native_import_mode_contract(
     )
 }
 
-fn native_python_library_path(repository_root: &Path, profile: &str) -> PathBuf {
-    repository_root
-        .join("native/target")
-        .join(profile)
-        .join(format!(
-            "{}heterarchy_alexandria_native{}",
-            env::consts::DLL_PREFIX,
-            env::consts::DLL_SUFFIX,
-        ))
+fn cargo_target_directory(repository_root: &Path) -> TaskResult<PathBuf> {
+    let output = Command::new("cargo")
+        .args([
+            "metadata",
+            "--locked",
+            "--no-deps",
+            "--format-version",
+            "1",
+            "--manifest-path",
+            "native/Cargo.toml",
+        ])
+        .current_dir(repository_root)
+        .output()
+        .map_err(|error| format!("failed to inspect native Cargo metadata: {error}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "native Cargo metadata failed with status {}: {}",
+            output.status,
+            String::from_utf8_lossy(&output.stderr).trim()
+        ));
+    }
+    let metadata: CargoMetadata = serde_json::from_slice(&output.stdout)
+        .map_err(|error| format!("failed to parse native Cargo metadata: {error}"))?;
+    if !metadata.target_directory.is_absolute() {
+        return Err(format!(
+            "native Cargo metadata returned a non-absolute target directory: {}",
+            metadata.target_directory.display()
+        ));
+    }
+    Ok(metadata.target_directory)
+}
+
+fn resolve_fastembed_cache_directory(
+    repository_root: &Path,
+    target_directory: &Path,
+    configured: Option<&std::ffi::OsStr>,
+) -> TaskResult<PathBuf> {
+    if !repository_root.is_absolute() {
+        return Err(format!(
+            "repository root must be absolute when resolving FastEmbed cache: {}",
+            repository_root.display()
+        ));
+    }
+    if !target_directory.is_absolute() {
+        return Err(format!(
+            "Cargo target directory must be absolute when resolving FastEmbed cache: {}",
+            target_directory.display()
+        ));
+    }
+
+    let cache_directory = match configured {
+        Some(value) if value.is_empty() => {
+            return Err("ALEXANDRIA_FASTEMBED_PARITY_CACHE must not be empty".to_owned());
+        }
+        Some(value) => {
+            let path = PathBuf::from(value);
+            if path.is_absolute() {
+                path
+            } else {
+                repository_root.join("backend").join(path)
+            }
+        }
+        None => target_directory.join("fastembed-parity-cache"),
+    };
+    if !cache_directory.is_absolute() {
+        return Err(format!(
+            "resolved FastEmbed cache directory must be absolute: {}",
+            cache_directory.display()
+        ));
+    }
+    normalize_absolute_path(&cache_directory).map_err(|error| {
+        format!(
+            "failed to normalize FastEmbed cache directory {}: {error}",
+            cache_directory.display()
+        )
+    })
+}
+
+fn normalize_absolute_path(path: &Path) -> TaskResult<PathBuf> {
+    if !path.is_absolute() {
+        return Err(format!("path is not absolute: {}", path.display()));
+    }
+    let mut lexical_path = PathBuf::new();
+    for component in path.components() {
+        match component {
+            std::path::Component::Prefix(prefix) => lexical_path.push(prefix.as_os_str()),
+            std::path::Component::RootDir => lexical_path.push(component.as_os_str()),
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                let _ = lexical_path.pop();
+            }
+            std::path::Component::Normal(part) => lexical_path.push(part),
+        }
+    }
+
+    let mut existing_prefix = lexical_path.as_path();
+    loop {
+        match fs::metadata(existing_prefix) {
+            Ok(_) => break,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                existing_prefix = existing_prefix.parent().ok_or_else(|| {
+                    format!("path has no existing ancestor: {}", lexical_path.display())
+                })?;
+            }
+            Err(error) => {
+                return Err(format!(
+                    "failed to inspect existing path component {}: {error}",
+                    existing_prefix.display()
+                ));
+            }
+        }
+    }
+    let canonical_prefix = fs::canonicalize(existing_prefix).map_err(|error| {
+        format!(
+            "failed to resolve existing path component {}: {error}",
+            existing_prefix.display()
+        )
+    })?;
+    let suffix = lexical_path
+        .strip_prefix(existing_prefix)
+        .map_err(|error| {
+            format!(
+                "failed to resolve path suffix for {}: {error}",
+                lexical_path.display()
+            )
+        })?;
+    Ok(canonical_prefix.join(suffix))
+}
+
+fn native_python_library_path(target_directory: &Path, profile: &str) -> PathBuf {
+    target_directory.join(profile).join(format!(
+        "{}heterarchy_alexandria_native{}",
+        env::consts::DLL_PREFIX,
+        env::consts::DLL_SUFFIX,
+    ))
 }
 
 fn require_ffi_parity_artifacts(repository_root: &Path) -> TaskResult<()> {
@@ -808,7 +1115,11 @@ fn require_ffi_parity_artifacts(repository_root: &Path) -> TaskResult<()> {
     Ok(())
 }
 
-fn build_debug_python_extension(repository_root: &Path, python: &Path) -> TaskResult<PathBuf> {
+fn build_debug_python_extension(
+    repository_root: &Path,
+    python: &Path,
+    artifact_paths: &NativeArtifactPaths,
+) -> TaskResult<PathBuf> {
     let build_environment = [
         ("PYO3_PYTHON", python.to_string_lossy().into_owned()),
         ("PYO3_BUILD_EXTENSION_MODULE", "1".to_owned()),
@@ -825,7 +1136,7 @@ fn build_debug_python_extension(repository_root: &Path, python: &Path) -> TaskRe
         ],
         &build_environment,
     )?;
-    let library = native_python_library_path(repository_root, "debug");
+    let library = native_python_library_path(&artifact_paths.target_directory, "debug");
     if !library.is_file() {
         return Err(format!(
             "native Python extension artifact is missing: {}",
@@ -906,6 +1217,7 @@ struct ReconciliationCandidatePerfPaths {
 }
 
 fn run_perf(repository_root: &Path) -> TaskResult<()> {
+    let artifact_paths = NativeArtifactPaths::resolve(repository_root)?;
     require_deterministic_compute_perf_artifacts(repository_root)?;
     require_bulk_embedding_perf_artifacts(repository_root)?;
     require_retrieval_kernel_perf_artifacts(repository_root)?;
@@ -917,9 +1229,14 @@ fn run_perf(repository_root: &Path) -> TaskResult<()> {
     run_bulk_embedding_core_perf(repository_root, &bulk_paths.core_report)?;
     run_retrieval_kernel_core_perf(repository_root, &retrieval_paths.core)?;
     run_reconciliation_candidate_core_perf(repository_root, &reconciliation_paths.core_report)?;
-    let library = build_release_python_extension(repository_root)?;
+    let library = build_release_python_extension(repository_root, &artifact_paths)?;
     run_deterministic_compute_ffi_perf(repository_root, &library, &deterministic_report)?;
-    run_bulk_embedding_ffi_perf(repository_root, &library, &bulk_paths)?;
+    run_bulk_embedding_ffi_perf(
+        repository_root,
+        &library,
+        &bulk_paths,
+        &artifact_paths.fastembed_cache_directory,
+    )?;
     run_retrieval_kernel_ffi_perf(repository_root, &library, &retrieval_paths)?;
     run_retrieval_kernel_compact_perf(repository_root, &library, &retrieval_paths)?;
     run_reconciliation_candidate_ffi_perf(repository_root, &library, &reconciliation_paths)?;
@@ -931,16 +1248,18 @@ fn run_perf(repository_root: &Path) -> TaskResult<()> {
     require_retrieval_kernel_perf_reports(repository_root)?;
     require_reconciliation_candidate_perf_reports(repository_root)?;
     run_retrieval_benchmark_tool_gate(repository_root)?;
-    let live_retrieval_measured = run_live_retrieval_perf_if_requested(repository_root)?;
-    let fastembed_inference_measured = fastembed_perf_cache_is_populated(repository_root)?;
+    let live_retrieval_measured =
+        run_live_retrieval_perf_if_requested(repository_root, &artifact_paths.target_directory)?;
+    let fastembed_inference_measured =
+        fastembed_perf_cache_is_populated(&artifact_paths.fastembed_cache_directory)?;
 
     let rust_features = rust_authoritative_features(repository_root)?;
     if rust_features.is_empty() {
-        if fastembed_perf_cache_is_populated(repository_root)? && live_retrieval_measured {
+        if fastembed_inference_measured && live_retrieval_measured {
             println!(
                 "perf: PASS — cached native FastEmbed inference, retrieval-kernel JSON/compact real FFI, reconciliation-candidate core/real FFI, and live HYBRID exact-title/semantic endpoint recall measured"
             );
-        } else if fastembed_perf_cache_is_populated(repository_root)? {
+        } else if fastembed_inference_measured {
             println!(
                 "perf: PARTIAL_PASS — bulk embedding including cached native FastEmbed inference, retrieval-kernel JSON/compact real FFI, and reconciliation-candidate core/real FFI measured; live endpoint recall NOT RUN"
             );
@@ -999,7 +1318,10 @@ fn validate_rust_authority_perf_evidence(
     Ok(())
 }
 
-fn run_live_retrieval_perf_if_requested(repository_root: &Path) -> TaskResult<bool> {
+fn run_live_retrieval_perf_if_requested(
+    repository_root: &Path,
+    target_directory: &Path,
+) -> TaskResult<bool> {
     if !live_perf_requested()? {
         return Ok(false);
     }
@@ -1007,11 +1329,11 @@ fn run_live_retrieval_perf_if_requested(repository_root: &Path) -> TaskResult<bo
     let scenarios = [
         (
             "benchmarks/golden_cases.exact_title.v1.json",
-            "../native/target/live-retrieval-exact-title.json",
+            target_directory.join("live-retrieval-exact-title.json"),
         ),
         (
             "benchmarks/golden_cases.semantic.v1.json",
-            "../native/target/live-retrieval-semantic.json",
+            target_directory.join("live-retrieval-semantic.json"),
         ),
     ];
     for (corpus, output) in scenarios {
@@ -1037,11 +1359,11 @@ fn run_live_retrieval_perf_if_requested(repository_root: &Path) -> TaskResult<bo
                 "--timeout-seconds",
                 "10",
                 "--output",
-                output,
+                &output.to_string_lossy(),
             ],
             &[],
         )?;
-        validate_live_retrieval_report(&backend_root.join(output))?;
+        validate_live_retrieval_report(&output)?;
     }
     Ok(true)
 }
@@ -1126,18 +1448,49 @@ fn validate_live_retrieval_report(path: &Path) -> TaskResult<()> {
     Ok(())
 }
 
-fn fastembed_perf_cache_is_populated(repository_root: &Path) -> TaskResult<bool> {
-    let cache_directory = repository_root.join("native/target/fastembed-parity-cache");
-    if !cache_directory.is_dir() {
+fn fastembed_perf_cache_is_populated(cache_directory: &Path) -> TaskResult<bool> {
+    let metadata = match fs::metadata(cache_directory) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(error) => {
+            return Err(format!(
+                "failed to inspect FastEmbed performance cache {}: {error}",
+                cache_directory.display()
+            ));
+        }
+    };
+    if !metadata.is_dir() {
         return Ok(false);
     }
-    let mut entries = fs::read_dir(&cache_directory).map_err(|error| {
+    directory_contains_file(cache_directory).map_err(|error| {
         format!(
             "failed to inspect FastEmbed performance cache {}: {error}",
             cache_directory.display()
         )
-    })?;
-    Ok(entries.next().is_some())
+    })
+}
+
+fn directory_contains_file(directory: &Path) -> std::io::Result<bool> {
+    for entry in fs::read_dir(directory)? {
+        let entry = entry?;
+        let path = entry.path();
+        let entry_type = entry.file_type()?;
+        if entry_type.is_file() {
+            return Ok(true);
+        }
+        if entry_type.is_dir() && directory_contains_file(&path)? {
+            return Ok(true);
+        }
+        if entry_type.is_symlink() {
+            match fs::metadata(&path) {
+                Ok(metadata) if metadata.is_file() => return Ok(true),
+                Ok(_) => {}
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                Err(error) => return Err(error),
+            }
+        }
+    }
+    Ok(false)
 }
 
 fn require_deterministic_compute_perf_artifacts(repository_root: &Path) -> TaskResult<()> {
@@ -1311,7 +1664,10 @@ fn run_reconciliation_candidate_core_perf(repository_root: &Path, report: &Path)
     )
 }
 
-fn build_release_python_extension(repository_root: &Path) -> TaskResult<PathBuf> {
+fn build_release_python_extension(
+    repository_root: &Path,
+    artifact_paths: &NativeArtifactPaths,
+) -> TaskResult<PathBuf> {
     let python = backend_python_executable(repository_root)?;
     let environment = [
         ("PYO3_PYTHON", python.to_string_lossy().into_owned()),
@@ -1330,7 +1686,7 @@ fn build_release_python_extension(repository_root: &Path) -> TaskResult<PathBuf>
         ],
         &environment,
     )?;
-    let library = native_python_library_path(repository_root, "release");
+    let library = native_python_library_path(&artifact_paths.target_directory, "release");
     if !library.is_file() {
         return Err(format!(
             "release native Python extension artifact is missing: {}",
@@ -1344,6 +1700,7 @@ fn run_bulk_embedding_ffi_perf(
     repository_root: &Path,
     library: &Path,
     paths: &BulkEmbeddingPerfPaths,
+    fastembed_cache_directory: &Path,
 ) -> TaskResult<()> {
     let environment = [
         (
@@ -1357,6 +1714,10 @@ fn run_bulk_embedding_ffi_perf(
         (
             "HETERARCHY_ALEXANDRIA_BULK_EMBEDDING_PERF_REPORT",
             paths.combined_report.to_string_lossy().into_owned(),
+        ),
+        (
+            "ALEXANDRIA_FASTEMBED_PARITY_CACHE",
+            fastembed_cache_directory.to_string_lossy().into_owned(),
         ),
     ];
     run_command_in_directory_with_environment(
@@ -1544,6 +1905,7 @@ fn rust_authoritative_features(repository_root: &Path) -> TaskResult<Vec<String>
 }
 
 fn run_extended(repository_root: &Path) -> TaskResult<()> {
+    let artifact_paths = NativeArtifactPaths::resolve(repository_root)?;
     run_command(
         repository_root,
         "cargo",
@@ -1555,9 +1917,13 @@ fn run_extended(repository_root: &Path) -> TaskResult<()> {
             "--doc",
         ],
     )?;
-    let library = build_release_python_extension(repository_root)?;
+    let library = build_release_python_extension(repository_root, &artifact_paths)?;
     run_python_native_adapter_parity(repository_root, &library)?;
-    run_fastembed_numerical_parity_if_cached(repository_root, &library)?;
+    run_fastembed_numerical_parity_if_cached(
+        repository_root,
+        &library,
+        &artifact_paths.fastembed_cache_directory,
+    )?;
     run_native_retrieval_quality(repository_root, &library)?;
     println!(
         "extended: doc tests, Python/native adapter parity, cached FastEmbed parity against frozen pre-cutover numerical evidence when available, and real PostgreSQL native-retrieval quality PASS; optional Miri/fuzz/Loom stages are not configured"
@@ -1586,18 +1952,9 @@ fn run_python_native_adapter_parity(repository_root: &Path, library: &Path) -> T
 fn run_fastembed_numerical_parity_if_cached(
     repository_root: &Path,
     library: &Path,
+    cache_directory: &Path,
 ) -> TaskResult<()> {
-    let cache_directory = repository_root.join("native/target/fastembed-parity-cache");
-    let cache_is_populated = cache_directory.is_dir()
-        && fs::read_dir(&cache_directory)
-            .map_err(|error| {
-                format!(
-                    "failed to inspect FastEmbed parity cache {}: {error}",
-                    cache_directory.display()
-                )
-            })?
-            .next()
-            .is_some();
+    let cache_is_populated = fastembed_perf_cache_is_populated(cache_directory)?;
     if !cache_is_populated {
         println!(
             "fastembed-frozen-numerical-parity: NOT_RUN — local model cache is absent; extended remains offline-safe"
@@ -1707,4 +2064,168 @@ fn run_command_in_directory_with_environment(
         ));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unsafe_exception_rejects_other_packages_and_weakened_lints() -> TaskResult<()> {
+        let root = repository_root()?;
+        let manifest = read_toml(
+            &root
+                .join("native")
+                .join(MODEL_BUFFER_MEMBER)
+                .join("Cargo.toml"),
+        )?;
+        verify_workspace_inheritance(&manifest, MODEL_BUFFER_MEMBER)?;
+        assert!(
+            verify_workspace_inheritance(&manifest, "crates/heterarchy-alexandria-core").is_err()
+        );
+        for (key, value) in [
+            ("unsafe_code", "warn"),
+            ("unsafe_op_in_unsafe_fn", "allow"),
+            ("warnings", "warn"),
+            ("unused_must_use", "allow"),
+        ] {
+            let mut changed = manifest.clone();
+            changed["lints"]["rust"][key] = Value::String(value.to_owned());
+            assert!(verify_model_buffer_manifest(&changed).is_err(), "{key}");
+        }
+        let mut changed = manifest.clone();
+        changed["package"]["name"] = Value::String("unapproved-boundary".to_owned());
+        assert!(verify_model_buffer_manifest(&changed).is_err());
+        let mut changed = manifest;
+        changed["dependencies"]["libc"]["workspace"] = Value::Boolean(false);
+        assert!(verify_model_buffer_manifest(&changed).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn retired_import_markers_respect_module_identifier_boundaries() {
+        for source in [
+            "from fastembed import TextEmbedding",
+            "from fastembed.text.embedding import TextEmbedding",
+            "from fastembed",
+        ] {
+            assert!(contains_python_module_marker(source, "from fastembed"));
+        }
+        for source in [
+            "from fastembed_runtime import bootstrap_cached_fastembed_runtime",
+            "from fastembed2 import helper",
+            "from fastembed도구 import helper",
+        ] {
+            assert!(!contains_python_module_marker(source, "from fastembed"));
+        }
+        assert!(contains_python_module_marker(
+            "from app.retired_module.child import value",
+            "app.retired_module"
+        ));
+        assert!(!contains_python_module_marker(
+            "from app.retired_module_native import value",
+            "app.retired_module"
+        ));
+    }
+
+    #[test]
+    fn native_python_library_paths_follow_cargo_metadata_target_directory() -> TaskResult<()> {
+        let repository_root = repository_root()?;
+        let target_directory = cargo_target_directory(&repository_root)?;
+        let filename = format!(
+            "{}heterarchy_alexandria_native{}",
+            env::consts::DLL_PREFIX,
+            env::consts::DLL_SUFFIX,
+        );
+
+        for profile in ["debug", "release"] {
+            let expected = target_directory.join(profile).join(&filename);
+            assert_eq!(
+                native_python_library_path(&target_directory, profile),
+                expected,
+                "{profile} native extension path must follow Cargo metadata"
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn cache_resolution_uses_backend_child_directory_and_explicit_override() -> TaskResult<()> {
+        let fixture = TestDirectory::new()?;
+        let repository_root = fixture.path().join("repository");
+        let backend_directory = repository_root.join("backend");
+        let target_directory = fixture.path().join("cargo-target");
+        let override_directory = backend_directory.join("cache");
+        fs::create_dir_all(&override_directory)
+            .map_err(|error| format!("failed to create cache fixture: {error}"))?;
+        fs::create_dir_all(&repository_root)
+            .map_err(|error| format!("failed to create repository fixture: {error}"))?;
+
+        let default = resolve_fastembed_cache_directory(&repository_root, &target_directory, None)?;
+        assert_eq!(default, target_directory.join("fastembed-parity-cache"));
+
+        let relative_override = std::ffi::OsStr::new("models/../cache");
+        let resolved_override = resolve_fastembed_cache_directory(
+            &repository_root,
+            &target_directory,
+            Some(relative_override),
+        )?;
+        assert_eq!(
+            resolved_override,
+            fs::canonicalize(&override_directory)
+                .map_err(|error| format!("failed to canonicalize cache fixture: {error}"))?
+        );
+        assert!(
+            resolve_fastembed_cache_directory(
+                &repository_root,
+                &target_directory,
+                Some(std::ffi::OsStr::new("")),
+            )
+            .is_err()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn cache_population_requires_a_file_even_in_nested_directories() -> TaskResult<()> {
+        let fixture = TestDirectory::new()?;
+        let cache_directory = fixture.path().join("cache");
+        let empty_subdirectory = cache_directory.join("empty-subdirectory");
+        fs::create_dir_all(&empty_subdirectory)
+            .map_err(|error| format!("failed to create empty cache fixture: {error}"))?;
+        assert!(!fastembed_perf_cache_is_populated(&cache_directory)?);
+
+        fs::write(empty_subdirectory.join("model.bin"), b"model")
+            .map_err(|error| format!("failed to create cached model fixture: {error}"))?;
+        assert!(fastembed_perf_cache_is_populated(&cache_directory)?);
+        Ok(())
+    }
+
+    struct TestDirectory(PathBuf);
+
+    impl TestDirectory {
+        fn new() -> TaskResult<Self> {
+            let nonce = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(|error| format!("system clock is before the Unix epoch: {error}"))?
+                .as_nanos();
+            let path = env::temp_dir().join(format!(
+                "alexandria-xtask-fixture-{}-{nonce}",
+                process::id()
+            ));
+            fs::create_dir_all(&path)
+                .map_err(|error| format!("failed to create test directory: {error}"))?;
+            Ok(Self(path))
+        }
+
+        fn path(&self) -> &Path {
+            &self.0
+        }
+    }
+
+    impl Drop for TestDirectory {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
 }

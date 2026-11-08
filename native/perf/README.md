@@ -1,46 +1,57 @@
 # Native Compute Performance Evidence
 
-`cargo xtask perf` records machine-specific candidate evidence under `native/perf/evidence/`.
+`cargo xtask perf` records machine-specific candidate runs under
+`native/perf/evidence/`.
 
-For bulk embedding, the current report deliberately separates:
+Current production ownership comes from the [feature authority registry](../feature_authority.toml),
+not from benchmark prose. It records Rust authority with Python retirement
+complete for `document_analysis`, `chunking`, `link_extraction`, `fingerprint`,
+`graph_compute`, `compile_plan`, `embedding_compute`, `retrieval_kernel`,
+`reconciliation_candidates`, and `context_reindex_manifest`. The observations
+below are historical, machine-specific evidence. They do not establish current
+performance or change the registry's authority declarations.
 
-- direct Rust preparation/finalization throughput,
-- real `PyO3` JSON boundary latency,
-- equivalent Python preparation/vector-validation latency,
+## Historical recorded observations
+
+The recorded bulk-embedding report separated:
+
+- direct Rust preparation/finalization throughput;
+- real PyO3 JSON boundary latency;
+- equivalent Python preparation/vector-validation latency;
 - native model inference status.
 
-A `PARTIAL_PASS` is not a Rust-authority approval. Until local FastEmbed/ONNX inference,
-numerical parity, cold/warm model measurements, and downstream retrieval-quality checks are
-recorded, `embedding_compute` remains Python-authoritative.
+Its `PARTIAL_PASS` describes that report's evidence scope and does not change
+the current authority recorded for `embedding_compute`.
 
-For the retrieval kernel, the report also separates:
+The recorded retrieval-kernel report separated:
 
-- direct Rust candidate-fusion and best-per-context throughput,
-- the real `PyO3` JSON request/response boundary,
-- the current authoritative in-process Python ranking functions,
+- direct Rust candidate-fusion and best-per-context throughput;
+- the PyO3 JSON request/response boundary;
+- Python ranking functions used as the report's comparison baseline;
 - versioned synthetic parity and benchmark-tool checks.
 
-The measured boundary is part of the result, not incidental overhead. At large candidate sets,
-direct Rust compute is fast and hybrid fusion can approach Python latency even after JSON
-conversion. Best-per-context JSON FFI remains materially slower than Python at every measured
-scale, and 50,000 candidates per lane require multi-megabyte payloads. Therefore the current
-evidence rejects a naive JSON authority cutover. `retrieval_kernel` remains Python-authoritative
-until a coarser boundary or lower-copy transport is implemented and the seeded exact-title and
-semantic endpoint-quality metrics are rerun without regression.
+In that run, direct Rust compute was fast at large candidate sets, and hybrid
+fusion approached the Python baseline after JSON conversion. The report measured
+best-per-context JSON FFI slower than the Python baseline at its measured scales,
+with multi-megabyte payloads at 50,000 candidates per lane. These measurements
+describe that JSON boundary and run; the report's rejection of that candidate
+does not describe current production authority. The current registry assigns
+`retrieval_kernel` to Rust.
 
-For reconciliation candidate discovery, the benchmark uses bounded blocks of eight hard-negative
-items at 1k, 10k, and 100k scale. This deliberately exercises comparison work without producing
-large candidate outputs. The current machine evidence records 350,000 comparisons for 100,000
-items instead of the theoretical 4,999,950,000 global pairs (0.007% of all-pairs work). The real
-release PyO3 boundary remains faster than the equivalent Python baseline at all three measured
-scales while preserving exact result parity. This evidence validates the bounded candidate engine,
-not final reconciliation semantics; relation classification and lifecycle policy remain Python-owned.
+The reconciliation-candidate report used blocks of eight hard-negative items at
+1k, 10k, and 100k scale. That run recorded 350,000 comparisons for 100,000
+items, compared with 4,999,950,000 theoretical global pairs (0.007% of all-pairs
+work). Its release PyO3 boundary was faster than the equivalent Python baseline
+at those measured scales and preserved exact result parity for the report's
+cases. The evidence covered bounded candidate discovery; it did not establish
+final reconciliation semantics or current performance. The current registry
+assigns `reconciliation_candidates` to Rust.
 
-The retrieval production-boundary candidate now uses compact `PyO3` tuple/index calls rather than
-JSON for hybrid fusion. Heavyweight Python Context/Chunk DTOs stay in Python; only context IDs and
-source indices/scores cross the native boundary. With `PyBackedStr`, hybrid fusion is faster than
-the current Python implementation from 50 through 50,000 candidates (about 1.6x at 50 and >3x at
-50,000 on the current machine). The single-lane best-per-context helper remains faster in Python at
-all measured sizes, so it is a current `KEEP` candidate rather than a forced Rust migration. That
-KEEP decision must remain explicit in the final cutover evidence; it is not a Python fallback for a
-Rust-owned hybrid fusion path.
+A separate retrieval-boundary candidate used compact PyO3 tuple/index calls for
+hybrid fusion instead of JSON. That report kept Python Context/Chunk DTOs in
+Python and sent context IDs and source indices/scores across the native
+boundary. It measured hybrid fusion faster than its Python baseline from 50
+through 50,000 candidates (about 1.6x at 50 and over 3x at 50,000 on that
+machine). The same report measured its single-lane best-per-context helper
+faster in Python at all tested sizes. Its `KEEP` label was a candidate decision
+from that report and does not override the current feature authority registry.

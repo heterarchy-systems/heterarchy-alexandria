@@ -14,11 +14,12 @@ from app.shared.serialization.orjson_codec import loads_json
 from app.shared.types.extra_types import JSONObject
 
 
-def _active_recovery_run_id() -> str | None:
-    """Execute active recovery run id.
+def active_recovery_run_id() -> str | None:
+    """Return the active recovery run identifier from the durable lock file.
 
     Returns:
-        str | None result produced by active recovery run id.
+        Active run identifier, an unreadable sentinel if the lock file is
+        corrupted or missing its run id, or None when no active lock exists.
     """
     path = _recovery_dir() / "active-run.json"
     if not path.exists():
@@ -30,11 +31,12 @@ def _active_recovery_run_id() -> str | None:
     return UNREADABLE_ACTIVE_RECOVERY_RUN_ID if run_id is None else str(run_id)
 
 
-def _last_successful_recovery_run_id() -> str | None:
-    """Execute last successful recovery run id.
+def last_successful_recovery_run_id() -> str | None:
+    """Return the identifier of the most recently completed recovery run.
 
     Returns:
-        str | None result produced by last successful recovery run id.
+        Run identifier of the latest COMPLETED manifest, or None when no
+        completed recovery run exists.
     """
     recovery_dir = _recovery_dir()
     if not recovery_dir.exists():
@@ -60,17 +62,18 @@ def _last_successful_recovery_run_id() -> str | None:
 
 
 def _load_recovery_json(path: Path) -> JSONObject | None:
-    """Load recovery json.
+    """Read and decode a persisted recovery JSON object from disk.
 
     Args:
-        path: Path used by this operation.
+        path: Filesystem path to the JSON record.
 
     Returns:
-        Loaded recovery json.
+        Decoded JSON object, or None on I/O errors, parse failures, or
+        non-object payloads.
     """
     try:
         payload = loads_json(path.read_bytes())
-    except (OSError, ValueError):
+    except OSError, ValueError:
         return None
     if not isinstance(payload, dict):
         return None

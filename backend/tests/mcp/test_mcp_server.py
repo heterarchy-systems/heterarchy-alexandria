@@ -10,12 +10,10 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 from mcp_types import Tool
+from tests.config_test_data import application_container
 
 from app.main import app as default_app, create_app
-from app.mcp_server.backend_api_client import (
-    AlexandriaApiClient,
-    AlexandriaApiSettings,
-)
+from app.mcp_server.backend_api_client import AlexandriaApiClient
 from app.mcp_server.server_runtime import (
     DEFAULT_MCP_TRANSPORT_HOST,
     build_mcp_server,
@@ -40,15 +38,9 @@ from app.mcp_server.tools.memory_compacts.memory_steward_readiness_tools import 
     alexandria_memory_steward_refresh_current_compact,
 )
 from app.mcp_server.tools.obsidian.obsidian_backend_gateway import (
-    alexandria_check_path_exists,
-    alexandria_create_note,
-    alexandria_get_related_notes,
-    alexandria_read_note,
-    alexandria_resolve_canonical_identity,
-    alexandria_search_vault,
-    alexandria_update_note,
-    alexandria_upsert_note,
-    alexandria_upsert_report_bundle,
+    ObsidianNoteBatchGateway,
+    ObsidianNoteReadGateway,
+    ObsidianNoteWriteGateway,
 )
 from app.mcp_server.tools.obsidian.vault_maintenance_backend_gateway import (
     alexandria_get_graph_build_status,
@@ -79,10 +71,10 @@ from app.memory.domain.event_enum.context_enums import (
 from app.memory.domain.event_enum.memory_compact_enums import (
     MemoryCompactStatus,
 )
-from app.memory.interface.schemas.context.context_retrieval_schema import (
+from app.memory.interface.schemas.context.context_search_schema import (
     ContextSearchRequest,
 )
-from app.platform.config.app_config import AppConfig
+from app.platform.config.mcp_config import McpApiConfig
 from app.shared.serialization.orjson_codec import dumps_json, loads_json
 from app.shared.types.extra_types import JSONValue
 
@@ -103,7 +95,7 @@ def _client() -> tuple[AlexandriaApiClient, list[RecordedCall]]:
         return httpx.Response(200, content=dumps_json({"ok": True}))
 
     client = AlexandriaApiClient(
-        AlexandriaApiSettings(
+        McpApiConfig(
             base_url="http://backend:8000",
             timeout=12.0,
         ),
@@ -122,7 +114,7 @@ def _client_with_payload(
         return httpx.Response(200, content=dumps_json(response_payload))
 
     client = AlexandriaApiClient(
-        AlexandriaApiSettings(
+        McpApiConfig(
             base_url="http://backend:8000",
             timeout=12.0,
         ),
@@ -210,7 +202,9 @@ def test_mcp_vault_search_compacts_and_deduplicates_note_hits() -> None:
         }
     )
 
-    response = _run_json(alexandria_search_vault(client, query="one", limit=5))
+    response = _run_json(
+        ObsidianNoteBatchGateway.search_vault(client, query="one", limit=5)
+    )
 
     assert response == {
         "items": [
@@ -241,12 +235,12 @@ def test_mcp_backend_tool_gateway_are_async_http_boundaries() -> None:
     """Public MCP HTTP gateways should remain async boundaries."""
     async_tools = [
         alexandria_search,
-        alexandria_search_vault,
+        ObsidianNoteBatchGateway.search_vault,
         alexandria_archive_context,
         alexandria_delete_context,
         alexandria_rag_status,
-        alexandria_read_note,
-        alexandria_get_related_notes,
+        ObsidianNoteReadGateway.read_note,
+        ObsidianNoteReadGateway.get_related_notes,
         alexandria_reindex_vault,
         alexandria_get_graph_projection_status,
         alexandria_rebuild_graph_projection,
@@ -403,7 +397,7 @@ def test_mcp_tools_map_to_non_destructive_backend_endpoints() -> None:
 
 def test_mcp_recovery_run_requires_explicit_idempotency_key() -> None:
     """MCP recovery apply should fail closed before backend calls without a key."""
-    client, calls = _client()
+    client, _calls = _client()
 
     async def run_tool() -> None:
         await alexandria_recover(client, dry_run=False, idempotency_key=None)
@@ -575,7 +569,7 @@ def test_mcp_obsidian_tools_map_to_vault_endpoints() -> None:
 
     async def run_tools() -> None:
         await alexandria_reindex_vault(client)
-        await alexandria_search_vault(
+        await ObsidianNoteBatchGateway.search_vault(
             client,
             query="canonical markdown",
             limit=2,
@@ -583,8 +577,8 @@ def test_mcp_obsidian_tools_map_to_vault_endpoints() -> None:
             project="heterarchy-alexandria",
             tags=["obsidian"],
         )
-        await alexandria_read_note(client, path="Alexandria/START_HERE.md")
-        await alexandria_get_related_notes(
+        await ObsidianNoteReadGateway.read_note(client, path="Alexandria/START_HERE.md")
+        await ObsidianNoteReadGateway.get_related_notes(
             client, path="Alexandria/START_HERE.md", limit=2
         )
 
@@ -662,7 +656,7 @@ def test_mcp_explicit_note_write_normalizes_collection_input_before_http_forward
     client, calls = _client()
 
     anyio.run(
-        alexandria_create_note,
+        ObsidianNoteWriteGateway.create_note,
         client,
         "Metadata Integrity",
         "# Metadata Integrity",
@@ -695,7 +689,7 @@ def test_mcp_explicit_note_writes_map_modes_and_identity_selectors() -> None:
     client, calls = _client()
 
     async def run_tools() -> None:
-        await alexandria_create_note(
+        await ObsidianNoteWriteGateway.create_note(
             client,
             "Created",
             "# Created",
@@ -704,7 +698,7 @@ def test_mcp_explicit_note_writes_map_modes_and_identity_selectors() -> None:
             note_id="skill-created",
             path="Alexandria/Skills/Drafts/created.md",
         )
-        await alexandria_update_note(
+        await ObsidianNoteWriteGateway.update_note(
             client,
             "Updated",
             "# Updated",
@@ -713,7 +707,7 @@ def test_mcp_explicit_note_writes_map_modes_and_identity_selectors() -> None:
             note_id="skill-created",
             expected_content_hash="a" * 64,
         )
-        await alexandria_upsert_note(
+        await ObsidianNoteWriteGateway.upsert_note(
             client,
             "Upserted",
             "# Upserted",
@@ -749,7 +743,7 @@ def test_mcp_report_bundle_maps_idempotency_and_verification_contract() -> None:
     client, calls = _client()
 
     anyio.run(
-        alexandria_upsert_report_bundle,
+        ObsidianNoteWriteGateway.upsert_report_bundle,
         client,
         "ethereum:2026-08-03",
         {
@@ -785,8 +779,10 @@ def test_mcp_exact_path_and_canonical_identity_map_without_fuzzy_search() -> Non
     client, calls = _client()
 
     async def run_tools() -> None:
-        await alexandria_check_path_exists(client, "Contexts/Projects/Source.md")
-        await alexandria_resolve_canonical_identity(
+        await ObsidianNoteReadGateway.check_path_exists(
+            client, "Contexts/Projects/Source.md"
+        )
+        await ObsidianNoteReadGateway.resolve_canonical_identity(
             client,
             "Crypto Intelligence Trader",
             "XRP Morning Read",
@@ -814,7 +810,7 @@ def test_mcp_explicit_note_write_rejects_legacy_collection_repr() -> None:
 
     with pytest.raises(ValueError, match="legacy"):
         anyio.run(
-            alexandria_create_note,
+            ObsidianNoteWriteGateway.create_note,
             client,
             "Metadata Integrity",
             "# Metadata Integrity",
@@ -857,7 +853,7 @@ def test_mcp_memory_steward_readiness_combines_health_compact_and_review() -> No
         return httpx.Response(200, content=dumps_json(responses[len(calls) - 1]))
 
     client = AlexandriaApiClient(
-        AlexandriaApiSettings(
+        McpApiConfig(
             base_url="http://backend:8000",
             timeout=12.0,
         ),
@@ -907,7 +903,7 @@ def test_mcp_memory_steward_readiness_flags_stale_current_compact() -> None:
         return httpx.Response(200, content=dumps_json(responses[len(calls) - 1]))
 
     client = AlexandriaApiClient(
-        AlexandriaApiSettings(
+        McpApiConfig(
             base_url="http://backend:8000",
             timeout=12.0,
         ),
@@ -957,7 +953,7 @@ def test_mcp_memory_steward_readiness_flags_missing_current_compact_timestamp() 
         return httpx.Response(200, content=dumps_json(responses[len(calls) - 1]))
 
     client = AlexandriaApiClient(
-        AlexandriaApiSettings(
+        McpApiConfig(
             base_url="http://backend:8000",
             timeout=12.0,
         ),
@@ -1016,7 +1012,7 @@ def test_mcp_memory_steward_readiness_flags_source_hash_changed_current_compact(
         return httpx.Response(200, content=dumps_json(responses[len(calls) - 1]))
 
     client = AlexandriaApiClient(
-        AlexandriaApiSettings(
+        McpApiConfig(
             base_url="http://backend:8000",
             timeout=12.0,
         ),
@@ -1060,7 +1056,7 @@ def test_mcp_memory_steward_readiness_flags_blocked_current_compact_review() -> 
         return httpx.Response(200, content=dumps_json(responses[len(calls) - 1]))
 
     client = AlexandriaApiClient(
-        AlexandriaApiSettings(
+        McpApiConfig(
             base_url="http://backend:8000",
             timeout=12.0,
         ),
@@ -1107,7 +1103,7 @@ def test_mcp_memory_steward_readiness_returns_blocked_payload_when_rag_status_fa
         return httpx.Response(503, content=dumps_json({"detail": "rag unavailable"}))
 
     client = AlexandriaApiClient(
-        AlexandriaApiSettings(
+        McpApiConfig(
             base_url="http://backend:8000",
             timeout=12.0,
         ),
@@ -1150,7 +1146,7 @@ def test_mcp_memory_steward_readiness_flags_attention_items() -> None:
         return httpx.Response(200, content=dumps_json(responses[len(calls) - 1]))
 
     client = AlexandriaApiClient(
-        AlexandriaApiSettings(
+        McpApiConfig(
             base_url="http://backend:8000",
             timeout=12.0,
         ),
@@ -1204,7 +1200,7 @@ def test_mcp_memory_steward_refresh_current_compact_plans_stale_compact_refresh(
         return httpx.Response(200, content=dumps_json(responses[len(calls) - 1]))
 
     client = AlexandriaApiClient(
-        AlexandriaApiSettings(
+        McpApiConfig(
             base_url="http://backend:8000",
             timeout=12.0,
         ),
@@ -1265,7 +1261,7 @@ def test_mcp_memory_steward_refresh_current_compact_applies_stale_compact_refres
         return httpx.Response(200, content=dumps_json(responses[len(calls) - 1]))
 
     client = AlexandriaApiClient(
-        AlexandriaApiSettings(
+        McpApiConfig(
             base_url="http://backend:8000",
             timeout=12.0,
         ),
@@ -1327,7 +1323,7 @@ def test_mcp_memory_steward_refresh_current_compact_blocks_apply_when_rag_unheal
         return httpx.Response(200, content=dumps_json(responses[len(calls) - 1]))
 
     client = AlexandriaApiClient(
-        AlexandriaApiSettings(
+        McpApiConfig(
             base_url="http://backend:8000",
             timeout=12.0,
         ),
@@ -1394,7 +1390,7 @@ def test_mcp_memory_steward_refresh_current_compact_blocks_apply_on_rag_warnings
         return httpx.Response(200, content=dumps_json(responses[len(calls) - 1]))
 
     client = AlexandriaApiClient(
-        AlexandriaApiSettings(
+        McpApiConfig(
             base_url="http://backend:8000",
             timeout=12.0,
         ),
@@ -1441,7 +1437,7 @@ def test_mcp_memory_steward_refresh_current_compact_blocks_apply_when_rag_status
         return httpx.Response(503, content=dumps_json({"detail": "rag unavailable"}))
 
     client = AlexandriaApiClient(
-        AlexandriaApiSettings(
+        McpApiConfig(
             base_url="http://backend:8000",
             timeout=12.0,
         ),
@@ -1491,7 +1487,7 @@ def test_mcp_memory_steward_refresh_current_compact_blocks_apply_for_review_verd
         return httpx.Response(200, content=dumps_json(responses[len(calls) - 1]))
 
     client = AlexandriaApiClient(
-        AlexandriaApiSettings(
+        McpApiConfig(
             base_url="http://backend:8000",
             timeout=12.0,
         ),
@@ -1521,6 +1517,65 @@ def test_mcp_memory_steward_refresh_current_compact_blocks_apply_for_review_verd
     assert payload["created"] is None
     assert payload["blocked_reasons"] == ["current_memory_compact_review_blocked"]
     assert payload["blocked_next_actions"] == []
+
+
+def test_mcp_memory_steward_refresh_current_compact_allows_draft_only_for_review_verdict() -> (
+    None
+):
+    """Draft-only refresh should create a repair DRAFT even when CURRENT review is blocked."""
+    calls: list[RecordedCall] = []
+    responses: list[JSONValue] = [
+        {"fts": "HEALTHY", "vector": "HEALTHY", "embedding": "HEALTHY"},
+        {
+            "id": "compact-blocked",
+            "project": "heterarchy-alexandria",
+            "status": "CURRENT",
+            "updated_at": "2000-01-01T00:00:00Z",
+        },
+        _compact_review_payload("compact-blocked", verdict="blocked"),
+        {
+            "id": "compact-repair-draft",
+            "project": "heterarchy-alexandria",
+            "status": "DRAFT",
+        },
+        {"fts": "HEALTHY", "vector": "HEALTHY", "embedding": "HEALTHY"},
+        {
+            "id": "compact-blocked",
+            "project": "heterarchy-alexandria",
+            "status": "CURRENT",
+            "updated_at": "2000-01-01T00:00:00Z",
+        },
+        _compact_review_payload("compact-blocked", verdict="blocked"),
+    ]
+
+    async def fake_transport(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return httpx.Response(200, content=dumps_json(responses[len(calls) - 1]))
+
+    client = AlexandriaApiClient(
+        McpApiConfig(
+            base_url="http://backend:8000",
+            timeout=12.0,
+        ),
+        transport=httpx.MockTransport(fake_transport),
+    )
+
+    payload = _run_json(
+        alexandria_memory_steward_refresh_current_compact(
+            client,
+            project="heterarchy-alexandria",
+            max_compact_age_days=30,
+            apply=True,
+            draft_only=True,
+            covered_to="2026-07-15T00:00:00Z",
+        )
+    )
+
+    create_body = loads_json(calls[3].content or b"{}")
+    assert create_body["status"] == "DRAFT"
+    assert payload["status"] == "draft_created"
+    assert payload["created"]["id"] == "compact-repair-draft"
+    assert payload["blocked_reasons"] == []
 
 
 def test_mcp_vault_operation_tools_map_to_safe_vault_endpoints() -> None:
@@ -1613,7 +1668,7 @@ def test_mcp_context_supersede_tool_maps_to_canonical_endpoint() -> None:
 
 def test_fastapi_app_accepts_tunnel_host_for_streamable_http_mcp() -> None:
     """FastAPI should expose MCP to reverse-tunnel hosts without 421."""
-    app = create_app(AppConfig(_env_file=None, mcp_auth_mode="none"))
+    app = create_app(application_container(mcp_auth_mode="none"))
     initialize_request = {
         "jsonrpc": "2.0",
         "id": 1,

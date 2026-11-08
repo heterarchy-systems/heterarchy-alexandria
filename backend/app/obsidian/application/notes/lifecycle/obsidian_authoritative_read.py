@@ -140,7 +140,7 @@ def source_matches_hash(
         if not safe_path.exists():
             return False
         text = _read_source_text(safe_path, max_source_bytes=max_source_bytes)
-    except (OSError, ValueError, ObsidianValidationError):
+    except OSError, ValueError, ObsidianValidationError:
         return False
     return hash_text(text) == source_hash
 

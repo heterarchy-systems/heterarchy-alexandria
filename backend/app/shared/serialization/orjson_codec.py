@@ -2,27 +2,66 @@
 
 from __future__ import annotations
 
-from typing import cast
+import math
+from collections.abc import Mapping, Sequence
 
 import orjson
 
 from app.shared.types.extra_types import JSONValue
 
+type SerializableJSONValue = JSONValue | Mapping[str, object] | Sequence[object]
 
-# Broad type justified: orjson default callback can receive unsupported arbitrary objects.
-def _json_default(value: object) -> str:
-    """Safely convert unsupported JSON values to strings.
+
+_STRICT_ORJSON_OPTIONS = (
+    orjson.OPT_PASSTHROUGH_DATETIME
+    | orjson.OPT_PASSTHROUGH_DATACLASS
+    | orjson.OPT_PASSTHROUGH_SUBCLASS
+)
+
+
+def dumps_strict_json(value: object) -> bytes:
+    """Serialize a strictly JSON-compatible value with orjson, rejecting NaN/Inf.
 
     Args:
-        value: Unsupported value received from orjson.
+        value: Strictly JSON-compatible value.
 
     Returns:
-        String representation for fallback serialization.
+        Serialized UTF-8 JSON bytes.
+
+    Raises:
+        TypeError: When the value contains non-JSON types.
+        ValueError: When the value contains NaN or infinite floats.
     """
-    return str(value)
+
+    def reject_non_finite_floats(candidate: object) -> None:
+        """Recursively validate that no float in candidate is NaN or infinite.
+
+        Args:
+            candidate: Value or nested container element to inspect.
+
+        Raises:
+            ValueError: If candidate or any nested element is a non-finite float.
+        """
+        if isinstance(candidate, float):
+            if not math.isfinite(candidate):
+                raise ValueError("Out of range float values are not JSON compliant")
+            return
+        if isinstance(candidate, Mapping):
+            for key, item in candidate.items():
+                reject_non_finite_floats(key)
+                reject_non_finite_floats(item)
+            return
+        if isinstance(candidate, Sequence) and not isinstance(
+            candidate, (str, bytes, bytearray)
+        ):
+            for item in candidate:
+                reject_non_finite_floats(item)
+
+    reject_non_finite_floats(value)
+    return orjson.dumps(value, option=_STRICT_ORJSON_OPTIONS)
 
 
-def dumps_json(value: JSONValue) -> bytes:
+def dumps_json(value: SerializableJSONValue) -> bytes:
     """Serialize a JSON-compatible value with orjson.
 
     Args:
@@ -33,12 +72,12 @@ def dumps_json(value: JSONValue) -> bytes:
     """
     return orjson.dumps(
         value,
-        default=_json_default,
+        default=str,
         option=orjson.OPT_UTC_Z,
     )
 
 
-def dumps_pretty_json(value: JSONValue) -> bytes:
+def dumps_pretty_json(value: SerializableJSONValue) -> bytes:
     """Serialize a JSON-compatible value with stable indentation.
 
     Args:
@@ -49,12 +88,12 @@ def dumps_pretty_json(value: JSONValue) -> bytes:
     """
     return orjson.dumps(
         value,
-        default=_json_default,
+        default=str,
         option=orjson.OPT_INDENT_2 | orjson.OPT_UTC_Z,
     )
 
 
-def dumps_canonical_json(value: JSONValue) -> bytes:
+def dumps_canonical_json(value: SerializableJSONValue) -> bytes:
     """Serialize compact JSON with deterministic key ordering.
 
     Args:
@@ -65,24 +104,8 @@ def dumps_canonical_json(value: JSONValue) -> bytes:
     """
     return orjson.dumps(
         value,
-        default=_json_default,
+        default=str,
         option=orjson.OPT_SORT_KEYS | orjson.OPT_UTC_Z,
-    )
-
-
-def dumps_sorted_pretty_json(value: JSONValue) -> bytes:
-    """Serialize indented JSON with deterministic key ordering.
-
-    Args:
-        value: JSON-compatible value.
-
-    Returns:
-        Stable, indented UTF-8 JSON bytes.
-    """
-    return orjson.dumps(
-        value,
-        default=_json_default,
-        option=orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS | orjson.OPT_UTC_Z,
     )
 
 
@@ -95,6 +118,5 @@ def loads_json(value: bytes | str) -> JSONValue:
     Returns:
         JSON-compatible decoded value.
     """
-    decoded = orjson.loads(value)
-    json_value = cast(JSONValue, decoded)
-    return json_value
+    decoded: JSONValue = orjson.loads(value)
+    return decoded

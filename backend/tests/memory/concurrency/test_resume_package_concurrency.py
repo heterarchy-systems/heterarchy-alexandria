@@ -23,8 +23,8 @@ from app.memory.application.memory_compacts.resume_package.resume_package_contra
     ResumePackageDraft,
     ResumePackageLineage,
 )
-from app.memory.application.memory_compacts.resume_package.resume_package_markdown import (
-    parse_resume_package_markdown,
+from app.memory.application.memory_compacts.resume_package.resume_package_parser import (
+    ResumePackageMarkdownParser,
 )
 from app.memory.application.memory_compacts.resume_package.resume_package_service import (
     MemoryResumePackageService,
@@ -514,7 +514,7 @@ def test_failure_between_store_effects_never_yields_two_current(
             MemoryCompactStatus.SUPERSEDED,
             MemoryCompactStatus.CURRENT,
         }
-        parsed = parse_resume_package_markdown(retry.markdown_body)
+        parsed = ResumePackageMarkdownParser.parse(retry.markdown_body)
         assert parsed.previous_package_id == first.package_id
         return retry.package_revision, parsed.previous_package_id
 
@@ -540,7 +540,7 @@ def test_reopened_view_exposes_sealed_revision_parsed_from_body(
         )
         first_view = await service.get_resume_package(first.package_id)
         second_view = await service.get_resume_package(second.package_id)
-        parsed = parse_resume_package_markdown(second_view.markdown_body)
+        parsed = ResumePackageMarkdownParser.parse(second_view.markdown_body)
         lint = lint_context(
             ContextLintInput(
                 kind=ContextKind.HANDOFF,

@@ -8,12 +8,12 @@ import tempfile
 from pathlib import Path
 from typing import Annotated, TypeVar
 
-from pydantic import TypeAdapter, ValidationError
+from pydantic import Field, TypeAdapter, ValidationError
 
 from app.shared.exceptions.obsidian_exceptions import (
     ObsidianCheckpointRecoveryRequiredError,
 )
-from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
+from app.shared.schemas.common_schemas import StrictSchemaModel
 from app.shared.serialization.model_codec import schema_payload
 from app.shared.serialization.orjson_codec import dumps_pretty_json, loads_json
 from app.shared.types.extra_types import JSONObject
@@ -25,10 +25,10 @@ class _TypedCheckpointEnvelope(StrictSchemaModel):
     """Keep operation identity outside the operation-specific persisted record."""
 
     kind: Annotated[
-        str, described_field("Checkpoint operation namespace.", min_length=1)
+        str, Field(description="Checkpoint operation namespace.", min_length=1)
     ]
     record: Annotated[
-        JSONObject, described_field("Typed operation checkpoint payload.")
+        JSONObject, Field(description="Typed operation checkpoint payload.")
     ]
 
 

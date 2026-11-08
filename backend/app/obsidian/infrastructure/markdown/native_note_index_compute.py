@@ -12,11 +12,11 @@ from app.obsidian.infrastructure.markdown.native_frontmatter import (
 from app.obsidian.infrastructure.markdown.note_index_compute_contracts import (
     NoteIndexComputeResult,
 )
-from app.shared.infrastructure.native_compute_extension import (
+from app.shared.infrastructure.native_compute.native_compute_extension import (
     NativeComputeContractModule,
     load_native_compute_module,
 )
-from app.shared.infrastructure.native_wire_values import (
+from app.shared.infrastructure.native_compute.native_wire_values import (
     wire_array,
     wire_object,
     wire_required_text,

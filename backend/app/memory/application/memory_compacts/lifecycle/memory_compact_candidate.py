@@ -131,10 +131,13 @@ def with_review_metadata(
 
 
 def _validate_create(payload: MemoryCompactCreate) -> None:
-    """Validate create.
+    """Validate Memory Compact creation bounds, sections, and source references.
 
     Args:
-        payload: Validated payload for this operation.
+        payload: Normalized Memory Compact creation payload.
+
+    Raises:
+        MemoryCompactValidationError: If time bounds, markdown body, required sections, or source refs are invalid.
     """
     if payload.covered_to < payload.covered_from:
         raise MemoryCompactValidationError("covered_to must be after covered_from")
@@ -166,13 +169,13 @@ def _validate_create(payload: MemoryCompactCreate) -> None:
 def _deduplicate_source_refs(
     source_refs: tuple[MemoryCompactSourceRefCreate, ...],
 ) -> tuple[MemoryCompactSourceRefCreate, ...]:
-    """Execute deduplicate source refs.
+    """Deduplicate source references by type, id, and detail path in order.
 
     Args:
-        source_refs: Source refs used by this operation.
+        source_refs: Normalized source reference creation items.
 
     Returns:
-        tuple[MemoryCompactSourceRefCreate, ...] result produced by deduplicate source refs.
+        Deduplicated tuple of source reference items.
     """
     deduplicated: list[MemoryCompactSourceRefCreate] = []
     seen: set[tuple[str, str, str]] = set()

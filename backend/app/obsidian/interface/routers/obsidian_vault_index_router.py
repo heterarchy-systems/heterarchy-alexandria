@@ -20,8 +20,10 @@ from app.obsidian.interface.schemas.obsidian.maintenance.obsidian_legacy_metadat
     ObsidianLegacyMetadataRepairPlanResponse,
     ObsidianLegacyMetadataRepairReportResponse,
 )
-from app.obsidian.interface.schemas.obsidian.obsidian_schema import (
+from app.obsidian.interface.schemas.obsidian.notes.obsidian_note_schema import (
     ObsidianNoteResponse,
+)
+from app.obsidian.interface.schemas.obsidian.obsidian_vault_schema import (
     ObsidianReindexResponse,
     ObsidianStatusResponse,
 )

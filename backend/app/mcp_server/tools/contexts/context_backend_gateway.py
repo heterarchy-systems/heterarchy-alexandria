@@ -4,13 +4,15 @@ from __future__ import annotations
 
 from app.mcp_server.backend_api_client import AlexandriaApiClient
 from app.mcp_server.tools.backend_gateway_policy import (
-    _path_segment,
+    path_segment,
 )
-from app.memory.interface.schemas.context.context_retrieval_schema import (
+from app.memory.interface.schemas.context.context_brief_schema import (
     ContextBriefRequest,
-    ContextSearchRequest,
 )
 from app.memory.interface.schemas.context.context_schema import ContextSupersedeRequest
+from app.memory.interface.schemas.context.context_search_schema import (
+    ContextSearchRequest,
+)
 from app.shared.serialization.model_codec import schema_payload
 from app.shared.types.extra_types import JSONObject, JSONValue
 
@@ -52,7 +54,7 @@ async def alexandria_archive_context(
         Archived context response.
     """
     response = await client.post(
-        f"/memory/contexts/{_path_segment(context_id)}/archive", {}
+        f"/memory/contexts/{path_segment(context_id)}/archive", {}
     )
     return response
 
@@ -76,7 +78,7 @@ async def alexandria_supersede_context(
         replacement_context_id=replacement_context_id,
     )
     response = await client.post(
-        f"/memory/contexts/{_path_segment(context_id)}/supersede",
+        f"/memory/contexts/{path_segment(context_id)}/supersede",
         schema_payload(request),
     )
     return response
@@ -100,7 +102,7 @@ async def alexandria_delete_context(
     """
     query: JSONObject | None = {"confirm": "true"} if confirm else None
     response = await client.delete(
-        f"/memory/contexts/{_path_segment(context_id)}",
+        f"/memory/contexts/{path_segment(context_id)}",
         params=query,
     )
     return response

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import StringConstraints
+from pydantic import Field, StringConstraints
 
 from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild_service import (
     ObsidianGraphProjectionOperationError,
@@ -14,7 +14,7 @@ from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild
 from app.obsidian.domain.contracts.obsidian_graph_projection_contracts import (
     ObsidianGraphProjectionIssueCount,
 )
-from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
+from app.shared.schemas.common_schemas import StrictSchemaModel
 
 
 class ObsidianGraphProjectionOperationErrorResponse(StrictSchemaModel):
@@ -22,32 +22,32 @@ class ObsidianGraphProjectionOperationErrorResponse(StrictSchemaModel):
 
     code: Annotated[
         str,
-        described_field(
-            "Code for this Obsidian graph projection operation error response."
+        Field(
+            description="Code for this Obsidian graph projection operation error response."
         ),
     ]
     relative_path: Annotated[
         str | None,
-        described_field(
-            "Relative path for this Obsidian graph projection operation error response."
+        Field(
+            description="Relative path for this Obsidian graph projection operation error response."
         ),
     ] = None
     note_id: Annotated[
         str | None,
-        described_field(
-            "Note identifier for this Obsidian graph projection operation error response."
+        Field(
+            description="Note identifier for this Obsidian graph projection operation error response."
         ),
     ] = None
     edge_id: Annotated[
         str | None,
-        described_field(
-            "Edge identifier for this Obsidian graph projection operation error response."
+        Field(
+            description="Edge identifier for this Obsidian graph projection operation error response."
         ),
     ] = None
     detail: Annotated[
         str | None,
-        described_field(
-            "Detail for this Obsidian graph projection operation error response."
+        Field(
+            description="Detail for this Obsidian graph projection operation error response."
         ),
     ] = None
 
@@ -78,14 +78,15 @@ class ObsidianGraphProjectionIssueCountResponse(StrictSchemaModel):
 
     code: Annotated[
         str,
-        described_field(
-            "Code for this Obsidian graph projection issue count response."
+        Field(
+            description="Code for this Obsidian graph projection issue count response."
         ),
     ]
     count: Annotated[
         int,
-        described_field(
-            "Count for this Obsidian graph projection issue count response.", ge=1
+        Field(
+            description="Count for this Obsidian graph projection issue count response.",
+            ge=1,
         ),
     ]
 
@@ -110,75 +111,86 @@ class ObsidianGraphProjectionRebuildResponse(StrictSchemaModel):
 
     status: Annotated[
         Literal["completed", "failed"],
-        described_field("Status for this Obsidian graph projection rebuild response."),
+        Field(
+            description="Status for this Obsidian graph projection rebuild response."
+        ),
     ]
     graph_read_model: Annotated[
         Literal["postgresql"],
-        described_field(
-            "Graph read model for this Obsidian graph projection rebuild response."
+        Field(
+            description="Graph read model for this Obsidian graph projection rebuild response."
         ),
     ]
     run_id: Annotated[
         str,
         StringConstraints(strict=True, min_length=1),
-        described_field(
-            "Run identifier for this Obsidian graph projection rebuild response."
+        Field(
+            description="Run identifier for this Obsidian graph projection rebuild response."
         ),
     ]
     scanned: Annotated[
         int,
-        described_field(
-            "Scanned for this Obsidian graph projection rebuild response.", ge=0
+        Field(
+            description="Scanned for this Obsidian graph projection rebuild response.",
+            ge=0,
         ),
     ]
     indexed: Annotated[
         int,
-        described_field(
-            "Indexed for this Obsidian graph projection rebuild response.", ge=0
+        Field(
+            description="Indexed for this Obsidian graph projection rebuild response.",
+            ge=0,
         ),
     ]
     updated: Annotated[
         int,
-        described_field(
-            "Updated for this Obsidian graph projection rebuild response.", ge=0
+        Field(
+            description="Updated for this Obsidian graph projection rebuild response.",
+            ge=0,
         ),
     ]
     skipped: Annotated[
         int,
-        described_field(
-            "Skipped for this Obsidian graph projection rebuild response.", ge=0
+        Field(
+            description="Skipped for this Obsidian graph projection rebuild response.",
+            ge=0,
         ),
     ]
     issue_total: Annotated[
         int,
-        described_field(
-            "Issue total for this Obsidian graph projection rebuild response.", ge=0
+        Field(
+            description="Issue total for this Obsidian graph projection rebuild response.",
+            ge=0,
         ),
     ]
     issue_counts: Annotated[
         list[ObsidianGraphProjectionIssueCountResponse],
-        described_field(
-            "Issue counts for this Obsidian graph projection rebuild response."
+        Field(
+            description="Issue counts for this Obsidian graph projection rebuild response."
         ),
     ]
     issues: Annotated[
         list[ObsidianGraphProjectionOperationErrorResponse],
-        described_field("Issues for this Obsidian graph projection rebuild response."),
+        Field(
+            description="Issues for this Obsidian graph projection rebuild response."
+        ),
     ]
     issues_truncated: Annotated[
         bool,
-        described_field(
-            "Issues truncated for this Obsidian graph projection rebuild response."
+        Field(
+            description="Issues truncated for this Obsidian graph projection rebuild response."
         ),
     ]
     errors: Annotated[
         list[ObsidianGraphProjectionOperationErrorResponse],
-        described_field("Errors for this Obsidian graph projection rebuild response."),
+        Field(
+            description="Errors for this Obsidian graph projection rebuild response."
+        ),
     ]
     duration_seconds: Annotated[
         float,
-        described_field(
-            "Duration seconds for this Obsidian graph projection rebuild response.",
+        Field(
+            description="Duration seconds for this Obsidian graph projection rebuild response.",
             ge=0,
         ),
     ]
@@ -227,61 +239,63 @@ class ObsidianGraphProjectionStatusResponse(StrictSchemaModel):
 
     status: Annotated[
         Literal["uninitialized", "ready", "unavailable"],
-        described_field("Status for this Obsidian graph projection status response."),
+        Field(description="Status for this Obsidian graph projection status response."),
     ]
     graph_read_model: Annotated[
         Literal["postgresql"],
-        described_field(
-            "Graph read model for this Obsidian graph projection status response."
+        Field(
+            description="Graph read model for this Obsidian graph projection status response."
         ),
     ]
     enabled: Annotated[
         bool,
-        described_field(
-            "Whether this Obsidian graph projection status response is enabled."
+        Field(
+            description="Whether this Obsidian graph projection status response is enabled."
         ),
     ]
     node_count: Annotated[
         int,
-        described_field(
-            "Node count for this Obsidian graph projection status response.", ge=0
+        Field(
+            description="Node count for this Obsidian graph projection status response.",
+            ge=0,
         ),
     ]
     edge_count: Annotated[
         int,
-        described_field(
-            "Edge count for this Obsidian graph projection status response.", ge=0
+        Field(
+            description="Edge count for this Obsidian graph projection status response.",
+            ge=0,
         ),
     ]
     run_id: Annotated[
         str | None,
-        described_field(
-            "Run identifier for this Obsidian graph projection status response."
+        Field(
+            description="Run identifier for this Obsidian graph projection status response."
         ),
     ] = None
     projection_version: Annotated[
         int | None,
-        described_field(
-            "Projection version for this Obsidian graph projection status response.",
+        Field(
+            description="Projection version for this Obsidian graph projection status response.",
             ge=1,
         ),
     ] = None
     last_run_issue_total: Annotated[
         int,
-        described_field(
-            "Last run issue total for this Obsidian graph projection status response.",
+        Field(
+            description="Last run issue total for this Obsidian graph projection status response.",
             ge=0,
         ),
     ]
     last_run_issue_counts: Annotated[
         list[ObsidianGraphProjectionIssueCountResponse],
-        described_field(
-            "Last run issue counts for this Obsidian graph projection status response."
+        Field(
+            description="Last run issue counts for this Obsidian graph projection status response."
         ),
     ]
     errors: Annotated[
         list[ObsidianGraphProjectionOperationErrorResponse],
-        described_field("Errors for this Obsidian graph projection status response."),
+        Field(description="Errors for this Obsidian graph projection status response."),
     ]
 
     @classmethod
@@ -322,22 +336,22 @@ class ObsidianGraphBuildStatusResponse(StrictSchemaModel):
 
     projection: Annotated[
         ObsidianGraphProjectionStatusResponse,
-        described_field("Projection for this Obsidian graph build status response."),
+        Field(description="Projection for this Obsidian graph build status response."),
     ]
     rebuild_note_graph_supported: Annotated[
         bool,
-        described_field(
-            "Rebuild note graph supported for this Obsidian graph build status response."
+        Field(
+            description="Rebuild note graph supported for this Obsidian graph build status response."
         ),
     ] = True
     validation_only_supported: Annotated[
         bool,
-        described_field(
-            "Validation only supported for this Obsidian graph build status response."
+        Field(
+            description="Validation only supported for this Obsidian graph build status response."
         ),
     ] = True
     detail: Annotated[
-        str, described_field("Detail for this Obsidian graph build status response.")
+        str, Field(description="Detail for this Obsidian graph build status response.")
     ]
 
     @classmethod
@@ -367,11 +381,11 @@ class ObsidianGraphNoteSelectorResponse(StrictSchemaModel):
 
     note_id: Annotated[
         str | None,
-        described_field(
-            "Note identifier for this Obsidian graph note selector response."
+        Field(
+            description="Note identifier for this Obsidian graph note selector response."
         ),
     ] = None
     path: Annotated[
         str | None,
-        described_field("Path for this Obsidian graph note selector response."),
+        Field(description="Path for this Obsidian graph note selector response."),
     ] = None

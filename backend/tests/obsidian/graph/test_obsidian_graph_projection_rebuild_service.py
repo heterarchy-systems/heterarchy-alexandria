@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 
 import anyio
 import pytest
-from pydantic import ValidationError
 
+from app.obsidian.application.graph.projection import (
+    obsidian_graph_projection_rebuild_service as projection_rebuild_module,
+)
 from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild_service import (
+    ObsidianGraphProjectionOperationError,
     ObsidianGraphProjectionRebuildService,
 )
 from app.obsidian.domain.contracts.obsidian_graph_projection_contracts import (
@@ -31,7 +35,6 @@ from app.obsidian.domain.event_enum.obsidian_enums import (
 from app.obsidian.domain.event_enum.obsidian_graph_enums import (
     ObsidianGraphProjectionIssueCode,
 )
-from app.platform.config.app_config import AppConfig
 
 
 class _StaticSourceBuilder:
@@ -167,12 +170,6 @@ def _projection_snapshot() -> ObsidianGraphProjectionSourceSnapshot:
     )
 
 
-def test_retired_graph_read_model_is_rejected_before_rebuild() -> None:
-    """The retired disabled selector cannot bypass PostgreSQL graph projection."""
-    with pytest.raises(ValidationError):
-        AppConfig(_env_file=None, graph_read_model="disabled")
-
-
 def test_enabled_rebuild_uses_builder_snapshot_and_reports_counts(
     tmp_path: Path,
 ) -> None:
@@ -183,7 +180,6 @@ def test_enabled_rebuild_uses_builder_snapshot_and_reports_counts(
 
     async def scenario() -> tuple[object, object]:
         service = ObsidianGraphProjectionRebuildService(
-            config=AppConfig(_env_file=None),
             source_builder=builder,
             repository=repository,
             run_id_factory=lambda: "run-enabled",
@@ -238,7 +234,6 @@ def test_enabled_rebuild_surfaces_adapter_failure_without_markdown_mutation(
 
     async def scenario() -> object:
         service = ObsidianGraphProjectionRebuildService(
-            config=AppConfig(_env_file=None),
             source_builder=builder,
             repository=repository,
             run_id_factory=lambda: "run-failed",
@@ -260,13 +255,82 @@ def test_enabled_rebuild_surfaces_adapter_failure_without_markdown_mutation(
     assert not (tmp_path / "vault").exists()
 
 
+def test_rebuild_converts_only_the_requested_issue_detail_sample(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Issue counts stay exact while operation DTOs are built only for samples."""
+    base = _projection_snapshot()
+    issues = tuple(
+        ObsidianGraphProjectionIssue(
+            code=ObsidianGraphProjectionIssueCode.MISSING_TARGET_NOTE,
+            relative_path=f"Alexandria/Missing-{index}.md",
+            edge_id=f"edge-missing-{index}",
+            detail="target note is not in the healthy index",
+        )
+        for index in range(5)
+    )
+    snapshot = replace(
+        base,
+        issues=issues,
+        metrics=replace(base.metrics, errors=len(issues)),
+    )
+    converted: list[ObsidianGraphProjectionIssue] = []
+    original_conversion = projection_rebuild_module._operation_issue
+
+    def record_conversion(
+        issue: ObsidianGraphProjectionIssue,
+    ) -> ObsidianGraphProjectionOperationError:
+        converted.append(issue)
+        return original_conversion(issue)
+
+    monkeypatch.setattr(
+        projection_rebuild_module,
+        "_operation_issue",
+        record_conversion,
+    )
+
+    async def scenario() -> tuple[
+        object,
+        object,
+        tuple[ObsidianGraphProjectionIssue, ...],
+        tuple[ObsidianGraphProjectionIssue, ...],
+    ]:
+        service = ObsidianGraphProjectionRebuildService(
+            source_builder=_StaticSourceBuilder(snapshot),
+            repository=_RecordingProjectionRepository(),
+            run_id_factory=iter(("no-details", "sampled-details")).__next__,
+        )
+        no_details = await service.rebuild(include_issue_details=False)
+        no_details_converted = tuple(converted)
+        converted.clear()
+        sampled = await service.rebuild(include_issue_details=True, issue_limit=2)
+        sampled_converted = tuple(converted)
+        return no_details, sampled, no_details_converted, sampled_converted
+
+    no_details, sampled, no_details_converted, sampled_converted = anyio.run(scenario)
+
+    assert no_details_converted == ()
+    assert sampled_converted == issues[:2]
+    assert no_details.issues == ()
+    assert len(sampled.issues) == 2
+    assert tuple(issue.edge_id for issue in sampled.issues) == (
+        "edge-missing-0",
+        "edge-missing-1",
+    )
+    for report in (no_details, sampled):
+        assert report.issue_total == 5
+        assert [(item.code, item.count) for item in report.issue_counts] == [
+            (ObsidianGraphProjectionIssueCode.MISSING_TARGET_NOTE, 5)
+        ]
+        assert report.issues_truncated is True
+
+
 def test_enabled_status_distinguishes_uninitialized_from_successful_empty() -> None:
     """Metadata, not item counts, distinguishes never-built from empty-ready."""
     repository = _RecordingProjectionRepository()
 
     async def scenario() -> tuple[object, object]:
         service = ObsidianGraphProjectionRebuildService(
-            config=AppConfig(_env_file=None),
             source_builder=_StaticSourceBuilder(
                 ObsidianGraphProjectionSourceSnapshot(
                     projection=ObsidianGraphProjection(),
@@ -300,7 +364,6 @@ def test_source_failure_returns_redacted_typed_failed_report() -> None:
 
     async def scenario() -> object:
         return await ObsidianGraphProjectionRebuildService(
-            config=AppConfig(_env_file=None),
             source_builder=_SecretFailingBuilder(),
             repository=_RecordingProjectionRepository(),
             run_id_factory=lambda: "run-source-failed",
@@ -322,7 +385,6 @@ def test_adapter_failure_preserves_primary_error_and_reports_abort_failure() -> 
 
     async def scenario() -> object:
         return await ObsidianGraphProjectionRebuildService(
-            config=AppConfig(_env_file=None),
             source_builder=_StaticSourceBuilder(_projection_snapshot()),
             repository=repository,
             run_id_factory=lambda: "run-dual-failure",
@@ -345,7 +407,6 @@ def test_rebuild_defaults_to_counted_diagnostics_without_large_detail_payload() 
 
     async def scenario() -> object:
         service = ObsidianGraphProjectionRebuildService(
-            config=AppConfig(_env_file=None),
             source_builder=_StaticSourceBuilder(_projection_snapshot()),
             repository=_RecordingProjectionRepository(),
             run_id_factory=lambda: "run-summary",

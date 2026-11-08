@@ -79,7 +79,7 @@ def register_memory_resume_package_tools(
                 same request id with different content is rejected.
 
         Returns:
-            JSONValue result produced by tool create memory resume package.
+            Sealed resume context package payload with revision and provenance metadata.
         """
         return await alexandria_create_memory_resume_package(
             api_client,
@@ -114,6 +114,6 @@ def register_memory_resume_package_tools(
             package_id: Memory Compact identifier of the resume package.
 
         Returns:
-            JSONValue result produced by tool get memory resume package.
+            Structured resume context package payload.
         """
         return await alexandria_get_memory_resume_package(api_client, package_id)

@@ -9,6 +9,7 @@ from app.memory.application.retrieval.context_brief import (
     MAX_CONTEXT_BRIEF_TOTAL_SERIALIZATION_BYTES,
     build_context_brief,
 )
+from app.memory.application.retrieval.context_brief_markdown import BudgetedMarkdown
 from app.memory.domain.entities.context_read_models import (
     ContextChunkRecord,
     ContextRecord,
@@ -155,3 +156,20 @@ def test_total_serialization_payload_cap_is_enforced() -> None:
         )
 
     assert f"{MAX_CONTEXT_BRIEF_TOTAL_SERIALIZATION_BYTES} bytes" in str(excinfo.value)
+
+
+def test_budgeted_markdown_fits_all_matches_exact_append_cost() -> None:
+    """fits_all must account for joining newlines even when the accumulator is empty."""
+    lines = ["hello", "world"]
+    exact_cost = len("\n".join(lines).encode("utf-8"))
+    assert exact_cost == 11
+
+    too_small = BudgetedMarkdown(byte_budget=exact_cost - 1)
+    assert too_small.fits_all(lines) is False
+
+    exact_fit = BudgetedMarkdown(byte_budget=exact_cost)
+    assert exact_fit.fits_all(lines) is True
+    for line in lines:
+        exact_fit.append(line)
+    assert exact_fit.remaining() == 0
+    assert len(exact_fit.render().encode("utf-8")) == exact_cost

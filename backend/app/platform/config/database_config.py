@@ -4,21 +4,21 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
-from app.shared.schemas.common_schemas import described_field
+from app.shared.types.configuration_enums import SettingsModule
 from app.shared.utils.config import settings_model_config
 
 
 class DatabaseConfig(BaseSettings):
     """Database runtime settings for SQLAlchemy persistence."""
 
-    model_config = settings_model_config(env_prefix="DATABASE_")
-
-    url: Annotated[str, described_field("Async SQLAlchemy database URL.")] = (
-        "postgresql+asyncpg://alexandria:alexandria@localhost:5432/alexandria"
+    model_config = settings_model_config(
+        env_prefix="DATABASE_", module_name=SettingsModule.DATABASE
     )
+
+    url: Annotated[str, Field(description="Async SQLAlchemy database URL.")]
 
     @field_validator("url")
     @classmethod

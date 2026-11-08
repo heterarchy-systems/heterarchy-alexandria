@@ -9,6 +9,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import anyio
+from tests.memory.context_retrieval_kernel_test_provider import (
+    TestContextRetrievalKernelProvider,
+)
+from tests.memory.context_seed import seed_context
+
 from app.memory.application.contexts.records.context_service import ContextService
 from app.memory.domain.event_enum.context_enums import (
     ContextRecallLifecycleStatus,
@@ -22,7 +27,7 @@ from app.memory.infrastructure.repositories.context_repository import (
 from app.memory.infrastructure.repositories.contexts.obsidian.obsidian_context_mapping import (
     is_recall_visible,
 )
-from app.memory.interface.schemas.context.context_retrieval_schema import (
+from app.memory.interface.schemas.context.context_search_schema import (
     ContextSearchRequest,
 )
 from app.obsidian.domain.event_enum.obsidian_enums import (
@@ -32,10 +37,6 @@ from app.obsidian.domain.event_enum.obsidian_enums import (
 from app.obsidian.infrastructure.models.obsidian_index_models import ObsidianFileORM
 from app.shared.infrastructure.database import Database
 from app.shared.serialization.orjson_codec import dumps_json
-from tests.memory.context_retrieval_kernel_test_provider import (
-    TestContextRetrievalKernelProvider,
-)
-from tests.memory.context_seed import seed_context
 
 
 @asynccontextmanager

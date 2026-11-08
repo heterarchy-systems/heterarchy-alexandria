@@ -65,9 +65,10 @@ Only checks actually executed are VERIFIED. Report exact failures/blockers and u
 ## Subagent Routing
 Repository-local Codex topology:
 - Main/Coordinator: GPT-6 Astra with `high` reasoning.
-- All actual subagents: GPT-5.6 Luna with `max` reasoning.
-- Canonical roles: `context_steward`, `exploration_steward`, `implementation_steward`, `integration_steward`, `verification_steward`.
-- No separate technical-lead model tier is active; Astra Main owns architecture and authority decisions.
+- Default subagents: GPT-6 Luna with `max` reasoning.
+- Independent code reviewer (`code_review_steward`): GPT-6 Astra with `high` reasoning.
+- Canonical roles: `context_steward`, `exploration_steward`, `implementation_steward`, `integration_steward`, `verification_steward`, `code_review_steward`.
+- No separate technical-lead model tier is active; Astra Main owns architecture and authority decisions. The Astra code reviewer provides independent review without taking implementation ownership.
 
 Use the fewest agents that materially improve correctness, evidence, or elapsed time; zero-worker routing is valid. Parallelize only independent work with disjoint ownership. Never run overlapping writers.
 

@@ -63,10 +63,10 @@ def create_signature(payload: MemoryCompactCreate) -> MemoryCompactSignature:
                     )
                     for source_ref in payload.source_refs
                 ),
-                key=_source_ref_sort_key,
+                key=_CompactSignaturePayload.source_ref_sort_key,
             )
         ),
-        body_hash=_body_hash(payload.markdown_body),
+        body_hash=body_hash(payload.markdown_body),
     )
 
 
@@ -94,29 +94,10 @@ def compact_signature(compact: MemoryCompact) -> MemoryCompactSignature:
                     )
                     for source_ref in compact.source_refs
                 ),
-                key=_source_ref_sort_key,
+                key=_CompactSignaturePayload.source_ref_sort_key,
             )
         ),
-        body_hash=_body_hash(compact.markdown_body),
-    )
-
-
-def _source_ref_sort_key(
-    source_ref: SourceRefSignature,
-) -> tuple[str, str, str, str]:
-    """Execute source ref sort key.
-
-    Args:
-        source_ref: Source ref used by this operation.
-
-    Returns:
-        tuple[str, str, str, str] result produced by source ref sort key.
-    """
-    return (
-        source_ref.source_type,
-        source_ref.source_id,
-        source_ref.detail_path,
-        source_ref.source_hash or "",
+        body_hash=body_hash(compact.markdown_body),
     )
 
 
@@ -141,7 +122,7 @@ def reviewed_compact_hash(
         Deterministic hash over body hash and review outcome.
     """
     payload: JSONObject = {
-        "compact_state": _compact_state_payload(compact),
+        "compact_state": _CompactSignaturePayload.compact_state_payload(compact),
         "verdict": verdict,
         "total_score": total_score,
         "max_score": max_score,
@@ -171,40 +152,72 @@ def compact_state_hash(compact: MemoryCompact) -> str:
     Returns:
         Deterministic hash over promotion-relevant compact state.
     """
-    return sha256(dumps_pretty_json(_compact_state_payload(compact))).hexdigest()
+    return sha256(
+        dumps_pretty_json(_CompactSignaturePayload.compact_state_payload(compact))
+    ).hexdigest()
 
 
-def _compact_state_payload(compact: MemoryCompact) -> JSONObject:
-    """Build the promotion-relevant compact state payload."""
-    return {
-        "id": compact.id,
-        "project": compact.project,
-        "covered_from": aware_utc_datetime(compact.covered_from).isoformat(),
-        "covered_to": aware_utc_datetime(compact.covered_to).isoformat(),
-        "status": compact.status.value,
-        "body": compact.markdown_body,
-        "source_refs": [
-            {
-                "id": source_ref.id,
-                "compact_id": source_ref.compact_id,
-                "source_type": source_ref.source_type,
-                "source_id": source_ref.source_id,
-                "title": source_ref.title,
-                "detail_path": source_ref.detail_path,
-                "source_hash": source_ref.source_hash,
-            }
-            for source_ref in compact.source_refs
-        ],
-    }
+class _CompactSignaturePayload:
+    """Serialize deterministic payloads and sort keys for compact signatures."""
+
+    @staticmethod
+    def source_ref_sort_key(
+        source_ref: SourceRefSignature,
+    ) -> tuple[str, str, str, str]:
+        """Return a deterministic sort key for a source reference signature.
+
+        Args:
+            source_ref: Source reference signature to order.
+
+        Returns:
+            Tuple of source type, id, detail path, and normalized source hash.
+        """
+        return (
+            source_ref.source_type,
+            source_ref.source_id,
+            source_ref.detail_path,
+            source_ref.source_hash or "",
+        )
+
+    @staticmethod
+    def compact_state_payload(compact: MemoryCompact) -> JSONObject:
+        """Build the promotion-relevant compact state payload.
+
+        Args:
+            compact: Candidate compact entity to serialize.
+
+        Returns:
+            JSON object of promotion-relevant compact fields.
+        """
+        return {
+            "id": compact.id,
+            "project": compact.project,
+            "covered_from": aware_utc_datetime(compact.covered_from).isoformat(),
+            "covered_to": aware_utc_datetime(compact.covered_to).isoformat(),
+            "status": compact.status.value,
+            "body": compact.markdown_body,
+            "source_refs": [
+                {
+                    "id": source_ref.id,
+                    "compact_id": source_ref.compact_id,
+                    "source_type": source_ref.source_type,
+                    "source_id": source_ref.source_id,
+                    "title": source_ref.title,
+                    "detail_path": source_ref.detail_path,
+                    "source_hash": source_ref.source_hash,
+                }
+                for source_ref in compact.source_refs
+            ],
+        }
 
 
-def _body_hash(markdown_body: str) -> str:
-    """Execute body hash.
+def body_hash(markdown_body: str) -> str:
+    """Compute the SHA-256 hex digest of a normalized compact Markdown body.
 
     Args:
-        markdown_body: Markdown body used by this operation.
+        markdown_body: Compact Markdown body text.
 
     Returns:
-        str result produced by body hash.
+        Hex-encoded SHA-256 digest of the stripped Markdown body.
     """
     return sha256(markdown_body.strip().encode("utf-8")).hexdigest()

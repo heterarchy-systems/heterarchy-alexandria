@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
+from fastapi import FastAPI, Response
+from fastapi.testclient import TestClient
+from tests.config_test_data import application_container
+
 from app.main import app as default_app, create_app
 from app.mcp_server.type_validate.oauth.mcp_auth_enums import McpAuthMode
-from app.platform.config.app_config import AppConfig
 from app.platform.middleware.public_surface_access import (
     install_public_surface_access_middleware,
 )
-from fastapi import FastAPI, Response
-from fastapi.testclient import TestClient
 
 _ROUTER_PACKAGES = [
     "app.connections.interface.routers",
@@ -22,8 +23,7 @@ _ROUTER_PACKAGES = [
 def _create_public_oauth_test_app() -> FastAPI:
     """Build the public-surface test app with local OAuth explicitly enabled."""
     return create_app(
-        AppConfig(
-            _env_file=None,
+        application_container(
             mcp_auth_mode=McpAuthMode.LOCAL_OAUTH2,
             mcp_oauth_issuer="https://alexandria.example",
             mcp_oauth_resource="https://alexandria.example/mcp",

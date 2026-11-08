@@ -14,7 +14,7 @@ from app.memory.application.contexts.records.context_service import ContextServi
 from app.memory.application.integration.context_projection_integrity_service import (
     ContextProjectionIntegrityService,
 )
-from app.memory.infrastructure.repositories.contexts.records.obsidian_context_change_recorder import (
+from app.memory.infrastructure.repositories.contexts.change_log.obsidian_context_change_recorder import (
     record_obsidian_context_change,
 )
 from app.memory.infrastructure.repositories.projection_integrity.projection_integrity_store import (
@@ -36,6 +36,18 @@ from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild
 from app.obsidian.application.graph.projection.obsidian_graph_projection_source_builder import (
     ObsidianGraphProjectionSourceBuilder,
 )
+from app.obsidian.application.notes.mutations.outcome_service import (
+    ObsidianMutationOutcomeService,
+)
+from app.obsidian.application.notes.relations.obsidian_relate_service import (
+    ObsidianRelateService,
+)
+from app.obsidian.application.notes.report_bundles.obsidian_report_bundle_service import (
+    ObsidianReportBundleService,
+)
+from app.obsidian.application.notes.verified_upsert.obsidian_verified_upsert_service import (
+    ObsidianVerifiedUpsertService,
+)
 from app.obsidian.application.service.managed_spec.managed_spec_adapters import (
     ObsidianManagedSpecCheckpointStore,
     ObsidianManagedSpecOutputWriter,
@@ -48,18 +60,6 @@ from app.obsidian.application.service.notes.obsidian_batch_note_service import (
 )
 from app.obsidian.application.service.notes.obsidian_canonical_identity_service import (
     ObsidianCanonicalIdentityService,
-)
-from app.obsidian.application.service.notes.obsidian_mutation_outcome_service import (
-    ObsidianMutationOutcomeService,
-)
-from app.obsidian.application.service.notes.obsidian_relate_service import (
-    ObsidianRelateService,
-)
-from app.obsidian.application.service.notes.obsidian_report_bundle_service import (
-    ObsidianReportBundleService,
-)
-from app.obsidian.application.service.notes.obsidian_verified_upsert_service import (
-    ObsidianVerifiedUpsertService,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.obsidian.application.service.vault.obsidian_temporal_coverage_service import (
@@ -91,6 +91,8 @@ from app.operations.application.skill_contract.skill_publication_policy import (
     configured_skill_runtime_provider,
 )
 from app.platform.config.app_config import AppConfig
+from app.platform.config.memory_config import EmbeddingConfig
+from app.platform.config.vault_config import VaultConfig
 from app.shared.application.index_maintenance_coordinator import (
     IndexMaintenanceCoordinator,
 )
@@ -145,6 +147,8 @@ class ObsidianContainer(containers.DeclarativeContainer):
     db_session = providers.Dependency(instance_of=AsyncSession)
     database = providers.Dependency(instance_of=Database)
     app_config = providers.Dependency(instance_of=AppConfig)
+    embedding_config = providers.Dependency(instance_of=EmbeddingConfig)
+    vault_config = providers.Dependency(instance_of=VaultConfig)
     memory_context_service = providers.Dependency(
         instance_of=ContextService,
         default=None,
@@ -170,7 +174,7 @@ class ObsidianContainer(containers.DeclarativeContainer):
         ContextProjectionIntegrityService,
         source=index_repo,
         repository=context_projection_integrity_store,
-        max_age_seconds=app_config.provided.projection_integrity_max_age_seconds,
+        max_age_seconds=vault_config.provided.projection_integrity_max_age_seconds,
     )
     graph_projection_source = providers.Factory(
         SqlAlchemyObsidianGraphProjectionSource,
@@ -186,7 +190,6 @@ class ObsidianContainer(containers.DeclarativeContainer):
     )
     graph_projection_rebuild_service = providers.Factory(
         ObsidianGraphProjectionRebuildService,
-        config=app_config,
         source_builder=graph_projection_source_builder,
         repository=graph_projection_repository,
         index_maintenance_coordinator=index_maintenance_coordinator,
@@ -199,9 +202,9 @@ class ObsidianContainer(containers.DeclarativeContainer):
     )
     vault_config_store = providers.Singleton(
         ObsidianVaultConfigStore,
-        default_vault_path=app_config.provided.obsidian_vault_path,
-        default_alexandria_root=app_config.provided.alexandria_obsidian_root,
-        config_path=app_config.provided.obsidian_vault_config_path,
+        default_vault_path=vault_config.provided.obsidian_vault_path,
+        default_alexandria_root=vault_config.provided.alexandria_obsidian_root,
+        config_path=vault_config.provided.obsidian_vault_config_path,
     )
     graph_note_diagnostics_service = providers.Factory(
         ObsidianGraphNoteDiagnosticsService,
@@ -224,7 +227,7 @@ class ObsidianContainer(containers.DeclarativeContainer):
         vault_config_store=vault_config_store,
         context_reindex_hook=providers.Factory(
             _build_context_reindex_hook,
-            enabled=app_config.provided.rag_embedding_recovery_on_vault_reindex,
+            enabled=embedding_config.provided.rag_embedding_recovery_on_vault_reindex,
             context_service=memory_context_service,
             recovery_service=memory_embedding_recovery_service,
             projection_integrity_service=context_projection_integrity_service,

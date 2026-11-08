@@ -292,7 +292,7 @@ class ObsidianTemporalCoverageService:
             try:
                 text = path.read_text(encoding="utf-8")
                 document = parse_markdown_document(text)
-            except (OSError, UnicodeError, ValueError):
+            except OSError, UnicodeError, ValueError:
                 unparsed += 1
                 continue
             frontmatter = frontmatter_json(document.frontmatter)

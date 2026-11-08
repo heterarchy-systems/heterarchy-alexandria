@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.shared.infrastructure.native_compile_plan import (
+from app.shared.infrastructure.native_compute.native_compile_plan import (
     COMPILE_PLAN_CONTRACT_VERSION,
     create_native_compile_plan_provider,
 )

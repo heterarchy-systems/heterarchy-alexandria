@@ -85,9 +85,9 @@ NOW = datetime(2026, 9, 8, tzinfo=UTC)
 
 
 class _ExistingPreview:
-    """Return one deterministic read-only existing-memory preview."""
+    """Return one deterministic or empty read-only existing-memory preview."""
 
-    def __init__(self, preview: ExistingMemoryPlanPreview) -> None:
+    def __init__(self, preview: ExistingMemoryPlanPreview | None) -> None:
         self.preview = preview
 
     async def preview_plans(
@@ -96,12 +96,15 @@ class _ExistingPreview:
     ) -> ExistingMemoryPlanPreviewReport:
         """Return the prebuilt plan without persistence effects."""
         _ = request
+        previews: tuple[ExistingMemoryPlanPreview, ...] = (
+            () if self.preview is None else (self.preview,)
+        )
         return ExistingMemoryPlanPreviewReport(
-            scanned=1,
-            total_available=1,
+            scanned=len(previews),
+            total_available=len(previews),
             window_start=None,
             window_end=None,
-            previews=(self.preview,),
+            previews=previews,
             warnings=(),
         )
 
@@ -333,20 +336,21 @@ def _preview(plan: object | None = None) -> ExistingMemoryPlanPreview:
 
 def _service(
     tmp_path: Path,
-    preview: ExistingMemoryPlanPreview,
+    preview: ExistingMemoryPlanPreview | None,
 ) -> tuple[
     MemoryCycleService, _CompactService, _ReconciliationRepository, _ApplyService
 ]:
     """Construct one cycle service over explicit fakes and real checkpoint storage."""
+    context = _context() if preview is None else preview.context
     repository = _ReconciliationRepository()
     apply_service = _ApplyService()
     compact_service = _CompactService()
     service = MemoryCycleService(
         existing_reconciliation_service=_ExistingPreview(preview),
-        context_service=_RetrievalSearch(preview.context),
+        context_service=_RetrievalSearch(context),
         source_fence=MemoryCycleSourceFence(
             source=_CanonicalSource(),
-            context_reader=_ContextSource(preview.context),
+            context_reader=_ContextSource(context),
         ),
         reconciliation_repository=repository,
         reconciliation_apply_service=apply_service,
@@ -386,6 +390,42 @@ def test_memory_cycle_dry_run_is_write_free(tmp_path: Path) -> None:
         assert compact.create_count == 0
         assert repository.plans == {}
         assert not (tmp_path / ".alexandria" / "report-bundle-runs").exists()
+
+    asyncio.run(scenario())
+
+
+def test_memory_cycle_empty_scan_stays_review_bound(tmp_path: Path) -> None:
+    """An empty source scan cannot produce or promote a CURRENT Compact."""
+
+    async def scenario() -> None:
+        service, compact, _, _ = _service(tmp_path, None)
+
+        preview = await service.execute(_request(MemoryCycleOperation.DRY_RUN))
+
+        assert preview.scanned == 0
+        assert preview.total_available == 0
+        assert preview.status is MemoryCycleStatus.REVIEW_REQUIRED
+        assert preview.compact_change is not None
+        assert preview.compact_change.safe_to_publish is False
+        assert preview.compact_change.status is MemoryCompactStatus.DRAFT
+        assert any(
+            "no eligible Context sources" in warning
+            for warning in preview.compact_change.warnings
+        )
+        assert compact.create_count == 0
+
+        applied = await service.execute(
+            _request(
+                MemoryCycleOperation.APPLY,
+                expected_plan_hash=preview.plan_hash,
+            )
+        )
+
+        assert applied.compact_change is not None
+        assert applied.compact_change.safe_to_publish is False
+        assert applied.compact_change.status is MemoryCompactStatus.DRAFT
+        assert compact.create_count == 1
+        assert compact.mark_current_count == 0
 
     asyncio.run(scenario())
 

@@ -1,7 +1,6 @@
 """Compact source observations dispatch only to existing canonical source owners."""
 
 from hashlib import sha256
-from typing import cast
 
 from pydantic import TypeAdapter
 
@@ -10,7 +9,7 @@ from app.memory.application.memory_compacts.review.memory_compact_review_contrac
     MemoryCompactSourceObservation,
 )
 from app.memory.application.reconciliation.cycles.memory_cycle_source_fence import (
-    _context_content_hash,
+    context_content_hash,
 )
 from app.memory.domain.entities.context_read_models import (
     ContextRecord,
@@ -21,8 +20,8 @@ from app.memory.domain.repositories.memory_compacts.memory_compact_query_reposit
     IMemoryCompactQueryRepository,
 )
 from app.obsidian.application.service.obsidian_service_ports import ObsidianReadPort
-from app.shared.serialization.orjson_codec import dumps_canonical_json
-from app.shared.types.extra_types import JSONValue
+from app.shared.serialization.orjson_codec import dumps_canonical_json, loads_json
+from app.shared.types.extra_types import JSONObject, JSONValue
 
 _RAG = TypeAdapter(RagDependencyHealth)
 _CONTEXT = TypeAdapter(ContextRecord)
@@ -99,13 +98,15 @@ class CanonicalMemoryCompactSourceReader:
             context = await self._contexts.get(source.source_id)
             if context.id != source.source_id:
                 return self._unavailable(source, "source_identity_mismatch")
-            revision = _CONTEXT.dump_python(
-                context, mode="json", exclude={"last_accessed_at", "access_count"}
+            revision: JSONValue = loads_json(
+                _CONTEXT.dump_json(
+                    context, exclude={"last_accessed_at", "access_count"}
+                )
             )
             return self._observed(
                 source,
-                _context_content_hash(context),
-                sha256(dumps_canonical_json(cast(JSONValue, revision))).hexdigest(),
+                context_content_hash(context),
+                sha256(dumps_canonical_json(revision)).hexdigest(),
                 scope=context.scope.value,
                 visibility=context.visibility.value,
             )
@@ -116,20 +117,21 @@ class CanonicalMemoryCompactSourceReader:
             if compact is None:
                 return self._unavailable(source, "source_compact_missing")
             body_hash = sha256(compact.markdown_body.encode()).hexdigest()
-            revision = {
+            source_ref_pairs: list[JSONValue] = [
+                [ref.source_id, ref.source_hash] for ref in compact.source_refs
+            ]
+            compact_revision: JSONObject = {
                 "id": compact.id,
                 "body": compact.markdown_body,
                 "project": compact.project,
                 "covered_from": compact.covered_from.isoformat(),
                 "covered_to": compact.covered_to.isoformat(),
-                "source_refs": [
-                    (ref.source_id, ref.source_hash) for ref in compact.source_refs
-                ],
+                "source_refs": source_ref_pairs,
             }
             return self._observed(
                 source,
                 body_hash,
-                sha256(dumps_canonical_json(cast(JSONValue, revision))).hexdigest(),
+                sha256(dumps_canonical_json(compact_revision)).hexdigest(),
             )
         if (
             kind == "memory_steward_readiness"
@@ -150,6 +152,18 @@ class CanonicalMemoryCompactSourceReader:
         scope: str | None = None,
         visibility: str | None = None,
     ) -> MemoryCompactSourceObservation:
+        """Build an available source observation with current hash and revision.
+
+        Args:
+            source: Declared source reference being observed.
+            content_hash: Current canonical content hash of the source.
+            revision: Current canonical source revision fingerprint.
+            scope: Optional resolved source scope.
+            visibility: Optional resolved source visibility.
+
+        Returns:
+            Available source observation record.
+        """
         return MemoryCompactSourceObservation(
             source_id=source.source_id,
             detail_path=source.detail_path,
@@ -163,6 +177,15 @@ class CanonicalMemoryCompactSourceReader:
     def _unavailable(
         source: MemoryCompactSourceRef, reason: str
     ) -> MemoryCompactSourceObservation:
+        """Build an unavailable source observation with an explicit reason code.
+
+        Args:
+            source: Declared source reference that could not be verified.
+            reason: Machine-readable unavailability reason code.
+
+        Returns:
+            Unavailable source observation record.
+        """
         return MemoryCompactSourceObservation(
             source_id=source.source_id,
             detail_path=source.detail_path,

@@ -37,11 +37,11 @@ def register_memory_steward_tools(
         """Return RAG, Memory Compact, and vault-review readiness.
 
         Args:
-            project: Project used by this operation.
-            max_compact_age_days: Max compact age days used by this operation.
+            project: Optional project scope filter for the current compact.
+            max_compact_age_days: Maximum acceptable age in days for the current compact.
 
         Returns:
-            JSONValue result produced by tool memory steward readiness.
+            Readiness summary with RAG health, compact review status, warnings, and next actions.
         """
         return await alexandria_memory_steward_readiness(
             api_client,
@@ -64,11 +64,11 @@ def register_memory_steward_tools(
         """Plan or apply a CURRENT Memory Compact refresh from readiness evidence.
 
         Args:
-            project: Project used by this operation.
-            max_compact_age_days: Max compact age days used by this operation.
-            apply: Apply used by this operation.
-            force: Whether to force the operation instead of using current state.
-            covered_to: Covered to used by this operation.
+            project: Optional project scope filter for the compact.
+            max_compact_age_days: Maximum acceptable age in days for the current compact.
+            apply: Whether to persist the generated compact when refresh is needed.
+            force: Whether to refresh even when the current compact is already fresh.
+            covered_to: Optional ISO-8601 coverage end timestamp.
             draft_only: Create a DRAFT for semantic editing instead of
                 promoting CURRENT directly.
             source_refs: Optional project-specific source references.
@@ -76,7 +76,7 @@ def register_memory_steward_tools(
             final_markdown: Optional final agent-edited Markdown body.
 
         Returns:
-            JSONValue result produced by tool memory steward refresh current compact.
+            Refresh plan, optional creation result, and post-refresh readiness summary.
         """
         return await alexandria_memory_steward_refresh_current_compact(
             api_client,

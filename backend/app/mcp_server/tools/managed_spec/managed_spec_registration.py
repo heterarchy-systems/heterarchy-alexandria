@@ -18,7 +18,12 @@ def register_managed_spec_tools(
     server: MCPServer,
     api_client: AlexandriaApiClient,
 ) -> None:
-    """Register one discriminated prepare/complete managed-spec tool."""
+    """Register one discriminated prepare/complete managed-spec tool.
+
+    Args:
+        server: MCPServer server receiving tool registrations.
+        api_client: Backend HTTP API client used by tool callbacks.
+    """
 
     @server.tool(name="alexandria_execute_managed_spec")
     async def _tool_execute_managed_spec(

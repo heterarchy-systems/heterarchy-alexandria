@@ -86,11 +86,11 @@ async def list_memory_reconciliation_review_queue(
     """Return durable UNKNOWN and other review-required plans.
 
     Args:
-        limit: Limit.
-        service: Service.
+        service: Injected reconciliation query application service.
+        limit: Maximum number of review-required plans to return.
 
     Returns:
-        MemoryReviewQueueResponse: Operation result.
+        Review queue response containing plans awaiting operator review.
     """
     return MemoryReviewQueueResponse.from_entities(
         await service.list_review_plans(limit=limit)
@@ -119,11 +119,11 @@ async def preview_memory_reconciliation(
     """Preview one candidate against existing Context memory.
 
     Args:
-        request: Request.
-        service: Service.
+        request: Validated candidate preview request payload.
+        service: Injected reconciliation preview application service.
 
     Returns:
-        MemoryReconciliationPlanResponse: Operation result.
+        Persisted idempotent reconciliation plan response.
     """
     plan = await service.preview(request.to_contract())
     return MemoryReconciliationPlanResponse.from_entity(plan)
@@ -153,11 +153,11 @@ async def recall_memory_temporally(
     """Recall Contexts without collapsing temporal or conflict state.
 
     Args:
-        request: Request.
-        service: Service.
+        request: Validated temporal recall query and perspective filter payload.
+        service: Injected temporal recall application service.
 
     Returns:
-        MemoryTemporalRecallResponse: Operation result.
+        Temporal recall response preserving conflict and supersession metadata.
     """
     return MemoryTemporalRecallResponse.from_entity(
         await service.recall(request.to_contract())
@@ -190,11 +190,11 @@ async def preview_reconciliation_aware_memory_compact(
     """Prepare safe fact buckets without creating or publishing a compact.
 
     Args:
-        request: Request.
-        service: Service.
+        request: Validated temporal recall request for compact preparation.
+        service: Injected Memory Compact reconciliation service.
 
     Returns:
-        MemoryCompactSafetyReviewResponse: Operation result.
+        Safety review response with separated temporal fact buckets and warnings.
     """
     return MemoryCompactSafetyReviewResponse.from_entity(
         await service.prepare(request.to_contract())
@@ -219,11 +219,11 @@ async def get_memory_reconciliation_plan(
     """Return one persisted reconciliation plan.
 
     Args:
-        plan_id: Plan id.
-        service: Service.
+        plan_id: Identifier of the persisted reconciliation plan.
+        service: Injected reconciliation query application service.
 
     Returns:
-        MemoryReconciliationPlanResponse: Operation result.
+        Serialized reconciliation plan detail response.
     """
     return MemoryReconciliationPlanResponse.from_entity(await service.get_plan(plan_id))
 
@@ -251,12 +251,12 @@ async def apply_memory_reconciliation(
     """Apply one persisted reconciliation plan.
 
     Args:
-        plan_id: Plan id.
-        request: Request.
-        service: Service.
+        plan_id: Identifier of the persisted reconciliation plan to apply.
+        request: Validated apply options including retry and approval flags.
+        service: Injected reconciliation apply application service.
 
     Returns:
-        MemoryReconciliationResultResponse: Operation result.
+        Persisted reconciliation execution result response.
     """
     result = await service.apply(
         plan_id,
@@ -285,11 +285,11 @@ async def get_memory_reconciliation_result(
     """Return one persisted reconciliation execution result.
 
     Args:
-        reconciliation_id: Reconciliation id.
-        service: Service.
+        reconciliation_id: Identifier of the reconciliation execution result.
+        service: Injected reconciliation query application service.
 
     Returns:
-        MemoryReconciliationResultResponse: Operation result.
+        Serialized reconciliation execution result response.
     """
     return MemoryReconciliationResultResponse.from_entity(
         await service.get_result(reconciliation_id)
@@ -315,12 +315,12 @@ async def list_memory_conflicts(
     """List unresolved or resolved first-class memory conflicts.
 
     Args:
-        conflict_status: Conflict status.
-        limit: Limit.
-        service: Service.
+        service: Injected memory conflict application service.
+        conflict_status: Optional conflict lifecycle status filter.
+        limit: Maximum number of conflict sets to return.
 
     Returns:
-        MemoryConflictListResponse: Operation result.
+        Paginated list of matching memory conflict sets.
     """
     normalized_status = (
         None
@@ -350,11 +350,11 @@ async def get_memory_conflict(
     """Return one durable memory conflict set.
 
     Args:
-        conflict_set_id: Conflict set id.
-        service: Service.
+        conflict_set_id: Identifier of the memory conflict set.
+        service: Injected memory conflict application service.
 
     Returns:
-        MemoryConflictResponse: Operation result.
+        Serialized memory conflict set response.
     """
     return MemoryConflictResponse.from_entity(await service.get(conflict_set_id))
 
@@ -377,11 +377,11 @@ async def mark_memory_conflict_reviewing(
     """Mark one open conflict as actively under review.
 
     Args:
-        conflict_set_id: Conflict set id.
-        service: Service.
+        conflict_set_id: Identifier of the open memory conflict set.
+        service: Injected memory conflict application service.
 
     Returns:
-        MemoryConflictResponse: Operation result.
+        Updated memory conflict set response in reviewing state.
     """
     return MemoryConflictResponse.from_entity(
         await service.mark_reviewing(conflict_set_id)
@@ -410,12 +410,12 @@ async def resolve_memory_conflict(
     """Record an explicit final conflict resolution without deleting memory.
 
     Args:
-        conflict_set_id: Conflict set id.
-        request: Request.
-        service: Service.
+        conflict_set_id: Identifier of the memory conflict set to resolve.
+        request: Validated conflict resolution status and rationale payload.
+        service: Injected memory conflict application service.
 
     Returns:
-        MemoryConflictResponse: Operation result.
+        Resolved memory conflict set response.
     """
     resolved = await service.resolve(
         conflict_set_id,

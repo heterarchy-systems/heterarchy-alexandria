@@ -6,10 +6,10 @@ from pathlib import Path
 import pytest
 from dependency_injector import providers
 from fastapi.testclient import TestClient
+from tests.config_test_data import application_container
 
 from app.main import create_app
 from app.mcp_server.type_validate.oauth.mcp_auth_enums import McpAuthMode
-from app.platform.config.app_config import AppConfig
 from app.platform.config.database_config import DatabaseConfig
 from app.platform.config.redis_config import RedisConfig
 
@@ -29,15 +29,15 @@ def test_exact_source_http_remains_readable_when_database_cannot_connect(
         "Canonical evidence survives projection failure.\n",
         encoding="utf-8",
     )
-    config = AppConfig(
-        _env_file=None,
-        obsidian_vault_path=str(vault),
-        alexandria_obsidian_root="Alexandria",
-        obsidian_vault_config_path=str(tmp_path / "vault-config.json"),
-        rag_embedding_recovery_on_startup=False,
-        mcp_auth_mode=McpAuthMode.NONE,
+    application = create_app(
+        application_container(
+            obsidian_vault_path=str(vault),
+            alexandria_obsidian_root="Alexandria",
+            obsidian_vault_config_path=str(tmp_path / "vault-config.json"),
+            rag_embedding_recovery_on_startup=False,
+            mcp_auth_mode=McpAuthMode.NONE,
+        )
     )
-    application = create_app(config)
     with socket.socket() as unavailable:
         # A bound socket without listen reliably refuses TCP connections while
         # reserving this isolated endpoint for the duration of the test.

@@ -7,10 +7,7 @@ from inspect import iscoroutinefunction
 import anyio
 import httpx
 
-from app.mcp_server.backend_api_client import (
-    AlexandriaApiClient,
-    AlexandriaApiSettings,
-)
+from app.mcp_server.backend_api_client import AlexandriaApiClient
 from app.mcp_server.server_runtime import build_mcp_server
 from app.mcp_server.tools.operations.maintenance_backend_gateway import (
     alexandria_get_maintenance_job,
@@ -20,6 +17,7 @@ from app.mcp_server.tools.operations.maintenance_backend_gateway import (
     alexandria_reindex_context_embeddings,
     alexandria_replay_maintenance_dead_letter,
 )
+from app.platform.config.mcp_config import McpApiConfig
 from app.shared.serialization.orjson_codec import dumps_json, loads_json
 
 
@@ -31,7 +29,7 @@ def _client() -> tuple[AlexandriaApiClient, list[httpx.Request]]:
         return httpx.Response(200, content=dumps_json({"ok": True}))
 
     client = AlexandriaApiClient(
-        AlexandriaApiSettings(
+        McpApiConfig(
             base_url="http://backend:8000",
             timeout=12.0,
         ),

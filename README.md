@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="https://www.python.org/downloads/"><img alt="Python" src="https://img.shields.io/badge/python-3.13%20%7C%203.14-3776AB?logo=python&logoColor=white"></a>
+  <a href="https://www.python.org/downloads/"><img alt="Python" src="https://img.shields.io/badge/python-3.14%2B-3776AB?logo=python&logoColor=white"></a>
   <a href="https://docs.astral.sh/uv/"><img alt="uv" src="https://img.shields.io/badge/uv-0.8.4-654FF0?logo=astral&logoColor=white"></a>
   <a href="https://fastapi.tiangolo.com/"><img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-0.136.1-009688?logo=fastapi&logoColor=white"></a>
   <a href="https://docs.pydantic.dev/"><img alt="Pydantic" src="https://img.shields.io/badge/Pydantic-2.13.4-E92063?logo=pydantic&logoColor=white"></a>
@@ -61,6 +61,22 @@ Removed legacy surfaces stay removed by contract tests:
 
 ## Quick start
 
+Runtime settings live in `module_setting_envs/{feature}_settings.env`, with
+six matching Config modules under `backend/app/platform/config/`:
+`app`, `mcp`, `memory`, `vault`, `database`, and `redis`.
+Copy each adjacent `*_settings.env.example` to `*_settings.env` and set your
+deployment values. The real files are gitignored; the examples contain no
+private credentials. Existing private `.env` values must be migrated into their
+feature file; application Config models no longer read the root or working-directory
+`.env` as a fallback.
+
+Every Config field requires an explicit value; use the literal `null` only for
+nullable fields. Process environment variables override the feature env file.
+MCP API and MCP auth use separate typed models in `mcp_config.py`; Redis cache
+and maintenance queue likewise share one Redis file and one `SERVICE_REDIS_URL`.
+The required Hugging Face token file path is `SERVICE_RAG_EMBEDDING_TOKEN_PATH`
+in `memory_settings.env`.
+
 Store the Compose database settings in the gitignored project `.env`. Compose
 does not contain database passwords or construct `DATABASE_URL` from tracked
 defaults:
@@ -69,12 +85,11 @@ defaults:
 ALEXANDRIA_POSTGRES_DB=alexandria
 ALEXANDRIA_POSTGRES_USER=postgres
 ALEXANDRIA_POSTGRES_PASSWORD=replace-with-a-private-local-password
-DATABASE_URL=postgresql+asyncpg://alexandria:replace-with-a-private-local-password@alexandria-postgres:5432/alexandria
 ```
 
 Compose maps the private `ALEXANDRIA_POSTGRES_*` values into the official
-PostgreSQL container's `POSTGRES_*` variables. The backend reads `DATABASE_URL`
-directly and normalizes generic `postgresql://` or `postgres://` schemes to the
+PostgreSQL container's `POSTGRES_*` variables. Put `DATABASE_URL` in
+`module_setting_envs/database_settings.env`; the backend reads that value directly and normalizes generic `postgresql://` or `postgres://` schemes to the
 installed asyncpg SQLAlchemy driver. Keep the URL database, user, password, and
 the Compose network host `postgres` consistent with those values.
 
@@ -86,10 +101,10 @@ docker compose up --build
 
 ### PostgreSQL backup and restore drill
 
-PostgreSQL backup remains process-external by design. The FastAPI backup route
-continues to serve only the legacy local-SQLite mode; the PostgreSQL runtime
-uses `pg_dump`, encrypted manifests, and an isolated temporary restore database
-without granting Docker or restore privileges to the API process.
+PostgreSQL backup and restore use repository scripts outside the FastAPI
+process. The backup script creates an encrypted `pg_dump` archive and manifest;
+the restore-drill script verifies the archive by restoring it into a temporary
+PostgreSQL database.
 
 Set a private passphrase in the local shell, create an encrypted backup, and
 then verify it with a non-destructive restore drill:
@@ -108,7 +123,16 @@ before publishing a `VERIFIED` report. This archive covers PostgreSQL only;
 back up the canonical Obsidian Vault and `backend/data/.alexandria-recovery`
 with the host filesystem policy as separate durable assets.
 
-Graph projection has no separate database service or credential profile. PostgreSQL `obsidian_files` and `obsidian_edges` are the persistent graph source, while Rust owns deterministic projection, traversal, and candidate-selection compute. The application keeps only a bounded rebuildable projection cache and lazily reconstructs it from PostgreSQL after restart.
+Graph projection has no separate database service or credential profile.
+PostgreSQL `obsidian_files` and `obsidian_edges` are the persistent graph source,
+while Rust owns deterministic projection, traversal, and candidate-selection
+compute. Each process lazily cold-loads its app-lifetime projection cache from
+PostgreSQL on its first graph-state read. An explicit rebuild also stages and
+activates the projection in the serving process handling that request. The
+`postgresql-current` run ID used for a cold-loaded state is a label, not a source
+revision. Automatic publication between serving processes and cross-process
+cache convergence have not been established, so a rebuild or status read from
+one process does not prove another process's cache state.
 
 After schema changes or vault-wide link changes, rebuild the canonical index first and then refresh the graph projection:
 
@@ -145,7 +169,9 @@ seconds. Redis failure disables queued maintenance and, by default, fails closed
 for outbound provider calls, while canonical Markdown and PostgreSQL-backed core
 memory remain independent.
 
-Graph retrieval is backed by PostgreSQL `obsidian_files`/`obsidian_edges` and the Rust graph compute layer. There is no separate graph database or opt-in graph runtime. The application keeps a bounded projection cache and lazily rebuilds it from PostgreSQL through the Rust projection compute provider when needed.
+Graph retrieval remains backed by PostgreSQL `obsidian_files`/`obsidian_edges`
+and the Rust graph compute layer. Its process-local cache follows the lazy
+cold-load and explicit rebuild activation behavior described above.
 
 Keep the PostgreSQL schema and canonical Obsidian index current before graph diagnostics or explicit graph rebuilds:
 
@@ -181,9 +207,12 @@ Required local secret:
 export SERVICE_MCP_LOCAL_APPROVAL_KEY="replace-with-at-least-32-characters"
 ```
 
-Docker Compose passes the gitignored project `.env` into the backend container.
-Keep that file private and store deployment-specific secrets there rather than
-duplicating application defaults in `docker-compose.yml`.
+Docker Compose mounts `module_setting_envs/` read-only; Config models read their
+matching files directly. Image-baked build provenance remains in the process
+environment and overrides file values. The root `.env` remains for Compose interpolation
+(database-container credentials, host paths and build settings), not application
+Config loading. Explicit Compose mount-path values, image provenance, and
+`runtime-performance.env` retain their process-environment precedence.
 
 Useful Obsidian storage settings:
 
@@ -343,11 +372,11 @@ curl -sS http://127.0.0.1:8000/mcp/ \
   }'
 ```
 
-## Memory Steward and Vault CLI
+## Memory Steward CLI and vault maintenance API
 
-The package CLI is a Typer command package under `backend/app/cli/`. It includes
-only operational commands that support the MCP-first maintenance workflow; it does
-not restore the removed product CRUD CLI.
+The current package CLI exposes the `mcp` and `memory-steward` command groups.
+Use their help output for the supported commands; there is no `vault` or
+`obsidian` CLI group.
 
 Run a one-shot readiness check against the local backend:
 
@@ -357,46 +386,21 @@ uv run --no-sync --no-editable heterarchy-alexandria memory-steward readiness \
   --project heterarchy-alexandria
 ```
 
-The response combines RAG health, CURRENT Memory Compact freshness, and the
-vault review queue. A healthy second-brain bridge should return
-`"status": "ready"`, an empty `warnings` list, and an empty `next_actions`
-list. If attention is needed, `next_actions` gives deterministic priorities for
-repairing retrieval, refreshing the CURRENT compact, planning safe vault moves
-for automatic candidates, or inspecting notes that still require human
-judgment. The embedded `review_queue` also separates automatic move candidates
-from manual-review notes before applying changes.
+The `memory-steward readiness` command reports readiness for the selected
+project. Vault maintenance is exposed through the FastAPI API and MCP tools,
+not through separate CLI commands:
 
-Inspect the curation queue directly without changing the vault:
+| Operation | HTTP API | MCP tool |
+| --- | --- | --- |
+| Inventory managed notes | `POST /obsidian/vault/inventory` | `alexandria_vault_inventory` |
+| Search managed paths | `POST /obsidian/vault/path-search` | `alexandria_vault_path_search` |
+| Plan safe moves | `POST /obsidian/vault/move-plan` | `alexandria_vault_move_plan` |
+| Apply explicit safe moves | `POST /obsidian/vault/apply-moves` | `alexandria_vault_apply_moves` |
 
-```bash
-cd backend
-uv run --no-sync --no-editable heterarchy-alexandria vault review-queue \
-  --project heterarchy-alexandria \
-  --summary
-```
+Review the move-plan response before sending explicit moves to the apply route.
 
-Build the non-mutating safe move plan for automatic candidates:
-
-```bash
-cd backend
-uv run --no-sync --no-editable heterarchy-alexandria vault review-move-plan \
-  --project heterarchy-alexandria
-```
-
-After inspecting the plan, apply the safe moves explicitly and write an
-operation report. Direct CLI use must include `--confirm-apply` when the plan has
-move candidates. The MCP apply tool follows the same default: it returns
-`confirmation_required` unless `confirm_apply` is true for a non-empty plan.
-
-```bash
-cd backend
-uv run --no-sync --no-editable heterarchy-alexandria vault review-apply-moves \
-  --project heterarchy-alexandria \
-  --confirm-apply
-```
-
-Review commands accept `--project`, `--limit`, and optional `--scope-path`; the
-apply command also accepts optional `--report-path` and `--verification-query`.
+Connect an MCP client to the endpoint documented above, or inspect the local
+FastAPI OpenAPI document for request schemas when it is enabled.
 
 Use preflight in scripts or agent startup checks. It prints the same JSON-shaped
 readiness evidence, returns exit code `0` when ready, and returns exit code `2`

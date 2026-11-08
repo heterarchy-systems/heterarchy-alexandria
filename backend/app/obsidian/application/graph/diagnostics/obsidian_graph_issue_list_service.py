@@ -129,7 +129,7 @@ class ObsidianGraphIssueListService:
             status: ObsidianGraphProjectionStatusReport = (
                 await self._projection_status()
             )
-        except (OSError, ValueError):
+        except OSError, ValueError:
             return None
         return status.run_id
 

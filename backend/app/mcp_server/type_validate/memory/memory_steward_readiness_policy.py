@@ -4,26 +4,37 @@ from __future__ import annotations
 
 from app.mcp_server.type_validate.memory.memory_steward_readiness_schemas import (
     CurrentCompactPayload,
+    NextActionPayload,
     RagStatusPayload,
 )
-from app.shared.types.extra_types import JSONObject
+from app.memory.domain.event_enum.context_enums import RagHealthState
+from app.memory.domain.event_enum.memory_compact_enums import (
+    MemoryStewardReadinessWarningCode,
+)
 
-COMPACT_REFRESH_WARNINGS = frozenset(
+COMPACT_REFRESH_WARNINGS: frozenset[MemoryStewardReadinessWarningCode] = frozenset(
     {
-        "current_memory_compact_missing",
-        "current_memory_compact_stale",
-        "current_memory_compact_timestamp_missing",
-        "current_memory_compact_review_blocked",
-        "current_memory_compact_review_needs_revision",
+        MemoryStewardReadinessWarningCode.CURRENT_MEMORY_COMPACT_MISSING,
+        MemoryStewardReadinessWarningCode.CURRENT_MEMORY_COMPACT_STALE,
+        MemoryStewardReadinessWarningCode.CURRENT_MEMORY_COMPACT_TIMESTAMP_MISSING,
+        MemoryStewardReadinessWarningCode.CURRENT_MEMORY_COMPACT_REVIEW_BLOCKED,
+        MemoryStewardReadinessWarningCode.CURRENT_MEMORY_COMPACT_REVIEW_NEEDS_REVISION,
     }
 )
-RAG_HEALTH_WARNINGS = frozenset(
+RAG_HEALTH_WARNINGS: frozenset[MemoryStewardReadinessWarningCode] = frozenset(
     {
-        "rag_fts_not_healthy",
-        "rag_vector_not_healthy",
-        "rag_embedding_not_healthy",
-        "rag_status_warnings_present",
-        "rag_status_unavailable",
+        MemoryStewardReadinessWarningCode.RAG_FTS_NOT_HEALTHY,
+        MemoryStewardReadinessWarningCode.RAG_VECTOR_NOT_HEALTHY,
+        MemoryStewardReadinessWarningCode.RAG_EMBEDDING_NOT_HEALTHY,
+        MemoryStewardReadinessWarningCode.RAG_EMBEDDING_REINDEX_REQUIRED,
+        MemoryStewardReadinessWarningCode.RAG_STATUS_WARNINGS_PRESENT,
+        MemoryStewardReadinessWarningCode.RAG_STATUS_UNAVAILABLE,
+    }
+)
+_TIMESTAMP_MISSING_WARNINGS: frozenset[MemoryStewardReadinessWarningCode] = frozenset(
+    {
+        MemoryStewardReadinessWarningCode.MEMORY_COMPACT_TIMESTAMP_MISSING,
+        MemoryStewardReadinessWarningCode.CURRENT_MEMORY_COMPACT_TIMESTAMP_MISSING,
     }
 )
 
@@ -63,8 +74,13 @@ def review_blocking_warnings(
     Returns:
         Compact quality-review warnings that require explicit repair.
     """
-    if "current_memory_compact_review_blocked" in warnings:
-        return ("current_memory_compact_review_blocked",)
+    if (
+        MemoryStewardReadinessWarningCode.CURRENT_MEMORY_COMPACT_REVIEW_BLOCKED.value
+        in warnings
+    ):
+        return (
+            MemoryStewardReadinessWarningCode.CURRENT_MEMORY_COMPACT_REVIEW_BLOCKED.value,
+        )
     return ()
 
 
@@ -86,79 +102,69 @@ def readiness_warnings(
         Readiness warning codes.
     """
     warnings: list[str] = []
-    if rag.fts != "HEALTHY":
-        warnings.append("rag_fts_not_healthy")
-    if rag.vector != "HEALTHY":
-        warnings.append("rag_vector_not_healthy")
-    if rag.embedding != "HEALTHY":
-        warnings.append("rag_embedding_not_healthy")
+    if rag.fts != RagHealthState.HEALTHY:
+        warnings.append(MemoryStewardReadinessWarningCode.RAG_FTS_NOT_HEALTHY.value)
+    if rag.vector != RagHealthState.HEALTHY:
+        warnings.append(MemoryStewardReadinessWarningCode.RAG_VECTOR_NOT_HEALTHY.value)
+    if rag.embedding != RagHealthState.HEALTHY:
+        warnings.append(
+            MemoryStewardReadinessWarningCode.RAG_EMBEDDING_NOT_HEALTHY.value
+        )
     if rag.warnings:
-        warnings.append("rag_status_warnings_present")
+        warnings.append(
+            MemoryStewardReadinessWarningCode.RAG_STATUS_WARNINGS_PRESENT.value
+        )
     if not compact.id:
-        warnings.append("current_memory_compact_missing")
+        warnings.append(
+            MemoryStewardReadinessWarningCode.CURRENT_MEMORY_COMPACT_MISSING.value
+        )
     elif compact.has_source_hash_mismatch():
-        warnings.append("current_memory_compact_stale")
-    elif _compact_timestamp_missing(compact) or compact_age_days is None:
-        warnings.append("current_memory_compact_timestamp_missing")
+        warnings.append(
+            MemoryStewardReadinessWarningCode.CURRENT_MEMORY_COMPACT_STALE.value
+        )
+    elif (
+        any(warning in _TIMESTAMP_MISSING_WARNINGS for warning in compact.warnings)
+        or compact_age_days is None
+    ):
+        warnings.append(
+            MemoryStewardReadinessWarningCode.CURRENT_MEMORY_COMPACT_TIMESTAMP_MISSING.value
+        )
     elif compact_age_days > max_compact_age_days:
-        warnings.append("current_memory_compact_stale")
+        warnings.append(
+            MemoryStewardReadinessWarningCode.CURRENT_MEMORY_COMPACT_STALE.value
+        )
     return warnings
 
 
-def _compact_timestamp_missing(compact: CurrentCompactPayload) -> bool:
-    """Execute compact timestamp missing.
-
-    Args:
-        compact: Compact used by this operation.
-
-    Returns:
-        Whether compact timestamp missing.
-    """
-    return any(
-        warning
-        in {
-            "memory_compact_timestamp_missing",
-            "current_memory_compact_timestamp_missing",
-        }
-        for warning in compact.warnings
-    )
-
-
-def readiness_next_actions(warnings: list[str]) -> list[JSONObject]:
+def readiness_next_actions(warnings: list[str]) -> list[NextActionPayload]:
     """Build deterministic next actions from readiness warnings.
 
     Args:
         warnings: Readiness warning codes.
 
     Returns:
-        JSON next-action objects ordered by priority.
+        Validated NextActionPayload items ordered by priority.
     """
     warning_set = set(warnings)
-    actions: list[JSONObject] = []
-    if {
-        "rag_fts_not_healthy",
-        "rag_vector_not_healthy",
-        "rag_embedding_not_healthy",
-        "rag_status_warnings_present",
-        "rag_status_unavailable",
-    } & warning_set:
+    actions: list[NextActionPayload] = []
+    if RAG_HEALTH_WARNINGS & warning_set:
         actions.append(
-            {
-                "priority": 10,
-                "code": "repair_rag_index",
-                "tool": "alexandria_reindex_vault",
-                "summary": "Repair or rebuild retrieval indexes before trusting answers.",
-                "dry_run_first": False,
-            }
+            NextActionPayload(
+                priority=10,
+                code="repair_rag_index",
+                tool="alexandria_reindex_vault",
+                summary="Repair or rebuild retrieval indexes before trusting answers.",
+                dry_run_first=False,
+            )
         )
     if COMPACT_REFRESH_WARNINGS & warning_set:
         actions.append(
-            {
-                "priority": 20,
-                "code": "refresh_current_memory_compact",
-                "tool": "alexandria_memory_steward_refresh_current_compact",
-                "summary": "Refresh the CURRENT Memory Compact from readiness evidence.",
-                "dry_run_first": True,
-            }
+            NextActionPayload(
+                priority=20,
+                code="refresh_current_memory_compact",
+                tool="alexandria_memory_steward_refresh_current_compact",
+                summary="Refresh the CURRENT Memory Compact from readiness evidence.",
+                dry_run_first=True,
+            )
         )
     return actions

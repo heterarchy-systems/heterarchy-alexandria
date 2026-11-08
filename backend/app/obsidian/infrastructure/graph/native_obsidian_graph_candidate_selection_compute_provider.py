@@ -23,7 +23,7 @@ from app.obsidian.domain.event_enum.obsidian_graph_enums import (
 from app.obsidian.domain.repositories.obsidian_graph_candidate_selection_compute_provider import (
     IObsidianGraphCandidateSelectionComputeProvider,
 )
-from app.shared.infrastructure.native_compute_extension import (
+from app.shared.infrastructure.native_compute.native_compute_extension import (
     NativeComputeContractModule,
     load_native_compute_module,
 )

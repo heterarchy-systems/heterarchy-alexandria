@@ -17,7 +17,7 @@ from app.memory.application.contexts.records.context_service import ContextServi
 from app.memory.application.reconciliation.conflicts.memory_temporal_recall_service import (
     MemoryTemporalRecallService,
 )
-from app.memory.application.retrieval.recall_service import RecallService
+from app.memory.application.retrieval.recall.recall_service import RecallService
 from app.memory.domain.contracts.context_recall_contracts import ScopeIdentity
 from app.memory.domain.contracts.memory_reconciliation_contracts import (
     MemoryTemporalRecallRequest,

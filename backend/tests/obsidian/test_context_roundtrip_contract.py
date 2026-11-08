@@ -8,6 +8,7 @@ from pathlib import Path
 
 import anyio
 from pytest import MonkeyPatch
+from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,6 +17,10 @@ from app.memory.application.integration.obsidian_context_read_mapper import (
 )
 from app.memory.domain.entities.context_read_models import ContextRecord
 from app.memory.domain.event_enum.context_enums import ContextKind
+from app.memory.infrastructure.models.context_models import ContextChangeLogORM
+from app.memory.infrastructure.repositories.contexts.change_log.obsidian_context_change_recorder import (
+    record_obsidian_context_change,
+)
 from app.obsidian.application.notes.obsidian_note_indexer import note_index_from_path
 from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.obsidian.domain.contracts.obsidian_contracts import (
@@ -492,3 +497,49 @@ def test_repository_nested_transaction_recovers_after_sqlalchemy_error(
 
     assert "failed to index Obsidian note" in error
     assert indexed_note_id == "ctx_sqlalchemy_valid"
+
+
+def test_index_write_records_max_width_context_id() -> None:
+    """Index writes and their change records support the full note-id width."""
+    note_id = "x" * 255
+    body = "# Maximum-width context\n\nIndexed durable content."
+
+    async def scenario() -> str | None:
+        database = Database(database_url=_database_url(), create_schema=True)
+        await database.initialize()
+        session = database.session()
+        repository = SqlAlchemyObsidianIndexRepository(
+            session=session,
+            context_change_recorder=record_obsidian_context_change,
+        )
+        payload = ObsidianNoteIndex(
+            note_id=note_id,
+            relative_path="Alexandria/Contexts/Projects/Maximum Width.md",
+            alexandria_type=AlexandriaNoteType.CONTEXT,
+            title="Maximum Width",
+            status="current",
+            tags=(),
+            project="project-a",
+            source="regression-test",
+            content_hash="a" * 64,
+            frontmatter={"id": note_id, "alexandria_type": "context"},
+            body=body,
+            size_bytes=len(body.encode("utf-8")),
+            modified_at=datetime.now(UTC),
+            chunks=(),
+        )
+        try:
+            await repository.upsert_note(payload)
+            await session.commit()
+            return await session.scalar(
+                select(ContextChangeLogORM.context_id).where(
+                    ContextChangeLogORM.context_id == note_id
+                )
+            )
+        finally:
+            await session.close()
+            await database.shutdown()
+
+    stored_id = anyio.run(scenario)
+
+    assert stored_id == note_id

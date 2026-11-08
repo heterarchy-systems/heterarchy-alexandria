@@ -60,6 +60,22 @@ class ObsidianIndexQueryStore:
         model = await self._session.get(ObsidianFileORM, note_id)
         return None if model is None else note_from_model(model)
 
+    async def get_by_ids(self, note_ids: tuple[str, ...]) -> tuple[ObsidianNote, ...]:
+        """Read found indexed notes for one bounded set of stable ids.
+
+        Args:
+            note_ids: Bounded stable note ids supplied by the caller.
+
+        Returns:
+            Found notes in database-returned order.
+        """
+        if not note_ids:
+            return ()
+        rows = await self._session.scalars(
+            select(ObsidianFileORM).where(ObsidianFileORM.note_id.in_(note_ids))
+        )
+        return tuple(note_from_model(model) for model in rows.all())
+
     async def get_by_path(self, relative_path: str) -> ObsidianNote | None:
         """Read one indexed note by vault-relative path.
 

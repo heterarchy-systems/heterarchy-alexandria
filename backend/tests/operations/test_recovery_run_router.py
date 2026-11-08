@@ -3,12 +3,21 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
 from types import SimpleNamespace
 
 import anyio
 import pytest
 from fastapi import HTTPException, Request
+from tests.operations.operational_readiness_fakes import HealthyGraphProjectionService
+from tests.operations.test_recovery_run_service import _plan
 
+from app.operations.application.recovery.execution.recovery_run_manifest import (
+    RecoveryActiveLockStore,
+    RecoveryManifestStore,
+    active_lock_path,
+    manifest_path_by_id,
+)
 from app.operations.application.recovery.execution.recovery_run_service import (
     RecoveryRunService,
 )
@@ -26,6 +35,14 @@ from app.operations.interface.schemas.operations.recovery_run_schema import (
     RecoveryRunRequestSchema,
     RecoveryRunRetryRequestSchema,
 )
+
+
+def _files_under(root: Path) -> dict[str, bytes]:
+    return {
+        str(path.relative_to(root)): path.read_bytes()
+        for path in root.rglob("*")
+        if path.is_file()
+    }
 
 
 def _request() -> Request:
@@ -94,8 +111,10 @@ def test_recovery_run_route_returns_current_contract(
             database=SimpleNamespace(),
             context_service=SimpleNamespace(),
             obsidian_service=SimpleNamespace(),
+            graph_projection_service=HealthyGraphProjectionService(),
             context_service_factory=lambda: SimpleNamespace(),
             obsidian_service_factory=lambda: SimpleNamespace(),
+            callbacks=None,
         )
 
     response = anyio.run(scenario)
@@ -119,6 +138,7 @@ def test_get_unknown_recovery_run_returns_404(monkeypatch: pytest.MonkeyPatch) -
                 database=SimpleNamespace(),
                 context_service=SimpleNamespace(),
                 obsidian_service=SimpleNamespace(),
+                graph_projection_service=HealthyGraphProjectionService(),
             )
         return raised.value
 
@@ -145,11 +165,99 @@ def test_retry_unknown_recovery_run_returns_404(
                 database=SimpleNamespace(),
                 context_service=SimpleNamespace(),
                 obsidian_service=SimpleNamespace(),
+                graph_projection_service=HealthyGraphProjectionService(),
                 context_service_factory=lambda: SimpleNamespace(),
                 obsidian_service_factory=lambda: SimpleNamespace(),
+                callbacks=None,
             )
         return raised.value
 
     error = anyio.run(scenario)
     assert error.status_code == 404
     assert error.detail == {"code": "RECOVERY_RUN_NOT_FOUND", "run_id": "missing"}
+
+
+def test_orphaned_active_run_get_and_retry_return_stable_503_without_mutation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    plan = _plan(key="orphan-router", automatic=True, steps=())
+    RecoveryActiveLockStore.write(plan)
+    active_path = active_lock_path()
+    recovery_root = active_path.parent
+    before_files = _files_under(recovery_root)
+
+    async def scenario() -> tuple[HTTPException, HTTPException]:
+        with pytest.raises(HTTPException) as raised_get:
+            await get_recovery_run(
+                run_id=plan.id,
+                database=SimpleNamespace(),
+                context_service=SimpleNamespace(),
+                obsidian_service=SimpleNamespace(),
+                graph_projection_service=HealthyGraphProjectionService(),
+            )
+        with pytest.raises(HTTPException) as raised_retry:
+            await retry_recovery_run(
+                run_id=plan.id,
+                request=RecoveryRunRetryRequestSchema(expected_plan_hash="0" * 64),
+                http_request=_request(),
+                database=SimpleNamespace(),
+                context_service=SimpleNamespace(),
+                obsidian_service=SimpleNamespace(),
+                graph_projection_service=HealthyGraphProjectionService(),
+                context_service_factory=lambda: SimpleNamespace(),
+                obsidian_service_factory=lambda: SimpleNamespace(),
+                callbacks=None,
+            )
+        return raised_get.value, raised_retry.value
+
+    get_error, retry_error = anyio.run(scenario)
+    expected_detail = {
+        "code": "RECOVERY_RUN_OBSERVATION_UNAVAILABLE",
+        "run_id": plan.id,
+    }
+    assert get_error.status_code == 503
+    assert get_error.detail == expected_detail
+    assert retry_error.status_code == 503
+    assert retry_error.detail == expected_detail
+    assert _files_under(recovery_root) == before_files
+    assert manifest_path_by_id(plan.id).exists() is False
+
+
+def test_retry_running_parent_returns_conflict(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    plan = _plan(key="running-parent", automatic=True, steps=())
+    RecoveryActiveLockStore.write(plan)
+    manifest_path = manifest_path_by_id(plan.id)
+    parent_run = _run(run_id=plan.id)
+    parent_run.status = RecoveryRunStatus.RUNNING
+    parent_run.finished_at = None
+    parent_run.manifest_path = str(manifest_path)
+    parent_run.admitted_plan_hash = plan.plan_hash
+    RecoveryManifestStore.write(parent_run)
+
+    async def scenario() -> HTTPException:
+        with pytest.raises(HTTPException) as raised:
+            await retry_recovery_run(
+                run_id=plan.id,
+                request=RecoveryRunRetryRequestSchema(expected_plan_hash="0" * 64),
+                http_request=_request(),
+                database=SimpleNamespace(),
+                context_service=SimpleNamespace(),
+                obsidian_service=SimpleNamespace(),
+                graph_projection_service=HealthyGraphProjectionService(),
+                context_service_factory=lambda: SimpleNamespace(),
+                obsidian_service_factory=lambda: SimpleNamespace(),
+                callbacks=None,
+            )
+        return raised.value
+
+    error = anyio.run(scenario)
+    assert error.status_code == 409
+    assert error.detail == {
+        "code": "RECOVERY_RUN_NOT_RETRYABLE",
+        "run_id": plan.id,
+        "status": RecoveryRunStatus.RUNNING.value,
+    }

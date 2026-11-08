@@ -34,13 +34,13 @@ def build_embedding_document_text(
 
 
 def _normalized_optional_text(value: str | None) -> str | None:
-    """Execute normalized optional text.
+    """Collapse internal whitespace and return None for blank text.
 
     Args:
-        value: Value being processed.
+        value: Optional raw text string.
 
     Returns:
-        str | None result produced by normalized optional text.
+        Single-space normalized text, or None if missing or blank.
     """
     if value is None:
         return None

@@ -6,15 +6,13 @@ from collections.abc import Callable
 from functools import partial
 from typing import Final
 
-import anyio
-import anyio.to_thread
 from pydantic import TypeAdapter
 
 from app.memory.domain.event_enum.context_enums import ContextSourceType
 from app.memory.domain.types.context_payload_types import (
     ContextProvenancePayload,
 )
-from app.obsidian.application.service.notes.obsidian_verified_upsert_service import (
+from app.obsidian.application.notes.verified_upsert.obsidian_verified_upsert_service import (
     ObsidianVerifiedUpsertService,
 )
 from app.obsidian.domain.contracts.managed_spec_contracts import (
@@ -33,6 +31,7 @@ from app.obsidian.infrastructure.obsidian_report_bundle_run_store import (
     ObsidianReportBundleRunStore,
 )
 from app.shared.compute.native_text_hashing import hash_text
+from app.shared.infrastructure.critical_task import run_critical_sync
 
 _CHECKPOINT_ADAPTER: Final[TypeAdapter[ManagedSpecCheckpoint]] = TypeAdapter(
     ManagedSpecCheckpoint
@@ -117,11 +116,8 @@ def _checkpoint_key(idempotency_key: str) -> str:
 
 
 async def _run_blocking[T](operation: Callable[[], T]) -> T:
-    """Run bounded local checkpoint I/O through AnyIO's shared thread lane."""
-    return await anyio.to_thread.run_sync(
-        operation,
-        limiter=anyio.to_thread.current_default_thread_limiter(),
-    )
+    """Run checkpoint I/O on the shared cancellation-owned worker lane."""
+    return await run_critical_sync(operation)
 
 
 def _provenance(request: ManagedSpecOutputWrite) -> ContextProvenancePayload:

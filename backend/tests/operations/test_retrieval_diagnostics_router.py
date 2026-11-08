@@ -37,7 +37,7 @@ from app.operations.application.diagnostics.operational_retrieval_diagnostics_se
 from app.operations.interface.routers.retrieval_diagnostics_router import (
     explain_context_retrieval,
 )
-from app.operations.interface.schemas.operations.operational_retrieval_diagnostics_schema import (
+from app.operations.interface.schemas.operations.retrieval.operational_retrieval_diagnostics_schema import (
     OperationalRetrievalExplainRequest,
 )
 

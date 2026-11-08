@@ -76,6 +76,9 @@ def bounded_auto_hybrid_budgets(
 
     Returns:
         FTS and vector candidate budgets.
+
+    Raises:
+        ValueError: If `plan` is provided and its strategy is not `RagStrategy.HYBRID`.
     """
     if plan is None:
         return native_candidate_limit, native_candidate_limit

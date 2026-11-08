@@ -84,7 +84,7 @@ from app.memory.infrastructure.providers.native_memory_reconciliation_candidate_
 from app.memory.infrastructure.repositories.context_repository import (
     SqlAlchemyContextRepository,
 )
-from app.memory.infrastructure.repositories.contexts.records.obsidian_context_change_recorder import (
+from app.memory.infrastructure.repositories.contexts.change_log.obsidian_context_change_recorder import (
     record_obsidian_context_change,
 )
 from app.memory.infrastructure.repositories.contexts.search.obsidian_search_source import (
@@ -106,7 +106,11 @@ from app.obsidian.infrastructure.obsidian_vault_config_store import (
 from app.obsidian.infrastructure.repositories.obsidian_index_repository import (
     SqlAlchemyObsidianIndexRepository,
 )
-from app.platform.config.app_config import AppConfig
+from app.platform.config.memory_config import (
+    EmbeddingConfig,
+    EmbeddingModelArtifactConfig,
+)
+from app.platform.config.vault_config import VaultConfig
 from app.shared.application.index_maintenance_coordinator import (
     IndexMaintenanceCoordinator,
 )
@@ -116,21 +120,24 @@ class MemoryContainer(containers.DeclarativeContainer):
     """Container for scoped memory/context-vault components."""
 
     db_session = providers.Dependency(instance_of=AsyncSession)
-    app_config = providers.Dependency(instance_of=AppConfig)
+    embedding_config = providers.Dependency(instance_of=EmbeddingConfig)
+    vault_config = providers.Dependency(instance_of=VaultConfig)
     graph_signal_provider = providers.Dependency(default=None)
     graph_candidate_expansion_provider = providers.Dependency(default=None)
     index_maintenance_coordinator = providers.Dependency(
         instance_of=IndexMaintenanceCoordinator
     )
     external_api_rate_limiter = providers.Dependency()
+    embedding_model_artifact_config = providers.Singleton(EmbeddingModelArtifactConfig)
     embedding_provider = providers.Singleton(
         create_embedding_provider,
-        vector_enabled=app_config.provided.rag_vector_enabled,
-        provider_name=app_config.provided.rag_embedding_provider,
-        model_name=app_config.provided.rag_embedding_model,
-        dimensions=app_config.provided.rag_embedding_dimensions,
-        cache_dir=app_config.provided.rag_embedding_cache_dir,
-        threads=app_config.provided.rag_embedding_threads,
+        vector_enabled=embedding_config.provided.rag_vector_enabled,
+        provider_name=embedding_config.provided.rag_embedding_provider,
+        model_name=embedding_config.provided.rag_embedding_model,
+        dimensions=embedding_config.provided.rag_embedding_dimensions,
+        cache_dir=embedding_config.provided.rag_embedding_cache_dir,
+        threads=embedding_config.provided.rag_embedding_threads,
+        artifact_config_factory=embedding_model_artifact_config.provider,
     )
     context_repo = providers.Factory(SqlAlchemyContextRepository, session=db_session)
     obsidian_context_search_source = providers.Factory(
@@ -147,9 +154,9 @@ class MemoryContainer(containers.DeclarativeContainer):
     )
     obsidian_vault_config_store = providers.Singleton(
         ObsidianVaultConfigStore,
-        default_vault_path=app_config.provided.obsidian_vault_path,
-        default_alexandria_root=app_config.provided.alexandria_obsidian_root,
-        config_path=app_config.provided.obsidian_vault_config_path,
+        default_vault_path=vault_config.provided.obsidian_vault_path,
+        default_alexandria_root=vault_config.provided.alexandria_obsidian_root,
+        config_path=vault_config.provided.obsidian_vault_config_path,
     )
     obsidian_index_repo = providers.Factory(
         SqlAlchemyObsidianIndexRepository,
@@ -165,16 +172,17 @@ class MemoryContainer(containers.DeclarativeContainer):
         ObsidianCanonicalContextGateway,
         service=obsidian_service,
     )
-    memory_compact_repo = providers.Factory(
+    # Service guards and compact-source reads must re-enter one task-owned lock.
+    memory_compact_repo = providers.Singleton(
         ObsidianMemoryCompactRepository,
-        vault_path=app_config.provided.obsidian_vault_path,
-        relative_dir=app_config.provided.memory_compact_note_dir,
+        vault_path=vault_config.provided.obsidian_vault_path,
+        relative_dir=vault_config.provided.memory_compact_note_dir,
     )
     context_service = providers.Factory(
         ContextService,
         repository=context_repo,
         embedding_provider=embedding_provider,
-        vector_retrieval_enabled=app_config.provided.rag_vector_enabled,
+        vector_retrieval_enabled=embedding_config.provided.rag_vector_enabled,
         extra_search_sources=providers.List(obsidian_context_search_source),
         canonical_context_repository=canonical_context_gateway,
         graph_signal_provider=graph_signal_provider,
@@ -185,8 +193,8 @@ class MemoryContainer(containers.DeclarativeContainer):
     )
     context_embedding_recovery_service = providers.Singleton(
         ContextEmbeddingRecoveryService,
-        batch_size=app_config.provided.rag_embedding_recovery_batch_size,
-        max_batches=app_config.provided.rag_embedding_recovery_max_batches,
+        batch_size=embedding_config.provided.rag_embedding_recovery_batch_size,
+        max_batches=embedding_config.provided.rag_embedding_recovery_max_batches,
     )
     memory_compact_service = providers.Factory(
         MemoryCompactService,

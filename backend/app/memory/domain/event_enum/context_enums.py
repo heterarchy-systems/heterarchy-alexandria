@@ -275,3 +275,18 @@ class RagHealthState(StrEnum):
     REINDEX_REQUIRED = "REINDEX_REQUIRED"
     DEGRADED = "DEGRADED"
     DISABLED = "DISABLED"
+
+
+class ContextBriefDeliveryStatus(StrEnum):
+    """Delivery status for one source context inside a Context Brief."""
+
+    NEW = "new"
+    CHANGED = "changed"
+
+
+class ContextBriefOmissionReason(StrEnum):
+    """Reason why an entry or section was omitted or truncated in a Context Brief."""
+
+    RECORD_BUDGET = "record_budget"
+    BYTE_BUDGET = "byte_budget"
+    SECTION_TRUNCATED = "section_truncated"

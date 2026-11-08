@@ -22,12 +22,12 @@ from app.operations.application.recovery.planning.recovery_plan_contracts import
     RecoveryPlanRequest,
 )
 from app.operations.application.recovery.planning.recovery_plan_policy import (
-    _blocked_reasons,
-    _bounded_error_note_paths,
-    _missing_step_capabilities,
-    _next_actions,
-    _plan_hash,
-    _steps,
+    blocked_reasons,
+    bounded_error_note_paths,
+    missing_step_capabilities,
+    next_actions,
+    plan_hash,
+    steps as plan_steps,
 )
 from app.operations.application.recovery.planning.recovery_plan_service import (
     RecoveryPlanService,
@@ -86,13 +86,13 @@ def _source(
 def test_unreachable_postgres_is_blocked_and_requires_external_restore() -> None:
     readiness = _readiness(reachable=False, warnings=("database_unreachable",))
 
-    blocked = _blocked_reasons(readiness, _source())
-    steps = _steps(readiness)
+    blocked = blocked_reasons(readiness, _source())
+    steps = plan_steps(readiness)
 
     assert blocked == ["postgresql_server_recovery_required"]
     assert [step.code for step in steps] == ["inspect_postgresql_backup_restore"]
     assert all(step.mutates_state is False for step in steps)
-    assert _next_actions(
+    assert next_actions(
         OperationalReadinessStatus.BLOCKED, blocked, list(readiness.warnings)
     ) == ["restore_postgresql_from_backup"]
 
@@ -100,7 +100,7 @@ def test_unreachable_postgres_is_blocked_and_requires_external_restore() -> None
 def test_fts_failure_rebuilds_vault_and_dependent_graph_then_verifies() -> None:
     readiness = _readiness(warnings=("rag_fts_not_healthy",))
 
-    assert [step.code for step in _steps(readiness)] == [
+    assert [step.code for step in plan_steps(readiness)] == [
         "snapshot_sources",
         "VAULT_REINDEX",
         "GRAPH_REVALIDATE",
@@ -112,7 +112,7 @@ def test_fts_failure_rebuilds_vault_and_dependent_graph_then_verifies() -> None:
 def test_vector_failure_rebuilds_only_embeddings_then_verifies() -> None:
     readiness = _readiness(warnings=("rag_vector_not_healthy",))
 
-    assert [step.code for step in _steps(readiness)] == [
+    assert [step.code for step in plan_steps(readiness)] == [
         "snapshot_sources",
         "EMBEDDING_REINDEX",
         "CURRENT_READINESS_CHECK",
@@ -124,7 +124,7 @@ def test_combined_search_failure_rebuilds_each_required_projection_once() -> Non
         warnings=("rag_fts_not_healthy", "rag_embedding_reindex_required")
     )
 
-    assert [step.code for step in _steps(readiness)] == [
+    assert [step.code for step in plan_steps(readiness)] == [
         "snapshot_sources",
         "VAULT_REINDEX",
         "EMBEDDING_REINDEX",
@@ -137,7 +137,7 @@ def test_combined_search_failure_rebuilds_each_required_projection_once() -> Non
 def test_reconciliation_only_issue_never_rebuilds_storage() -> None:
     readiness = _readiness(warnings=("memory_reconciliation_open_conflicts",))
 
-    steps = _steps(readiness)
+    steps = plan_steps(readiness)
 
     assert [step.code for step in steps] == [
         "inspect_memory_reconciliation",
@@ -149,12 +149,12 @@ def test_reconciliation_only_issue_never_rebuilds_storage() -> None:
 def test_vault_source_failures_block_automatic_recovery() -> None:
     readiness = _readiness(vault_exists=False, root_exists=False)
 
-    assert _blocked_reasons(readiness, _source(count=0)) == [
+    assert blocked_reasons(readiness, _source(count=0)) == [
         "vault_not_found",
         "alexandria_root_not_found",
         "managed_markdown_not_found",
     ]
-    assert _blocked_reasons(
+    assert blocked_reasons(
         readiness, _source(access_error="source_snapshot_unreadable")
     ) == [
         "source_snapshot_unreadable",
@@ -175,7 +175,9 @@ def test_error_notes_plan_bounded_note_local_repair_without_broad_reindex() -> N
     """Index-error notes get one bounded repair lane, never a broad reindex."""
     readiness = _readiness(warnings=("obsidian_error_notes_present",))
 
-    steps = _steps(readiness, error_note_paths=["Alexandria/A.md", "Alexandria/B.md"])
+    steps = plan_steps(
+        readiness, error_note_paths=["Alexandria/A.md", "Alexandria/B.md"]
+    )
 
     assert [step.code for step in steps] == [
         "snapshot_sources",
@@ -183,6 +185,9 @@ def test_error_notes_plan_bounded_note_local_repair_without_broad_reindex() -> N
         "CURRENT_READINESS_CHECK",
     ]
     assert [step.mutates_state for step in steps] == [False, True, False]
+    assert next_actions(readiness.status, [], list(readiness.warnings)) == [
+        "start_recovery_run"
+    ]
 
 
 def test_error_notes_with_stale_embeddings_repair_before_embedding_rebuild() -> None:
@@ -191,7 +196,7 @@ def test_error_notes_with_stale_embeddings_repair_before_embedding_rebuild() -> 
         warnings=("obsidian_error_notes_present", "rag_vector_not_healthy")
     )
 
-    steps = _steps(readiness, error_note_paths=["Alexandria/A.md"])
+    steps = plan_steps(readiness, error_note_paths=["Alexandria/A.md"])
 
     assert [step.code for step in steps] == [
         "snapshot_sources",
@@ -205,18 +210,21 @@ def test_stale_notes_still_plan_vault_reindex() -> None:
     """Stale notes keep the existing broad reindex lane."""
     readiness = _readiness(warnings=("obsidian_stale_notes_present",))
 
-    assert [step.code for step in _steps(readiness)] == [
+    assert [step.code for step in plan_steps(readiness)] == [
         "snapshot_sources",
         "VAULT_REINDEX",
         "GRAPH_REVALIDATE",
         "LINK_REVALIDATE",
         "CURRENT_READINESS_CHECK",
     ]
+    assert next_actions(readiness.status, [], list(readiness.warnings)) == [
+        "start_recovery_run"
+    ]
 
 
 def test_error_note_paths_are_bounded_and_deduplicated() -> None:
     """The bounded repair list caps and deduplicates planned note repairs."""
-    bounded = _bounded_error_note_paths(
+    bounded = bounded_error_note_paths(
         ["Alexandria/A.md", "Alexandria/A.md", *(f"P{i}.md" for i in range(60))]
     )
 
@@ -228,11 +236,11 @@ def test_error_note_paths_are_bounded_and_deduplicated() -> None:
 def test_plan_hash_binds_steps_diagnosis_and_source_manifest() -> None:
     """The plan hash changes with steps, diagnosis, or source manifest drift."""
     readiness = _readiness(warnings=("rag_fts_not_healthy",))
-    steps = _steps(readiness)
+    steps = plan_steps(readiness)
     diagnosis = ["rag_fts_not_healthy"]
 
-    base = _plan_hash(steps, diagnosis, _source())
-    same = _plan_hash(steps, diagnosis, _source())
+    base = plan_hash(steps, diagnosis, _source())
+    same = plan_hash(steps, diagnosis, _source())
     drifted_manifest = RecoverySourceSnapshot(
         vault_path="/vault",
         alexandria_root="Alexandria",
@@ -242,16 +250,37 @@ def test_plan_hash_binds_steps_diagnosis_and_source_manifest() -> None:
         disk_free_bytes=1_000_000,
         markdown_manifest={"Alexandria/note.md": "2:9"},
     )
-    other = _plan_hash(steps, diagnosis, drifted_manifest)
-    other_steps = _steps(
+    other = plan_hash(steps, diagnosis, drifted_manifest)
+    other_steps = plan_steps(
         _readiness(warnings=("rag_vector_not_healthy",)),
         error_note_paths=["X.md"],
     )
 
     assert base == same
     assert base != other
-    assert base != _plan_hash(other_steps, diagnosis, _source())
-    assert base != _plan_hash(steps, ["changed"], _source())
+    assert base != plan_hash(other_steps, diagnosis, _source())
+    assert base != plan_hash(steps, ["changed"], _source())
+    manifest_ab = RecoverySourceSnapshot(
+        vault_path="/vault",
+        alexandria_root="Alexandria",
+        managed_markdown_count=2,
+        representative_path="/vault/Alexandria/a.md",
+        representative_sha256="abc",
+        disk_free_bytes=1_000_000,
+        markdown_manifest={"Alexandria/a.md": "1:1", "Alexandria/b.md": "2:2"},
+    )
+    manifest_ba = RecoverySourceSnapshot(
+        vault_path="/vault",
+        alexandria_root="Alexandria",
+        managed_markdown_count=2,
+        representative_path="/vault/Alexandria/a.md",
+        representative_sha256="abc",
+        disk_free_bytes=1_000_000,
+        markdown_manifest={"Alexandria/b.md": "2:2", "Alexandria/a.md": "1:1"},
+    )
+    assert plan_hash(steps, diagnosis, manifest_ab) == plan_hash(
+        steps, diagnosis, manifest_ba
+    )
 
 
 def test_missing_cause_specific_callbacks_block_recovery_instead_of_no_op() -> None:
@@ -262,7 +291,7 @@ def test_missing_cause_specific_callbacks_block_recovery_instead_of_no_op() -> N
         RecoveryPlanStep("DLQ_RECONCILE", "DLQ", False),
     ]
 
-    assert _missing_step_capabilities(
+    assert missing_step_capabilities(
         steps,
         embedding_recovery_available=False,
         graph_rebuild_available=False,

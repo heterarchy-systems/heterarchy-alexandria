@@ -23,6 +23,9 @@ from app.mcp_server.local_oauth.orm import (
 from app.mcp_server.local_oauth.persistence.local_oauth_grant_repository import (
     LocalOAuthGrantRepository,
 )
+from app.mcp_server.local_oauth.persistence.oauth_mutation_lock import (
+    lock_oauth_mutation,
+)
 from app.shared.types.extra_types import JSONObject, JSONValue
 
 
@@ -60,6 +63,7 @@ class LocalMcpOAuthRepository(LocalOAuthGrantRepository):
             issued_at: Value supplied to save_client.
             secret_expires_at: Value supplied to save_client."""
         async with self._session_factory() as session, session.begin():
+            await lock_oauth_mutation(session=session)
             session.add(
                 McpOAuthClientORM(
                     client_id=client_id,
@@ -98,6 +102,7 @@ class LocalMcpOAuthRepository(LocalOAuthGrantRepository):
         Args:
             record: Value supplied to create_authorization_request."""
         async with self._session_factory() as session, session.begin():
+            await lock_oauth_mutation(session=session)
             session.add(
                 McpOAuthAuthorizationRequestORM(
                     request_id=record.request_id,
@@ -131,18 +136,24 @@ class LocalMcpOAuthRepository(LocalOAuthGrantRepository):
             row = await session.get(McpOAuthAuthorizationRequestORM, request_id)
         return None if row is None else _authorization_request_record(row)
 
-    async def record_failed_approval(self, request_id: str, now: int) -> int:
-        """Increment a pending request's failed approval attempts.
+    async def record_failed_approval(
+        self, request_id: str, now: int, max_approval_attempts: int
+    ) -> int:
+        """Increment a pending request's failed approval attempts up to its limit.
 
         Args:
             request_id: Value supplied to record_failed_approval.
             now: Value supplied to record_failed_approval.
+            max_approval_attempts: Validated attempt limit enforced under the mutation lock.
         Returns:
             int: Value produced by record_failed_approval."""
         async with self._session_factory() as session, session.begin():
+            await lock_oauth_mutation(session=session)
             row = await session.get(McpOAuthAuthorizationRequestORM, request_id)
             if row is None or row.consumed_at is not None or row.expires_at <= now:
                 return 0
+            if row.approval_attempts >= max_approval_attempts:
+                return row.approval_attempts
             row.approval_attempts += 1
             return row.approval_attempts
 
@@ -160,6 +171,7 @@ class LocalMcpOAuthRepository(LocalOAuthGrantRepository):
             now: Current epoch.
         """
         async with self._session_factory() as session, session.begin():
+            await lock_oauth_mutation(session=session)
             await session.execute(
                 update(McpOAuthPairingCodeORM)
                 .where(McpOAuthPairingCodeORM.consumed_at.is_(None))
@@ -181,6 +193,7 @@ class LocalMcpOAuthRepository(LocalOAuthGrantRepository):
         code_hash: str,
         code_expires_at: int,
         now: int,
+        max_approval_attempts: int,
         pairing_code_hash: str | None = None,
     ) -> LocalOAuthAuthorizationCodeRecord | None:
         """Consume one approval request and atomically create its code.
@@ -191,11 +204,13 @@ class LocalMcpOAuthRepository(LocalOAuthGrantRepository):
             code_hash: Value supplied to approve_authorization_request.
             code_expires_at: Value supplied to approve_authorization_request.
             now: Value supplied to approve_authorization_request.
+            max_approval_attempts: Validated attempt limit enforced under the mutation lock.
             pairing_code_hash: Pairing code hash used by this operation.
         Returns:
             LocalOAuthAuthorizationCodeRecord | None: Value produced by approve_authorization_request.
         """
         async with self._session_factory() as session, session.begin():
+            await lock_oauth_mutation(session=session)
             request_row = await session.get(
                 McpOAuthAuthorizationRequestORM,
                 request_id,
@@ -204,6 +219,7 @@ class LocalMcpOAuthRepository(LocalOAuthGrantRepository):
                 request_row is None
                 or request_row.consumed_at is not None
                 or request_row.expires_at <= now
+                or request_row.approval_attempts >= max_approval_attempts
             ):
                 return None
             if pairing_code_hash is not None:
@@ -251,6 +267,7 @@ class LocalMcpOAuthRepository(LocalOAuthGrantRepository):
         self,
         request_id: str,
         now: int,
+        max_approval_attempts: int,
         pairing_code_hash: str | None = None,
     ) -> bool:
         """Consume one pending request without issuing a code.
@@ -258,13 +275,20 @@ class LocalMcpOAuthRepository(LocalOAuthGrantRepository):
         Args:
             request_id: Value supplied to deny_authorization_request.
             now: Value supplied to deny_authorization_request.
+            max_approval_attempts: Validated attempt limit enforced under the mutation lock.
             pairing_code_hash: Pairing code hash used by this operation.
         Returns:
             bool: Value produced by deny_authorization_request.
         """
         async with self._session_factory() as session, session.begin():
+            await lock_oauth_mutation(session=session)
             row = await session.get(McpOAuthAuthorizationRequestORM, request_id)
-            if row is None or row.consumed_at is not None or row.expires_at <= now:
+            if (
+                row is None
+                or row.consumed_at is not None
+                or row.expires_at <= now
+                or row.approval_attempts >= max_approval_attempts
+            ):
                 return False
             if pairing_code_hash is not None:
                 pairing_row = await session.get(
@@ -291,6 +315,7 @@ class LocalMcpOAuthRepository(LocalOAuthGrantRepository):
             Whether a client registration row was removed.
         """
         async with self._session_factory() as session, session.begin():
+            await lock_oauth_mutation(session=session)
             row = await session.get(McpOAuthClientORM, client_id)
             if row is None:
                 return False

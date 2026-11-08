@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
+from typing import Literal
 
 from app.memory.application.retrieval.embeddings.embedding_document import (
     EMBEDDING_DOCUMENT_INPUT_FORMAT,
@@ -16,6 +17,8 @@ from app.shared.types.embedding_types import EMBEDDING_VECTOR_DIMENSIONS
 DEFAULT_EMBEDDING_MODEL = "intfloat/multilingual-e5-small"
 DEFAULT_EMBEDDING_DIMENSIONS = EMBEDDING_VECTOR_DIMENSIONS
 DEFAULT_EMBEDDING_THREADS = 4
+
+EmbeddingProviderName = Literal["fastembed", "fake-test", "disabled"]
 
 
 class EmbeddingProvider(ABC):

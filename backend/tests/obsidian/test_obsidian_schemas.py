@@ -3,18 +3,19 @@
 from __future__ import annotations
 
 import pytest
+from pydantic import ValidationError
+
 from app.obsidian.domain.event_enum.obsidian_enums import AlexandriaNoteType
-from app.obsidian.interface.schemas.obsidian.obsidian_note_write_schema import (
+from app.obsidian.interface.schemas.obsidian.notes.obsidian_note_schema import (
     ObsidianSaveNoteRequest,
+)
+from app.obsidian.interface.schemas.obsidian.notes.obsidian_search_schema import (
+    ObsidianSearchRequest,
 )
 from app.obsidian.interface.schemas.obsidian.obsidian_report_bundle_schema import (
     ObsidianReportBundleRequestSchema,
 )
-from app.obsidian.interface.schemas.obsidian.obsidian_search_schema import (
-    ObsidianSearchRequest,
-)
 from app.shared.serialization.orjson_codec import dumps_json
-from pydantic import ValidationError
 
 
 def test_obsidian_request_schemas_restore_enum_contracts() -> None:
@@ -96,7 +97,7 @@ def test_obsidian_save_schema_rejects_legacy_collection_repr(value: str) -> None
 
 @pytest.mark.parametrize("value", ["yes", "1", 1])
 def test_obsidian_save_schema_rejects_ambiguous_boolean_metadata(
-    value: object,
+    value: str | int,
 ) -> None:
     """HTTP saves must not use permissive truthy coercion for Boolean fields."""
     with pytest.raises(ValidationError):

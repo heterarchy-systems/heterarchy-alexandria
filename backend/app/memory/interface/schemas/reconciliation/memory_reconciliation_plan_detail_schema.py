@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import Field
+
 from app.memory.domain.entities.memory_reconciliation import (
     MemoryEvolutionCandidateEvidence,
     MemoryReconciliationPlan,
@@ -20,7 +22,7 @@ from app.memory.interface.schemas.reconciliation.memory_reconciliation_plan_resp
     MemoryRelationDecisionResponse,
     MemorySourceReferenceResponse,
 )
-from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
+from app.shared.schemas.common_schemas import StrictSchemaModel
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 
 
@@ -29,66 +31,73 @@ class MemoryReconciliationActionResponse(StrictSchemaModel):
 
     action_type: Annotated[
         MemoryReconciliationActionType,
-        described_field("Action type for this memory reconciliation action response."),
+        Field(
+            description="Action type for this memory reconciliation action response."
+        ),
     ]
     target_context_id: Annotated[
         str | None,
-        described_field(
-            "Target context identifier for this memory reconciliation action response."
+        Field(
+            description="Target context identifier for this memory reconciliation action response."
         ),
     ]
     relation: Annotated[
         MemoryRelationType | None,
-        described_field("Relation for this memory reconciliation action response."),
+        Field(description="Relation for this memory reconciliation action response."),
     ]
     reason: Annotated[
-        str, described_field("Reason for this memory reconciliation action response.")
+        str, Field(description="Reason for this memory reconciliation action response.")
     ]
 
 
 class MemoryEvolutionCandidatePairEvidenceResponse(StrictSchemaModel):
     """One bounded deterministic candidate pair emitted by Rust compute."""
 
-    left_id: Annotated[str, described_field("Left candidate item identifier.")]
-    right_id: Annotated[str, described_field("Right candidate item identifier.")]
+    left_id: Annotated[str, Field(description="Left candidate item identifier.")]
+    right_id: Annotated[str, Field(description="Right candidate item identifier.")]
     exact_content_hash: Annotated[
         bool,
-        described_field("Whether both items have the same non-empty content hash."),
+        Field(description="Whether both items have the same non-empty content hash."),
     ]
     vector_similarity: Annotated[
-        float | None, described_field("Optional vector cosine similarity evidence.")
+        float | None, Field(description="Optional vector cosine similarity evidence.")
     ]
     temporal_overlap: Annotated[
-        bool, described_field("Whether the item validity intervals overlap.")
+        bool, Field(description="Whether the item validity intervals overlap.")
     ]
     graph_similarity: Annotated[
-        float, described_field("Graph-neighborhood Jaccard similarity evidence.")
+        float, Field(description="Graph-neighborhood Jaccard similarity evidence.")
     ]
-    lineage: Annotated[str, described_field("Deterministic lineage relation evidence.")]
+    lineage: Annotated[
+        str, Field(description="Deterministic lineage relation evidence.")
+    ]
     candidate_score: Annotated[
-        float, described_field("Deterministic candidate evidence score.")
+        float, Field(description="Deterministic candidate evidence score.")
     ]
     reasons: Annotated[
         list[str],
-        described_field("Bounded deterministic reasons for the candidate pair."),
+        Field(description="Bounded deterministic reasons for the candidate pair."),
     ]
 
 
 class MemoryEvolutionCandidateMetricsResponse(StrictSchemaModel):
     """Bounded-work counters from Rust reconciliation candidate discovery."""
 
-    input_items: Annotated[int, described_field("Candidate compute input items.", ge=0)]
+    input_items: Annotated[
+        int, Field(description="Candidate compute input items.", ge=0)
+    ]
     comparison_pairs: Annotated[
-        int, described_field("Candidate pairs compared by deterministic compute.", ge=0)
+        int,
+        Field(description="Candidate pairs compared by deterministic compute.", ge=0),
     ]
     qualifying_pairs: Annotated[
-        int, described_field("Pairs qualifying before per-item truncation.", ge=0)
+        int, Field(description="Pairs qualifying before per-item truncation.", ge=0)
     ]
     retained_pairs: Annotated[
-        int, described_field("Pairs retained after bounded top-k truncation.", ge=0)
+        int, Field(description="Pairs retained after bounded top-k truncation.", ge=0)
     ]
     exact_duplicate_groups: Annotated[
-        int, described_field("Exact content-hash duplicate groups.", ge=0)
+        int, Field(description="Exact content-hash duplicate groups.", ge=0)
     ]
 
 
@@ -96,23 +105,25 @@ class MemoryEvolutionCandidateEvidenceResponse(StrictSchemaModel):
     """Operator-auditable Rust evidence that never assigns final memory semantics."""
 
     compute_authority: Annotated[
-        str, described_field("Deterministic candidate-compute authority identifier.")
+        str, Field(description="Deterministic candidate-compute authority identifier.")
     ]
     candidate_item_id: Annotated[
         str,
-        described_field("Source memory proposal identifier used by candidate compute."),
+        Field(
+            description="Source memory proposal identifier used by candidate compute."
+        ),
     ]
     compared_context_ids: Annotated[
         list[str],
-        described_field("Stored Context identifiers supplied to candidate compute."),
+        Field(description="Stored Context identifiers supplied to candidate compute."),
     ]
     candidate_pairs: Annotated[
         list[MemoryEvolutionCandidatePairEvidenceResponse],
-        described_field("Source-related deterministic candidate evidence pairs."),
+        Field(description="Source-related deterministic candidate evidence pairs."),
     ]
     metrics: Annotated[
         MemoryEvolutionCandidateMetricsResponse,
-        described_field("Bounded-work metrics for this candidate compute execution."),
+        Field(description="Bounded-work metrics for this candidate compute execution."),
     ]
 
     @classmethod
@@ -161,64 +172,64 @@ class MemoryReconciliationPlanResponse(StrictSchemaModel):
 
     plan_id: Annotated[
         str,
-        described_field(
-            "Plan identifier for this memory reconciliation plan response."
+        Field(
+            description="Plan identifier for this memory reconciliation plan response."
         ),
     ]
     candidate: Annotated[
         MemoryCandidateResponse,
-        described_field("Candidate for this memory reconciliation plan response."),
+        Field(description="Candidate for this memory reconciliation plan response."),
     ]
     decisions: Annotated[
         list[MemoryRelationDecisionResponse],
-        described_field("Decisions for this memory reconciliation plan response."),
+        Field(description="Decisions for this memory reconciliation plan response."),
     ]
     primary_decision: Annotated[
         MemoryRelationType,
-        described_field(
-            "Primary decision for this memory reconciliation plan response."
+        Field(
+            description="Primary decision for this memory reconciliation plan response."
         ),
     ]
     actions: Annotated[
         list[MemoryReconciliationActionResponse],
-        described_field("Actions for this memory reconciliation plan response."),
+        Field(description="Actions for this memory reconciliation plan response."),
     ]
     warnings: Annotated[
         list[str],
-        described_field("Warnings for this memory reconciliation plan response."),
+        Field(description="Warnings for this memory reconciliation plan response."),
     ]
     conflicting_context_ids: Annotated[
         list[str],
-        described_field(
-            "Conflicting context identifiers for this memory reconciliation plan response."
+        Field(
+            description="Conflicting context identifiers for this memory reconciliation plan response."
         ),
     ]
     requires_review: Annotated[
         bool,
-        described_field(
-            "Requires review for this memory reconciliation plan response."
+        Field(
+            description="Requires review for this memory reconciliation plan response."
         ),
     ]
     idempotency_key: Annotated[
         str,
-        described_field(
-            "Idempotency key for this memory reconciliation plan response."
+        Field(
+            description="Idempotency key for this memory reconciliation plan response."
         ),
     ]
     status: Annotated[
         MemoryReconciliationStatus,
-        described_field("Status for this memory reconciliation plan response."),
+        Field(description="Status for this memory reconciliation plan response."),
     ]
     candidate_evidence: Annotated[
         MemoryEvolutionCandidateEvidenceResponse | None,
-        described_field(
-            "Optional deterministic candidate evidence retained for audit."
+        Field(
+            description="Optional deterministic candidate evidence retained for audit."
         ),
     ]
     created_at: Annotated[
         AwareTimestamp,
-        described_field(
-            "Creation timestamp for this memory reconciliation plan response."
+        Field(
+            description="Creation timestamp for this memory reconciliation plan response."
         ),
     ]
 
@@ -273,10 +284,10 @@ class MemoryReviewQueueResponse(StrictSchemaModel):
 
     items: Annotated[
         list[MemoryReconciliationPlanResponse],
-        described_field("Items for this memory review queue response."),
+        Field(description="Items for this memory review queue response."),
     ]
     total: Annotated[
-        int, described_field("Total for this memory review queue response.")
+        int, Field(description="Total for this memory review queue response.")
     ]
 
     @classmethod
@@ -303,89 +314,93 @@ class MemoryReconciliationResultResponse(StrictSchemaModel):
 
     reconciliation_id: Annotated[
         str,
-        described_field(
-            "Reconciliation identifier for this memory reconciliation result response."
+        Field(
+            description="Reconciliation identifier for this memory reconciliation result response."
         ),
     ]
     plan_id: Annotated[
         str,
-        described_field(
-            "Plan identifier for this memory reconciliation result response."
+        Field(
+            description="Plan identifier for this memory reconciliation result response."
         ),
     ]
     status: Annotated[
         MemoryReconciliationStatus,
-        described_field("Status for this memory reconciliation result response."),
+        Field(description="Status for this memory reconciliation result response."),
     ]
     created_context_ids: Annotated[
         list[str],
-        described_field(
-            "Created context identifiers for this memory reconciliation result response."
+        Field(
+            description="Created context identifiers for this memory reconciliation result response."
         ),
     ]
     updated_context_ids: Annotated[
         list[str],
-        described_field(
-            "Updated context identifiers for this memory reconciliation result response."
+        Field(
+            description="Updated context identifiers for this memory reconciliation result response."
         ),
     ]
     superseded_context_ids: Annotated[
         list[str],
-        described_field(
-            "Superseded context identifiers for this memory reconciliation result response."
+        Field(
+            description="Superseded context identifiers for this memory reconciliation result response."
         ),
     ]
     created_relation_ids: Annotated[
         list[str],
-        described_field(
-            "Created relation identifiers for this memory reconciliation result response."
+        Field(
+            description="Created relation identifiers for this memory reconciliation result response."
         ),
     ]
     created_conflict_set_ids: Annotated[
         list[str],
-        described_field(
-            "Created conflict set identifiers for this memory reconciliation result response."
+        Field(
+            description="Created conflict set identifiers for this memory reconciliation result response."
         ),
     ]
     merged_evidence: Annotated[
         list[MemorySourceReferenceResponse],
-        described_field(
-            "Merged evidence for this memory reconciliation result response."
+        Field(
+            description="Merged evidence for this memory reconciliation result response."
         ),
     ]
     review_queue_item_ids: Annotated[
         list[str],
-        described_field(
-            "Review queue item identifiers for this memory reconciliation result response."
+        Field(
+            description="Review queue item identifiers for this memory reconciliation result response."
         ),
     ]
     warnings: Annotated[
         list[str],
-        described_field("Warnings for this memory reconciliation result response."),
+        Field(description="Warnings for this memory reconciliation result response."),
     ]
     hard_delete_performed: Annotated[
         bool,
-        described_field(
-            "Hard delete performed for this memory reconciliation result response."
+        Field(
+            description="Hard delete performed for this memory reconciliation result response."
         ),
     ]
     failure_code: Annotated[
         MemoryReconciliationFailureCode | None,
-        described_field("Failure code for this memory reconciliation result response."),
+        Field(
+            description="Failure code for this memory reconciliation result response."
+        ),
     ]
     reviewed_by: Annotated[
         str | None,
-        described_field(
-            "Memory Steward identity that approved review-required mutation."
+        Field(
+            description="Memory Steward identity that approved review-required mutation."
         ),
     ]
     reviewed_at: Annotated[
         AwareTimestamp | None,
-        described_field("Timestamp when review approval was consumed for mutation."),
+        Field(description="Timestamp when review approval was consumed for mutation."),
     ]
     completed_at: Annotated[
         AwareTimestamp | None,
-        described_field("Completed at for this memory reconciliation result response."),
+        Field(
+            description="Completed at for this memory reconciliation result response."
+        ),
     ]
 
     @classmethod

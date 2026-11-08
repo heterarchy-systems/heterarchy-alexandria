@@ -5,9 +5,9 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Annotated
 
-from pydantic import ConfigDict, field_validator
+from pydantic import ConfigDict, Field, field_validator
 
-from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
+from app.shared.schemas.common_schemas import StrictSchemaModel
 from app.shared.types.extra_types import JSONValue
 
 
@@ -29,19 +29,19 @@ class RagStatusPayload(MemoryStewardReadinessPayload):
     vector: str | None = None
     embedding: str | None = None
     warnings: Annotated[
-        tuple[str, ...], described_field("Warnings for this RAG status payload.")
+        tuple[str, ...], Field(description="Warnings for this RAG status payload.")
     ] = ()
 
     @field_validator("warnings", mode="before")
     @classmethod
     def _filter_warning_strings(cls, value: JSONValue) -> JSONValue:
-        """Execute filter warning strings.
+        """Keep only string entries when warnings arrive as a JSON list.
 
         Args:
-            value: Value being processed.
+            value: Raw warnings field value.
 
         Returns:
-            JSONValue result produced by filter warning strings.
+            Tuple of string warning items, or the original value if not a list.
         """
         if isinstance(value, list):
             return tuple(item for item in value if isinstance(item, str))
@@ -79,23 +79,23 @@ class CurrentCompactPayload(MemoryStewardReadinessPayload):
     age_days: int | None = None
     max_age_days: int | None = None
     warnings: Annotated[
-        tuple[str, ...], described_field("Warnings for this current compact payload.")
+        tuple[str, ...], Field(description="Warnings for this current compact payload.")
     ] = ()
     source_refs: Annotated[
         tuple[CurrentCompactSourceRefPayload, ...],
-        described_field("Source refs for this current compact payload."),
+        Field(description="Source refs for this current compact payload."),
     ] = ()
 
     @field_validator("warnings", mode="before")
     @classmethod
     def _filter_warning_strings(cls, value: JSONValue) -> JSONValue:
-        """Execute filter warning strings.
+        """Keep only string entries when warnings arrive as a JSON list.
 
         Args:
-            value: Value being processed.
+            value: Raw warnings field value.
 
         Returns:
-            JSONValue result produced by filter warning strings.
+            Tuple of string warning items, or the original value if not a list.
         """
         if isinstance(value, list):
             return tuple(item for item in value if isinstance(item, str))
@@ -104,13 +104,13 @@ class CurrentCompactPayload(MemoryStewardReadinessPayload):
     @field_validator("source_refs", mode="before")
     @classmethod
     def _filter_source_ref_objects(cls, value: JSONValue) -> JSONValue:
-        """Execute filter source ref objects.
+        """Keep only dictionary entries when source_refs arrive as a JSON list.
 
         Args:
-            value: Value being processed.
+            value: Raw source_refs field value.
 
         Returns:
-            JSONValue result produced by filter source ref objects.
+            Tuple of dictionary source-ref items, or the original value if not a list.
         """
         if isinstance(value, list):
             return tuple(item for item in value if isinstance(item, dict))
@@ -152,19 +152,19 @@ class CurrentCompactReviewScorePayload(MemoryStewardReadinessPayload):
     required: bool | None = None
     reasons: Annotated[
         tuple[str, ...],
-        described_field("Reasons for this current compact review score payload."),
+        Field(description="Reasons for this current compact review score payload."),
     ] = ()
 
     @field_validator("reasons", mode="before")
     @classmethod
     def _filter_reason_strings(cls, value: JSONValue) -> JSONValue:
-        """Execute filter reason strings.
+        """Keep only string entries when rubric reasons arrive as a JSON list.
 
         Args:
-            value: Value being processed.
+            value: Raw reasons field value.
 
         Returns:
-            JSONValue result produced by filter reason strings.
+            Tuple of string reason items, or the original value if not a list.
         """
         if isinstance(value, list):
             return tuple(item for item in value if isinstance(item, str))
@@ -180,23 +180,25 @@ class CurrentCompactReviewPayload(MemoryStewardReadinessPayload):
     max_score: int | None = None
     scores: Annotated[
         tuple[CurrentCompactReviewScorePayload, ...],
-        described_field("Scores for this current compact review payload."),
+        Field(description="Scores for this current compact review payload."),
     ] = ()
     missing_refs: Annotated[
         tuple[str, ...],
-        described_field("Missing refs for this current compact review payload."),
+        Field(description="Missing refs for this current compact review payload."),
     ] = ()
     contradictions: Annotated[
         tuple[str, ...],
-        described_field("Contradictions for this current compact review payload."),
+        Field(description="Contradictions for this current compact review payload."),
     ] = ()
     stale_reasons: Annotated[
         tuple[str, ...],
-        described_field("Stale reasons for this current compact review payload."),
+        Field(description="Stale reasons for this current compact review payload."),
     ] = ()
     recommended_actions: Annotated[
         tuple[str, ...],
-        described_field("Recommended actions for this current compact review payload."),
+        Field(
+            description="Recommended actions for this current compact review payload."
+        ),
     ] = ()
 
     @field_validator(
@@ -208,13 +210,13 @@ class CurrentCompactReviewPayload(MemoryStewardReadinessPayload):
     )
     @classmethod
     def _filter_strings(cls, value: JSONValue) -> JSONValue:
-        """Execute filter strings.
+        """Keep only string entries when review list fields arrive as a JSON list.
 
         Args:
-            value: Value being processed.
+            value: Raw review list field value.
 
         Returns:
-            JSONValue result produced by filter strings.
+            Tuple of string items, or the original value if not a list.
         """
         if isinstance(value, list):
             return tuple(item for item in value if isinstance(item, str))
@@ -223,13 +225,13 @@ class CurrentCompactReviewPayload(MemoryStewardReadinessPayload):
     @field_validator("scores", mode="before")
     @classmethod
     def _filter_score_objects(cls, value: JSONValue) -> JSONValue:
-        """Execute filter score objects.
+        """Keep only dictionary entries when rubric scores arrive as a JSON list.
 
         Args:
-            value: Value being processed.
+            value: Raw scores field value.
 
         Returns:
-            JSONValue result produced by filter score objects.
+            Tuple of score dictionary items, or the original value if not a list.
         """
         if isinstance(value, list):
             return tuple(item for item in value if isinstance(item, dict))
@@ -253,31 +255,32 @@ class ReadinessSummaryPayload(MemoryStewardReadinessPayload):
     status: str | None = None
     project: JSONValue | None = None
     rag: Annotated[
-        RagStatusPayload, described_field("RAG for this readiness summary payload.")
+        RagStatusPayload, Field(description="RAG for this readiness summary payload.")
     ] = RagStatusPayload()
     current_memory_compact: Annotated[
         CurrentCompactPayload,
-        described_field("Current memory compact for this readiness summary payload."),
+        Field(description="Current memory compact for this readiness summary payload."),
     ] = CurrentCompactPayload()
     current_memory_compact_review: CurrentCompactReviewPayload | None = None
     warnings: Annotated[
-        tuple[str, ...], described_field("Warnings for this readiness summary payload.")
+        tuple[str, ...],
+        Field(description="Warnings for this readiness summary payload."),
     ] = ()
     next_actions: Annotated[
         tuple[NextActionPayload, ...],
-        described_field("Next actions for this readiness summary payload."),
+        Field(description="Next actions for this readiness summary payload."),
     ] = ()
 
     @field_validator("warnings", mode="before")
     @classmethod
     def _filter_warning_strings(cls, value: JSONValue) -> JSONValue:
-        """Execute filter warning strings.
+        """Keep only string entries when warnings arrive as a JSON list.
 
         Args:
-            value: Value being processed.
+            value: Raw warnings field value.
 
         Returns:
-            JSONValue result produced by filter warning strings.
+            Tuple of string warning items, or the original value if not a list.
         """
         if isinstance(value, list):
             return tuple(item for item in value if isinstance(item, str))
@@ -286,13 +289,13 @@ class ReadinessSummaryPayload(MemoryStewardReadinessPayload):
     @field_validator("next_actions", mode="before")
     @classmethod
     def _filter_next_action_objects(cls, value: JSONValue) -> JSONValue:
-        """Execute filter next action objects.
+        """Keep only dictionary entries when next_actions arrive as a JSON list.
 
         Args:
-            value: Value being processed.
+            value: Raw next_actions field value.
 
         Returns:
-            JSONValue result produced by filter next action objects.
+            Tuple of next-action dictionary items, or the original value if not a list.
         """
         if isinstance(value, list):
             return tuple(item for item in value if isinstance(item, dict))
@@ -306,7 +309,6 @@ class CompactSourceRefPayload(MemoryStewardReadinessPayload):
     source_id: str
     title: str
     detail_path: str
-
     source_hash: str | None = None
 
 
@@ -320,7 +322,7 @@ class CompactRefreshDraftPayload(MemoryStewardReadinessPayload):
     markdown_body: str
     source_refs: Annotated[
         tuple[CompactSourceRefPayload, ...],
-        described_field("Source refs for this compact refresh draft payload."),
+        Field(description="Source refs for this compact refresh draft payload."),
     ] = ()
 
 
@@ -335,11 +337,11 @@ class ReadinessToolOutputPayload(MemoryStewardReadinessPayload):
     current_memory_compact_review: CurrentCompactReviewPayload | None = None
     warnings: Annotated[
         tuple[str, ...],
-        described_field("Warnings for this readiness tool output payload."),
+        Field(description="Warnings for this readiness tool output payload."),
     ] = ()
     next_actions: Annotated[
         tuple[NextActionPayload, ...],
-        described_field("Next actions for this readiness tool output payload."),
+        Field(description="Next actions for this readiness tool output payload."),
     ] = ()
 
 
@@ -352,14 +354,14 @@ class RefreshCurrentCompactOutputPayload(MemoryStewardReadinessPayload):
     refresh_required: bool
     blocked_reasons: Annotated[
         tuple[str, ...],
-        described_field(
-            "Blocked reasons for this refresh current compact output payload."
+        Field(
+            description="Blocked reasons for this refresh current compact output payload."
         ),
     ] = ()
     blocked_next_actions: Annotated[
         tuple[NextActionPayload, ...],
-        described_field(
-            "Blocked next actions for this refresh current compact output payload."
+        Field(
+            description="Blocked next actions for this refresh current compact output payload."
         ),
     ] = ()
     readiness: ReadinessToolOutputPayload

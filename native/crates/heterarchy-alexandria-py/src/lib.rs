@@ -7,7 +7,6 @@ mod bulk_embedding_wire;
 mod compile_plan_wire;
 mod context_reindex_manifest_wire;
 mod document_index_wire;
-pub mod embedding_runtime_registry;
 mod fastembed_runtime;
 mod graph_diagnostics_wire;
 mod graph_traversal_wire;
@@ -15,12 +14,14 @@ mod reconciliation_candidate_wire;
 mod retrieval_kernel_compact;
 mod retrieval_kernel_wire;
 
-use bulk_embedding_runtime_wire::run_bulk_embedding_payload;
 use bulk_embedding_wire::{finalize_bulk_embedding_payload, prepare_bulk_embedding_payload};
 use compile_plan_wire::{compile_plan_payload, resolve_note_targets_payload};
 use context_reindex_manifest_wire::compute_context_reindex_manifest_payload;
 use document_index_wire::compute_document_index_batch_payload;
-use fastembed_runtime::infer_query_input;
+use fastembed_runtime::{
+    EMBEDDING_RUNTIME_CONTRACT_VERSION, MultilingualE5RuntimeBuilder, MultilingualE5Session,
+    create_multilingual_e5_runtime_builder as create_runtime_builder,
+};
 use graph_diagnostics_wire::compute_graph_diagnostics_payload;
 use graph_traversal_wire::{
     compute_graph_candidate_selection_payload, compute_graph_projection_read_payload,
@@ -255,6 +256,11 @@ fn compute_contract_version() -> u16 {
 }
 
 #[pyfunction]
+fn embedding_runtime_contract_version() -> u16 {
+    EMBEDDING_RUNTIME_CONTRACT_VERSION
+}
+
+#[pyfunction]
 fn native_package_version() -> &'static str {
     env!("CARGO_PKG_VERSION")
 }
@@ -407,27 +413,12 @@ fn finalize_bulk_embedding_batch_json<'python>(
 }
 
 #[pyfunction]
-fn run_bulk_embedding_batch_json<'python>(
-    python: Python<'python>,
-    payload: &[u8],
-) -> PyResult<Bound<'python, PyBytes>> {
-    let owned_payload = payload.to_vec();
-    let encoded = python
-        .detach(move || run_bulk_embedding_payload(&owned_payload))
-        .map_err(PyValueError::new_err)?;
-    Ok(PyBytes::new(python, &encoded))
-}
-
-#[pyfunction]
-fn embed_multilingual_e5_query(
+fn create_multilingual_e5_runtime_builder(
     python: Python<'_>,
-    query_input: String,
-    cache_directory: Option<String>,
     threads: usize,
-) -> PyResult<Vec<f32>> {
-    python
-        .detach(move || infer_query_input(&query_input, cache_directory.as_deref(), threads))
-        .map_err(PyValueError::new_err)
+) -> PyResult<Py<MultilingualE5RuntimeBuilder>> {
+    let builder = create_runtime_builder(threads).map_err(PyValueError::new_err)?;
+    Py::new(python, builder)
 }
 
 #[pyfunction]
@@ -843,22 +834,23 @@ fn relative_path(value: String, error_code: &str) -> Result<RelativeVaultPath, S
 ///
 /// Linked Rust/test artifacts may bind another libpython, so only extension
 /// builds expose the Python import entry point.
-#[cfg_attr(alexandria_extension_module, pymodule)]
-#[cfg_attr(not(alexandria_extension_module), pymodule(submodule))]
+#[cfg_attr(alexandria_extension_module, pymodule(gil_used = true))]
+#[cfg_attr(not(alexandria_extension_module), pymodule(submodule, gil_used = true))]
 pub mod heterarchy_alexandria_native {
     #[pymodule_export]
     use super::{
-        analyze_document_batch_json, chunk_markdown_batch_json, compile_plan_json,
-        compute_context_reindex_manifest_json, compute_contract_version,
-        compute_document_index_batch_json, compute_graph_diagnostics_json, compute_graph_json,
-        compute_hash_batch_json, compute_reconciliation_candidates_json,
-        compute_retrieval_kernel_json, embed_multilingual_e5_query, extract_reference_batch_json,
-        feature_authority_schema_version, finalize_bulk_embedding_batch_json, native_build_profile,
-        native_git_revision, native_package_version, prepare_bulk_embedding_batch_json,
-        read_graph_projection_json, resolve_note_targets_json, retrieval_hybrid_candidate_limit,
+        MultilingualE5RuntimeBuilder, MultilingualE5Session, analyze_document_batch_json,
+        chunk_markdown_batch_json, compile_plan_json, compute_context_reindex_manifest_json,
+        compute_contract_version, compute_document_index_batch_json,
+        compute_graph_diagnostics_json, compute_graph_json, compute_hash_batch_json,
+        compute_reconciliation_candidates_json, compute_retrieval_kernel_json,
+        create_multilingual_e5_runtime_builder, embedding_runtime_contract_version,
+        extract_reference_batch_json, feature_authority_schema_version,
+        finalize_bulk_embedding_batch_json, native_build_profile, native_git_revision,
+        native_package_version, prepare_bulk_embedding_batch_json, read_graph_projection_json,
+        resolve_note_targets_json, retrieval_hybrid_candidate_limit,
         retrieval_merge_hybrid_indices, retrieval_merge_hybrid_indices_with_trace,
-        retrieval_rank_best_indices, run_bulk_embedding_batch_json,
-        select_graph_projection_candidates_json,
+        retrieval_rank_best_indices, select_graph_projection_candidates_json,
     };
 }
 
@@ -885,6 +877,20 @@ mod tests {
                 .call0()?
                 .extract()?;
             assert_eq!(version, 1);
+            let embedding_runtime_version: u16 = module
+                .getattr("embedding_runtime_contract_version")?
+                .call0()?
+                .extract()?;
+            assert_eq!(embedding_runtime_version, 4);
+            let _builder_type = module.getattr("MultilingualE5RuntimeBuilder")?;
+            let _session_type = module.getattr("MultilingualE5Session")?;
+            let builder = module
+                .getattr("create_multilingual_e5_runtime_builder")?
+                .call1((4,))?;
+            builder.call_method0("close")?;
+            builder.call_method0("close")?;
+            assert!(module.getattr("embed_multilingual_e5_query").is_err());
+            assert!(module.getattr("run_bulk_embedding_batch_json").is_err());
             Ok(())
         })
     }

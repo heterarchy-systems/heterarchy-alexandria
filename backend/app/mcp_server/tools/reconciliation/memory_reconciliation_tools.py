@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from urllib.parse import quote
-
 from app.mcp_server.backend_api_client import AlexandriaApiClient
+from app.mcp_server.tools.backend_gateway_policy import path_segment
 from app.memory.domain.event_enum.reconciliation_enums import MemoryConflictStatus
 from app.memory.interface.schemas.reconciliation.candidate.memory_reconciliation_candidate_request_schema import (
     MemoryCandidateRequest,
@@ -19,18 +18,6 @@ from app.shared.serialization.model_codec import schema_payload
 from app.shared.types.extra_types import JSONObject, JSONValue
 
 
-def _path_segment(value: str) -> str:
-    """Return one percent-encoded URL path segment.
-
-    Args:
-        value: Value being processed.
-
-    Returns:
-        str result produced by path segment.
-    """
-    return quote(value, safe="")
-
-
 async def alexandria_preview_memory_reconciliation(
     client: AlexandriaApiClient,
     candidate: MemoryCandidateRequest,
@@ -40,13 +27,13 @@ async def alexandria_preview_memory_reconciliation(
     """Create a durable reconciliation plan without canonical mutation.
 
     Args:
-        client: Client.
-        candidate: Candidate.
-        idempotency_key: Idempotency key.
-        recall_limit: Recall limit.
+        client: Backend HTTP API client.
+        candidate: Validated candidate memory payload to reconcile.
+        idempotency_key: Optional retry-stable idempotency key for plan creation.
+        recall_limit: Maximum number of existing memory candidates to recall.
 
     Returns:
-        JSONValue: Operation result.
+        Backend reconciliation preview plan response.
     """
     payload: JSONObject = {
         "candidate": schema_payload(candidate, exclude_none=True),
@@ -64,11 +51,11 @@ async def alexandria_recall_memory_temporally(
     """Recall current, historical, or all matching memory states.
 
     Args:
-        client: Client.
-        request: Request.
+        client: Backend HTTP API client.
+        request: Validated temporal memory recall request contract.
 
     Returns:
-        JSONValue: Operation result.
+        Backend temporal memory recall response payload.
     """
     return await client.post(
         "/memory/reconciliation/recall",
@@ -83,11 +70,11 @@ async def alexandria_preview_reconciliation_memory_compact(
     """Preview reconciliation-aware Memory Compact fact buckets.
 
     Args:
-        client: Client.
-        request: Request.
+        client: Backend HTTP API client.
+        request: Validated temporal recall request for compact previewing.
 
     Returns:
-        JSONValue: Operation result.
+        Backend reconciliation-aware Memory Compact preview response.
     """
     return await client.post(
         "/memory/reconciliation/compact/preview",
@@ -102,11 +89,11 @@ async def alexandria_preview_existing_memory_reconciliation(
     """Analyze existing memory without persisting backfill state or plans.
 
     Args:
-        client: Client.
-        request: Request.
+        client: Backend HTTP API client.
+        request: Validated existing-memory reconciliation request contract.
 
     Returns:
-        JSONValue: Operation result.
+        Backend existing-memory reconciliation preview response.
     """
     return await client.post(
         "/memory/reconciliation/existing/preview",
@@ -121,11 +108,11 @@ async def alexandria_apply_existing_memory_reconciliation(
     """Apply safe existing-memory temporal backfill and plan persistence.
 
     Args:
-        client: Client.
-        request: Request.
+        client: Backend HTTP API client.
+        request: Validated existing-memory reconciliation apply contract.
 
     Returns:
-        JSONValue: Operation result.
+        Backend existing-memory reconciliation apply response.
     """
     return await client.post(
         "/memory/reconciliation/existing/apply",
@@ -140,13 +127,13 @@ async def alexandria_get_memory_reconciliation_plan(
     """Read one persisted reconciliation plan.
 
     Args:
-        client: Client.
-        plan_id: Plan id.
+        client: Backend HTTP API client.
+        plan_id: Persisted reconciliation plan identifier.
 
     Returns:
-        JSONValue: Operation result.
+        Backend reconciliation plan response payload.
     """
-    return await client.get(f"/memory/reconciliation/plans/{_path_segment(plan_id)}")
+    return await client.get(f"/memory/reconciliation/plans/{path_segment(plan_id)}")
 
 
 async def alexandria_list_memory_reconciliation_review_queue(
@@ -156,11 +143,11 @@ async def alexandria_list_memory_reconciliation_review_queue(
     """List durable reconciliation plans requiring explicit review.
 
     Args:
-        client: Client.
-        limit: Limit.
+        client: Backend HTTP API client.
+        limit: Maximum number of review-queue plans to return.
 
     Returns:
-        JSONValue: Operation result.
+        Backend reconciliation review-queue response payload.
     """
     return await client.get(
         "/memory/reconciliation/review-queue",
@@ -176,15 +163,15 @@ async def alexandria_apply_memory_reconciliation(
     """Apply one persisted reconciliation plan idempotently.
 
     Args:
-        client: Client.
-        plan_id: Plan id.
-        retry_failed: Retry failed.
+        client: Backend HTTP API client.
+        plan_id: Persisted reconciliation plan identifier to apply.
+        retry_failed: Whether previously failed plan actions should be retried.
 
     Returns:
-        JSONValue: Operation result.
+        Backend reconciliation plan application response.
     """
     return await client.post(
-        f"/memory/reconciliation/plans/{_path_segment(plan_id)}/apply",
+        f"/memory/reconciliation/plans/{path_segment(plan_id)}/apply",
         {"retry_failed": retry_failed},
     )
 
@@ -197,12 +184,12 @@ async def alexandria_list_memory_conflicts(
     """List first-class memory conflicts without hiding resolved history.
 
     Args:
-        client: Client.
-        status: Status.
-        limit: Limit.
+        client: Backend HTTP API client.
+        status: Optional conflict lifecycle status filter.
+        limit: Maximum number of conflict sets to return.
 
     Returns:
-        JSONValue: Operation result.
+        Backend memory conflict list response payload.
     """
     query: JSONObject = {"limit": min(max(limit, 1), 1000)}
     if status is not None:
@@ -217,14 +204,14 @@ async def alexandria_get_memory_conflict(
     """Read one durable memory conflict set.
 
     Args:
-        client: Client.
-        conflict_set_id: Conflict set id.
+        client: Backend HTTP API client.
+        conflict_set_id: Durable memory conflict set identifier.
 
     Returns:
-        JSONValue: Operation result.
+        Backend memory conflict set response payload.
     """
     return await client.get(
-        f"/memory/reconciliation/conflicts/{_path_segment(conflict_set_id)}"
+        f"/memory/reconciliation/conflicts/{path_segment(conflict_set_id)}"
     )
 
 
@@ -237,15 +224,15 @@ async def alexandria_resolve_memory_conflict(
     """Record an explicit final conflict resolution without deleting memory.
 
     Args:
-        client: Client.
-        conflict_set_id: Conflict set id.
-        status: Status.
-        resolution: Resolution.
+        client: Backend HTTP API client.
+        conflict_set_id: Durable memory conflict set identifier to resolve.
+        status: Terminal conflict resolution status.
+        resolution: Operator or agent rationale for the conflict resolution.
 
     Returns:
-        JSONValue: Operation result.
+        Backend resolved memory conflict response payload.
     """
     return await client.post(
-        f"/memory/reconciliation/conflicts/{_path_segment(conflict_set_id)}/resolve",
+        f"/memory/reconciliation/conflicts/{path_segment(conflict_set_id)}/resolve",
         {"status": status.value, "resolution": resolution},
     )

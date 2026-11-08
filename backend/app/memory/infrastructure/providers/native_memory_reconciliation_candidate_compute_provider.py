@@ -18,11 +18,11 @@ from app.memory.domain.contracts.memory_reconciliation_candidate_compute_contrac
 from app.memory.domain.repositories.reconciliation.memory_reconciliation_candidate_compute_provider import (
     IMemoryReconciliationCandidateComputeProvider,
 )
-from app.shared.infrastructure.native_compute_extension import (
+from app.shared.infrastructure.native_compute.native_compute_extension import (
     NativeComputeContractModule,
     load_native_compute_module,
 )
-from app.shared.infrastructure.native_wire_values import (
+from app.shared.infrastructure.native_compute.native_wire_values import (
     wire_array,
     wire_integer,
     wire_object,

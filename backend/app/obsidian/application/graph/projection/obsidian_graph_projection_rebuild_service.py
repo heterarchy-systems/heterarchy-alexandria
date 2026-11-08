@@ -18,7 +18,6 @@ from app.obsidian.domain.contracts.obsidian_graph_projection_contracts import (
 from app.obsidian.domain.repositories.obsidian_graph_projection_repository import (
     IObsidianGraphProjectionRepository,
 )
-from app.platform.config.app_config import AppConfig
 from app.shared.application.index_maintenance_coordinator import (
     IndexMaintenanceCoordinator,
 )
@@ -112,7 +111,6 @@ class ObsidianGraphProjectionRebuildService:
 
     def __init__(
         self,
-        config: AppConfig,
         source_builder: ObsidianGraphProjectionSourceBuilderProtocol,
         repository: IObsidianGraphProjectionRepository,
         run_id_factory: Callable[[], str] | None = None,
@@ -122,14 +120,12 @@ class ObsidianGraphProjectionRebuildService:
         """Create the graph projection operation service.
 
         Args:
-            config: Typed application configuration.
             source_builder: Read-only builder over the current relational index/cache.
             repository: Required PostgreSQL graph projection adapter.
             run_id_factory: Optional deterministic run id source for tests.
             monotonic_seconds: Optional monotonic clock for duration measurement.
             index_maintenance_coordinator: Index maintenance coordinator used by this operation.
         """
-        self._config = config
         self._source_builder = source_builder
         self._repository = repository
         self._run_id_factory = run_id_factory or (lambda: str(uuid4()))
@@ -187,7 +183,7 @@ class ObsidianGraphProjectionRebuildService:
         except Exception as exc:
             return ObsidianGraphProjectionRebuildReport(
                 status="failed",
-                graph_read_model=self._config.graph_read_model,
+                graph_read_model="postgresql",
                 run_id=run_id,
                 scanned=0,
                 indexed=0,
@@ -200,9 +196,16 @@ class ObsidianGraphProjectionRebuildService:
         indexed = source_snapshot.metrics.indexed
         skipped = source_snapshot.metrics.skipped
         issue_counts = _issue_counts(source_snapshot.issues)
-        all_issues = tuple(_operation_issue(issue) for issue in source_snapshot.issues)
-        issues = all_issues[:issue_limit] if include_issue_details else ()
-        issues_truncated = len(issues) < len(all_issues)
+        issue_total = len(source_snapshot.issues)
+        issues = (
+            tuple(
+                _operation_issue(issue)
+                for issue in source_snapshot.issues[:issue_limit]
+            )
+            if include_issue_details
+            else ()
+        )
+        issues_truncated = len(issues) < issue_total
         try:
             await repository.start_rebuild(
                 run_id=run_id,
@@ -230,13 +233,13 @@ class ObsidianGraphProjectionRebuildService:
                 )
             return ObsidianGraphProjectionRebuildReport(
                 status="failed",
-                graph_read_model=self._config.graph_read_model,
+                graph_read_model="postgresql",
                 run_id=run_id,
                 scanned=scanned,
                 indexed=indexed,
                 updated=0,
                 skipped=skipped,
-                issue_total=len(all_issues),
+                issue_total=issue_total,
                 issue_counts=issue_counts,
                 issues=issues,
                 issues_truncated=issues_truncated,
@@ -246,13 +249,13 @@ class ObsidianGraphProjectionRebuildService:
 
         return ObsidianGraphProjectionRebuildReport(
             status="completed",
-            graph_read_model=self._config.graph_read_model,
+            graph_read_model="postgresql",
             run_id=run_id,
             scanned=scanned,
             indexed=indexed,
             updated=indexed,
             skipped=skipped,
-            issue_total=len(all_issues),
+            issue_total=issue_total,
             issue_counts=issue_counts,
             issues=issues,
             issues_truncated=issues_truncated,
@@ -270,7 +273,7 @@ class ObsidianGraphProjectionRebuildService:
         except Exception as exc:
             return ObsidianGraphProjectionStatusReport(
                 status="unavailable",
-                graph_read_model=self._config.graph_read_model,
+                graph_read_model="postgresql",
                 enabled=True,
                 node_count=0,
                 edge_count=0,
@@ -281,7 +284,7 @@ class ObsidianGraphProjectionRebuildService:
         if not state.initialized:
             return ObsidianGraphProjectionStatusReport(
                 status="uninitialized",
-                graph_read_model=self._config.graph_read_model,
+                graph_read_model="postgresql",
                 enabled=True,
                 node_count=0,
                 edge_count=0,
@@ -291,7 +294,7 @@ class ObsidianGraphProjectionRebuildService:
             )
         return ObsidianGraphProjectionStatusReport(
             status="ready",
-            graph_read_model=self._config.graph_read_model,
+            graph_read_model="postgresql",
             enabled=True,
             node_count=len(state.projection.nodes),
             edge_count=len(state.projection.edges),

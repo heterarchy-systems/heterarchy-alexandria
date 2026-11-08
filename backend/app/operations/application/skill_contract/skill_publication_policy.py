@@ -126,18 +126,18 @@ class SkillPublicationPolicy:
         return update_frontmatter_scalars(text, scalars)
 
 
-def default_skill_publication_policy() -> SkillPublicationPolicy:
+def default_skill_publication_policy(
+    runtime_revision: str | None,
+) -> SkillPublicationPolicy:
     """Compose lazily from configured build revision and registered toolset.
 
     Returns:
         Policy that fails closed on unversioned runtimes.
     """
     from app.mcp_server.runtime_tool_catalog import registered_skill_runtime_contract
-    from app.platform.config.app_config import AppConfig
 
-    config = AppConfig()
     return SkillPublicationPolicy(
-        lambda: registered_skill_runtime_contract(config.runtime_revision)
+        lambda: registered_skill_runtime_contract(runtime_revision)
     )
 
 

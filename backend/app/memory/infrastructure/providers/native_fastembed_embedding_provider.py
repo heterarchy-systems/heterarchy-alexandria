@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
-from typing import Protocol, TypedDict, cast
+from threading import Lock
+from typing import Literal, Protocol, TypedDict, cast
 
 from app.memory.application.retrieval.embeddings.embedding_contract import (
     DEFAULT_EMBEDDING_DIMENSIONS,
@@ -15,7 +16,14 @@ from app.memory.application.retrieval.embeddings.embedding_contract import (
 from app.memory.application.retrieval.embeddings.embedding_document import (
     EMBEDDING_DOCUMENT_INPUT_FORMAT,
 )
-from app.shared.infrastructure.native_compute_extension import (
+from app.memory.infrastructure.providers.embedding_model_artifacts import (
+    EmbeddingModelArtifactSink,
+    stream_embedding_model_artifacts,
+)
+from app.platform.config.memory_config import (
+    EmbeddingModelArtifactConfig,
+)
+from app.shared.infrastructure.native_compute.native_compute_extension import (
     NativeComputeContractModule,
     load_native_compute_module,
 )
@@ -24,6 +32,7 @@ from app.shared.types.extra_types import JSONObject, JSONValue
 
 _NATIVE_COMPUTE_CONTRACT_VERSION = 1
 _NATIVE_EMBEDDING_VERSION = 1
+_NATIVE_EMBEDDING_RUNTIME_VERSION: Literal[4] = 4
 _NATIVE_FASTEMBED_VERSION = "5.17.4"
 _NATIVE_PROVIDER_NAME = "FASTEMBED_LOCAL"
 _NATIVE_POOLING_MODE = "mean"
@@ -33,8 +42,7 @@ _E5_DOCUMENT_INPUT_FORMAT = f"{EMBEDDING_DOCUMENT_INPUT_FORMAT}+e5-passage-prefi
 
 
 class _RuntimeWire(TypedDict):
-    cache_directory: str | None
-    threads: int
+    version: Literal[4]
 
 
 class _ModelWire(TypedDict):
@@ -69,42 +77,55 @@ class _EnvelopeWire(TypedDict):
 
 
 # protocol-contract: structural-seam
+class NativeFastEmbedSession(Protocol):
+    """Opaque provider-owned Rust session exposing only inference operations."""
+
+    def run_bulk_embedding_batch_json(self, payload: bytes) -> bytes:
+        """Run one coarse document embedding request through this session."""
+
+    def embed_query(self, query_input: str) -> list[float]:
+        """Embed one exact E5-prefixed query through this session."""
+
+
+# protocol-contract: structural-seam
+class NativeEmbeddingRuntimeBuilder(EmbeddingModelArtifactSink, Protocol):
+    """Own transferred native buffers until validated initialization or cleanup."""
+
+    def finish(self) -> NativeFastEmbedSession:
+        """Consume the buffers and return the initialized opaque session."""
+
+    def close(self) -> None:
+        """Discard pending buffers; repeated cleanup after finish is harmless."""
+
+
+# protocol-contract: structural-seam
 class NativeFastEmbedModule(NativeComputeContractModule, Protocol):
     """Native extension surface required by the Rust embedding provider."""
 
-    def run_bulk_embedding_batch_json(self, payload: bytes) -> bytes:
-        """Run one coarse document embedding request and return strict JSON bytes.
+    def embedding_runtime_contract_version(self) -> int:
+        """Return the explicit artifact-bootstrap runtime contract version."""
 
-        Args:
-            payload: Strict native bulk-embedding request JSON.
-
-        Returns:
-            Strict native bulk-embedding result JSON.
-        """
-
-    def embed_multilingual_e5_query(
+    def create_multilingual_e5_runtime_builder(
         self,
-        query_input: str,
-        cache_directory: str | None,
         threads: int,
-    ) -> list[float]:
-        """Embed one exact E5 query input using the shared native runtime.
+    ) -> NativeEmbeddingRuntimeBuilder:
+        """Create an ephemeral owner for model buffers transferred in chunks.
 
         Args:
-            query_input: Exact E5-prefixed query text.
-            cache_directory: Optional local model cache directory.
-            threads: Native inference thread count.
+            threads: CPU inference thread count.
 
         Returns:
-            One native query embedding vector.
+            An uninitialized builder with no Python references or external effects.
         """
 
 
 class NativeFastEmbedEmbeddingProvider(EmbeddingProvider):
-    """Implement the current embedding contract entirely through Rust FastEmbed.
+    """Own model acquisition while delegating all inference to Rust FastEmbed.
 
-    This adapter delegates exclusively to the native runtime and is the production
-    FastEmbed authority after the Rust compute cutover.
+    One provider owns one opaque native session for its lifetime. Python transfers
+    bounded chunks; Rust owns inference state and its normal session lifetime. The
+    persisted fingerprint does not identify model bytes and cannot establish
+    compatibility after loss of the original cache.
     """
 
     def __init__(
@@ -114,6 +135,7 @@ class NativeFastEmbedEmbeddingProvider(EmbeddingProvider):
         dimensions: int = DEFAULT_EMBEDDING_DIMENSIONS,
         cache_dir: str | None = None,
         threads: int = DEFAULT_EMBEDDING_THREADS,
+        artifact_config: EmbeddingModelArtifactConfig | None = None,
     ) -> None:
         """Initialize one validated native provider configuration.
 
@@ -123,6 +145,7 @@ class NativeFastEmbedEmbeddingProvider(EmbeddingProvider):
             dimensions: Dimensions used by this operation.
             cache_dir: Cache dir used by this operation.
             threads: Threads used by this operation.
+            artifact_config: Captured settings for Python-owned artifact effects.
         """
         if model_name != DEFAULT_EMBEDDING_MODEL:
             raise ValueError(
@@ -135,11 +158,25 @@ class NativeFastEmbedEmbeddingProvider(EmbeddingProvider):
             )
         if threads < 1:
             raise ValueError("NATIVE_EMBEDDING_CONFIG_ERROR: threads must be positive")
+        if (
+            native_module.embedding_runtime_contract_version()
+            != _NATIVE_EMBEDDING_RUNTIME_VERSION
+        ):
+            raise ValueError(
+                "NATIVE_EMBEDDING_CONFIG_ERROR: expected runtime contract version 4"
+            )
         self._native_module = native_module
         self._model_name = model_name
         self._dimensions = dimensions
         self._cache_dir = cache_dir
         self._threads = threads
+        self._artifact_config = (
+            artifact_config
+            if artifact_config is not None
+            else EmbeddingModelArtifactConfig()
+        )
+        self._bootstrap_lock = Lock()
+        self._session: NativeFastEmbedSession | None = None
 
     @property
     def provider_name(self) -> str:
@@ -207,13 +244,11 @@ class NativeFastEmbedEmbeddingProvider(EmbeddingProvider):
         prepared_texts = list(texts)
         if not prepared_texts:
             return []
+        session = self._runtime_session()
         request = _EnvelopeWire(
             contract_version=_NATIVE_COMPUTE_CONTRACT_VERSION,
             embedding_version=_NATIVE_EMBEDDING_VERSION,
-            runtime=_RuntimeWire(
-                cache_directory=self._cache_dir,
-                threads=self._threads,
-            ),
+            runtime=_RuntimeWire(version=_NATIVE_EMBEDDING_RUNTIME_VERSION),
             request=_RequestWire(
                 model=self._model_wire(),
                 batch_size=_NATIVE_BATCH_SIZE,
@@ -228,7 +263,7 @@ class NativeFastEmbedEmbeddingProvider(EmbeddingProvider):
                 ],
             ),
         )
-        encoded = self._native_module.run_bulk_embedding_batch_json(
+        encoded = session.run_bulk_embedding_batch_json(
             dumps_json(cast(JSONValue, request))
         )
         return _decode_document_vectors(
@@ -246,12 +281,31 @@ class NativeFastEmbedEmbeddingProvider(EmbeddingProvider):
         Returns:
             Native query embedding vector.
         """
-        vector = self._native_module.embed_multilingual_e5_query(
+        vector = self._runtime_session().embed_query(
             f"{_E5_QUERY_PREFIX}{text.strip()}",
-            self._cache_dir,
-            self._threads,
         )
         return _validated_vector(vector, self._dimensions, "query")
+
+    def _runtime_session(self) -> NativeFastEmbedSession:
+        """Publish a session only after acquisition and native initialization finish."""
+        session = self._session
+        if session is not None:
+            return session
+        with self._bootstrap_lock:
+            session = self._session
+            if session is None:
+                builder = self._native_module.create_multilingual_e5_runtime_builder(
+                    self._threads
+                )
+                try:
+                    stream_embedding_model_artifacts(
+                        self._cache_dir, self._artifact_config, builder
+                    )
+                    session = builder.finish()
+                finally:
+                    builder.close()
+                self._session = session
+            return session
 
     def _model_wire(self) -> _ModelWire:
         """Execute model wire.
@@ -276,6 +330,7 @@ def create_native_fastembed_embedding_provider(
     dimensions: int = DEFAULT_EMBEDDING_DIMENSIONS,
     cache_dir: str | None = None,
     threads: int = DEFAULT_EMBEDDING_THREADS,
+    artifact_config: EmbeddingModelArtifactConfig | None = None,
 ) -> NativeFastEmbedEmbeddingProvider:
     """Create the fail-closed native embedding provider over the shared extension.
 
@@ -284,6 +339,7 @@ def create_native_fastembed_embedding_provider(
         dimensions: Required embedding dimensions.
         cache_dir: Optional local model cache directory.
         threads: Native inference thread count.
+        artifact_config: Captured settings for Python-owned artifact effects.
 
     Returns:
         Validated native FastEmbed embedding provider.
@@ -295,6 +351,7 @@ def create_native_fastembed_embedding_provider(
         dimensions=dimensions,
         cache_dir=cache_dir,
         threads=threads,
+        artifact_config=artifact_config,
     )
 
 

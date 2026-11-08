@@ -6,6 +6,10 @@ import os
 from pathlib import Path
 
 import anyio
+from tests.obsidian.graph.fakes.fake_obsidian_graph_projection_repository import (
+    FakeObsidianGraphProjectionRepository,
+)
+
 from app.obsidian.application.graph.diagnostics.obsidian_graph_note_diagnostics_service import (
     ObsidianGraphNoteDiagnosticsService,
 )
@@ -33,14 +37,10 @@ from app.obsidian.infrastructure.obsidian_vault_config_store import (
 from app.obsidian.infrastructure.repositories.obsidian_index_repository import (
     SqlAlchemyObsidianIndexRepository,
 )
-from app.platform.config.app_config import AppConfig
 from app.shared.application.index_maintenance_coordinator import (
     IndexMaintenanceCoordinator,
 )
 from app.shared.infrastructure.database import Database
-from tests.obsidian.graph.fakes.fake_obsidian_graph_projection_repository import (
-    FakeObsidianGraphProjectionRepository,
-)
 
 _OBSIDIAN_MODELS_LOADED = _obsidian_index_models
 
@@ -90,7 +90,6 @@ def test_rebuild_note_graph_replaces_cached_edges_and_activates_projection(
             coordinator = IndexMaintenanceCoordinator()
             source = SqlAlchemyObsidianGraphProjectionSource(session=session)
             projection = ObsidianGraphProjectionRebuildService(
-                config=AppConfig(_env_file=None),
                 source_builder=ObsidianGraphProjectionSourceBuilder(
                     compute_provider=create_native_obsidian_graph_projection_compute_provider(),
                     source=source,

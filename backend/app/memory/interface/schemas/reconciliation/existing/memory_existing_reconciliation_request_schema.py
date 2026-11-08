@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import StringConstraints, field_validator
+from pydantic import Field, StringConstraints, field_validator
 
 from app.memory.domain.contracts.memory_existing_reconciliation_contracts import (
     ExistingMemoryReconciliationRequest,
 )
 from app.memory.domain.event_enum.context_enums import ContextScope
-from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
+from app.shared.schemas.common_schemas import StrictSchemaModel
 
 
 class ExistingMemoryReconciliationHttpRequest(StrictSchemaModel):
@@ -19,40 +19,42 @@ class ExistingMemoryReconciliationHttpRequest(StrictSchemaModel):
     project: Annotated[
         str | None,
         StringConstraints(strict=True, max_length=255),
-        described_field(
-            "Project for this existing memory reconciliation HTTP request."
+        Field(
+            description="Project for this existing memory reconciliation HTTP request."
         ),
     ] = None
     scope: Annotated[
         ContextScope | None,
-        described_field("Scope for this existing memory reconciliation HTTP request."),
+        Field(
+            description="Scope for this existing memory reconciliation HTTP request."
+        ),
     ] = None
     include_archived: Annotated[
         bool,
-        described_field(
-            "Include archived for this existing memory reconciliation HTTP request."
+        Field(
+            description="Include archived for this existing memory reconciliation HTTP request."
         ),
     ] = False
     max_contexts: Annotated[
         int,
-        described_field(
-            "Max contexts for this existing memory reconciliation HTTP request.",
+        Field(
+            description="Max contexts for this existing memory reconciliation HTTP request.",
             ge=1,
             le=10000,
         ),
     ] = 500
     batch_size: Annotated[
         int,
-        described_field(
-            "Batch size for this existing memory reconciliation HTTP request.",
+        Field(
+            description="Batch size for this existing memory reconciliation HTTP request.",
             ge=1,
             le=500,
         ),
     ] = 100
     recall_limit: Annotated[
         int,
-        described_field(
-            "Recall limit for this existing memory reconciliation HTTP request.",
+        Field(
+            description="Recall limit for this existing memory reconciliation HTTP request.",
             ge=1,
             le=100,
         ),

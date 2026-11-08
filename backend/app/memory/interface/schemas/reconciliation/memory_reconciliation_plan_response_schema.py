@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import Field
+
 from app.memory.domain.entities.memory_reconciliation import (
     CanonicalClaim,
     CanonicalClaimQualifier,
@@ -18,7 +20,7 @@ from app.memory.domain.event_enum.reconciliation_enums import (
     MemoryDecisionSource,
     MemoryRelationType,
 )
-from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
+from app.shared.schemas.common_schemas import StrictSchemaModel
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 
 
@@ -26,10 +28,10 @@ class CanonicalClaimQualifierResponse(StrictSchemaModel):
     """One normalized canonical claim qualifier."""
 
     name: Annotated[
-        str, described_field("Name for this canonical claim qualifier response.")
+        str, Field(description="Name for this canonical claim qualifier response.")
     ]
     value: Annotated[
-        str, described_field("Value for this canonical claim qualifier response.")
+        str, Field(description="Value for this canonical claim qualifier response.")
     ]
 
     @classmethod
@@ -52,33 +54,35 @@ class CanonicalClaimResponse(StrictSchemaModel):
     """One normalized canonical proposition."""
 
     subject: Annotated[
-        str, described_field("Subject for this canonical claim response.")
+        str, Field(description="Subject for this canonical claim response.")
     ]
     predicate: Annotated[
-        str, described_field("Predicate for this canonical claim response.")
+        str, Field(description="Predicate for this canonical claim response.")
     ]
-    object: Annotated[str, described_field("Object for this canonical claim response.")]
+    object: Annotated[
+        str, Field(description="Object for this canonical claim response.")
+    ]
     qualifiers: Annotated[
         list[CanonicalClaimQualifierResponse],
-        described_field("Qualifiers for this canonical claim response."),
+        Field(description="Qualifiers for this canonical claim response."),
     ]
     scope: Annotated[
-        ContextScope, described_field("Scope for this canonical claim response.")
+        ContextScope, Field(description="Scope for this canonical claim response.")
     ]
     project: Annotated[
-        str | None, described_field("Project for this canonical claim response.")
+        str | None, Field(description="Project for this canonical claim response.")
     ]
     valid_from: Annotated[
         AwareTimestamp | None,
-        described_field("Valid from for this canonical claim response."),
+        Field(description="Valid from for this canonical claim response."),
     ]
     valid_to: Annotated[
         AwareTimestamp | None,
-        described_field("Valid to for this canonical claim response."),
+        Field(description="Valid to for this canonical claim response."),
     ]
     polarity: Annotated[
         MemoryClaimPolarity,
-        described_field("Polarity for this canonical claim response."),
+        Field(description="Polarity for this canonical claim response."),
     ]
 
     @classmethod
@@ -111,25 +115,27 @@ class MemorySourceReferenceResponse(StrictSchemaModel):
     """One normalized evidence or provenance reference."""
 
     source_type: Annotated[
-        str, described_field("Source type for this memory source reference response.")
+        str, Field(description="Source type for this memory source reference response.")
     ]
     source_id: Annotated[
         str,
-        described_field("Source identifier for this memory source reference response."),
+        Field(
+            description="Source identifier for this memory source reference response."
+        ),
     ]
     title: Annotated[
-        str, described_field("Title for this memory source reference response.")
+        str, Field(description="Title for this memory source reference response.")
     ]
     detail_path: Annotated[
-        str, described_field("Detail path for this memory source reference response.")
+        str, Field(description="Detail path for this memory source reference response.")
     ]
     source_hash: Annotated[
         str | None,
-        described_field("Source hash for this memory source reference response."),
+        Field(description="Source hash for this memory source reference response."),
     ]
     observed_at: Annotated[
         AwareTimestamp | None,
-        described_field("Observed at for this memory source reference response."),
+        Field(description="Observed at for this memory source reference response."),
     ]
 
     @classmethod
@@ -159,68 +165,72 @@ class MemoryCandidateResponse(StrictSchemaModel):
     """Normalized memory candidate included in a reconciliation plan."""
 
     candidate_id: Annotated[
-        str, described_field("Candidate identifier for this memory candidate response.")
+        str,
+        Field(description="Candidate identifier for this memory candidate response."),
     ]
-    title: Annotated[str, described_field("Title for this memory candidate response.")]
-    body: Annotated[str, described_field("Body for this memory candidate response.")]
+    title: Annotated[
+        str, Field(description="Title for this memory candidate response.")
+    ]
+    body: Annotated[str, Field(description="Body for this memory candidate response.")]
     canonical_claims: Annotated[
         list[CanonicalClaimResponse],
-        described_field("Canonical claims for this memory candidate response."),
+        Field(description="Canonical claims for this memory candidate response."),
     ]
     scope: Annotated[
-        ContextScope, described_field("Scope for this memory candidate response.")
+        ContextScope, Field(description="Scope for this memory candidate response.")
     ]
     project: Annotated[
-        str | None, described_field("Project for this memory candidate response.")
+        str | None, Field(description="Project for this memory candidate response.")
     ]
     tags: Annotated[
-        list[str], described_field("Tags for this memory candidate response.")
+        list[str], Field(description="Tags for this memory candidate response.")
     ]
     source_refs: Annotated[
         list[MemorySourceReferenceResponse],
-        described_field("Source refs for this memory candidate response."),
+        Field(description="Source refs for this memory candidate response."),
     ]
     recorded_at: Annotated[
         AwareTimestamp,
-        described_field("Recorded at for this memory candidate response."),
+        Field(description="Recorded at for this memory candidate response."),
     ]
     observed_at: Annotated[
         AwareTimestamp | None,
-        described_field("Observed at for this memory candidate response."),
+        Field(description="Observed at for this memory candidate response."),
     ]
     valid_from: Annotated[
         AwareTimestamp | None,
-        described_field("Valid from for this memory candidate response."),
+        Field(description="Valid from for this memory candidate response."),
     ]
     valid_to: Annotated[
         AwareTimestamp | None,
-        described_field("Valid to for this memory candidate response."),
+        Field(description="Valid to for this memory candidate response."),
     ]
     requested_lifecycle: Annotated[
-        str, described_field("Requested lifecycle for this memory candidate response.")
+        str,
+        Field(description="Requested lifecycle for this memory candidate response."),
     ]
     content_hash: Annotated[
-        str, described_field("Content hash for this memory candidate response.")
+        str, Field(description="Content hash for this memory candidate response.")
     ]
     workspace_id: Annotated[
         str | None,
-        described_field("Workspace identifier for this memory candidate response."),
+        Field(description="Workspace identifier for this memory candidate response."),
     ]
     agent_id: Annotated[
         str | None,
-        described_field("Agent identifier for this memory candidate response."),
+        Field(description="Agent identifier for this memory candidate response."),
     ]
     user_id: Annotated[
         str | None,
-        described_field("User identifier for this memory candidate response."),
+        Field(description="User identifier for this memory candidate response."),
     ]
     session_id: Annotated[
         str | None,
-        described_field("Session identifier for this memory candidate response."),
+        Field(description="Session identifier for this memory candidate response."),
     ]
     source_identity: Annotated[
         str | None,
-        described_field("Source identity for this memory candidate response."),
+        Field(description="Source identity for this memory candidate response."),
     ]
 
     @classmethod
@@ -267,42 +277,46 @@ class MemoryRelationScoresResponse(StrictSchemaModel):
 
     semantic_similarity: Annotated[
         float,
-        described_field(
-            "Semantic similarity for this memory relation scores response."
+        Field(
+            description="Semantic similarity for this memory relation scores response."
         ),
     ]
     claim_overlap: Annotated[
         float,
-        described_field("Claim overlap for this memory relation scores response."),
+        Field(description="Claim overlap for this memory relation scores response."),
     ]
     scope_compatibility: Annotated[
         float,
-        described_field(
-            "Scope compatibility for this memory relation scores response."
+        Field(
+            description="Scope compatibility for this memory relation scores response."
         ),
     ]
     temporal_compatibility: Annotated[
         float,
-        described_field(
-            "Temporal compatibility for this memory relation scores response."
+        Field(
+            description="Temporal compatibility for this memory relation scores response."
         ),
     ]
     source_independence: Annotated[
         float,
-        described_field(
-            "Source independence for this memory relation scores response."
+        Field(
+            description="Source independence for this memory relation scores response."
         ),
     ]
     polarity_conflict: Annotated[
         float,
-        described_field("Polarity conflict for this memory relation scores response."),
+        Field(
+            description="Polarity conflict for this memory relation scores response."
+        ),
     ]
     specificity_change: Annotated[
         float,
-        described_field("Specificity change for this memory relation scores response."),
+        Field(
+            description="Specificity change for this memory relation scores response."
+        ),
     ]
     freshness: Annotated[
-        float, described_field("Freshness for this memory relation scores response.")
+        float, Field(description="Freshness for this memory relation scores response.")
     ]
 
     @classmethod
@@ -335,50 +349,53 @@ class MemoryRelationDecisionResponse(StrictSchemaModel):
 
     candidate_id: Annotated[
         str,
-        described_field(
-            "Candidate identifier for this memory relation decision response."
+        Field(
+            description="Candidate identifier for this memory relation decision response."
         ),
     ]
     existing_context_id: Annotated[
         str,
-        described_field(
-            "Existing context identifier for this memory relation decision response."
+        Field(
+            description="Existing context identifier for this memory relation decision response."
         ),
     ]
     relation: Annotated[
         MemoryRelationType,
-        described_field("Relation for this memory relation decision response."),
+        Field(description="Relation for this memory relation decision response."),
     ]
     confidence: Annotated[
-        float, described_field("Confidence for this memory relation decision response.")
+        float,
+        Field(description="Confidence for this memory relation decision response."),
     ]
     reason: Annotated[
-        str, described_field("Reason for this memory relation decision response.")
+        str, Field(description="Reason for this memory relation decision response.")
     ]
     evidence_refs: Annotated[
         list[MemorySourceReferenceResponse],
-        described_field("Evidence refs for this memory relation decision response."),
+        Field(description="Evidence refs for this memory relation decision response."),
     ]
     claim_matches: Annotated[
         list[str],
-        described_field("Claim matches for this memory relation decision response."),
+        Field(description="Claim matches for this memory relation decision response."),
     ]
     scores: Annotated[
         MemoryRelationScoresResponse,
-        described_field("Scores for this memory relation decision response."),
+        Field(description="Scores for this memory relation decision response."),
     ]
     decision_source: Annotated[
         MemoryDecisionSource,
-        described_field("Decision source for this memory relation decision response."),
+        Field(
+            description="Decision source for this memory relation decision response."
+        ),
     ]
     policy_version: Annotated[
         str,
-        described_field("Policy version for this memory relation decision response."),
+        Field(description="Policy version for this memory relation decision response."),
     ]
     created_at: Annotated[
         AwareTimestamp,
-        described_field(
-            "Creation timestamp for this memory relation decision response."
+        Field(
+            description="Creation timestamp for this memory relation decision response."
         ),
     ]
 

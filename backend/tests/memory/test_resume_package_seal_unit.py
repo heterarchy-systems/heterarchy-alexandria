@@ -18,8 +18,10 @@ from app.memory.application.memory_compacts.resume_package.resume_package_contra
     ResumePackageLineage,
     ResumePackageLineageEntry,
 )
-from app.memory.application.memory_compacts.resume_package.resume_package_markdown import (
-    parse_resume_package_markdown,
+from app.memory.application.memory_compacts.resume_package.resume_package_parser import (
+    ResumePackageMarkdownParser,
+)
+from app.memory.application.memory_compacts.resume_package.resume_package_renderer import (
     render_resume_package_markdown,
 )
 
@@ -181,7 +183,7 @@ def test_resume_package_markdown_round_trips_structured_fields() -> None:
         draft_hash="draft-hash",
     )
 
-    parsed = parse_resume_package_markdown(body)
+    parsed = ResumePackageMarkdownParser.parse(body)
 
     assert parsed.goal == draft.goal
     assert parsed.summary == draft.summary

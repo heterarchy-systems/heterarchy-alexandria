@@ -1,14 +1,23 @@
 """PostgreSQL/Rust graph projection repository regression tests."""
 
+import asyncio
+import threading
+from collections.abc import AsyncIterator, Callable
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from typing import cast
 
 import anyio
 import pytest
 
+from app.obsidian.application.graph.projection.obsidian_graph_projection_source_builder import (
+    ObsidianGraphProjectionSourceBuilder,
+)
 from app.obsidian.domain.contracts.obsidian_graph_projection_contracts import (
     ObsidianGraphProjection,
     ObsidianGraphProjectionEdge,
     ObsidianGraphProjectionNode,
+    ObsidianGraphProjectionSourceMetrics,
+    ObsidianGraphProjectionSourceSnapshot,
 )
 from app.obsidian.domain.event_enum.obsidian_enums import (
     AlexandriaNoteType,
@@ -21,6 +30,9 @@ from app.obsidian.domain.event_enum.obsidian_graph_enums import (
 )
 from app.obsidian.domain.repositories.obsidian_graph_projection_compute_provider import (
     IObsidianGraphProjectionComputeProvider,
+)
+from app.obsidian.infrastructure.graph import (
+    postgresql_obsidian_graph_projection_repository as graph_repository_module,
 )
 from app.obsidian.infrastructure.graph.postgresql_obsidian_graph_projection_repository import (
     PostgreSqlObsidianGraphProjectionRepository,
@@ -159,3 +171,156 @@ def test_context_evidence_preserves_signal_mapping_and_edge_order() -> None:
         assert evidence[1].target_title == "B"
 
     anyio.run(scenario)
+
+
+@asynccontextmanager
+async def _empty_session() -> AsyncIterator[object]:
+    yield object()
+
+
+class _ColdLoadDatabase:
+    def session_factory(
+        self,
+    ) -> Callable[[], AbstractAsyncContextManager[object]]:
+        return _empty_session
+
+
+def test_cold_load_is_singleflight_and_cannot_overwrite_rebuild(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A slow cold load returns the newer complete rebuild to every waiter."""
+
+    async def scenario() -> tuple[object, object, object, int]:
+        build_started = asyncio.Event()
+        release_build = asyncio.Event()
+        build_calls = 0
+        cold_projection = ObsidianGraphProjection(
+            nodes=(
+                ObsidianGraphProjectionNode(
+                    note_id="cold",
+                    relative_path="Contexts/Cold.md",
+                    alexandria_type=AlexandriaNoteType.CONTEXT,
+                    title="Cold",
+                    status="active",
+                    project=None,
+                ),
+            )
+        )
+        cold_snapshot = ObsidianGraphProjectionSourceSnapshot(
+            projection=cold_projection,
+            metrics=ObsidianGraphProjectionSourceMetrics(
+                scanned=1,
+                indexed=1,
+                skipped=0,
+                errors=0,
+            ),
+        )
+
+        async def slow_build(
+            _builder: ObsidianGraphProjectionSourceBuilder,
+        ) -> ObsidianGraphProjectionSourceSnapshot:
+            nonlocal build_calls
+            build_calls += 1
+            build_started.set()
+            await release_build.wait()
+            return cold_snapshot
+
+        monkeypatch.setattr(
+            ObsidianGraphProjectionSourceBuilder,
+            "build",
+            slow_build,
+        )
+        repository = PostgreSqlObsidianGraphProjectionRepository(
+            database=cast(Database, _ColdLoadDatabase()),
+            compute_provider=cast(IObsidianGraphProjectionComputeProvider, object()),
+        )
+        first_load = asyncio.create_task(repository.state())
+        await build_started.wait()
+        second_started = asyncio.Event()
+
+        async def read_state() -> object:
+            second_started.set()
+            return await repository.state()
+
+        second_load = asyncio.create_task(read_state())
+        await second_started.wait()
+        try:
+            await repository.start_rebuild("fresh-run", 1)
+            await repository.write_rebuild_batch("fresh-run", 1, _projection())
+            await repository.complete_rebuild("fresh-run", 1)
+        finally:
+            release_build.set()
+        return (
+            await first_load,
+            await second_load,
+            await repository.state(),
+            build_calls,
+        )
+
+    first, second, active, build_calls = anyio.run(scenario)
+
+    assert build_calls == 1
+    assert first.run_id == "fresh-run"
+    assert second.run_id == "fresh-run"
+    assert active.run_id == "fresh-run"
+    assert tuple(node.note_id for node in active.projection.nodes) == ("a", "b", "c")
+
+
+@pytest.mark.parametrize("read_kind", ("related_notes", "context_evidence"))
+def test_native_graph_reads_run_in_worker_without_blocking_event_loop(
+    monkeypatch: pytest.MonkeyPatch,
+    read_kind: str,
+) -> None:
+    """Synchronous graph read adapters run off-loop against captured projections."""
+    entered = threading.Event()
+    release = threading.Event()
+    read_threads: list[int] = []
+    event_loop_thread: int | None = None
+
+    def block_read(*args: object) -> tuple[object, ...]:
+        assert args
+        thread_id = threading.get_ident()
+        read_threads.append(thread_id)
+        entered.set()
+        if thread_id == event_loop_thread:
+            raise AssertionError("native graph read ran on the event loop thread")
+        if not release.wait(timeout=5):
+            raise TimeoutError("test did not release graph read")
+        return ()
+
+    monkeypatch.setattr(graph_repository_module, read_kind, block_read)
+
+    async def scenario() -> tuple[bool, tuple[object, ...]]:
+        nonlocal event_loop_thread
+        event_loop_thread = threading.get_ident()
+        repository = _repository()
+        await repository.start_rebuild("read-run", 1)
+        await repository.write_rebuild_batch("read-run", 1, _projection())
+        await repository.complete_rebuild("read-run", 1)
+        responsive = asyncio.Event()
+
+        async def read() -> tuple[object, ...]:
+            if read_kind == "related_notes":
+                return await repository.related_notes("a", 10)
+            return await repository.context_evidence(("a", "b"))
+
+        async def mark_responsive() -> None:
+            responsive.set()
+
+        operation = asyncio.create_task(read())
+        try:
+            assert await anyio.to_thread.run_sync(entered.wait, 5)
+            marker = asyncio.create_task(mark_responsive())
+            await responsive.wait()
+            await marker
+            remained_pending = not operation.done()
+        finally:
+            release.set()
+        return remained_pending, await operation
+
+    remained_pending, result = anyio.run(scenario)
+
+    assert remained_pending is True
+    assert result == ()
+    assert read_threads
+    assert read_threads[0] != event_loop_thread

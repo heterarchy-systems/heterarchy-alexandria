@@ -3,61 +3,47 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import StrEnum
 
 from app.memory.domain.types.context_payload_types import ContextProvenancePayload
 from app.obsidian.domain.contracts.obsidian_logical_identity import (
     ObsidianLogicalIdentity,
 )
 from app.obsidian.domain.event_enum.obsidian_enums import AlexandriaNoteType
+from app.obsidian.domain.event_enum.obsidian_verified_upsert_enums import (
+    ObsidianVerifiedCheckpointState,
+    ObsidianVerifiedDuplicateSafety,
+    ObsidianVerifiedProjectionStatus,
+    ObsidianVerifiedUpsertOperation,
+)
 
-
-class ObsidianVerifiedUpsertOperation(StrEnum):
-    """Observed logical operation for one verified upsert."""
-
-    CREATED = "created"
-    UPDATED = "updated"
-    IDEMPOTENT_REPLAY = "idempotent_replay"
-
-
-class ObsidianVerifiedProjectionStatus(StrEnum):
-    """Evidence status for one source or derived projection."""
-
-    UNKNOWN = "unknown"
-    PENDING = "pending"
-    STALE = "stale"
-    VERIFIED = "verified"
-    UNAVAILABLE = "unavailable"
-
-
-class ObsidianVerifiedDuplicateSafety(StrEnum):
-    """Logical-identity duplicate safety evidence."""
-
-    VERIFIED = "verified"
-    CONFLICT = "conflict"
-    UNKNOWN = "unknown"
-
-
-class ObsidianVerifiedCheckpointState(StrEnum):
-    """Durable phases used to recover a verified upsert after interruption."""
-
-    INTENT_RECORDED = "intent_recorded"
-    WRITE_STARTED = "write_started"
-    COMPLETED = "completed"
-    UNKNOWN_OUTCOME = "unknown_outcome"
+__all__ = (
+    "ObsidianVerifiedCheckpointState",
+    "ObsidianVerifiedDuplicateSafety",
+    "ObsidianVerifiedProjectionStatus",
+    "ObsidianVerifiedUpsertCheckpoint",
+    "ObsidianVerifiedUpsertOperation",
+    "ObsidianVerifiedUpsertRequest",
+    "ObsidianVerifiedUpsertResult",
+    "ObsidianVerifiedUpsertSelector",
+    "ObsidianVerifiedUpsertVerification",
+)
 
 
 def _empty_provenance() -> ContextProvenancePayload:
-    """Return the explicit empty provenance payload for agent writes."""
-    return {
-        "source_actor_id": None,
-        "source_actor_type": None,
-        "source_run_id": None,
-        "external_run_id": None,
-        "artifact_refs": [],
-        "evidence_refs": [],
-        "confidence": None,
-    }
+    """Return the explicit empty provenance payload for agent writes.
+
+    Returns:
+        Empty ContextProvenancePayload instance.
+    """
+    return ContextProvenancePayload(
+        source_actor_id=None,
+        source_actor_type=None,
+        source_run_id=None,
+        external_run_id=None,
+        artifact_refs=[],
+        evidence_refs=[],
+        confidence=None,
+    )
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

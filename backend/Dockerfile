@@ -13,15 +13,16 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# The runtime image is CPython 3.13. PyO3 can configure Unix extension-module
+# The runtime image is CPython 3.14. PyO3 can configure Unix extension-module
 # cross builds without a target libpython when the target Python version is explicit.
 ENV PYO3_CROSS=1 \
-    PYO3_CROSS_PYTHON_VERSION=3.13 \
+    PYO3_CROSS_PYTHON_VERSION=3.14 \
     PYO3_BUILD_EXTENSION_MODULE=1
 
 COPY native/Cargo.toml native/Cargo.lock ./native/
 COPY native/crates ./native/crates
 COPY native/xtask ./native/xtask
+COPY native/vendor ./native/vendor
 
 # Warm the complete native dependency graph, including the downloaded ORT artifact,
 # without tying expensive dependency layers to deployment provenance.
@@ -43,7 +44,7 @@ RUN case "${ALEXANDRIA_BUILD_REVISION}" in \
         --manifest-path native/Cargo.toml \
         -p heterarchy-alexandria-py
 
-FROM python:3.13-slim-trixie AS runtime
+FROM python:3.14.7-slim-trixie AS runtime
 
 ARG ALEXANDRIA_BUILD_REVISION
 ARG ALEXANDRIA_BUILD_TIMESTAMP

@@ -36,5 +36,10 @@ def override_library_provider(provider_name: str, value: object) -> Iterator[Non
         provider = root_container.obsidian.providers[provider_name]
     else:
         raise ValueError(f"unsupported provider container: {container_name}")
-    with provider.override(providers.Object(value)):
-        yield
+    was_undefined = provider.is_async_mode_undefined()
+    try:
+        with provider.override(providers.Object(value)):
+            yield
+    finally:
+        if was_undefined and not provider.is_async_mode_undefined():
+            provider.reset_async_mode()

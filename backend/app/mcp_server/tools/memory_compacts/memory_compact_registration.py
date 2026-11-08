@@ -55,13 +55,13 @@ def register_memory_compact_tools(
         """List durable Memory Compact artifacts.
 
         Args:
-            project: Project used by this operation.
-            status: Status value used by this operation.
-            limit: Maximum number of items to process or return.
-            offset: Pagination offset.
+            project: Optional project scope filter.
+            status: Optional lifecycle status filter (DRAFT, CURRENT, SUPERSEDED).
+            limit: Maximum number of compact artifacts to return.
+            offset: Pagination offset into the matching artifact list.
 
         Returns:
-            JSONValue result produced by tool list memory compact artifacts.
+            Paginated list of matching Memory Compact artifacts.
         """
         return await alexandria_list_memory_compact_artifacts(
             api_client,
@@ -78,10 +78,10 @@ def register_memory_compact_tools(
         """Read the current Memory Compact for a project.
 
         Args:
-            project: Project used by this operation.
+            project: Optional project scope whose CURRENT compact is requested.
 
         Returns:
-            JSONValue result produced by tool get current memory compact.
+            Active CURRENT Memory Compact artifact for the project, if present.
         """
         return await alexandria_get_current_memory_compact(api_client, project)
 
@@ -90,10 +90,10 @@ def register_memory_compact_tools(
         """Read one selected Memory Compact by id.
 
         Args:
-            compact_id: Identifier for compact.
+            compact_id: Canonical Memory Compact identifier.
 
         Returns:
-            JSONValue result produced by tool get memory compact.
+            Requested Memory Compact artifact payload.
         """
         return await alexandria_get_memory_compact(api_client, compact_id)
 

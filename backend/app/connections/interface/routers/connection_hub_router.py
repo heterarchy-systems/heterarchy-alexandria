@@ -19,9 +19,10 @@ from app.mcp_server.local_oauth.contracts import LocalOAuthClientConnectionRecor
 from app.mcp_server.local_oauth.local_oauth_enums import (
     LocalOAuthClientConnectionStatus,
 )
-from app.mcp_server.local_oauth.provider import LocalMcpOAuthProvider
+from app.mcp_server.local_oauth.runtime import LocalMcpOAuthRuntime
 from app.mcp_server.type_validate.oauth.mcp_auth_enums import McpAuthMode
 from app.platform.config.app_config import AppConfig
+from app.platform.config.mcp_config import McpConfig
 
 router = APIRouter(tags=["connection-hub"])
 
@@ -163,15 +164,16 @@ def connection_hub_status(request: Request) -> ConnectionHubStatusResponse:
     Returns:
         Public connection state without credentials.
     """
-    config = _request_app_config(request, AppConfig())
+    app_config = _request_app_config(request, None)
+    mcp_config = _request_mcp_config(request, None)
     host = request.url.hostname or ""
     request_mcp_endpoint = str(request.base_url).rstrip("/") + "/mcp"
     return ConnectionHubStatusResponse(
-        app_env=config.app_env,
-        mcp_auth_mode=config.mcp_auth_mode,
-        mcp_endpoint=config.mcp_oauth_resource or request_mcp_endpoint,
-        mcp_oauth_enabled=config.mcp_auth_mode is McpAuthMode.LOCAL_OAUTH2,
-        mcp_oauth_issuer=config.mcp_oauth_issuer,
+        app_env=app_config.app_env,
+        mcp_auth_mode=mcp_config.mcp_auth_mode,
+        mcp_endpoint=mcp_config.mcp_oauth_resource or request_mcp_endpoint,
+        mcp_oauth_enabled=mcp_config.mcp_auth_mode is McpAuthMode.LOCAL_OAUTH2,
+        mcp_oauth_issuer=mcp_config.mcp_oauth_issuer,
         local_only=host in {"127.0.0.1", "localhost", "::1", "testserver"},
     )
 
@@ -185,33 +187,21 @@ def connection_hub_status(request: Request) -> ConnectionHubStatusResponse:
 @inject
 async def create_mcp_pairing_code(
     request: Request,
-    configured_app: Annotated[
-        AppConfig, Depends(Provide[ApplicationContainer.app_config])
+    configured_mcp: Annotated[
+        McpConfig, Depends(Provide[ApplicationContainer.mcp_config])
     ],
 ) -> McpPairingCodeResponse:
     """Create one local-only, short-lived approval code for MCP OAuth.
 
     Args:
         request: Active FastAPI request.
-        configured_app: Dependency-injected configuration fallback.
+        configured_mcp: Dependency-injected MCP configuration fallback.
 
     Returns:
         One-time pairing code and expiration.
     """
-    _require_local_management_request(request)
-    config = _request_app_config(request, configured_app)
-    if config.mcp_auth_mode is not McpAuthMode.LOCAL_OAUTH2:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="MCP local OAuth is not enabled",
-        )
-    provider = _request_oauth_provider(request)
-    if not isinstance(provider, LocalMcpOAuthProvider):
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="MCP local OAuth is still starting",
-        )
-    pairing = await provider.create_pairing_code()
+    runtime = _local_oauth_runtime(request, configured_mcp)
+    pairing = await runtime.approval_service.create_pairing_code()
     return McpPairingCodeResponse(
         code=pairing.code,
         expires_at=datetime.fromtimestamp(pairing.expires_at, tz=UTC),
@@ -227,21 +217,21 @@ async def create_mcp_pairing_code(
 @inject
 async def list_mcp_oauth_clients(
     request: Request,
-    configured_app: Annotated[
-        AppConfig, Depends(Provide[ApplicationContainer.app_config])
+    configured_mcp: Annotated[
+        McpConfig, Depends(Provide[ApplicationContainer.mcp_config])
     ],
 ) -> McpOAuthClientConnectionListResponse:
     """Return OAuth clients registered against the local MCP endpoint.
 
     Args:
         request: Active FastAPI request.
-        configured_app: Dependency-injected configuration fallback.
+        configured_mcp: Dependency-injected MCP configuration fallback.
 
     Returns:
         Public-safe client records without token material.
     """
-    provider = _local_oauth_provider(request, configured_app)
-    connections = await provider.list_client_connections()
+    runtime = _local_oauth_runtime(request, configured_mcp)
+    connections = await runtime.connections_service.list_client_connections()
     return McpOAuthClientConnectionListResponse(
         clients=[_connection_response(connection) for connection in connections],
         extension_policy=(
@@ -260,8 +250,8 @@ async def list_mcp_oauth_clients(
 async def disconnect_mcp_oauth_client(
     client_id: str,
     request: Request,
-    configured_app: Annotated[
-        AppConfig, Depends(Provide[ApplicationContainer.app_config])
+    configured_mcp: Annotated[
+        McpConfig, Depends(Provide[ApplicationContainer.mcp_config])
     ],
 ) -> None:
     """Hard-delete one MCP OAuth client and all related credential state.
@@ -269,11 +259,11 @@ async def disconnect_mcp_oauth_client(
     Args:
         client_id: Registered OAuth client id.
         request: Active FastAPI request.
-        configured_app: Dependency-injected configuration fallback.
+        configured_mcp: Dependency-injected MCP configuration fallback.
 
     """
-    provider = _local_oauth_provider(request, configured_app)
-    deleted = await provider.delete_client_connection(client_id)
+    runtime = _local_oauth_runtime(request, configured_mcp)
+    deleted = await runtime.connections_service.delete_client_connection(client_id)
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -291,8 +281,8 @@ async def disconnect_mcp_oauth_client(
 async def extend_mcp_oauth_client(
     client_id: str,
     request: Request,
-    configured_app: Annotated[
-        AppConfig, Depends(Provide[ApplicationContainer.app_config])
+    configured_mcp: Annotated[
+        McpConfig, Depends(Provide[ApplicationContainer.mcp_config])
     ],
 ) -> McpOAuthClientConnectionResponse:
     """Extend active refresh tokens for one connected MCP OAuth client.
@@ -300,13 +290,13 @@ async def extend_mcp_oauth_client(
     Args:
         client_id: Registered OAuth client id.
         request: Active FastAPI request.
-        configured_app: Dependency-injected configuration fallback.
+        configured_mcp: Dependency-injected MCP configuration fallback.
 
     Returns:
         Updated public-safe client connection state.
     """
-    provider = _local_oauth_provider(request, configured_app)
-    connection = await provider.extend_client_connection(client_id)
+    runtime = _local_oauth_runtime(request, configured_mcp)
+    connection = await runtime.connections_service.extend_client_connection(client_id)
     if connection is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -315,36 +305,39 @@ async def extend_mcp_oauth_client(
     return _connection_response(connection)
 
 
-def _local_oauth_provider(
+def _local_oauth_runtime(
     request: Request,
-    configured_app: AppConfig,
-) -> LocalMcpOAuthProvider:
-    """Execute local oauth provider.
+    configured_mcp: McpConfig,
+) -> LocalMcpOAuthRuntime:
+    """Resolve the composed localhost OAuth operators.
 
     Args:
         request: Validated request for this operation.
-        configured_app: Configured app used by this operation.
+        configured_mcp: Configured MCP settings used by this operation.
 
     Returns:
-        LocalMcpOAuthProvider result produced by local oauth provider.
+        Runtime that owns authorization and connection services.
     """
     _require_local_management_request(request)
-    config = _request_app_config(request, configured_app)
+    config = _request_mcp_config(request, configured_mcp)
     if config.mcp_auth_mode is not McpAuthMode.LOCAL_OAUTH2:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="MCP local OAuth is not enabled",
         )
-    provider = _request_oauth_provider(request)
-    if not isinstance(provider, LocalMcpOAuthProvider):
+    try:
+        runtime = request.app.state.local_mcp_oauth_runtime
+    except AttributeError:
+        runtime = None
+    if not isinstance(runtime, LocalMcpOAuthRuntime):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="MCP local OAuth is still starting",
         )
-    return provider
+    return runtime
 
 
-def _request_app_config(request: Request, fallback: AppConfig) -> AppConfig:
+def _request_app_config(request: Request, fallback: AppConfig | None) -> AppConfig:
     """Execute request app config.
 
     Args:
@@ -357,24 +350,39 @@ def _request_app_config(request: Request, fallback: AppConfig) -> AppConfig:
     try:
         config = request.app.state.app_config
     except AttributeError:
+        config = None
+    if isinstance(config, AppConfig):
+        return config
+    if fallback is not None:
         return fallback
-    return config if isinstance(config, AppConfig) else fallback
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail="Application configuration is not available",
+    )
 
 
-def _request_oauth_provider(request: Request) -> LocalMcpOAuthProvider | None:
-    """Execute request oauth provider.
+def _request_mcp_config(request: Request, fallback: McpConfig | None) -> McpConfig:
+    """Resolve MCP auth settings from request state or the explicit DI dependency.
 
     Args:
         request: Validated request for this operation.
+        fallback: Explicit DI configuration fallback.
 
     Returns:
-        LocalMcpOAuthProvider | None result produced by request oauth provider.
+        Active MCP settings for the application.
     """
     try:
-        provider = request.app.state.local_mcp_oauth_provider
+        config = request.app.state.mcp_config
     except AttributeError:
-        return None
-    return provider if isinstance(provider, LocalMcpOAuthProvider) else None
+        config = None
+    if isinstance(config, McpConfig):
+        return config
+    if fallback is not None:
+        return fallback
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail="MCP configuration is not available",
+    )
 
 
 def _require_local_management_request(request: Request) -> None:

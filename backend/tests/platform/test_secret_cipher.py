@@ -16,6 +16,7 @@ def _cipher_settings(
     secret_encryption_key: str | None = None,
 ) -> SecretCipherSettings:
     return SecretCipherSettings(
+        app_name="heterarchy-alexandria",
         app_env=app_env,
         secret_encryption_key=secret_encryption_key,
     )

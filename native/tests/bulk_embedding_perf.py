@@ -19,6 +19,14 @@ from pathlib import Path
 from types import ModuleType
 from typing import Protocol, cast
 
+from fastembed_runtime import (
+    DEFAULT_FASTEMBED_CACHE,
+    FastEmbedCacheUnavailableError,
+    FastEmbedRuntimeModule,
+    FastEmbedRuntimeSession,
+    bootstrap_cached_fastembed_runtime,
+)
+
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 CORPUS_DIRECTORY = REPOSITORY_ROOT / "native/corpora/bulk_embedding/v1"
 NUMERICAL_BASELINE_NAME = "python_fastembed_numerical_baseline.json"
@@ -29,21 +37,18 @@ INFERENCE_SCALES = (1, 16, 64)
 INFERENCE_SAMPLE_COUNT = 3
 INFERENCE_THREADS = 4
 RUST_FASTEMBED_VERSION = "5.17.4"
-DEFAULT_FASTEMBED_CACHE = REPOSITORY_ROOT / "native/target/fastembed-parity-cache"
 
 
 type JsonScalar = str | int | float | bool | None
 type JsonValue = JsonScalar | list["JsonValue"] | dict[str, "JsonValue"]
 
 
-class NativeModule(Protocol):
+class NativeModule(FastEmbedRuntimeModule, Protocol):
     """Real extension functions measured by this performance harness."""
 
     def prepare_bulk_embedding_batch_json(self, payload: bytes) -> bytes: ...
 
     def finalize_bulk_embedding_batch_json(self, payload: bytes) -> bytes: ...
-
-    def run_bulk_embedding_batch_json(self, payload: bytes) -> bytes: ...
 
 
 class ScenarioReport(dict[str, JsonValue]):
@@ -69,10 +74,10 @@ def main() -> int:
         native_inference = _measure_inference_if_cached(native)
 
     report: dict[str, JsonValue] = {
-        "schema_version": 2,
+        "schema_version": 4,
         "feature": "bulk_embedding",
         "authority": "rust",
-        "scope": "native_preparation_finalization_real_ffi_and_cached_fastembed_inference",
+        "scope": "native_preparation_finalization_real_ffi_and_cached_fastembed_bootstrap_warm_inference",
         "generated_at": datetime.now(UTC).isoformat(),
         "environment": {
             "platform": platform.platform(),
@@ -89,7 +94,7 @@ def main() -> int:
             "The post-cutover performance harness does not retain a Python embedding compute oracle.",
             "Functional parity is enforced by immutable pre-cutover corpora and real native FFI gates.",
             "Cached inference timing measures only the Rust FastEmbed production compute path.",
-            "Cold-session timing uses a warm on-disk model cache and excludes network acquisition time.",
+            "Bootstrap timing separates artifact stream transfer (Python IO and bounded native chunk copies), native finish validation/identity hashing/ORT initialization, first inference, and warm batches.",
         ],
     }
     report_path.parent.mkdir(parents=True, exist_ok=True)
@@ -112,27 +117,36 @@ def _measure_inference_if_cached(native: NativeModule) -> dict[str, JsonValue]:
             str(DEFAULT_FASTEMBED_CACHE),
         )
     ).resolve()
-    if not _directory_has_files(cache_directory):
+    try:
+        bootstrap = bootstrap_cached_fastembed_runtime(
+            native,
+            cache_directory,
+            threads=INFERENCE_THREADS,
+        )
+    except FastEmbedCacheUnavailableError:
         return {
             "status": "not_run",
-            "reason": "local multilingual-e5-small model cache is absent",
+            "reason": "model_cache_incomplete",
             "cold_start": "not_measured",
+            "bootstrap": "not_measured",
             "warm_batches": [],
             "numerical_parity": "covered_by_frozen_baseline_when_cache_is_present",
         }
 
-    cold_request = _inference_request(item_count=1, cache_directory=cache_directory)
+    bootstrap_peak_rss_bytes = _peak_rss_bytes()
+    session = bootstrap.session
+
+    first_request = _inference_request(item_count=1)
     started = time.perf_counter_ns()
-    cold_result = _load_json_bytes(
-        native.run_bulk_embedding_batch_json(_encode(cold_request))
+    first_result = _load_json_bytes(
+        session.run_bulk_embedding_batch_json(_encode(first_request))
     )
-    cold_ns = time.perf_counter_ns() - started
-    _validate_native_inference_result(cold_result, expected_count=1)
+    first_inference_ns = time.perf_counter_ns() - started
+    _validate_native_inference_result(first_result, expected_count=1)
     warm_batches = [
         _measure_warm_inference_scenario(
-            native,
+            session,
             item_count=item_count,
-            cache_directory=cache_directory,
         )
         for item_count in INFERENCE_SCALES
     ]
@@ -140,10 +154,29 @@ def _measure_inference_if_cached(native: NativeModule) -> dict[str, JsonValue]:
         "status": "measured",
         "cache_directory_present": True,
         "threads": INFERENCE_THREADS,
+        "bootstrap": {
+            "model_revision": bootstrap.revision,
+            "artifact_stream_transfer_milliseconds": _nanoseconds_to_milliseconds(
+                float(bootstrap.artifact_stream_transfer_nanoseconds)
+            ),
+            "native_finish_validation_hash_and_ort_init_milliseconds": _nanoseconds_to_milliseconds(
+                float(bootstrap.native_finish_nanoseconds)
+            ),
+            "total_milliseconds": _nanoseconds_to_milliseconds(
+                float(bootstrap.bootstrap_nanoseconds)
+            ),
+            "overall_process_peak_rss_bytes_at_bootstrap_checkpoint": bootstrap_peak_rss_bytes,
+            "peak_rss_measurement_scope": "process-wide high-water at this checkpoint; earlier native FFI scenarios in this process can dominate the value",
+        },
         "cold_start": {
-            "definition": "first Rust session initialization from populated on-disk model cache",
+            "definition": "canonical artifact stream transfer, native builder finish, and first inference from a populated cache; bootstrap and inference are reported separately",
             "item_count": 1,
-            "native_ffi_milliseconds": _nanoseconds_to_milliseconds(float(cold_ns)),
+            "total_bootstrap_and_first_inference_milliseconds": _nanoseconds_to_milliseconds(
+                float(bootstrap.bootstrap_nanoseconds + first_inference_ns)
+            ),
+            "first_inference_native_ffi_milliseconds": _nanoseconds_to_milliseconds(
+                float(first_inference_ns)
+            ),
         },
         "warm_batches": warm_batches,
         "numerical_parity": {
@@ -155,16 +188,15 @@ def _measure_inference_if_cached(native: NativeModule) -> dict[str, JsonValue]:
 
 
 def _measure_warm_inference_scenario(
-    native: NativeModule,
+    session: FastEmbedRuntimeSession,
     *,
     item_count: int,
-    cache_directory: Path,
 ) -> dict[str, JsonValue]:
-    payload = _inference_request(item_count=item_count, cache_directory=cache_directory)
+    payload = _inference_request(item_count=item_count)
     encoded = _encode(payload)
     native_elapsed = _median_elapsed_ns_samples(
         lambda: _consume_native_inference(
-            native.run_bulk_embedding_batch_json(encoded),
+            session.run_bulk_embedding_batch_json(encoded),
             expected_count=item_count,
         ),
         sample_count=INFERENCE_SAMPLE_COUNT,
@@ -181,15 +213,11 @@ def _measure_warm_inference_scenario(
 
 def _inference_request(
     item_count: int,
-    cache_directory: Path = DEFAULT_FASTEMBED_CACHE,
 ) -> dict[str, JsonValue]:
     return {
         "contract_version": 1,
         "embedding_version": 1,
-        "runtime": {
-            "cache_directory": str(cache_directory.resolve()),
-            "threads": INFERENCE_THREADS,
-        },
+        "runtime": {"version": 4},
         "request": _request(_current_model_contract(), item_count),
     }
 
@@ -225,10 +253,6 @@ def _median_elapsed_ns_samples(
         _consume_integer(operation())
         samples.append(time.perf_counter_ns() - started)
     return float(statistics.median(samples))
-
-
-def _directory_has_files(directory: Path) -> bool:
-    return directory.is_dir() and any(path.is_file() for path in directory.rglob("*"))
 
 
 def _measure_scenario(
@@ -434,7 +458,9 @@ def _native_library_path() -> Path:
 def _required_environment_path(name: str) -> Path:
     value = os.environ.get(name)
     if value is None or not value.strip():
-        raise RuntimeError(f"required performance report environment is missing: {name}")
+        raise RuntimeError(
+            f"required performance report environment is missing: {name}"
+        )
     return Path(value).resolve()
 
 
@@ -443,7 +469,9 @@ def _encode(value: Mapping[str, JsonValue]) -> bytes:
 
 
 def _load_json_object(path: Path) -> dict[str, JsonValue]:
-    return _require_object(cast(JsonValue, json.loads(path.read_text(encoding="utf-8"))))
+    return _require_object(
+        cast(JsonValue, json.loads(path.read_text(encoding="utf-8")))
+    )
 
 
 def _load_json_bytes(value: bytes) -> dict[str, JsonValue]:

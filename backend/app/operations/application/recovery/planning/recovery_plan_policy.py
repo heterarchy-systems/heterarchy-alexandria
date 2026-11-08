@@ -1,364 +1,192 @@
-"""Blocker, status, step, diagnosis, and next-action policy for recovery plans."""
+"""Blocker, status, diagnosis, and next-action policy for recovery plans."""
 
 from __future__ import annotations
 
 from hashlib import sha256
 
+from app.operations.application.recovery.planning.recovery_plan_step_policy import (
+    bounded_error_note_paths,
+    missing_step_capabilities,
+    plan_hash,
+    steps,
+)
 from app.operations.domain.entities.operational_readiness import (
     OperationalReadinessSnapshot,
 )
-from app.operations.domain.entities.recovery_plan import (
-    RecoveryPlanStep,
-    RecoverySourceSnapshot,
-)
+from app.operations.domain.entities.recovery_plan import RecoverySourceSnapshot
 from app.operations.domain.event_enum.operational_readiness_enums import (
+    OperationalReadinessNextAction as _NextAction,
     OperationalReadinessStatus,
+    OperationalReadinessWarningCode as _WarnCode,
 )
-from app.shared.serialization.orjson_codec import dumps_pretty_json
-from app.shared.types.extra_types import JSONObject
+from app.operations.domain.event_enum.recovery_step_enums import (
+    RecoveryDiagnosisSummaryCode,
+    RecoveryPlanBlockerCode,
+)
+
+__all__ = (
+    "blocked_reasons",
+    "bounded_error_note_paths",
+    "default_idempotency_key",
+    "diagnosis",
+    "missing_step_capabilities",
+    "next_actions",
+    "plan_hash",
+    "plan_status",
+    "steps",
+)
 
 
-def _default_idempotency_key(
+def default_idempotency_key(
     trigger: str,
     actor: str,
 ) -> str:
-    """Execute default idempotency key.
+    """Derive a deterministic idempotency key from the trigger and actor.
 
     Args:
-        trigger: Trigger used by this operation.
-        actor: Actor used by this operation.
+        trigger: Recovery trigger identifier.
+        actor: Actor requesting the recovery plan.
 
     Returns:
-        str result produced by default idempotency key.
+        Truncated 24-character hex SHA-256 digest.
     """
     seed = f"postgresql:{trigger}:{actor}"
     return sha256(seed.encode("utf-8")).hexdigest()[:24]
 
 
-def _blocked_reasons(
+def blocked_reasons(
     readiness: OperationalReadinessSnapshot,
     source_snapshot: RecoverySourceSnapshot,
 ) -> list[str]:
-    """Execute blocked reasons.
+    """Collect prerequisite blockers that prevent automatic recovery execution.
 
     Args:
-        readiness: Readiness used by this operation.
-        source_snapshot: Source snapshot used by this operation.
+        readiness: Current operational readiness snapshot.
+        source_snapshot: Captured vault source snapshot.
 
     Returns:
-        list[str] result produced by blocked reasons.
+        Ordered list of blocker reason codes.
     """
     reasons: list[str] = []
     if not readiness.database.reachable:
-        reasons.append("postgresql_server_recovery_required")
+        reasons.append(
+            RecoveryPlanBlockerCode.POSTGRESQL_SERVER_RECOVERY_REQUIRED.value
+        )
     if source_snapshot.access_error is not None:
         reasons.append(source_snapshot.access_error)
     if not readiness.vault.exists:
-        reasons.append("vault_not_found")
+        reasons.append(_WarnCode.VAULT_NOT_FOUND.value)
     if not readiness.vault.alexandria_root_exists:
-        reasons.append("alexandria_root_not_found")
+        reasons.append(_WarnCode.ALEXANDRIA_ROOT_NOT_FOUND.value)
     if source_snapshot.managed_markdown_count == 0:
-        reasons.append("managed_markdown_not_found")
+        reasons.append(RecoveryPlanBlockerCode.MANAGED_MARKDOWN_NOT_FOUND.value)
     return reasons
 
 
-def _plan_status(
+def plan_status(
     readiness: OperationalReadinessSnapshot,
-    blocked_reasons: list[str],
+    plan_blocked_reasons: list[str],
 ) -> OperationalReadinessStatus:
-    """Execute plan status.
+    """Classify the recovery plan status from readiness and blocker evidence.
 
     Args:
-        readiness: Readiness used by this operation.
-        blocked_reasons: Blocked reasons used by this operation.
+        readiness: Current operational readiness snapshot.
+        plan_blocked_reasons: Collected recovery plan blocker reasons.
 
     Returns:
-        OperationalReadinessStatus result produced by plan status.
+        Classified operational readiness status for the recovery plan.
     """
-    if blocked_reasons:
+    if plan_blocked_reasons:
         return OperationalReadinessStatus.BLOCKED
     if readiness.status is OperationalReadinessStatus.RECOVERY_REQUIRED:
         return OperationalReadinessStatus.RECOVERY_REQUIRED
     return readiness.status
 
 
-def _diagnosis(
+def diagnosis(
     readiness: OperationalReadinessSnapshot,
 ) -> list[str]:
-    """Execute diagnosis.
+    """Derive bounded diagnostic codes explaining the recovery need.
 
     Args:
-        readiness: Readiness used by this operation.
+        readiness: Current operational readiness snapshot.
 
     Returns:
-        list[str] result produced by diagnosis.
+        Ordered list of diagnosis codes.
     """
     if not readiness.database.reachable:
-        return ["POSTGRESQL_DATABASE_UNREACHABLE"]
+        return [RecoveryDiagnosisSummaryCode.POSTGRESQL_DATABASE_UNREACHABLE.value]
     return list(readiness.warnings)
 
 
-_MAX_PLANNED_NOTE_REPAIRS = 50
-
-
-def _steps(
-    readiness: OperationalReadinessSnapshot,
-    error_note_paths: list[str] | None = None,
-) -> list[RecoveryPlanStep]:
-    """Execute steps.
-
-    Args:
-        readiness: Readiness used by this operation.
-        error_note_paths: Bounded index-error note paths for note-local repair.
-
-    Returns:
-        list[RecoveryPlanStep] result produced by steps.
-    """
-    if _reconciliation_only_issue(list(readiness.warnings)):
-        return [
-            RecoveryPlanStep(
-                "inspect_memory_reconciliation",
-                "Inspect reconciliation diagnostics without rebuilding storage",
-                False,
-            ),
-            RecoveryPlanStep(
-                "CURRENT_READINESS_CHECK",
-                "Check current readiness after independent diagnostics",
-                False,
-            ),
-        ]
-    if not readiness.database.reachable:
-        return [
-            RecoveryPlanStep(
-                "inspect_postgresql_backup_restore",
-                "Inspect PostgreSQL server backup and restore state",
-                False,
-            )
-        ]
-    warning_set = set(readiness.warnings)
-    steps = [
-        RecoveryPlanStep("snapshot_sources", "Snapshot source vault metadata", False)
-    ]
-    if error_note_paths:
-        steps.append(
-            RecoveryPlanStep(
-                "REPAIR_MANAGED_FRONTMATTER",
-                "Re-parse and revalidate index-error notes in place",
-                True,
-            )
-        )
-    if {"obsidian_stale_notes_present", "rag_fts_not_healthy"} & warning_set:
-        steps.append(
-            RecoveryPlanStep(
-                "VAULT_REINDEX", "Rebuild Obsidian and lexical indexes", True
-            )
-        )
-    if {
-        "rag_vector_not_healthy",
-        "rag_embedding_reindex_required",
-        "rag_embedding_not_healthy",
-        "rag_default_strategy_not_hybrid",
-        "rag_status_warnings_present",
-    } & warning_set:
-        steps.append(
-            RecoveryPlanStep("EMBEDDING_REINDEX", "Rebuild retrieval embeddings", True)
-        )
-    needs_graph_rebuild = readiness.graph.status in {
-        "unavailable",
-        "uninitialized",
-        "unknown",
-    } or any(step.code == "VAULT_REINDEX" for step in steps)
-    if needs_graph_rebuild:
-        steps.append(
-            RecoveryPlanStep(
-                "GRAPH_REVALIDATE",
-                "Revalidate the PostgreSQL graph projection",
-                True,
-            )
-        )
-    if readiness.graph.last_run_issue_total > 0 or needs_graph_rebuild:
-        steps.append(
-            RecoveryPlanStep(
-                "LINK_REVALIDATE",
-                "Inspect bounded graph link diagnostics",
-                False,
-            )
-        )
-    if {
-        "maintenance_dlq_present",
-        "maintenance_dlq_unknown_outcome",
-    } & warning_set:
-        steps.append(
-            RecoveryPlanStep(
-                "DLQ_RECONCILE",
-                "Reconcile maintenance dead-letter effects without retry",
-                False,
-            )
-        )
-    if steps:
-        steps.append(
-            RecoveryPlanStep(
-                "CURRENT_READINESS_CHECK",
-                "Verify current operational readiness",
-                False,
-            )
-        )
-    return steps
-
-
-def _plan_hash(
-    steps: list[RecoveryPlanStep],
-    diagnosis: list[str],
-    source_snapshot: RecoverySourceSnapshot,
-) -> str:
-    """Hash one plan's bounded semantic content and source revision.
-
-    The hash covers the planned step order, the diagnosis, and the full
-    source manifest, so any source drift between dry-run and apply changes
-    the hash and fails the apply fence.
-
-    Args:
-        steps: Planned steps in execution order.
-        diagnosis: Bounded diagnosis codes.
-        source_snapshot: Source manifest snapshot.
-
-    Returns:
-        Deterministic plan hash.
-    """
-    manifest: JSONObject = {}
-    for note_path, token in source_snapshot.markdown_manifest.items():
-        manifest[note_path] = token
-    payload: JSONObject = {
-        "steps": [step.code for step in steps],
-        "diagnosis": sorted(diagnosis),
-        "manifest": manifest,
-    }
-    return sha256(
-        dumps_pretty_json(payload),
-    ).hexdigest()
-
-
-def _missing_step_capabilities(
-    steps: list[RecoveryPlanStep],
-    *,
-    embedding_recovery_available: bool,
-    graph_rebuild_available: bool,
-    link_diagnostics_available: bool,
-    dlq_reconcile_available: bool,
-    current_compact_reader_available: bool,
-) -> list[str]:
-    """Return explicit blockers for cause-specific steps without an owner.
-
-    Args:
-        steps: Planned recovery steps.
-        embedding_recovery_available: Whether configured bounded embedding recovery exists.
-        graph_rebuild_available: Whether the existing graph rebuild owner is wired.
-        link_diagnostics_available: Whether bounded link diagnostics are wired.
-        dlq_reconcile_available: Whether the read-only DLQ reconciler is wired.
-        current_compact_reader_available: Whether the CURRENT compact reader is wired.
-
-    Returns:
-        Stable prerequisite blocker codes.
-    """
-    codes = {step.code for step in steps}
-    blockers: list[str] = []
-    if "EMBEDDING_REINDEX" in codes and not embedding_recovery_available:
-        blockers.append("embedding_recovery_unavailable")
-    if "GRAPH_REVALIDATE" in codes and not graph_rebuild_available:
-        blockers.append("graph_rebuild_unavailable")
-    if "LINK_REVALIDATE" in codes and not link_diagnostics_available:
-        blockers.append("link_diagnostics_unavailable")
-    if "DLQ_RECONCILE" in codes and not dlq_reconcile_available:
-        blockers.append("dlq_reconcile_unavailable")
-    if "CURRENT_READINESS_CHECK" in codes and not current_compact_reader_available:
-        blockers.append("current_compact_reader_unavailable")
-    return blockers
-
-
-def _bounded_error_note_paths(
-    index_errors: list[str],
-) -> list[str]:
-    """Bound the planned note-local repair list.
-
-    Args:
-        index_errors: Index-error note paths from the vault status scan.
-
-    Returns:
-        Bounded, de-duplicated note paths in stable order.
-    """
-    return list(dict.fromkeys(index_errors))[:_MAX_PLANNED_NOTE_REPAIRS]
-
-
-def _next_actions(
+def next_actions(
     status: OperationalReadinessStatus,
-    blocked_reasons: list[str],
+    plan_blocked_reasons: list[str],
     warnings: list[str],
 ) -> list[str]:
-    """Execute next actions.
+    """Recommend next operator actions for a recovery dry-run plan.
 
     Args:
-        status: Status value used by this operation.
-        blocked_reasons: Blocked reasons used by this operation.
-        warnings: Warnings used by this operation.
+        status: Classified recovery plan status.
+        plan_blocked_reasons: Collected recovery plan blocker reasons.
+        warnings: Collected readiness warning codes.
 
     Returns:
-        list[str] result produced by next actions.
+        Ordered list of recommended operator action codes.
     """
-    if blocked_reasons:
-        if "postgresql_server_recovery_required" in blocked_reasons:
-            return ["restore_postgresql_from_backup"]
+    if plan_blocked_reasons:
+        if (
+            RecoveryPlanBlockerCode.POSTGRESQL_SERVER_RECOVERY_REQUIRED.value
+            in plan_blocked_reasons
+        ):
+            return [_NextAction.RESTORE_POSTGRESQL_FROM_BACKUP.value]
         if {
-            "vault_not_found",
-            "alexandria_root_not_found",
-            "managed_markdown_not_found",
-            "source_snapshot_unreadable",
-        } & set(blocked_reasons):
-            return ["inspect_vault_configuration"]
-        return ["resolve_recovery_blockers"]
+            _WarnCode.VAULT_NOT_FOUND.value,
+            _WarnCode.ALEXANDRIA_ROOT_NOT_FOUND.value,
+            RecoveryPlanBlockerCode.MANAGED_MARKDOWN_NOT_FOUND.value,
+            RecoveryPlanBlockerCode.SOURCE_SNAPSHOT_UNREADABLE.value,
+        } & set(plan_blocked_reasons):
+            return [_NextAction.INSPECT_VAULT_CONFIGURATION.value]
+        return [_NextAction.RESOLVE_RECOVERY_BLOCKERS.value]
     warning_set = set(warnings)
-    if {"database_unreachable", "database_integrity_not_healthy"} & warning_set:
-        return ["inspect_database"]
     if {
-        "vault_not_found",
-        "alexandria_root_not_found",
-        "obsidian_stale_notes_present",
-        "obsidian_error_notes_present",
+        _WarnCode.DATABASE_UNREACHABLE.value,
+        _WarnCode.DATABASE_INTEGRITY_NOT_HEALTHY.value,
     } & warning_set:
-        return ["inspect_vault_configuration"]
+        return [_NextAction.INSPECT_DATABASE.value]
+    if {
+        _WarnCode.VAULT_NOT_FOUND.value,
+        _WarnCode.ALEXANDRIA_ROOT_NOT_FOUND.value,
+    } & warning_set:
+        return [_NextAction.INSPECT_VAULT_CONFIGURATION.value]
     reconciliation_actions: list[str] = []
-    if "memory_reconciliation_repository_unreachable" in warning_set:
-        reconciliation_actions.append("inspect_memory_reconciliation_repository")
+    if _WarnCode.MEMORY_RECONCILIATION_REPOSITORY_UNREACHABLE.value in warning_set:
+        reconciliation_actions.append(
+            _NextAction.INSPECT_MEMORY_RECONCILIATION_REPOSITORY.value
+        )
     if {
-        "memory_reconciliation_partial_apply_present",
-        "memory_reconciliation_failed_results_present",
+        _WarnCode.MEMORY_RECONCILIATION_PARTIAL_APPLY_PRESENT.value,
+        _WarnCode.MEMORY_RECONCILIATION_FAILED_RESULTS_PRESENT.value,
     } & warning_set:
-        reconciliation_actions.append("inspect_memory_reconciliation_failures")
-    if "memory_reconciliation_hard_delete_detected" in warning_set:
-        reconciliation_actions.append("audit_memory_reconciliation_integrity")
-    if "memory_reconciliation_temporal_backfill_required" in warning_set:
-        reconciliation_actions.append("preview_existing_memory_reconciliation")
+        reconciliation_actions.append(
+            _NextAction.INSPECT_MEMORY_RECONCILIATION_FAILURES.value
+        )
+    if _WarnCode.MEMORY_RECONCILIATION_HARD_DELETE_DETECTED.value in warning_set:
+        reconciliation_actions.append(
+            _NextAction.AUDIT_MEMORY_RECONCILIATION_INTEGRITY.value
+        )
+    if _WarnCode.MEMORY_RECONCILIATION_TEMPORAL_BACKFILL_REQUIRED.value in warning_set:
+        reconciliation_actions.append(
+            _NextAction.PREVIEW_EXISTING_MEMORY_RECONCILIATION.value
+        )
     if {
-        "memory_reconciliation_review_required",
-        "memory_reconciliation_open_conflicts",
-        "memory_reconciliation_reviews_in_progress",
+        _WarnCode.MEMORY_RECONCILIATION_REVIEW_REQUIRED.value,
+        _WarnCode.MEMORY_RECONCILIATION_OPEN_CONFLICTS.value,
+        _WarnCode.MEMORY_RECONCILIATION_REVIEWS_IN_PROGRESS.value,
     } & warning_set:
-        reconciliation_actions.append("review_memory_reconciliation")
+        reconciliation_actions.append(_NextAction.REVIEW_MEMORY_RECONCILIATION.value)
     if reconciliation_actions:
         return list(dict.fromkeys(reconciliation_actions))
     if status is OperationalReadinessStatus.RECOVERY_REQUIRED:
-        return ["start_recovery_run"]
-    return ["no_recovery_required"]
-
-
-def _reconciliation_only_issue(warnings: list[str]) -> bool:
-    """Return whether readiness contains only reconciliation-domain warnings.
-
-    Args:
-        warnings: Warnings used by this operation.
-
-    Returns:
-        Whether reconciliation only issue.
-    """
-    return bool(warnings) and all(
-        warning.startswith("memory_reconciliation_") for warning in warnings
-    )
+        return [_NextAction.START_RECOVERY_RUN.value]
+    return [_NextAction.NO_RECOVERY_REQUIRED.value]

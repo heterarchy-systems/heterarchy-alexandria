@@ -203,7 +203,7 @@ async def _benchmark_case(
     for _ in range(config.warmups):
         try:
             await _observe_search(client, config, benchmark_query, strategy)
-        except (httpx.HTTPError, RuntimeError, ValueError):
+        except httpx.HTTPError, RuntimeError, ValueError:
             break
 
     observations: list[SearchObservation] = []

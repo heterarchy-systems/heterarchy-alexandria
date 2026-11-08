@@ -54,7 +54,7 @@ def _decoded_storage_payload(value: str) -> bytes | None:
             altchars=b"-_",
             validate=True,
         )
-    except (binascii.Error, UnicodeEncodeError):
+    except binascii.Error, UnicodeEncodeError:
         return None
 
 

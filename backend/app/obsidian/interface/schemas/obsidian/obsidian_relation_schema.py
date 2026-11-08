@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import StringConstraints, field_validator
+from pydantic import Field, StringConstraints, field_validator
 
 from app.obsidian.domain.contracts.obsidian_relation_contracts import (
     ObsidianRelateRequest,
@@ -20,7 +20,7 @@ from app.obsidian.domain.event_enum.obsidian_enums import (
 from app.obsidian.domain.event_enum.obsidian_relation_enums import (
     ObsidianRelateCompletionStatus,
 )
-from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
+from app.shared.schemas.common_schemas import StrictSchemaModel
 
 
 class ObsidianRelateRequestSchema(StrictSchemaModel):
@@ -29,21 +29,21 @@ class ObsidianRelateRequestSchema(StrictSchemaModel):
     source_note_id: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=512),
-        described_field("Existing source note identifier for this relate request."),
+        Field(description="Existing source note identifier for this relate request."),
     ]
     target_note_id: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=512),
-        described_field("Existing target note identifier for this relate request."),
+        Field(description="Existing target note identifier for this relate request."),
     ]
     relation: Annotated[
         ObsidianRelationType,
-        described_field("Typed frontmatter relation for this relate request."),
+        Field(description="Typed frontmatter relation for this relate request."),
     ]
     idempotency_key: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=512),
-        described_field("Replay key for this relate request."),
+        Field(description="Replay key for this relate request."),
     ]
     expected_source_hash: Annotated[
         str | None,
@@ -53,7 +53,7 @@ class ObsidianRelateRequestSchema(StrictSchemaModel):
             max_length=64,
             pattern="^[0-9a-fA-F]{64}$",
         ),
-        described_field("Optional source content hash compare-and-swap token."),
+        Field(description="Optional source content hash compare-and-swap token."),
     ] = None
 
     @field_validator("idempotency_key", mode="after")
@@ -83,23 +83,25 @@ class ObsidianRelateRequestSchema(StrictSchemaModel):
 class ObsidianRelateIssueResponse(StrictSchemaModel):
     """Actionable warning or failure evidence for one relation layer."""
 
-    code: Annotated[str, described_field("Stable issue code for this relate response.")]
-    cause: Annotated[str, described_field("Cause for this relate response issue.")]
+    code: Annotated[
+        str, Field(description="Stable issue code for this relate response.")
+    ]
+    cause: Annotated[str, Field(description="Cause for this relate response issue.")]
     affected_capability: Annotated[
         str,
-        described_field("Affected capability for this relate response issue."),
+        Field(description="Affected capability for this relate response issue."),
     ]
     retryable: Annotated[
         bool,
-        described_field("Whether replay is safe for this relate response issue."),
+        Field(description="Whether replay is safe for this relate response issue."),
     ]
     safe_next_action: Annotated[
         str,
-        described_field("Safe next action for this relate response issue."),
+        Field(description="Safe next action for this relate response issue."),
     ]
     recovery_run_id: Annotated[
         str | None,
-        described_field("Recovery run identifier for this relate response issue."),
+        Field(description="Recovery run identifier for this relate response issue."),
     ] = None
 
     @classmethod
@@ -120,89 +122,91 @@ class ObsidianRelateResponse(StrictSchemaModel):
 
     completion_status: Annotated[
         ObsidianRelateCompletionStatus,
-        described_field("Completion status for this relate response."),
+        Field(description="Completion status for this relate response."),
     ]
     idempotency_key: Annotated[
         str,
-        described_field("Replay key for this relate response."),
+        Field(description="Replay key for this relate response."),
     ]
     replayed: Annotated[
         bool,
-        described_field("Whether this response reused a durable relation checkpoint."),
+        Field(
+            description="Whether this response reused a durable relation checkpoint."
+        ),
     ]
     source_note_id: Annotated[
         str,
-        described_field("Source note identifier for this relate response."),
+        Field(description="Source note identifier for this relate response."),
     ]
     target_note_id: Annotated[
         str,
-        described_field("Target note identifier for this relate response."),
+        Field(description="Target note identifier for this relate response."),
     ]
     relation: Annotated[
         ObsidianRelationType,
-        described_field("Persisted relation for this relate response."),
+        Field(description="Persisted relation for this relate response."),
     ]
     source_path: Annotated[
-        str, described_field("Source path for this relate response.")
+        str, Field(description="Source path for this relate response.")
     ]
     target_path: Annotated[
-        str, described_field("Target path for this relate response.")
+        str, Field(description="Target path for this relate response.")
     ]
     operation: Annotated[
         ObsidianWriteOperation | None,
-        described_field("Canonical write operation for this relate response."),
+        Field(description="Canonical write operation for this relate response."),
     ]
     content_hash: Annotated[
         str,
-        described_field("Current source content hash for this relate response."),
+        Field(description="Current source content hash for this relate response."),
     ]
     storage_status: Annotated[
         str,
-        described_field("Canonical storage status for this relate response."),
+        Field(description="Canonical storage status for this relate response."),
     ]
     metadata_status: Annotated[
         str,
-        described_field("Metadata index status for this relate response."),
+        Field(description="Metadata index status for this relate response."),
     ]
     fts_status: Annotated[
         str,
-        described_field("FTS status for this relate response."),
+        Field(description="FTS status for this relate response."),
     ]
     graph_edge_index_status: Annotated[
         str,
-        described_field("Indexed graph edge status for this relate response."),
+        Field(description="Indexed graph edge status for this relate response."),
     ]
     graph_projection_status: Annotated[
         str,
-        described_field("Graph projection status for this relate response."),
+        Field(description="Graph projection status for this relate response."),
     ]
     source_link_verified: Annotated[
         bool,
-        described_field("Source Markdown relation readback status."),
+        Field(description="Source Markdown relation readback status."),
     ]
     target_backlink_verified: Annotated[
         bool,
-        described_field("Target backlink readback status."),
+        Field(description="Target backlink readback status."),
     ]
     related_notes_verified: Annotated[
         bool,
-        described_field("High-level related-note readback status."),
+        Field(description="High-level related-note readback status."),
     ]
     graph_edge_id: Annotated[
         str | None,
-        described_field("Exact projected edge identifier for this relate response."),
+        Field(description="Exact projected edge identifier for this relate response."),
     ] = None
     projection_run_id: Annotated[
         str | None,
-        described_field("Graph projection run identifier for this relate response."),
+        Field(description="Graph projection run identifier for this relate response."),
     ] = None
     warnings: Annotated[
         list[ObsidianRelateIssueResponse],
-        described_field("Actionable projection warnings for this relate response."),
+        Field(description="Actionable projection warnings for this relate response."),
     ]
     errors: Annotated[
         list[ObsidianRelateIssueResponse],
-        described_field("Actionable relation errors for this relate response."),
+        Field(description="Actionable relation errors for this relate response."),
     ]
 
     @classmethod

@@ -5,18 +5,17 @@ from __future__ import annotations
 from pathlib import Path
 
 from app.memory.infrastructure.repositories.memory_compacts.obsidian_markdown_parser import (
-    _read_frontmatter,
+    _FrontmatterSectionExtractor,
     read_compact_file,
 )
 from app.memory.infrastructure.repositories.memory_compacts.obsidian_markdown_serializer import (
-    _yaml_property_lines,
-    _yaml_scalar,
+    _CompactMarkdownFormatter,
 )
 
 
 def test_memory_compact_frontmatter_preserves_collection_metadata_types() -> None:
     """Block and inline YAML collections should parse as string tuples."""
-    block_frontmatter, _ = _read_frontmatter(
+    block_frontmatter, _ = _FrontmatterSectionExtractor.read_frontmatter(
         """---
 alexandria_type: memory_compact
 tags:
@@ -26,7 +25,7 @@ tags:
 Body
 """
     )
-    inline_frontmatter, _ = _read_frontmatter(
+    inline_frontmatter, _ = _FrontmatterSectionExtractor.read_frontmatter(
         """---
 alexandria_type: memory_compact
 tags: [Alexandria, 'memory-compact']
@@ -41,9 +40,9 @@ Body
 
 def test_memory_compact_frontmatter_preserves_boolean_metadata_types() -> None:
     """Boolean metadata should remain Boolean through render and parse."""
-    rendered_true = _yaml_scalar(True)
-    rendered_false = _yaml_scalar(False)
-    frontmatter, _ = _read_frontmatter(
+    rendered_true = _CompactMarkdownFormatter.yaml_scalar(True)
+    rendered_false = _CompactMarkdownFormatter.yaml_scalar(False)
+    frontmatter, _ = _FrontmatterSectionExtractor.read_frontmatter(
         f"""---
 alexandria_type: memory_compact
 source_of_truth: {rendered_true}
@@ -61,9 +60,11 @@ Body
 
 def test_memory_compact_frontmatter_collection_render_parse_round_trip() -> None:
     """Rendered string collections should parse back without stringification."""
-    rendered_tag_lines = _yaml_property_lines("tags", ("alpha", "beta"))
+    rendered_tag_lines = _CompactMarkdownFormatter.yaml_property_lines(
+        "tags", ("alpha", "beta")
+    )
     rendered_tags = "\n".join(rendered_tag_lines)
-    frontmatter, _ = _read_frontmatter(
+    frontmatter, _ = _FrontmatterSectionExtractor.read_frontmatter(
         f"""---
 alexandria_type: memory_compact
 {rendered_tags}
@@ -107,3 +108,80 @@ source_refs:
         ("ref-1", "legacy-compact", "source-1"),
         ("ref-2", "legacy-compact", "source-2"),
     ]
+
+
+def test_memory_compact_frontmatter_bracket_scalar_round_trip() -> None:
+    """Ordinary scalar strings starting or ending with brackets should stay quoted scalars."""
+    closed_bracket_lines = _CompactMarkdownFormatter.yaml_property_lines(
+        "summary", "[draft]"
+    )
+    open_bracket_lines = _CompactMarkdownFormatter.yaml_property_lines(
+        "note", "[draft note"
+    )
+    source_refs_lines = _CompactMarkdownFormatter.yaml_property_lines(
+        "source_refs", '[{"id":"ref-1"}]'
+    )
+    frontmatter, _ = _FrontmatterSectionExtractor.read_frontmatter(
+        f"""---
+alexandria_type: memory_compact
+{closed_bracket_lines[0]}
+{open_bracket_lines[0]}
+{source_refs_lines[0]}
+---
+Body
+"""
+    )
+
+    assert closed_bracket_lines == ["summary: '[draft]'"]
+    assert open_bracket_lines == ["note: '[draft note'"]
+    assert source_refs_lines == ['source_refs: [{"id":"ref-1"}]']
+    assert frontmatter["summary"] == "[draft]"
+    assert frontmatter["note"] == "[draft note"
+
+
+def test_memory_compact_frontmatter_preserves_unicode_line_separators_in_body() -> None:
+    """Markdown body containing Unicode line/paragraph separators should not be split."""
+    expected_body = "Line one\u2028Line two\u2029Line three\vLine four\fLine five\n"
+    _, parsed_body = _FrontmatterSectionExtractor.read_frontmatter(
+        f"""---
+alexandria_type: memory_compact
+---
+{expected_body}"""
+    )
+
+    assert parsed_body == expected_body
+
+
+def test_read_compact_file_returns_none_on_invalid_utf8(tmp_path: Path) -> None:
+    """Corrupt non-UTF-8 files should return None instead of raising UnicodeDecodeError."""
+    note_path = tmp_path / "corrupt-utf8.md"
+    note_path.write_bytes(b"---\nalexandria_type: memory_compact\n---\n\xff\xfe\xfd")
+
+    assert read_compact_file(note_path) is None
+
+
+def test_read_compact_file_marks_whitespace_or_boolean_updated_at_missing(
+    tmp_path: Path,
+) -> None:
+    """Blank or non-string updated_at values should set updated_at_missing to True."""
+    note_path = tmp_path / "blank-updated-at.md"
+    note_path.write_text(
+        """---
+alexandria_type: memory_compact
+id: blank-updated-at
+status: CURRENT
+project: heterarchy-alexandria
+created_at: 2026-08-01T00:00:00Z
+updated_at: '   '
+covered_from: 2026-07-01T00:00:00Z
+covered_to: 2026-07-31T00:00:00Z
+---
+# Blank Updated At
+""",
+        encoding="utf-8",
+    )
+
+    compact = read_compact_file(note_path)
+
+    assert compact is not None
+    assert compact.metadata_warnings == ("memory_compact_timestamp_missing",)

@@ -9,7 +9,7 @@ from app.container import ApplicationContainer
 from app.operations.application.diagnostics.operational_retrieval_diagnostics_service import (
     OperationalRetrievalDiagnosticsService,
 )
-from app.operations.interface.schemas.operations.operational_retrieval_diagnostics_schema import (
+from app.operations.interface.schemas.operations.retrieval.operational_retrieval_diagnostics_schema import (
     OperationalRetrievalExplainRequest,
     OperationalRetrievalExplainResponse,
 )

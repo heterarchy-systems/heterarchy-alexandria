@@ -10,30 +10,21 @@ from app.mcp_server.tools.obsidian.frontmatter_repair_backend_gateway import (
     alexandria_repair_frontmatter,
 )
 from app.mcp_server.tools.obsidian.obsidian_backend_gateway import (
-    alexandria_batch_read_notes,
-    alexandria_batch_validate_note_links,
-    alexandria_batch_write_notes,
-    alexandria_check_path_exists,
-    alexandria_create_note,
-    alexandria_get_related_notes,
-    alexandria_read_note,
-    alexandria_read_note_raw,
-    alexandria_repair_note_raw,
-    alexandria_resolve_canonical_identity,
-    alexandria_update_note,
-    alexandria_upsert_note,
-    alexandria_upsert_report_bundle,
+    ObsidianNoteBatchGateway,
+    ObsidianNoteReadGateway,
+    ObsidianNoteWriteGateway,
 )
 from app.obsidian.domain.event_enum.obsidian_enums import (
     AlexandriaNoteType,
+    ObsidianContextLifecycleStatus,
     ObsidianFrontmatterMode,
     ObsidianWriteMatchBy,
 )
-from app.obsidian.interface.schemas.obsidian.obsidian_schema import (
+from app.obsidian.interface.schemas.obsidian.notes.obsidian_source_schema import (
     ObsidianFrontmatterRepairRequest,
     ObsidianFrontmatterRepairResponse,
 )
-from app.shared.types.extra_types import JSONValue
+from app.shared.types.extra_types import JSONObject, JSONValue
 
 
 def register_obsidian_note_tools(
@@ -54,13 +45,13 @@ def register_obsidian_note_tools(
         """Read one Alexandria-managed Obsidian note by id or path.
 
         Args:
-            note_id: Identifier for note.
-            path: Path used by this operation.
+            note_id: Canonical note identifier, if reading by id.
+            path: Vault-relative Markdown path, if reading by path.
 
         Returns:
-            JSONValue result produced by tool read note.
+            Parsed note metadata, frontmatter, and Markdown body payload.
         """
-        return await alexandria_read_note(api_client, note_id, path)
+        return await ObsidianNoteReadGateway.read_note(api_client, note_id, path)
 
     @server.tool(name="alexandria_read_note_raw")
     async def _tool_read_note_raw(
@@ -70,13 +61,13 @@ def register_obsidian_note_tools(
         """Read one note's raw source even when frontmatter fails to parse.
 
         Args:
-            note_id: Identifier for note.
-            path: Path used by this operation.
+            note_id: Canonical note identifier, if reading by id.
+            path: Vault-relative Markdown path, if reading by path.
 
         Returns:
-            JSONValue result produced by tool read note raw.
+            Raw Markdown content and current content hash for CAS repair.
         """
-        return await alexandria_read_note_raw(api_client, note_id, path)
+        return await ObsidianNoteReadGateway.read_note_raw(api_client, note_id, path)
 
     @server.tool(name="alexandria_repair_frontmatter")
     async def _tool_repair_frontmatter(
@@ -115,9 +106,9 @@ def register_obsidian_note_tools(
             raw_content: Full replacement Markdown source.
 
         Returns:
-            JSONValue result carrying the repaired note.
+            Repaired note metadata and updated content hash.
         """
-        return await alexandria_repair_note_raw(
+        return await ObsidianNoteWriteGateway.repair_note_raw(
             api_client,
             path,
             expected_content_hash,
@@ -129,12 +120,12 @@ def register_obsidian_note_tools(
         """Check one exact managed path and return existence, id, and index status.
 
         Args:
-            path: Path used by this operation.
+            path: Vault-relative Markdown path to inspect.
 
         Returns:
-            JSONValue result produced by tool check path exists.
+            Path existence, canonical note id, and current index status payload.
         """
-        return await alexandria_check_path_exists(api_client, path)
+        return await ObsidianNoteReadGateway.check_path_exists(api_client, path)
 
     @server.tool(name="alexandria_resolve_canonical_identity")
     async def _tool_resolve_canonical_identity(
@@ -147,16 +138,16 @@ def register_obsidian_note_tools(
         """Resolve report aliases and logical identity into one canonical path.
 
         Args:
-            project: Project used by this operation.
-            report: Report used by this operation.
-            date: Date used by this operation.
-            entity: Entity used by this operation.
-            edition: Edition used by this operation.
+            project: Project scope slug or name.
+            report: Report type or alias to normalize.
+            date: ISO date string for the report edition.
+            entity: Target entity or subject identifier.
+            edition: Optional edition qualifier when multiple runs exist.
 
         Returns:
-            JSONValue result produced by tool resolve canonical identity.
+            Canonical logical identity, resolved vault path, and existing note status.
         """
-        return await alexandria_resolve_canonical_identity(
+        return await ObsidianNoteReadGateway.resolve_canonical_identity(
             api_client,
             project,
             report,
@@ -174,14 +165,16 @@ def register_obsidian_note_tools(
         """Read graph-related Obsidian notes by id or path.
 
         Args:
-            note_id: Identifier for note.
-            path: Path used by this operation.
-            limit: Maximum number of items to process or return.
+            note_id: Canonical note identifier, if querying by id.
+            path: Vault-relative Markdown path, if querying by path.
+            limit: Maximum number of related notes to return.
 
         Returns:
-            JSONValue result produced by tool get related notes.
+            Graph-related note records connected to the target note.
         """
-        return await alexandria_get_related_notes(api_client, note_id, path, limit)
+        return await ObsidianNoteReadGateway.get_related_notes(
+            api_client, note_id, path, limit
+        )
 
     @server.tool(name="alexandria_create_note")
     async def _tool_create_note(
@@ -193,7 +186,7 @@ def register_obsidian_note_tools(
         path: str | None = None,
         project: str | None = None,
         tags: list[str] | str | None = None,
-        status: str = "active",
+        status: str = ObsidianContextLifecycleStatus.ACTIVE.value,
         source: str = "mcp",
         frontmatter: dict[str, JSONValue] | None = None,
         frontmatter_mode: ObsidianFrontmatterMode = ObsidianFrontmatterMode.MERGE,
@@ -202,25 +195,24 @@ def register_obsidian_note_tools(
         """Create once per request identity; reject another request at an existing target.
 
         Args:
-            title: Title used by this operation.
-            body: Body used by this operation.
-            alexandria_type: Alexandria type used by this operation.
-            match_by: Match by used by this operation.
-            note_id: Identifier for note.
-            path: Path used by this operation.
-            project: Project used by this operation.
-            tags: Tags used by this operation.
-            status: Status value used by this operation.
-            source: Source used by this operation.
-            frontmatter: Frontmatter used by this operation.
-            frontmatter_mode: Frontmatter mode used by this operation.
-
+            title: Human-readable note title.
+            body: Markdown body content without frontmatter fences.
+            alexandria_type: Canonical Alexandria note classification.
+            match_by: Selector mode (id or path) used to guard against collisions.
+            note_id: Explicit note identifier when matching or assigning by id.
+            path: Vault-relative destination path under the Alexandria root.
+            project: Optional project scope associated with the note.
+            tags: Optional tag list or comma-separated tag string.
+            status: Lifecycle status recorded in frontmatter.
+            source: Provenance source label recorded in frontmatter.
+            frontmatter: Additional custom frontmatter key-value pairs.
+            frontmatter_mode: Merge or replace strategy for custom frontmatter.
             idempotency_key: Retry-stable mutation identity; retain it after a lost response.
 
         Returns:
-            JSONValue result produced by tool create note.
+            Created note payload with canonical id, path, and content hash.
         """
-        return await alexandria_create_note(
+        return await ObsidianNoteWriteGateway.create_note(
             api_client,
             title,
             body,
@@ -257,26 +249,25 @@ def register_obsidian_note_tools(
         """Update by exact id or path; never infer a move or replacement target.
 
         Args:
-            title: Title used by this operation.
-            body: Body used by this operation.
-            alexandria_type: Alexandria type used by this operation.
-            match_by: Match by used by this operation.
-            note_id: Identifier for note.
-            path: Path used by this operation.
-            project: Project used by this operation.
-            tags: Tags used by this operation.
-            status: Status value used by this operation.
-            source: Source used by this operation.
-            frontmatter: Frontmatter used by this operation.
-            frontmatter_mode: Frontmatter mode used by this operation.
-            expected_content_hash: Expected content hash used for validation.
-
+            title: Updated human-readable note title.
+            body: Updated Markdown body content without frontmatter fences.
+            alexandria_type: Canonical Alexandria note classification.
+            match_by: Exact selector mode (id or path) locating the existing note.
+            note_id: Target note identifier when matching by id.
+            path: Target vault-relative Markdown path when matching by path.
+            project: Optional updated project scope.
+            tags: Optional updated tag list or comma-separated tag string.
+            status: Optional updated lifecycle status.
+            source: Optional updated provenance source label.
+            frontmatter: Optional custom frontmatter fields to merge or replace.
+            frontmatter_mode: Merge or replace strategy for custom frontmatter.
+            expected_content_hash: Current content hash required for CAS verification.
             idempotency_key: Retry-stable mutation identity; retain it after a lost response.
 
         Returns:
-            JSONValue result produced by tool update note.
+            Updated note payload with canonical id, path, and new content hash.
         """
-        return await alexandria_update_note(
+        return await ObsidianNoteWriteGateway.update_note(
             api_client,
             title,
             body,
@@ -314,26 +305,25 @@ def register_obsidian_note_tools(
         """Create or update by one exact selector and reject identity conflicts.
 
         Args:
-            title: Title used by this operation.
-            body: Body used by this operation.
-            alexandria_type: Alexandria type used by this operation.
-            match_by: Match by used by this operation.
-            note_id: Identifier for note.
-            path: Path used by this operation.
-            project: Project used by this operation.
-            tags: Tags used by this operation.
-            status: Status value used by this operation.
-            source: Source used by this operation.
-            frontmatter: Frontmatter used by this operation.
-            frontmatter_mode: Frontmatter mode used by this operation.
-            expected_content_hash: Expected content hash used for validation.
-
+            title: Human-readable note title.
+            body: Markdown body content without frontmatter fences.
+            alexandria_type: Canonical Alexandria note classification.
+            match_by: Exact selector mode (id or path) used to locate or create the note.
+            note_id: Target note identifier when matching by id.
+            path: Target vault-relative Markdown path when matching by path.
+            project: Optional project scope associated with the note.
+            tags: Optional tag list or comma-separated tag string.
+            status: Optional lifecycle status recorded in frontmatter.
+            source: Optional provenance source label recorded in frontmatter.
+            frontmatter: Optional custom frontmatter fields to merge or replace.
+            frontmatter_mode: Merge or replace strategy for custom frontmatter.
+            expected_content_hash: Current content hash when updating an existing note.
             idempotency_key: Retry-stable mutation identity; retain it after a lost response.
 
         Returns:
-            JSONValue result produced by tool upsert note.
+            Upserted note payload with canonical id, path, and content hash.
         """
-        return await alexandria_upsert_note(
+        return await ObsidianNoteWriteGateway.upsert_note(
             api_client,
             title,
             body,
@@ -364,18 +354,18 @@ def register_obsidian_note_tools(
         """Idempotently upsert Source and owner links, rebuild, and verify graph.
 
         Args:
-            idempotency_key: Idempotency key used by this operation.
-            source: Source used by this operation.
-            graph_owners: Graph owners used by this operation.
-            reindex: Reindex used by this operation.
-            verify_index_status: Verify index status used by this operation.
-            verify_incoming_edges: Verify incoming edges used by this operation.
-            verify_duplicates: Verify duplicates used by this operation.
+            idempotency_key: Retry-stable bundle mutation identity.
+            source: Source note specification to create or update.
+            graph_owners: Owner notes and wikilink updates referencing the source note.
+            reindex: Whether to reindex modified notes and rebuild the graph projection.
+            verify_index_status: Whether to verify all bundle notes indexed cleanly.
+            verify_incoming_edges: Whether to verify expected incoming graph edges exist.
+            verify_duplicates: Whether to check for duplicate identity or content conflicts.
 
         Returns:
-            JSONValue result produced by tool upsert report bundle.
+            Bundle execution receipt with source, owner, and verification results.
         """
-        return await alexandria_upsert_report_bundle(
+        return await ObsidianNoteWriteGateway.upsert_report_bundle(
             api_client,
             idempotency_key,
             source,
@@ -398,7 +388,7 @@ def register_obsidian_note_tools(
         Returns:
             Per-item read results. One item's failure does not fail the batch.
         """
-        return await alexandria_batch_read_notes(api_client, selectors)
+        return await ObsidianNoteBatchGateway.batch_read_notes(api_client, selectors)
 
     @server.tool(name="alexandria_batch_validate_note_links")
     async def _tool_batch_validate_note_links(
@@ -412,13 +402,15 @@ def register_obsidian_note_tools(
         Returns:
             Per-item validation outcomes. One item's failure does not fail the batch.
         """
-        return await alexandria_batch_validate_note_links(api_client, selectors)
+        return await ObsidianNoteBatchGateway.batch_validate_note_links(
+            api_client, selectors
+        )
 
     @server.tool(name="alexandria_batch_write_notes")
     async def _tool_batch_write_notes(
-        operations: list[dict[str, object]],
+        operations: list[JSONObject],
     ) -> JSONValue:
-        """Execute many independent CAS writes with per-item outcomes.
+        """Apply many independent CAS writes with per-item outcomes.
 
         Args:
             operations: List of write operations with per-item CAS.
@@ -426,4 +418,4 @@ def register_obsidian_note_tools(
         Returns:
             Per-item write outcomes. One item's conflict does not fail the batch.
         """
-        return await alexandria_batch_write_notes(api_client, operations)
+        return await ObsidianNoteBatchGateway.batch_write_notes(api_client, operations)

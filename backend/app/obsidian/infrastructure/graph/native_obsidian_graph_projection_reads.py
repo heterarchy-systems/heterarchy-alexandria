@@ -12,7 +12,7 @@ from app.obsidian.domain.contracts.obsidian_graph_projection_contracts import (
     ObsidianGraphProjection,
     ObsidianGraphRelatedNote,
 )
-from app.shared.infrastructure.native_compute_extension import (
+from app.shared.infrastructure.native_compute.native_compute_extension import (
     NativeComputeContractModule,
     load_native_compute_module,
 )

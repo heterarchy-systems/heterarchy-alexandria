@@ -11,11 +11,11 @@ import anyio
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.obsidian.application.notes.verified_upsert.obsidian_verified_upsert_service import (
+    ObsidianVerifiedUpsertService,
+)
 from app.obsidian.application.service.notes.obsidian_canonical_identity_service import (
     ObsidianCanonicalIdentityService,
-)
-from app.obsidian.application.service.notes.obsidian_verified_upsert_service import (
-    ObsidianVerifiedUpsertService,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.obsidian.domain.contracts.obsidian_logical_identity import (

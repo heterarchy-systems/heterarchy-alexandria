@@ -9,25 +9,32 @@ from app.container import ApplicationContainer
 from app.memory.application.contexts.records.context_service import ContextService
 from app.memory.domain.entities.context_change_log import ContextDeltaPage
 from app.memory.domain.types.context_change_cursor import CONTEXT_CHANGE_LOG_SCOPE
+from app.memory.interface.schemas.context.context_brief_schema import (
+    ContextBriefRequest,
+    ContextBriefResponse,
+)
+from app.memory.interface.schemas.context.context_delta_schema import (
+    ContextDeltaRequest,
+    ContextDeltaResponse,
+)
+from app.memory.interface.schemas.context.context_index_schema import (
+    ContextSoftRebuildResponse,
+    RagStatusResponse,
+)
 from app.memory.interface.schemas.context.context_mapping import (
     health_payload,
     pack_payload,
     soft_rebuild_payload,
 )
-from app.memory.interface.schemas.context.context_retrieval_schema import (
-    ContextBriefRequest,
-    ContextBriefResponse,
-    ContextDeltaRequest,
-    ContextDeltaResponse,
+from app.memory.interface.schemas.context.context_search_schema import (
     ContextPackResponse,
     ContextSearchRequest,
-    ContextSoftRebuildResponse,
-    RagStatusResponse,
 )
 from app.platform.config.app_config import AppConfig
 from app.shared.exceptions.exception_decorators import router_exception_status
 from app.shared.exceptions.route_exceptions import CONTEXT_ROUTE_EXCEPTION_MAPPING
 from app.shared.type_validation.strict_json_body import model_validate_json_body
+from app.shared.types.extra_types import JSONObject
 
 router = APIRouter(prefix="/memory/contexts", tags=["library-contexts"])
 
@@ -236,7 +243,7 @@ async def soft_rebuild_context_embeddings(
     return response
 
 
-def _delta_payload(page: ContextDeltaPage) -> dict[str, object]:
+def _delta_payload(page: ContextDeltaPage) -> JSONObject:
     """Build the delta response payload from one domain page.
 
     Args:

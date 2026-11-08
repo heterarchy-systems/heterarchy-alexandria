@@ -2,14 +2,23 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
+import threading
 from datetime import UTC, datetime
 from pathlib import Path
 
 import anyio
 import pytest
+from sqlalchemy import func, select
+
 from app.obsidian.application.graph.projection.obsidian_graph_projection_source_builder import (
     ObsidianGraphProjectionSourceBuilder,
+)
+from app.obsidian.domain.contracts.obsidian_graph_projection_contracts import (
+    ObsidianGraphProjection,
+    ObsidianGraphProjectionSourceMetrics,
+    ObsidianGraphProjectionSourceSnapshot,
 )
 from app.obsidian.domain.entities.obsidian_note import ObsidianEdge, ObsidianNote
 from app.obsidian.domain.event_enum.obsidian_enums import (
@@ -39,7 +48,6 @@ from app.obsidian.infrastructure.repositories.obsidian_index_mapping import (
     note_from_model,
 )
 from app.shared.infrastructure.database import Database
-from sqlalchemy import func, select
 
 _OBSIDIAN_MODELS_LOADED = _obsidian_index_models
 _NOW = datetime(2026, 8, 3, tzinfo=UTC)
@@ -51,6 +59,103 @@ class _EmptyProjectionSource(IObsidianGraphProjectionSourceRepository):
 
     async def list_projection_edges(self) -> tuple[ObsidianEdge, ...]:
         return ()
+
+
+def test_builder_runs_native_compute_off_loop_after_source_reads() -> None:
+    """The async source remains on-loop while synchronous compute uses a worker."""
+    snapshot = ObsidianGraphProjectionSourceSnapshot(
+        projection=ObsidianGraphProjection(),
+        metrics=ObsidianGraphProjectionSourceMetrics(
+            scanned=0,
+            indexed=0,
+            skipped=0,
+            errors=0,
+        ),
+    )
+
+    class _ThreadObservingSource(_EmptyProjectionSource):
+        def __init__(self) -> None:
+            self.threads: list[int] = []
+
+        async def list_projection_notes(self) -> tuple[ObsidianNote, ...]:
+            self.threads.append(threading.get_ident())
+            return ()
+
+        async def list_projection_edges(self) -> tuple[ObsidianEdge, ...]:
+            self.threads.append(threading.get_ident())
+            return ()
+
+    class _BlockingComputeProvider:
+        def __init__(self) -> None:
+            self.started = threading.Event()
+            self.release = threading.Event()
+            self.finished = threading.Event()
+            self.thread_id: int | None = None
+
+        def compute(
+            self,
+            notes: tuple[ObsidianNote, ...],
+            edges: tuple[ObsidianEdge, ...],
+            batch_size: int,
+        ) -> ObsidianGraphProjectionSourceSnapshot:
+            assert notes == ()
+            assert edges == ()
+            assert batch_size == 500
+            self.thread_id = threading.get_ident()
+            self.started.set()
+            if self.thread_id == threading.main_thread().ident:
+                raise AssertionError("graph compute ran on the event loop thread")
+            if not self.release.wait(timeout=5):
+                raise TimeoutError("test did not release graph compute")
+            self.finished.set()
+            return snapshot
+
+    source = _ThreadObservingSource()
+    compute_provider = _BlockingComputeProvider()
+    builder = ObsidianGraphProjectionSourceBuilder(
+        compute_provider=compute_provider,
+        source=source,
+    )
+
+    async def scenario() -> tuple[
+        ObsidianGraphProjectionSourceSnapshot,
+        bool,
+        int,
+        tuple[int, ...],
+        int,
+    ]:
+        event_loop_thread = threading.get_ident()
+        build = asyncio.create_task(builder.build())
+        responsive = asyncio.Event()
+
+        async def mark_responsive() -> None:
+            responsive.set()
+
+        try:
+            assert await anyio.to_thread.run_sync(compute_provider.started.wait, 5)
+            marker = asyncio.create_task(mark_responsive())
+            await responsive.wait()
+            await marker
+        finally:
+            compute_provider.release.set()
+        result = await build
+        return (
+            result,
+            responsive.is_set(),
+            event_loop_thread,
+            tuple(source.threads),
+            compute_provider.thread_id or -1,
+        )
+
+    result, responsive, event_loop_thread, source_threads, compute_thread = anyio.run(
+        scenario
+    )
+
+    assert result == snapshot
+    assert responsive is True
+    assert source_threads == (event_loop_thread, event_loop_thread)
+    assert compute_thread != event_loop_thread
+    assert compute_provider.finished.is_set()
 
 
 def _note(

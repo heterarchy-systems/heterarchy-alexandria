@@ -53,57 +53,53 @@ class JsonFormatter(logging.Formatter):
         return encoded_payload
 
 
-def _has_json_stream_handler(logger: logging.Logger) -> bool:
-    """Check whether a logger already has a stream handler using JsonFormatter.
-
-    Args:
-        logger: See function signature.
-
-    Returns:
-        Return value.
-    """
-    for handler in logger.handlers:
-        if isinstance(handler, logging.StreamHandler) and isinstance(
-            handler.formatter, JsonFormatter
-        ):
-            return True
-    return False
-
-
-def configure_logging() -> None:
+def configure_logging(app_config: AppConfig) -> None:
     """Configure root logging with a JSON stream handler.
 
     This function directly inspects and normalizes handler state so repeated calls
-    do not register duplicate handlers.
+    do not register duplicate handlers and existing JSON handlers use current
+    application metadata and policy.
 
     Args:
-        None.
+        app_config: Application configuration values.
 
     Returns:
         None.
     """
-    app_config = AppConfig()
     level_name = app_config.app_log_level.upper()
     log_level = logging.getLevelNamesMapping().get(level_name, logging.INFO)
 
     root_logger = logging.getLogger()
     root_logger.setLevel(log_level)
-    if not _has_json_stream_handler(root_logger):
-        service_context = JsonLogServiceContext(
-            service=app_config.app_name,
-            env=app_config.app_env,
-            version=app_config.app_version,
-        )
-        include_error_stack = should_include_error_stack(service_context.env)
+    if log_level == logging.DEBUG:
+        client_log_level = logging.DEBUG
+    else:
+        client_log_level = max(log_level, logging.WARNING)
+    for logger_name in ("httpx", "httpcore"):
+        logging.getLogger(logger_name).setLevel(client_log_level)
+
+    service_context = JsonLogServiceContext(
+        service=app_config.app_name,
+        env=app_config.app_env,
+        version=app_config.app_version,
+    )
+    formatter = JsonFormatter(
+        service_context=service_context,
+        include_error_stack=should_include_error_stack(service_context.env),
+    )
+    has_json_stream_handler = False
+    for handler in root_logger.handlers:
+        if isinstance(handler, logging.StreamHandler) and isinstance(
+            handler.formatter, JsonFormatter
+        ):
+            handler.setFormatter(formatter)
+            has_json_stream_handler = True
+
+    if not has_json_stream_handler:
         for existing_handler in root_logger.handlers[:]:
             root_logger.removeHandler(existing_handler)
         handler = logging.StreamHandler()
-        handler.setFormatter(
-            JsonFormatter(
-                service_context=service_context,
-                include_error_stack=include_error_stack,
-            )
-        )
+        handler.setFormatter(formatter)
         root_logger.addHandler(handler)
 
     for logger_name in ("uvicorn", "uvicorn.error"):

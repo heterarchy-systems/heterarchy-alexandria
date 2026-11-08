@@ -15,7 +15,15 @@ async def alexandria_relate(
     client: AlexandriaApiClient,
     request: ObsidianRelateRequestSchema,
 ) -> ObsidianRelateResponse:
-    """Persist one typed relation between two existing managed notes."""
+    """Persist one typed relation between two existing managed notes.
+
+    Args:
+        client: Backend HTTP API client.
+        request: Validated relation mutation request contract.
+
+    Returns:
+        Validated relation mutation response payload.
+    """
     response = await client.post(
         "/obsidian/notes/relate",
         schema_payload(request, exclude_none=True),

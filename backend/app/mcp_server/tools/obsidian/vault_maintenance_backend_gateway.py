@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from app.mcp_server.backend_api_client import AlexandriaApiClient
 from app.mcp_server.tools.backend_gateway_policy import (
-    _move_payloads,
+    move_payloads,
 )
 from app.obsidian.interface.schemas.obsidian.obsidian_temporal_coverage_schema import (
     ObsidianTemporalCoverageResponse,
@@ -138,13 +138,13 @@ async def alexandria_rebuild_note_graph(
     """Reparse one note's cached edges and activate a fresh graph snapshot.
 
     Args:
-        client: Value supplied to alexandria_rebuild_note_graph.
-        note_id: Value supplied to alexandria_rebuild_note_graph.
-        path: Value supplied to alexandria_rebuild_note_graph.
-        replace_existing_edges: Value supplied to alexandria_rebuild_note_graph.
+        client: Backend HTTP client.
+        note_id: Optional stable note id selector.
+        path: Optional vault-relative exact path selector.
+        replace_existing_edges: Whether existing edges for the note are replaced.
 
     Returns:
-        Result produced by alexandria_rebuild_note_graph.
+        Backend per-note graph rebuild response.
     """
     query: JSONObject = {"replace_existing_edges": replace_existing_edges}
     if note_id is not None:
@@ -158,7 +158,15 @@ async def alexandria_vault_inventory(
     client: AlexandriaApiClient,
     scope_path: str | None = None,
 ) -> JSONValue:
-    """Inventory managed Obsidian notes for Alexandria Core maintenance."""
+    """Inventory managed Obsidian notes for Alexandria Core maintenance.
+
+    Args:
+        client: Backend HTTP client.
+        scope_path: Optional vault-relative directory scope.
+
+    Returns:
+        Backend vault inventory response.
+    """
     payload: JSONObject = {}
     if scope_path is not None:
         payload["scope_path"] = scope_path
@@ -170,7 +178,16 @@ async def alexandria_vault_path_search(
     query: str,
     scope_path: str | None = None,
 ) -> JSONValue:
-    """Search managed Obsidian note paths and metadata."""
+    """Search managed Obsidian note paths and metadata.
+
+    Args:
+        client: Backend HTTP client.
+        query: Path or metadata query string.
+        scope_path: Optional vault-relative directory scope.
+
+    Returns:
+        Backend vault path search response.
+    """
     payload: JSONObject = {"query": query}
     if scope_path is not None:
         payload["scope_path"] = scope_path
@@ -181,10 +198,18 @@ async def alexandria_vault_move_plan(
     client: AlexandriaApiClient,
     moves: list[dict[str, str]],
 ) -> JSONValue:
-    """Build a dry-run safe move plan for explicit vault moves."""
+    """Build a dry-run safe move plan for explicit vault moves.
+
+    Args:
+        client: Backend HTTP client.
+        moves: Explicit source/destination/reason move descriptors.
+
+    Returns:
+        Backend dry-run move plan response.
+    """
     return await client.post(
         "/obsidian/vault/move-plan",
-        {"moves": _move_payloads(moves)},
+        {"moves": move_payloads(moves)},
     )
 
 
@@ -195,9 +220,20 @@ async def alexandria_vault_apply_moves(
     reindex: bool = True,
     verification_query: str | None = None,
 ) -> JSONValue:
-    """Apply explicit safe vault moves through Alexandria Core maintenance."""
+    """Apply explicit safe vault moves through Alexandria Core maintenance.
+
+    Args:
+        client: Backend HTTP client.
+        moves: Explicit source/destination/reason move descriptors.
+        report_path: Optional vault-relative report output path.
+        reindex: Whether to reindex the vault after applying moves.
+        verification_query: Optional post-move verification query.
+
+    Returns:
+        Backend move application response.
+    """
     payload: JSONObject = {
-        "moves": _move_payloads(moves),
+        "moves": move_payloads(moves),
         "reindex": reindex,
     }
     if report_path is not None:

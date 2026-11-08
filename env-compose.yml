@@ -8,7 +8,6 @@ services:
         - ALEXANDRIA_BUILD_REVISION
         - ALEXANDRIA_BUILD_TIMESTAMP
     env_file:
-      - ./.env
       - ./runtime-performance.env
     environment:
       PYTHONUNBUFFERED: "1"
@@ -17,6 +16,7 @@ services:
       SERVICE_OBSIDIAN_VAULT_PATH: /vault
     init: true
     volumes:
+      - ./module_setting_envs:/module_setting_envs:ro
       - ./backend/data:/app/data
       - embedding-model-cache:/app/cache/embeddings
       - ${ALEXANDRIA_HOST_OBSIDIAN_VAULT_PATH}:/vault

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import StringConstraints, field_validator
+from pydantic import Field, StringConstraints, field_validator
 
 from app.memory.domain.entities.memory_reconciliation import (
     CanonicalClaim,
@@ -16,11 +16,7 @@ from app.memory.domain.event_enum.reconciliation_enums import MemoryClaimPolarit
 from app.memory.interface.schemas.reconciliation.reconciliation_string_types import (
     ReconciliationTitleText,
 )
-from app.shared.schemas.common_schemas import (
-    StrictSchemaModel,
-    described_field,
-    schema_list_default,
-)
+from app.shared.schemas.common_schemas import StrictSchemaModel, schema_list_default
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 from app.shared.types.types_convert_utils import enum_value
 
@@ -31,12 +27,12 @@ class CanonicalClaimQualifierRequest(StrictSchemaModel):
     name: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=255),
-        described_field("Name for this canonical claim qualifier request."),
+        Field(description="Name for this canonical claim qualifier request."),
     ]
     value: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=2000),
-        described_field("Value for this canonical claim qualifier request."),
+        Field(description="Value for this canonical claim qualifier request."),
     ]
 
     @field_validator("name", "value")
@@ -70,33 +66,33 @@ class CanonicalClaimRequest(StrictSchemaModel):
     subject: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=1000),
-        described_field("Subject for this canonical claim request."),
+        Field(description="Subject for this canonical claim request."),
     ]
     predicate: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=500),
-        described_field("Predicate for this canonical claim request."),
+        Field(description="Predicate for this canonical claim request."),
     ]
     object: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=4000),
-        described_field("Object for this canonical claim request."),
+        Field(description="Object for this canonical claim request."),
     ]
     qualifiers: Annotated[
         list[CanonicalClaimQualifierRequest],
-        described_field("Qualifiers for this canonical claim request."),
+        Field(description="Qualifiers for this canonical claim request."),
     ] = schema_list_default()
     valid_from: Annotated[
         AwareTimestamp | None,
-        described_field("Valid from for this canonical claim request."),
+        Field(description="Valid from for this canonical claim request."),
     ] = None
     valid_to: Annotated[
         AwareTimestamp | None,
-        described_field("Valid to for this canonical claim request."),
+        Field(description="Valid to for this canonical claim request."),
     ] = None
     polarity: Annotated[
         MemoryClaimPolarity,
-        described_field("Polarity for this canonical claim request."),
+        Field(description="Polarity for this canonical claim request."),
     ] = MemoryClaimPolarity.POSITIVE
 
     @field_validator("subject", "predicate", "object")
@@ -152,30 +148,32 @@ class MemorySourceReferenceRequest(StrictSchemaModel):
     source_type: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=255),
-        described_field("Source type for this memory source reference request."),
+        Field(description="Source type for this memory source reference request."),
     ]
     source_id: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=1000),
-        described_field("Source identifier for this memory source reference request."),
+        Field(
+            description="Source identifier for this memory source reference request."
+        ),
     ]
     title: Annotated[
         ReconciliationTitleText,
-        described_field("Title for this memory source reference request."),
+        Field(description="Title for this memory source reference request."),
     ]
     detail_path: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=4000),
-        described_field("Detail path for this memory source reference request."),
+        Field(description="Detail path for this memory source reference request."),
     ]
     source_hash: Annotated[
         str | None,
         StringConstraints(strict=True, max_length=512),
-        described_field("Source hash for this memory source reference request."),
+        Field(description="Source hash for this memory source reference request."),
     ] = None
     observed_at: Annotated[
         AwareTimestamp | None,
-        described_field("Observed at for this memory source reference request."),
+        Field(description="Observed at for this memory source reference request."),
     ] = None
 
     @field_validator("source_type", "source_id", "title", "detail_path")

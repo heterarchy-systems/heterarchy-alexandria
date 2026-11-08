@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import Field
+
 from app.obsidian.domain.contracts.obsidian_contracts import ObsidianVaultSettingsUpdate
 from app.obsidian.interface.schemas.obsidian.obsidian_string_types import (
     ObsidianPathText,
 )
-from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
+from app.shared.schemas.common_schemas import StrictSchemaModel
 
 
 class ObsidianVaultSettingsUpdateRequest(StrictSchemaModel):
@@ -16,21 +18,25 @@ class ObsidianVaultSettingsUpdateRequest(StrictSchemaModel):
 
     vault_path: Annotated[
         ObsidianPathText,
-        described_field("Vault path for this Obsidian vault settings update request."),
+        Field(
+            description="Vault path for this Obsidian vault settings update request."
+        ),
     ]
     alexandria_root: Annotated[
         ObsidianPathText,
-        described_field(
-            "Alexandria root for this Obsidian vault settings update request."
+        Field(
+            description="Alexandria root for this Obsidian vault settings update request."
         ),
     ] = "."
     initialize: Annotated[
         bool,
-        described_field("Initialize for this Obsidian vault settings update request."),
+        Field(
+            description="Initialize for this Obsidian vault settings update request."
+        ),
     ] = True
     reindex: Annotated[
         bool,
-        described_field("Reindex for this Obsidian vault settings update request."),
+        Field(description="Reindex for this Obsidian vault settings update request."),
     ] = True
 
     def to_command(self) -> ObsidianVaultSettingsUpdate:

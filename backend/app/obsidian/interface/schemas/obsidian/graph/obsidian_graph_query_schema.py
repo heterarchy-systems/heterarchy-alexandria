@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import Field
+
 from app.obsidian.application.graph.diagnostics.obsidian_graph_note_diagnostics_support import (
     ObsidianGraphNoteLinkValidationReport,
     ObsidianGraphNoteRebuildReport,
@@ -17,11 +19,7 @@ from app.obsidian.interface.schemas.obsidian.graph.obsidian_graph_projection_sch
     ObsidianGraphProjectionRebuildResponse,
     ObsidianGraphProjectionStatusResponse,
 )
-from app.shared.schemas.common_schemas import (
-    StrictSchemaModel,
-    described_field,
-    schema_list_default,
-)
+from app.shared.schemas.common_schemas import StrictSchemaModel, schema_list_default
 
 
 class ObsidianGraphNoteIndexDiagnosticResponse(StrictSchemaModel):
@@ -29,44 +27,44 @@ class ObsidianGraphNoteIndexDiagnosticResponse(StrictSchemaModel):
 
     exists: Annotated[
         bool,
-        described_field(
-            "Exists for this Obsidian graph note index diagnostic response."
+        Field(
+            description="Exists for this Obsidian graph note index diagnostic response."
         ),
     ]
     note_id: Annotated[
         str | None,
-        described_field(
-            "Note identifier for this Obsidian graph note index diagnostic response."
+        Field(
+            description="Note identifier for this Obsidian graph note index diagnostic response."
         ),
     ] = None
     relative_path: Annotated[
         str | None,
-        described_field(
-            "Relative path for this Obsidian graph note index diagnostic response."
+        Field(
+            description="Relative path for this Obsidian graph note index diagnostic response."
         ),
     ] = None
     title: Annotated[
         str | None,
-        described_field(
-            "Title for this Obsidian graph note index diagnostic response."
+        Field(
+            description="Title for this Obsidian graph note index diagnostic response."
         ),
     ] = None
     index_status: Annotated[
         str | None,
-        described_field(
-            "Index status for this Obsidian graph note index diagnostic response."
+        Field(
+            description="Index status for this Obsidian graph note index diagnostic response."
         ),
     ] = None
     error_message: Annotated[
         str | None,
-        described_field(
-            "Error message for this Obsidian graph note index diagnostic response."
+        Field(
+            description="Error message for this Obsidian graph note index diagnostic response."
         ),
     ] = None
     projection_included: Annotated[
         bool,
-        described_field(
-            "Projection included for this Obsidian graph note index diagnostic response."
+        Field(
+            description="Projection included for this Obsidian graph note index diagnostic response."
         ),
     ]
 
@@ -76,30 +74,30 @@ class ObsidianGraphResolvedTargetResponse(StrictSchemaModel):
 
     edge_id: Annotated[
         str,
-        described_field(
-            "Edge identifier for this Obsidian graph resolved target response."
+        Field(
+            description="Edge identifier for this Obsidian graph resolved target response."
         ),
     ]
     target_note_id: Annotated[
         str,
-        described_field(
-            "Target note identifier for this Obsidian graph resolved target response."
+        Field(
+            description="Target note identifier for this Obsidian graph resolved target response."
         ),
     ]
     target_path: Annotated[
         str,
-        described_field(
-            "Target path for this Obsidian graph resolved target response."
+        Field(
+            description="Target path for this Obsidian graph resolved target response."
         ),
     ]
     relation: Annotated[
         str,
-        described_field("Relation for this Obsidian graph resolved target response."),
+        Field(description="Relation for this Obsidian graph resolved target response."),
     ]
     source_kind: Annotated[
         str,
-        described_field(
-            "Source kind for this Obsidian graph resolved target response."
+        Field(
+            description="Source kind for this Obsidian graph resolved target response."
         ),
     ]
 
@@ -109,49 +107,52 @@ class ObsidianGraphUnresolvedTargetResponse(StrictSchemaModel):
 
     edge_id: Annotated[
         str,
-        described_field(
-            "Edge identifier for this Obsidian graph unresolved target response."
+        Field(
+            description="Edge identifier for this Obsidian graph unresolved target response."
         ),
     ]
     target_path: Annotated[
         str,
-        described_field(
-            "Target path for this Obsidian graph unresolved target response."
+        Field(
+            description="Target path for this Obsidian graph unresolved target response."
         ),
     ]
     relation: Annotated[
         str,
-        described_field("Relation for this Obsidian graph unresolved target response."),
+        Field(
+            description="Relation for this Obsidian graph unresolved target response."
+        ),
     ]
     source_kind: Annotated[
         str,
-        described_field(
-            "Source kind for this Obsidian graph unresolved target response."
+        Field(
+            description="Source kind for this Obsidian graph unresolved target response."
         ),
     ]
     code: Annotated[
-        str, described_field("Code for this Obsidian graph unresolved target response.")
+        str,
+        Field(description="Code for this Obsidian graph unresolved target response."),
     ]
     detail: Annotated[
         str,
-        described_field("Detail for this Obsidian graph unresolved target response."),
+        Field(description="Detail for this Obsidian graph unresolved target response."),
     ]
     target_note_id: Annotated[
         str | None,
-        described_field(
-            "Target note identifier for this Obsidian graph unresolved target response."
+        Field(
+            description="Target note identifier for this Obsidian graph unresolved target response."
         ),
     ] = None
     candidate_note_ids: Annotated[
         list[str],
-        described_field(
-            "Candidate note identifiers for this Obsidian graph unresolved target response."
+        Field(
+            description="Candidate note identifiers for this Obsidian graph unresolved target response."
         ),
     ]
     candidate_paths: Annotated[
         list[str],
-        described_field(
-            "Candidate paths for this Obsidian graph unresolved target response."
+        Field(
+            description="Candidate paths for this Obsidian graph unresolved target response."
         ),
     ]
 
@@ -161,35 +162,35 @@ class ObsidianGraphOutgoingLinkDiagnosticResponse(StrictSchemaModel):
 
     parsed_count: Annotated[
         int,
-        described_field(
-            "Parsed count for this Obsidian graph outgoing link diagnostic response.",
+        Field(
+            description="Parsed count for this Obsidian graph outgoing link diagnostic response.",
             ge=0,
         ),
     ]
     resolved_count: Annotated[
         int,
-        described_field(
-            "Resolved count for this Obsidian graph outgoing link diagnostic response.",
+        Field(
+            description="Resolved count for this Obsidian graph outgoing link diagnostic response.",
             ge=0,
         ),
     ]
     unresolved_count: Annotated[
         int,
-        described_field(
-            "Unresolved count for this Obsidian graph outgoing link diagnostic response.",
+        Field(
+            description="Unresolved count for this Obsidian graph outgoing link diagnostic response.",
             ge=0,
         ),
     ]
     unresolved_targets: Annotated[
         list[ObsidianGraphUnresolvedTargetResponse],
-        described_field(
-            "Unresolved targets for this Obsidian graph outgoing link diagnostic response."
+        Field(
+            description="Unresolved targets for this Obsidian graph outgoing link diagnostic response."
         ),
     ]
     resolved_targets: Annotated[
         list[ObsidianGraphResolvedTargetResponse],
-        described_field(
-            "Resolved targets for this Obsidian graph outgoing link diagnostic response."
+        Field(
+            description="Resolved targets for this Obsidian graph outgoing link diagnostic response."
         ),
     ]
 
@@ -199,24 +200,26 @@ class ObsidianGraphNoteLinkValidationResponse(StrictSchemaModel):
 
     selector: Annotated[
         ObsidianGraphNoteSelectorResponse,
-        described_field(
-            "Selector for this Obsidian graph note link validation response."
+        Field(
+            description="Selector for this Obsidian graph note link validation response."
         ),
     ]
     note: Annotated[
         ObsidianGraphNoteIndexDiagnosticResponse,
-        described_field("Note for this Obsidian graph note link validation response."),
+        Field(
+            description="Note for this Obsidian graph note link validation response."
+        ),
     ]
     outgoing: Annotated[
         ObsidianGraphOutgoingLinkDiagnosticResponse,
-        described_field(
-            "Outgoing for this Obsidian graph note link validation response."
+        Field(
+            description="Outgoing for this Obsidian graph note link validation response."
         ),
     ]
     projection: Annotated[
         ObsidianGraphProjectionStatusResponse,
-        described_field(
-            "Projection for this Obsidian graph note link validation response."
+        Field(
+            description="Projection for this Obsidian graph note link validation response."
         ),
     ]
 
@@ -287,17 +290,17 @@ class ObsidianGraphNoteRebuildResponse(StrictSchemaModel):
 
     replace_existing_edges: Annotated[
         bool,
-        described_field(
-            "Replace existing edges for this Obsidian graph note rebuild response."
+        Field(
+            description="Replace existing edges for this Obsidian graph note rebuild response."
         ),
     ]
     validation: Annotated[
         ObsidianGraphNoteLinkValidationResponse,
-        described_field("Validation for this Obsidian graph note rebuild response."),
+        Field(description="Validation for this Obsidian graph note rebuild response."),
     ]
     projection: Annotated[
         ObsidianGraphProjectionRebuildResponse,
-        described_field("Projection for this Obsidian graph note rebuild response."),
+        Field(description="Projection for this Obsidian graph note rebuild response."),
     ]
 
     @classmethod
@@ -329,25 +332,29 @@ class ObsidianGraphIssueDetailResponse(StrictSchemaModel):
 
     issue_id: Annotated[
         str,
-        described_field(
-            "Stable deterministic issue identity, stable across projection runs."
+        Field(
+            description="Stable deterministic issue identity, stable across projection runs."
         ),
     ]
-    code: Annotated[str, described_field("Graph projection issue code.")]
-    edge_id: Annotated[str, described_field("Canonical edge identifier.")]
+    code: Annotated[str, Field(description="Graph projection issue code.")]
+    edge_id: Annotated[str, Field(description="Canonical edge identifier.")]
     source_note_id: Annotated[
-        str, described_field("Source note identifier of the broken link.")
+        str, Field(description="Source note identifier of the broken link.")
     ]
-    source_path: Annotated[str, described_field("Source note vault-relative path.")]
+    source_path: Annotated[str, Field(description="Source note vault-relative path.")]
     source_title: Annotated[
-        str | None, described_field("Source note title when known.")
+        str | None, Field(description="Source note title when known.")
     ] = None
-    target_path: Annotated[str, described_field("Unresolved or ambiguous target path.")]
-    relation: Annotated[str, described_field("Edge relation name.")]
-    detail: Annotated[str | None, described_field("Bounded diagnostic detail.")] = None
+    target_path: Annotated[
+        str, Field(description="Unresolved or ambiguous target path.")
+    ]
+    relation: Annotated[str, Field(description="Edge relation name.")]
+    detail: Annotated[str | None, Field(description="Bounded diagnostic detail.")] = (
+        None
+    )
     projection_run_id: Annotated[
         str | None,
-        described_field("Projection run that produced the issue."),
+        Field(description="Projection run that produced the issue."),
     ] = None
 
     @classmethod
@@ -375,15 +382,15 @@ class ObsidianGraphIssueListResponse(StrictSchemaModel):
 
     issues: Annotated[
         list[ObsidianGraphIssueDetailResponse],
-        described_field("Issues in edge-id order for this page."),
+        Field(description="Issues in edge-id order for this page."),
     ] = schema_list_default()
     next_cursor: Annotated[
         str | None,
-        described_field("Cursor for the next page; None when exhausted."),
+        Field(description="Cursor for the next page; None when exhausted."),
     ] = None
     run_id: Annotated[
         str | None,
-        described_field("Projection run id backing this issue listing."),
+        Field(description="Projection run id backing this issue listing."),
     ] = None
 
     @classmethod

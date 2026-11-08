@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from hashlib import sha256
-from typing import Protocol, cast
+from typing import Protocol
 
 from app.shared.serialization.orjson_codec import dumps_canonical_json
 from app.shared.types.extra_types import JSONValue
@@ -64,7 +64,7 @@ def memory_compact_source_set_hash(
     Returns:
         Lowercase SHA-256 hex digest over the canonical sorted source-set payload.
     """
-    payload = [
+    payload: list[JSONValue] = [
         {
             "source_type": source_ref.source_type,
             "source_id": source_ref.source_id,
@@ -81,4 +81,4 @@ def memory_compact_source_set_hash(
             ),
         )
     ]
-    return sha256(dumps_canonical_json(cast(JSONValue, payload))).hexdigest()
+    return sha256(dumps_canonical_json(payload)).hexdigest()

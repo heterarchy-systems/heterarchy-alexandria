@@ -10,15 +10,11 @@ from app.mcp_server.backend_api_client import AlexandriaApiClient
 from app.mcp_server.tools.backend_gateway_policy import (
     DEFAULT_CONTEXT_SEARCH_LIMIT,
     DEFAULT_CONTEXT_SEARCH_STRATEGY,
-    _bounded_search_limit,
+    bounded_search_limit,
 )
 from app.mcp_server.tools.contexts.context_backend_gateway import (
     alexandria_context_brief,
     alexandria_search,
-)
-from app.memory.application.retrieval.context_brief import (
-    MAX_CONTEXT_BRIEF_BYTES,
-    MAX_CONTEXTS_PER_BRIEF,
 )
 from app.memory.domain.event_enum.context_enums import (
     ContextKind,
@@ -27,8 +23,14 @@ from app.memory.domain.event_enum.context_enums import (
     MemoryFunction,
     RagStrategy,
 )
-from app.memory.interface.schemas.context.context_retrieval_schema import (
+from app.memory.domain.types.context_payload_types import (
+    MAX_CONTEXT_BRIEF_BYTES,
+    MAX_CONTEXTS_PER_BRIEF,
+)
+from app.memory.interface.schemas.context.context_brief_schema import (
     ContextBriefRequest,
+)
+from app.memory.interface.schemas.context.context_search_schema import (
     ContextSearchRequest,
 )
 from app.shared.types.extra_types import JSONValue
@@ -82,7 +84,7 @@ def register_context_recall_tools(
             api_client,
             ContextSearchRequest(
                 query=query,
-                limit=_bounded_search_limit(limit),
+                limit=bounded_search_limit(limit),
                 strategy=strategy,
                 project=project,
                 kind=kind,
@@ -170,7 +172,7 @@ def register_context_brief_tool(
                 byte_budget=byte_budget,
                 record_budget=record_budget,
                 previously_delivered=pairs,
-                limit=_bounded_search_limit(limit),
+                limit=bounded_search_limit(limit),
                 strategy=strategy,
                 project=project,
                 kind=kind,

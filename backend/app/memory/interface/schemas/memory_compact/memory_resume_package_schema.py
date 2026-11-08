@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import StringConstraints
+from pydantic import Field, StringConstraints
 
 from app.memory.application.memory_compacts.resume_package.resume_package_contracts import (
     ResumePackageAttributedItem,
@@ -14,11 +14,7 @@ from app.memory.application.memory_compacts.resume_package.resume_package_contra
     ResumePackageView,
 )
 from app.memory.domain.event_enum.memory_compact_enums import MemoryCompactStatus
-from app.shared.schemas.common_schemas import (
-    StrictSchemaModel,
-    described_field,
-    schema_list_default,
-)
+from app.shared.schemas.common_schemas import StrictSchemaModel, schema_list_default
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 
 NonBlankSingleLineString = Annotated[
@@ -36,11 +32,11 @@ class MemoryResumePackageAttributionRequest(StrictSchemaModel):
 
     text: Annotated[
         NonBlankSingleLineString,
-        described_field("Text of this accepted change or constraint."),
+        Field(description="Text of this accepted change or constraint."),
     ]
     source_context_id: Annotated[
         NonBlankSingleLineString,
-        described_field("Stored Context identifier attributing this item."),
+        Field(description="Stored Context identifier attributing this item."),
     ]
 
     def to_item(self) -> ResumePackageAttributedItem:
@@ -64,23 +60,23 @@ class MemoryResumePackageLineageRequest(StrictSchemaModel):
 
     lineage_id: Annotated[
         NonBlankSingleLineString,
-        described_field("Stable lineage identity for the handoff chain."),
+        Field(description="Stable lineage identity for the handoff chain."),
     ]
     worker_id: Annotated[
         NonBlankSingleLineString | None,
-        described_field("Optional originating worker identity."),
+        Field(description="Optional originating worker identity."),
     ] = None
     run_id: Annotated[
         NonBlankSingleLineString | None,
-        described_field("Optional originating run identity."),
+        Field(description="Optional originating run identity."),
     ] = None
     workspace_id: Annotated[
         NonBlankSingleLineString | None,
-        described_field("Optional workspace reference."),
+        Field(description="Optional workspace reference."),
     ] = None
     session_id: Annotated[
         NonBlankSingleLineString | None,
-        described_field("Optional session reference."),
+        Field(description="Optional session reference."),
     ] = None
 
     def to_lineage(self) -> ResumePackageLineage:
@@ -103,76 +99,76 @@ class MemoryResumePackageCreateRequest(StrictSchemaModel):
 
     project: Annotated[
         str | None,
-        described_field("Project scope recorded under Coverage."),
+        Field(description="Project scope recorded under Coverage."),
     ] = None
     goal: Annotated[
         NonBlankSingleLineString,
-        described_field("Original objective sourced from the caller."),
+        Field(description="Original objective sourced from the caller."),
     ]
     summary: Annotated[
         NonBlankSingleLineString,
-        described_field("Single-line package summary."),
+        Field(description="Single-line package summary."),
     ]
     current_state: Annotated[
         NonBlankSingleLineString,
-        described_field("Single-line current-state statement."),
+        Field(description="Single-line current-state statement."),
     ]
     next_single_action: Annotated[
         NonBlankSingleLineString,
-        described_field("Single next action for the resuming worker."),
+        Field(description="Single next action for the resuming worker."),
     ]
     covered_from: Annotated[
         AwareTimestamp,
-        described_field("Inclusive coverage start timestamp."),
+        Field(description="Inclusive coverage start timestamp."),
     ]
     covered_to: Annotated[
         AwareTimestamp,
-        described_field("Coverage end timestamp."),
+        Field(description="Coverage end timestamp."),
     ]
     lineage: Annotated[
         MemoryResumePackageLineageRequest,
-        described_field("Worker-handoff lineage identity."),
+        Field(description="Worker-handoff lineage identity."),
     ]
     evidence_context_ids: Annotated[
         list[NonBlankSingleLineString],
-        described_field(
-            "Stored Context identifiers observed as evidence; content hashes "
+        Field(
+            description="Stored Context identifiers observed as evidence; content hashes "
             "are computed server-side from stored content.",
             min_length=1,
         ),
     ]
     accepted_changes: Annotated[
         list[MemoryResumePackageAttributionRequest],
-        described_field("Accepted changes with source attribution."),
+        Field(description="Accepted changes with source attribution."),
     ] = schema_list_default()
     constraints: Annotated[
         list[MemoryResumePackageAttributionRequest],
-        described_field("Constraints with source attribution."),
+        Field(description="Constraints with source attribution."),
     ] = schema_list_default()
     verified_complete: Annotated[
         list[NonBlankSingleLineString],
-        described_field("Tasks verified complete by observed evidence."),
+        Field(description="Tasks verified complete by observed evidence."),
     ] = schema_list_default()
     implemented_unverified: Annotated[
         list[NonBlankSingleLineString],
-        described_field("Tasks implemented but not verified."),
+        Field(description="Tasks implemented but not verified."),
     ] = schema_list_default()
     unfinished_tasks: Annotated[
         list[NonBlankSingleLineString],
-        described_field("Tasks intentionally left unfinished."),
+        Field(description="Tasks intentionally left unfinished."),
     ] = schema_list_default()
     uncertain_results: Annotated[
         list[NonBlankSingleLineString],
-        described_field("Results whose confidence is uncertain."),
+        Field(description="Results whose confidence is uncertain."),
     ] = schema_list_default()
     blockers: Annotated[
         list[NonBlankSingleLineString],
-        described_field("Active blockers."),
+        Field(description="Active blockers."),
     ] = schema_list_default()
     request_id: Annotated[
         NonBlankSingleLineString | None,
-        described_field(
-            "Optional caller retry-fencing identity. Retrying the same "
+        Field(
+            description="Optional caller retry-fencing identity. Retrying the same "
             "request id with different content is rejected with a typed "
             "conflict instead of sealing a new revision."
         ),
@@ -210,23 +206,23 @@ class MemoryResumePackageEvidenceRefResponse(StrictSchemaModel):
 
     context_id: Annotated[
         str,
-        described_field("Stored Context identifier backing this evidence ref."),
+        Field(description="Stored Context identifier backing this evidence ref."),
     ]
     content_hash: Annotated[
         str,
-        described_field("Server-observed content hash at seal time."),
+        Field(description="Server-observed content hash at seal time."),
     ]
     source: Annotated[
         str,
-        described_field("Observed source identity of the Context record."),
+        Field(description="Observed source identity of the Context record."),
     ]
     created_at: Annotated[
         AwareTimestamp,
-        described_field("Creation timestamp of the observed Context record."),
+        Field(description="Creation timestamp of the observed Context record."),
     ]
     observed_updated_at: Annotated[
         AwareTimestamp,
-        described_field("Last-update timestamp observed at seal time."),
+        Field(description="Last-update timestamp observed at seal time."),
     ]
 
     @classmethod
@@ -256,133 +252,133 @@ class MemoryResumePackageResponse(StrictSchemaModel):
 
     package_id: Annotated[
         str,
-        described_field("Memory Compact identifier of this resume package."),
+        Field(description="Memory Compact identifier of this resume package."),
     ]
     project: Annotated[
         str | None,
-        described_field("Project scope recorded under Coverage."),
+        Field(description="Project scope recorded under Coverage."),
     ]
     status: Annotated[
         MemoryCompactStatus,
-        described_field("Compact lifecycle status of this package artifact."),
+        Field(description="Compact lifecycle status of this package artifact."),
     ]
     covered_from: Annotated[
         AwareTimestamp,
-        described_field("Inclusive coverage start timestamp."),
+        Field(description="Inclusive coverage start timestamp."),
     ]
     covered_to: Annotated[
         AwareTimestamp,
-        described_field("Coverage end timestamp."),
+        Field(description="Coverage end timestamp."),
     ]
     goal: Annotated[
         str,
-        described_field("Original objective sourced from the caller."),
+        Field(description="Original objective sourced from the caller."),
     ]
     summary: Annotated[
         str,
-        described_field("Single-line package summary."),
+        Field(description="Single-line package summary."),
     ]
     current_state: Annotated[
         str,
-        described_field("Single-line current-state statement."),
+        Field(description="Single-line current-state statement."),
     ]
     next_single_action: Annotated[
         str,
-        described_field("Single next action for the resuming worker."),
+        Field(description="Single next action for the resuming worker."),
     ]
     accepted_changes: Annotated[
         list[MemoryResumePackageAttributionRequest],
-        described_field("Accepted changes with source attribution."),
+        Field(description="Accepted changes with source attribution."),
     ]
     constraints: Annotated[
         list[MemoryResumePackageAttributionRequest],
-        described_field("Constraints with source attribution."),
+        Field(description="Constraints with source attribution."),
     ]
     verified_complete: Annotated[
         list[str],
-        described_field("Tasks verified complete by observed evidence."),
+        Field(description="Tasks verified complete by observed evidence."),
     ]
     implemented_unverified: Annotated[
         list[str],
-        described_field("Tasks implemented but not verified."),
+        Field(description="Tasks implemented but not verified."),
     ]
     unfinished_tasks: Annotated[
         list[str],
-        described_field("Tasks intentionally left unfinished."),
+        Field(description="Tasks intentionally left unfinished."),
     ]
     uncertain_results: Annotated[
         list[str],
-        described_field("Results whose confidence is uncertain."),
+        Field(description="Results whose confidence is uncertain."),
     ]
     blockers: Annotated[
         list[str],
-        described_field("Active blockers."),
+        Field(description="Active blockers."),
     ]
     evidence_refs: Annotated[
         list[MemoryResumePackageEvidenceRefResponse],
-        described_field("Server-observed evidence references."),
+        Field(description="Server-observed evidence references."),
     ]
     lineage_id: Annotated[
         str,
-        described_field("Stable lineage identity for the handoff chain."),
+        Field(description="Stable lineage identity for the handoff chain."),
     ]
     worker_id: Annotated[
         str | None,
-        described_field("Optional originating worker identity."),
+        Field(description="Optional originating worker identity."),
     ]
     run_id: Annotated[
         str | None,
-        described_field("Optional originating run identity."),
+        Field(description="Optional originating run identity."),
     ]
     workspace_id: Annotated[
         str | None,
-        described_field("Optional workspace reference."),
+        Field(description="Optional workspace reference."),
     ]
     session_id: Annotated[
         str | None,
-        described_field("Optional session reference."),
+        Field(description="Optional session reference."),
     ]
     previous_package_id: Annotated[
         str | None,
-        described_field("Sealed predecessor package id in the lineage."),
+        Field(description="Sealed predecessor package id in the lineage."),
     ]
     package_revision: Annotated[
         int,
-        described_field("Sealed monotonic revision within the lineage."),
+        Field(description="Sealed monotonic revision within the lineage."),
     ]
     draft_hash: Annotated[
         str,
-        described_field("Stable content hash of the draft and evidence."),
+        Field(description="Stable content hash of the draft and evidence."),
     ]
     request_id: Annotated[
         str | None,
-        described_field(
-            "Sealed caller retry-fencing identity, when the request carried one."
+        Field(
+            description="Sealed caller retry-fencing identity, when the request carried one."
         ),
     ]
     source_set_hash: Annotated[
         str | None,
-        described_field("Deterministic source-set hash for compact provenance."),
+        Field(description="Deterministic source-set hash for compact provenance."),
     ]
     compaction_policy_version: Annotated[
         str | None,
-        described_field("Compaction policy version that stored this artifact."),
+        Field(description="Compaction policy version that stored this artifact."),
     ]
     compact_generation_revision: Annotated[
         int | None,
-        described_field("Compact generation revision of the stored artifact."),
+        Field(description="Compact generation revision of the stored artifact."),
     ]
     generated_at: Annotated[
         AwareTimestamp | None,
-        described_field("Generation timestamp of the stored artifact."),
+        Field(description="Generation timestamp of the stored artifact."),
     ]
     deduplicated: Annotated[
         bool,
-        described_field("Whether this response reports duplicate reuse."),
+        Field(description="Whether this response reports duplicate reuse."),
     ]
     markdown_body: Annotated[
         str,
-        described_field("Canonical linted Markdown body of the package."),
+        Field(description="Canonical linted Markdown body of the package."),
     ]
 
     @classmethod

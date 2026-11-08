@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import StringConstraints
+from pydantic import Field, StringConstraints
 
 from app.operations.application.recovery.planning.recovery_plan_contracts import (
     RecoveryPlanRequest,
@@ -24,7 +24,6 @@ from app.operations.interface.schemas.operations.recovery_plan_schema import (
 )
 from app.shared.schemas.common_schemas import (
     StrictSchemaModel,
-    described_field,
     schema_dict_default,
     schema_list_default,
 )
@@ -40,7 +39,7 @@ class RecoveryRunRequestSchema(RecoveryPlanRequestSchema):
         StringConstraints(
             strict=True, min_length=64, max_length=64, pattern="^[0-9a-f]{64}$"
         ),
-        described_field("Exact source-bound plan hash admitted by a prior dry-run."),
+        Field(description="Exact source-bound plan hash admitted by a prior dry-run."),
     ]
 
     def to_contract(self) -> RecoveryPlanRequest:
@@ -64,7 +63,7 @@ class RecoveryRunRetryRequestSchema(RecoveryRunRequestSchema):
     trigger: Annotated[
         str,
         StringConstraints(strict=True, min_length=1),
-        described_field("Trigger for this recovery run retry request."),
+        Field(description="Trigger for this recovery run retry request."),
     ] = "retry"
     parent_run_id: None = None
 
@@ -87,29 +86,29 @@ class RecoveryRunStepResultResponse(StrictSchemaModel):
     """Recovery step execution result response."""
 
     code: Annotated[
-        str, described_field("Code for this recovery run step result response.")
+        str, Field(description="Code for this recovery run step result response.")
     ]
     status: Annotated[
         RecoveryStepStatus,
-        described_field("Status for this recovery run step result response."),
+        Field(description="Status for this recovery run step result response."),
     ]
     attempts: Annotated[
-        int, described_field("Attempts for this recovery run step result response.")
+        int, Field(description="Attempts for this recovery run step result response.")
     ]
     started_at: Annotated[
         AwareTimestamp | None,
-        described_field("Started at for this recovery run step result response."),
+        Field(description="Started at for this recovery run step result response."),
     ]
     finished_at: Annotated[
         AwareTimestamp | None,
-        described_field("Finished at for this recovery run step result response."),
+        Field(description="Finished at for this recovery run step result response."),
     ]
     input_hash: Annotated[
-        str, described_field("Input hash for this recovery run step result response.")
+        str, Field(description="Input hash for this recovery run step result response.")
     ]
     result: Annotated[
         JSONObject,
-        described_field("Result for this recovery run step result response."),
+        Field(description="Result for this recovery run step result response."),
     ] = schema_dict_default()
 
     @classmethod
@@ -141,73 +140,75 @@ class RecoveryRunResponse(StrictSchemaModel):
 
     admitted_plan_hash: Annotated[
         str | None,
-        described_field(
-            "Recorded admitted plan hash; null when evidence is unavailable."
+        Field(
+            description="Recorded admitted plan hash; null when evidence is unavailable."
         ),
     ] = None
 
     id: Annotated[
-        str, described_field("Stable identifier for this recovery run response.")
+        str, Field(description="Stable identifier for this recovery run response.")
     ]
     parent_run_id: Annotated[
         str | None,
-        described_field("Parent run identifier for this recovery run response."),
+        Field(description="Parent run identifier for this recovery run response."),
     ]
     idempotency_key: Annotated[
-        str, described_field("Idempotency key for this recovery run response.")
+        str, Field(description="Idempotency key for this recovery run response.")
     ]
-    trigger: Annotated[str, described_field("Trigger for this recovery run response.")]
-    actor: Annotated[str, described_field("Actor for this recovery run response.")]
+    trigger: Annotated[
+        str, Field(description="Trigger for this recovery run response.")
+    ]
+    actor: Annotated[str, Field(description="Actor for this recovery run response.")]
     status: Annotated[
-        RecoveryRunStatus, described_field("Status for this recovery run response.")
+        RecoveryRunStatus, Field(description="Status for this recovery run response.")
     ]
     current_step: Annotated[
-        str | None, described_field("Current step for this recovery run response.")
+        str | None, Field(description="Current step for this recovery run response.")
     ]
     started_at: Annotated[
-        AwareTimestamp, described_field("Started at for this recovery run response.")
+        AwareTimestamp, Field(description="Started at for this recovery run response.")
     ]
     updated_at: Annotated[
         AwareTimestamp,
-        described_field("Last-update timestamp for this recovery run response."),
+        Field(description="Last-update timestamp for this recovery run response."),
     ]
     finished_at: Annotated[
         AwareTimestamp | None,
-        described_field("Finished at for this recovery run response."),
+        Field(description="Finished at for this recovery run response."),
     ]
     source_snapshot: Annotated[
         RecoverySourceSnapshotResponse,
-        described_field("Source snapshot for this recovery run response."),
+        Field(description="Source snapshot for this recovery run response."),
     ]
     diagnosis: Annotated[
-        list[str], described_field("Diagnosis for this recovery run response.")
+        list[str], Field(description="Diagnosis for this recovery run response.")
     ] = schema_list_default()
     planned_steps: Annotated[
         list[RecoveryPlanStepResponse],
-        described_field("Planned steps for this recovery run response."),
+        Field(description="Planned steps for this recovery run response."),
     ] = schema_list_default()
     step_results: Annotated[
         list[RecoveryRunStepResultResponse],
-        described_field("Step results for this recovery run response."),
+        Field(description="Step results for this recovery run response."),
     ] = schema_list_default()
     rebuild_results: Annotated[
-        JSONObject, described_field("Rebuild results for this recovery run response.")
+        JSONObject, Field(description="Rebuild results for this recovery run response.")
     ] = schema_dict_default()
     verification_results: Annotated[
         JSONObject,
-        described_field("Verification results for this recovery run response."),
+        Field(description="Verification results for this recovery run response."),
     ] = schema_dict_default()
     error_code: Annotated[
-        str | None, described_field("Error code for this recovery run response.")
+        str | None, Field(description="Error code for this recovery run response.")
     ]
     error_summary: Annotated[
-        str | None, described_field("Error summary for this recovery run response.")
+        str | None, Field(description="Error summary for this recovery run response.")
     ]
     next_actions: Annotated[
-        list[str], described_field("Next actions for this recovery run response.")
+        list[str], Field(description="Next actions for this recovery run response.")
     ] = schema_list_default()
     manifest_path: Annotated[
-        str, described_field("Manifest path for this recovery run response.")
+        str, Field(description="Manifest path for this recovery run response.")
     ]
 
     @classmethod

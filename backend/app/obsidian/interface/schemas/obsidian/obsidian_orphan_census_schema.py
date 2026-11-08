@@ -4,13 +4,9 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import StringConstraints
+from pydantic import Field, StringConstraints
 
-from app.shared.schemas.common_schemas import (
-    StrictSchemaModel,
-    described_field,
-    exclude_none_field,
-)
+from app.shared.schemas.common_schemas import StrictSchemaModel, exclude_none_field
 
 
 class ObsidianGraphOrphanListRequest(StrictSchemaModel):
@@ -19,16 +15,16 @@ class ObsidianGraphOrphanListRequest(StrictSchemaModel):
     project: Annotated[
         str | None,
         StringConstraints(strict=True, min_length=1, max_length=255),
-        described_field("Optional project filter."),
+        Field(description="Optional project filter."),
         exclude_none_field(),
     ] = None
     limit: Annotated[
-        int, described_field("Maximum orphans on this page.", ge=1, le=200)
+        int, Field(description="Maximum orphans on this page.", ge=1, le=200)
     ] = 50
     cursor: Annotated[
         str | None,
         StringConstraints(strict=True, min_length=1, max_length=2048),
-        described_field("Last path from the previous page."),
+        Field(description="Last path from the previous page."),
         exclude_none_field(),
     ] = None
 
@@ -39,74 +35,76 @@ class ObsidianGraphOrphanStatusRequest(StrictSchemaModel):
     note_id: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=255),
-        described_field("Exact orphan note identifier."),
+        Field(description="Exact orphan note identifier."),
     ]
 
 
 class ObsidianGraphOrphanEntryResponse(StrictSchemaModel):
     """One degree-zero node with its census status."""
 
-    note_id: Annotated[str, described_field("Orphan note identifier.")]
-    relative_path: Annotated[str, described_field("Canonical managed path.")]
-    title: Annotated[str, described_field("Canonical note title.")]
+    note_id: Annotated[str, Field(description="Orphan note identifier.")]
+    relative_path: Annotated[str, Field(description="Canonical managed path.")]
+    title: Annotated[str, Field(description="Canonical note title.")]
     project: Annotated[
         str | None,
-        described_field("Project identity when declared."),
+        Field(description="Project identity when declared."),
         exclude_none_field(),
     ] = None
     status: Annotated[
         str,
-        described_field(
-            "OPEN, RESOLVED, ACKNOWLEDGED_STANDALONE, or IGNORED_WITH_REASON."
+        Field(
+            description="OPEN, RESOLVED, ACKNOWLEDGED_STANDALONE, or IGNORED_WITH_REASON."
         ),
     ]
-    in_degree: Annotated[int | None, described_field("Projection in-degree.")] = None
-    out_degree: Annotated[int | None, described_field("Projection out-degree.")] = None
+    in_degree: Annotated[int | None, Field(description="Projection in-degree.")] = None
+    out_degree: Annotated[int | None, Field(description="Projection out-degree.")] = (
+        None
+    )
     canonical_parent_count: Annotated[
-        int | None, described_field("Incoming canonical contains-parent count.")
+        int | None, Field(description="Incoming canonical contains-parent count.")
     ] = None
     has_wikilink_connectivity: Annotated[
         bool | None,
-        described_field(
-            "Whether wikilink-only connectivity exists without canonical parent ownership."
+        Field(
+            description="Whether wikilink-only connectivity exists without canonical parent ownership."
         ),
     ] = None
-    debt_kinds: Annotated[list[str], described_field("Measured orphan debt classes.")]
+    debt_kinds: Annotated[list[str], Field(description="Measured orphan debt classes.")]
     has_declared_relations: Annotated[
         bool | None,
-        described_field(
-            "Whether the note still declares relation frontmatter, so the "
+        Field(
+            description="Whether the note still declares relation frontmatter, so the "
             "orphan is an unresolved-declared-link case."
         ),
     ] = None
     acknowledgement_reason: Annotated[
         str | None,
-        described_field("Reason recorded with the acknowledgement."),
+        Field(description="Reason recorded with the acknowledgement."),
         exclude_none_field(),
     ] = None
     first_seen_at: Annotated[
         str | None,
-        described_field("First durable census observation timestamp."),
+        Field(description="First durable census observation timestamp."),
         exclude_none_field(),
     ] = None
     last_seen_at: Annotated[
         str | None,
-        described_field("Latest durable census observation timestamp."),
+        Field(description="Latest durable census observation timestamp."),
         exclude_none_field(),
     ] = None
     first_seen_run_id: Annotated[
         str | None,
-        described_field("Run that first observed this orphan."),
+        Field(description="Run that first observed this orphan."),
         exclude_none_field(),
     ] = None
     last_seen_run_id: Annotated[
         str | None,
-        described_field("Most recent run that observed this orphan."),
+        Field(description="Most recent run that observed this orphan."),
         exclude_none_field(),
     ] = None
     graph_run_id: Annotated[
         str | None,
-        described_field("Projection run associated with the latest observation."),
+        Field(description="Projection run associated with the latest observation."),
         exclude_none_field(),
     ] = None
 
@@ -116,14 +114,14 @@ class ObsidianGraphOrphanCensusResponse(StrictSchemaModel):
 
     orphans: Annotated[
         list[ObsidianGraphOrphanEntryResponse],
-        described_field("Orphans in path order for this page."),
+        Field(description="Orphans in path order for this page."),
     ]
     total_orphans: Annotated[
-        int, described_field("Total measured degree-zero or missing-parent debt.")
+        int, Field(description="Total measured degree-zero or missing-parent debt.")
     ]
     next_cursor: Annotated[
         str | None,
-        described_field("Cursor for the next page when more orphans exist."),
+        Field(description="Cursor for the next page when more orphans exist."),
         exclude_none_field(),
     ] = None
 
@@ -134,22 +132,22 @@ class ObsidianGraphOrphanAcknowledgeRequest(StrictSchemaModel):
     note_id: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=255),
-        described_field("Orphan note identifier."),
+        Field(description="Orphan note identifier."),
     ]
     decision: Annotated[
         Literal["ACKNOWLEDGED_STANDALONE", "IGNORED_WITH_REASON"],
-        described_field("Census decision for this standalone note."),
+        Field(description="Census decision for this standalone note."),
     ]
     reason: Annotated[
         str | None,
         StringConstraints(strict=True, min_length=1, max_length=1000),
-        described_field("Required reason for IGNORED_WITH_REASON."),
+        Field(description="Required reason for IGNORED_WITH_REASON."),
         exclude_none_field(),
     ] = None
     acknowledged_by: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=128),
-        described_field("Actor label recorded for provenance."),
+        Field(description="Actor label recorded for provenance."),
     ] = "agent"
 
 
@@ -159,50 +157,50 @@ class ObsidianGraphSuggestRelationsRequest(StrictSchemaModel):
     note_id: Annotated[
         str | None,
         StringConstraints(strict=True, min_length=1, max_length=255),
-        described_field("Seed note identifier; requires note_id or path."),
+        Field(description="Seed note identifier; requires note_id or path."),
         exclude_none_field(),
     ] = None
     path: Annotated[
         str | None,
         StringConstraints(strict=True, min_length=1, max_length=2048),
-        described_field("Seed note vault-relative path; requires note_id or path."),
+        Field(description="Seed note vault-relative path; requires note_id or path."),
         exclude_none_field(),
     ] = None
-    limit: Annotated[int, described_field("Maximum suggestions.", ge=1, le=50)] = 10
+    limit: Annotated[int, Field(description="Maximum suggestions.", ge=1, le=50)] = 10
 
 
 class ObsidianGraphRelationSuggestionResponse(StrictSchemaModel):
     """One evidence-backed relation candidate."""
 
-    candidate_note_id: Annotated[str, described_field("Candidate note identifier.")]
-    candidate_path: Annotated[str, described_field("Candidate managed path.")]
-    candidate_title: Annotated[str, described_field("Candidate title.")]
+    candidate_note_id: Annotated[str, Field(description="Candidate note identifier.")]
+    candidate_path: Annotated[str, Field(description="Candidate managed path.")]
+    candidate_title: Annotated[str, Field(description="Candidate title.")]
     relation: Annotated[
-        str, described_field("Proposed relation type (suggestion only).")
+        str, Field(description="Proposed relation type (suggestion only).")
     ]
     confidence: Annotated[
-        float, described_field("Deterministic evidence score, bounded 0..1.")
+        float, Field(description="Deterministic evidence score, bounded 0..1.")
     ]
     shared_tags: Annotated[
-        list[str], described_field("Tags shared with the seed note.")
+        list[str], Field(description="Tags shared with the seed note.")
     ]
     shared_neighbor_count: Annotated[
-        int, described_field("Shared one-hop graph neighbors.")
+        int, Field(description="Shared one-hop graph neighbors.")
     ]
     title_overlap_tokens: Annotated[
-        list[str], described_field("Title tokens shared with the seed note.")
+        list[str], Field(description="Title tokens shared with the seed note.")
     ]
     explanation: Annotated[
-        str, described_field("Bounded deterministic evidence explanation.")
+        str, Field(description="Bounded deterministic evidence explanation.")
     ]
 
 
 class ObsidianGraphRelationSuggestionsResponse(StrictSchemaModel):
     """Deterministic suggestions for one seed note."""
 
-    note_id: Annotated[str, described_field("Seed note identifier.")]
-    relative_path: Annotated[str, described_field("Seed note managed path.")]
+    note_id: Annotated[str, Field(description="Seed note identifier.")]
+    relative_path: Annotated[str, Field(description="Seed note managed path.")]
     suggestions: Annotated[
         list[ObsidianGraphRelationSuggestionResponse],
-        described_field("Suggestions ordered by confidence then path."),
+        Field(description="Suggestions ordered by confidence then path."),
     ]

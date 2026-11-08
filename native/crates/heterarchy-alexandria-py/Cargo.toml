@@ -13,6 +13,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 fastembed.workspace = true
 heterarchy-alexandria-core = { path = "../heterarchy-alexandria-core" }
+heterarchy-alexandria-model-buffer = { path = "../heterarchy-alexandria-model-buffer" }
 pyo3.workspace = true
 serde.workspace = true
 serde_json.workspace = true

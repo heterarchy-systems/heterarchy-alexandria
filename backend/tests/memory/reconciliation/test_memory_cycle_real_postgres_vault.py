@@ -86,7 +86,7 @@ from app.memory.infrastructure.repositories.memory_compact_repository import (
 from app.memory.infrastructure.repositories.memory_reconciliation_repository import (
     SqlAlchemyMemoryReconciliationRepository,
 )
-from app.memory.interface.schemas.reconciliation.cycles.memory_cycle_schema import (
+from app.memory.interface.schemas.reconciliation.cycles.memory_cycle_response_schema import (
     MemoryCycleResponseSchema,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService

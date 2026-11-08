@@ -25,3 +25,11 @@ class OAuthBearerErrorCode(StrEnum):
     INVALID_REQUEST = "invalid_request"
     INVALID_TOKEN = "invalid_token"
     INSUFFICIENT_SCOPE = "insufficient_scope"
+
+
+class LocalOAuthHttpHost(StrEnum):
+    """Loopback hosts allowed to use plain HTTP for local OAuth."""
+
+    LOCALHOST = "localhost"
+    IPV4_LOOPBACK = "127.0.0.1"
+    IPV6_LOOPBACK = "::1"

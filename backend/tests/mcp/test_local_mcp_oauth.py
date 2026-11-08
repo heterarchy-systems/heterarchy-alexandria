@@ -11,7 +11,14 @@ from urllib.parse import parse_qs, urlparse
 import anyio
 import httpx
 import pytest
-from app.mcp_server.backend_api_client import AlexandriaApiClient, AlexandriaApiSettings
+from fastapi.testclient import TestClient
+from mcp.server.auth.provider import AuthorizationParams, TokenError
+from mcp.shared.auth import OAuthClientInformationFull
+from pydantic import AnyUrl
+from sqlalchemy import select
+from tests.config_test_data import mcp_config_values
+
+from app.mcp_server.backend_api_client import AlexandriaApiClient
 from app.mcp_server.local_oauth.contracts import LocalMcpOAuthSettings
 from app.mcp_server.local_oauth.local_oauth_enums import (
     LocalOAuthClientConnectionStatus,
@@ -23,19 +30,15 @@ from app.mcp_server.local_oauth.orm import (
     McpOAuthPairingCodeORM,
     McpOAuthTokenORM,
 )
-from app.mcp_server.local_oauth.provider import LocalMcpOAuthProvider
 from app.mcp_server.local_oauth.provider_approval import LocalOAuthApprovalError
-from app.mcp_server.local_oauth.repository import LocalMcpOAuthRepository
-from app.mcp_server.local_oauth.runtime import LocalMcpOAuthRuntime
+from app.mcp_server.local_oauth.runtime import (
+    LocalMcpOAuthRuntime,
+    build_local_mcp_oauth_runtime,
+)
 from app.mcp_server.server_runtime import build_mcp_server, mcp_transport_security
-from app.platform.config.app_config import AppConfig
+from app.platform.config.mcp_config import McpApiConfig, McpConfig
 from app.shared.infrastructure.database import Database
 from app.shared.security.secret_cipher import SecretCipher
-from fastapi.testclient import TestClient
-from mcp.server.auth.provider import AuthorizationParams, TokenError
-from mcp.shared.auth import OAuthClientInformationFull
-from pydantic import AnyUrl
-from sqlalchemy import select
 
 ISSUER = "http://localhost"
 RESOURCE = "http://localhost/mcp"
@@ -79,25 +82,41 @@ def _client() -> OAuthClientInformationFull:
     )
 
 
-async def _provider(tmp_path: Path) -> tuple[Database, LocalMcpOAuthProvider]:
+async def _provider(tmp_path: Path) -> tuple[Database, LocalMcpOAuthRuntime]:
     database = Database(
         database_url=os.environ["DATABASE_URL"],
         create_schema=True,
     )
     await database.initialize()
-    provider = LocalMcpOAuthProvider(
-        repository=LocalMcpOAuthRepository(database.session_factory()),
-        secret_cipher=SecretCipher(key=b"x" * 32),
-        settings=_settings(),
+    settings = _settings()
+    config = McpConfig(
+        _env_file=None,
+        **mcp_config_values(
+            mcp_auth_mode="local_oauth2",
+            mcp_oauth_issuer=settings.issuer_url,
+            mcp_oauth_resource=settings.resource_url,
+            mcp_oauth_required_scope=" ".join(settings.required_scopes),
+            mcp_local_approval_key=settings.approval_key,
+            mcp_local_access_token_ttl_seconds=settings.access_token_ttl_seconds,
+            mcp_local_refresh_token_ttl_seconds=settings.refresh_token_ttl_seconds,
+            mcp_local_authorization_code_ttl_seconds=settings.authorization_code_ttl_seconds,
+            mcp_local_approval_ttl_seconds=settings.approval_ttl_seconds,
+            mcp_local_pairing_code_ttl_seconds=settings.pairing_code_ttl_seconds,
+            mcp_local_max_approval_attempts=settings.max_approval_attempts,
+        ),
     )
-    return database, provider
+    runtime = build_local_mcp_oauth_runtime(
+        config=config, database=database, secret_cipher=SecretCipher(key=b"x" * 32)
+    )
+    return database, runtime
 
 
 def test_local_oauth_provider_issues_rotates_and_revokes_hashed_tokens(
     tmp_path: Path,
 ) -> None:
     async def scenario() -> None:
-        database, provider = await _provider(tmp_path)
+        database, runtime = await _provider(tmp_path)
+        provider = runtime.provider
         client = _client()
         client.client_secret = "dynamic-client-secret"
         try:
@@ -119,13 +138,13 @@ def test_local_oauth_provider_issues_rotates_and_revokes_hashed_tokens(
             )
             request_id = parse_qs(urlparse(approval_url).query)["request_id"][0]
             with pytest.raises(LocalOAuthApprovalError, match="invalid"):
-                await provider.approve_authorization(
+                await runtime.approval_service.approve_authorization(
                     request_id=request_id,
                     approval_code="wrong-key",
                 )
 
-            pairing = await provider.create_pairing_code()
-            redirect_url = await provider.approve_authorization(
+            pairing = await runtime.approval_service.create_pairing_code()
+            redirect_url = await runtime.approval_service.approve_authorization(
                 request_id=request_id,
                 approval_code=pairing.code,
             )
@@ -148,7 +167,7 @@ def test_local_oauth_provider_issues_rotates_and_revokes_hashed_tokens(
                 "request_id"
             ][0]
             with pytest.raises(LocalOAuthApprovalError, match="invalid"):
-                await provider.approve_authorization(
+                await runtime.approval_service.approve_authorization(
                     request_id=second_request_id,
                     approval_code=pairing.code,
                 )
@@ -186,7 +205,7 @@ def test_local_oauth_provider_issues_rotates_and_revokes_hashed_tokens(
                 second_refresh,
             )
             assert loaded_second_refresh is not None
-            connections = await provider.list_client_connections()
+            connections = await runtime.connections_service.list_client_connections()
             assert len(connections) == 1
             connected = connections[0]
             assert connected.client_id == "client-1"
@@ -194,7 +213,9 @@ def test_local_oauth_provider_issues_rotates_and_revokes_hashed_tokens(
             assert connected.status is LocalOAuthClientConnectionStatus.CONNECTED
             assert connected.connected is True
             assert connected.refresh_token_expires_at is not None
-            extended = await provider.extend_client_connection("client-1")
+            extended = await runtime.connections_service.extend_client_connection(
+                "client-1"
+            )
             assert extended is not None
             assert extended.refresh_token_expires_at is not None
             assert (
@@ -234,18 +255,22 @@ def test_local_oauth_provider_issues_rotates_and_revokes_hashed_tokens(
 
             await provider.revoke_token(loaded_second_refresh)
             assert await provider.load_access_token(second_pair.access_token) is None
-            revoked_connections = await provider.list_client_connections()
+            revoked_connections = (
+                await runtime.connections_service.list_client_connections()
+            )
             assert len(revoked_connections) == 1
             assert (
                 revoked_connections[0].status
                 is LocalOAuthClientConnectionStatus.REGISTERED
             )
 
-            deleted = await provider.delete_client_connection("client-1")
+            deleted = await runtime.connections_service.delete_client_connection(
+                "client-1"
+            )
             assert deleted is True
             assert await provider.load_access_token(second_pair.access_token) is None
             assert await provider.get_client("client-1") is None
-            assert await provider.list_client_connections() == ()
+            assert await runtime.connections_service.list_client_connections() == ()
 
             async with database.session() as session:
                 client_row = await session.get(McpOAuthClientORM, "client-1")
@@ -274,32 +299,11 @@ def test_local_oauth_provider_issues_rotates_and_revokes_hashed_tokens(
 
 def test_local_oauth_http_flow_enforces_pkce_and_bearer_auth(tmp_path: Path) -> None:
     async def setup() -> tuple[Database, LocalMcpOAuthRuntime]:
-        database, provider = await _provider(tmp_path)
-        config = AppConfig(
-            _env_file=None,
-            mcp_auth_mode="local_oauth2",
-            mcp_oauth_issuer=ISSUER,
-            mcp_oauth_resource=RESOURCE,
-            mcp_local_approval_key=APPROVAL_KEY,
-        )
-        runtime = LocalMcpOAuthRuntime(
-            provider=provider,
-            auth_settings=__import__(
-                "app.mcp_server.local_oauth.runtime",
-                fromlist=["build_local_mcp_oauth_runtime"],
-            )
-            .build_local_mcp_oauth_runtime(
-                config=config,
-                database=database,
-                secret_cipher=SecretCipher(key=b"x" * 32),
-            )
-            .auth_settings,
-        )
-        return database, runtime
+        return await _provider(tmp_path)
 
     database, runtime = anyio.run(setup)
     backend_client = AlexandriaApiClient(
-        AlexandriaApiSettings(base_url="http://backend:8000", timeout=5.0),
+        McpApiConfig(base_url="http://backend:8000", timeout=5.0),
         transport=httpx.MockTransport(lambda request: httpx.Response(200, json={})),
     )
     server = build_mcp_server(
@@ -350,7 +354,7 @@ def test_local_oauth_http_flow_enforces_pkce_and_bearer_auth(tmp_path: Path) -> 
             assert APPROVAL_KEY not in approval_page.text
             assert 'name="pairing_code"' in approval_page.text
             assert "form-action" not in approval_page.headers["content-security-policy"]
-            pairing = anyio.run(runtime.provider.create_pairing_code)
+            pairing = anyio.run(runtime.approval_service.create_pairing_code)
 
             approval = client.post(
                 "/approve",

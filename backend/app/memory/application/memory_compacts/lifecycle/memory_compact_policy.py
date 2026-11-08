@@ -48,6 +48,9 @@ def ensure_review_passes(review: MemoryCompactReviewResult) -> None:
 
     Args:
         review: Structured Memory Compact review result.
+
+    Raises:
+        MemoryCompactValidationError: If the review verdict is not PASS with a 20/20 score.
     """
     if (
         review.verdict is MemoryCompactReviewVerdict.PASS

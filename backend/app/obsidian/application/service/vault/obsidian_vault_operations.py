@@ -24,11 +24,11 @@ from app.obsidian.application.service.obsidian_service_ports import (
 from app.obsidian.application.service.vault.obsidian_vault_inventory_service import (
     ObsidianVaultInventoryService,
 )
-from app.obsidian.application.service.vault.obsidian_vault_lifecycle_service import (
-    ObsidianVaultLifecycleService,
-)
 from app.obsidian.application.service.vault.obsidian_vault_move_service import (
     ObsidianVaultMoveService,
+)
+from app.obsidian.application.vault.vault_lifecycle_service import (
+    ObsidianVaultLifecycleService,
 )
 from app.obsidian.domain.contracts.obsidian_contracts import (
     ObsidianVaultInventoryRequest,
@@ -53,6 +53,9 @@ from app.obsidian.domain.entities.obsidian_note import (
     ObsidianVaultMoveReport,
     ObsidianVaultSourceSnapshot,
     ObsidianVaultStatus,
+)
+from app.obsidian.domain.entities.obsidian_raw_source_snapshot import (
+    ObsidianRawSourceSnapshot,
 )
 from app.obsidian.infrastructure.obsidian_report_bundle_run_store import (
     ObsidianReportBundleRunStore,
@@ -218,13 +221,13 @@ class ObsidianVaultOperations(ObsidianReadinessPort, ObsidianDataIntegrityPort):
         """
         return await self._vault_inventory_service.inventory(request)
 
-    async def managed_markdown_paths(self) -> list[str]:
-        """List every managed Markdown source regardless of index validity.
+    async def raw_source_snapshot(self) -> ObsidianRawSourceSnapshot:
+        """Read a bounded raw source observation for integrity diagnostics.
 
         Returns:
-            Vault-relative managed Markdown paths.
+            Raw managed Markdown and explicit scan completeness.
         """
-        return await self._vault_inventory_service.managed_markdown_paths()
+        return await self._vault_inventory_service.raw_source_snapshot()
 
     async def source_snapshot(self, max_notes: int) -> ObsidianVaultSourceSnapshot:
         """Read a bounded, source-owned Markdown snapshot for identity resolution.

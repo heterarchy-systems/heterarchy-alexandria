@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import Field
+
 from app.obsidian.domain.entities.obsidian_legacy_metadata_repair import (
     ObsidianLegacyMetadataRepairCandidate,
     ObsidianLegacyMetadataRepairFinding,
@@ -14,7 +16,7 @@ from app.obsidian.domain.entities.obsidian_legacy_metadata_repair import (
 from app.obsidian.interface.schemas.obsidian.obsidian_string_types import (
     ObsidianRepairPlanHash,
 )
-from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
+from app.shared.schemas.common_schemas import StrictSchemaModel
 
 
 class ObsidianLegacyMetadataRepairFindingResponse(StrictSchemaModel):
@@ -22,32 +24,32 @@ class ObsidianLegacyMetadataRepairFindingResponse(StrictSchemaModel):
 
     field_name: Annotated[
         str,
-        described_field(
-            "Field name for this Obsidian legacy metadata repair finding response."
+        Field(
+            description="Field name for this Obsidian legacy metadata repair finding response."
         ),
     ]
     current_value: Annotated[
         str,
-        described_field(
-            "Current value for this Obsidian legacy metadata repair finding response."
+        Field(
+            description="Current value for this Obsidian legacy metadata repair finding response."
         ),
     ]
     proposed_value: Annotated[
         list[str] | bool | None,
-        described_field(
-            "Proposed value for this Obsidian legacy metadata repair finding response."
+        Field(
+            description="Proposed value for this Obsidian legacy metadata repair finding response."
         ),
     ]
     reason: Annotated[
         str,
-        described_field(
-            "Reason for this Obsidian legacy metadata repair finding response."
+        Field(
+            description="Reason for this Obsidian legacy metadata repair finding response."
         ),
     ]
     is_repairable: Annotated[
         bool,
-        described_field(
-            "Is repairable for this Obsidian legacy metadata repair finding response."
+        Field(
+            description="Is repairable for this Obsidian legacy metadata repair finding response."
         ),
     ]
 
@@ -79,20 +81,20 @@ class ObsidianLegacyMetadataRepairCandidateResponse(StrictSchemaModel):
 
     note_path: Annotated[
         str,
-        described_field(
-            "Note path for this Obsidian legacy metadata repair candidate response."
+        Field(
+            description="Note path for this Obsidian legacy metadata repair candidate response."
         ),
     ]
     original_sha256: Annotated[
         str,
-        described_field(
-            "Original SHA-256 for this Obsidian legacy metadata repair candidate response."
+        Field(
+            description="Original SHA-256 for this Obsidian legacy metadata repair candidate response."
         ),
     ]
     findings: Annotated[
         list[ObsidianLegacyMetadataRepairFindingResponse],
-        described_field(
-            "Findings for this Obsidian legacy metadata repair candidate response."
+        Field(
+            description="Findings for this Obsidian legacy metadata repair candidate response."
         ),
     ]
 
@@ -124,56 +126,56 @@ class ObsidianLegacyMetadataRepairPlanResponse(StrictSchemaModel):
 
     plan_hash: Annotated[
         str,
-        described_field(
-            "Plan hash for this Obsidian legacy metadata repair plan response."
+        Field(
+            description="Plan hash for this Obsidian legacy metadata repair plan response."
         ),
     ]
     dry_run: Annotated[
         bool,
-        described_field(
-            "Dry run for this Obsidian legacy metadata repair plan response."
+        Field(
+            description="Dry run for this Obsidian legacy metadata repair plan response."
         ),
     ]
     backup_required: Annotated[
         bool,
-        described_field(
-            "Backup required for this Obsidian legacy metadata repair plan response."
+        Field(
+            description="Backup required for this Obsidian legacy metadata repair plan response."
         ),
     ]
     scanned_documents: Annotated[
         int,
-        described_field(
-            "Scanned documents for this Obsidian legacy metadata repair plan response."
+        Field(
+            description="Scanned documents for this Obsidian legacy metadata repair plan response."
         ),
     ]
     affected_documents: Annotated[
         int,
-        described_field(
-            "Affected documents for this Obsidian legacy metadata repair plan response."
+        Field(
+            description="Affected documents for this Obsidian legacy metadata repair plan response."
         ),
     ]
     repairable_fields: Annotated[
         int,
-        described_field(
-            "Repairable fields for this Obsidian legacy metadata repair plan response."
+        Field(
+            description="Repairable fields for this Obsidian legacy metadata repair plan response."
         ),
     ]
     manual_review_fields: Annotated[
         int,
-        described_field(
-            "Manual review fields for this Obsidian legacy metadata repair plan response."
+        Field(
+            description="Manual review fields for this Obsidian legacy metadata repair plan response."
         ),
     ]
     unrecoverable_redacted_urls: Annotated[
         int,
-        described_field(
-            "Unrecoverable redacted urls for this Obsidian legacy metadata repair plan response."
+        Field(
+            description="Unrecoverable redacted urls for this Obsidian legacy metadata repair plan response."
         ),
     ]
     candidates: Annotated[
         list[ObsidianLegacyMetadataRepairCandidateResponse],
-        described_field(
-            "Candidates for this Obsidian legacy metadata repair plan response."
+        Field(
+            description="Candidates for this Obsidian legacy metadata repair plan response."
         ),
     ]
 
@@ -211,8 +213,8 @@ class ObsidianLegacyMetadataRepairApplyRequest(StrictSchemaModel):
 
     expected_plan_hash: Annotated[
         ObsidianRepairPlanHash,
-        described_field(
-            "Expected plan hash for this Obsidian legacy metadata repair apply request."
+        Field(
+            description="Expected plan hash for this Obsidian legacy metadata repair apply request."
         ),
     ]
 
@@ -222,32 +224,32 @@ class ObsidianLegacyMetadataRepairResultResponse(StrictSchemaModel):
 
     note_path: Annotated[
         str,
-        described_field(
-            "Note path for this Obsidian legacy metadata repair result response."
+        Field(
+            description="Note path for this Obsidian legacy metadata repair result response."
         ),
     ]
     before_sha256: Annotated[
         str,
-        described_field(
-            "Before SHA-256 for this Obsidian legacy metadata repair result response."
+        Field(
+            description="Before SHA-256 for this Obsidian legacy metadata repair result response."
         ),
     ]
     after_sha256: Annotated[
         str,
-        described_field(
-            "After SHA-256 for this Obsidian legacy metadata repair result response."
+        Field(
+            description="After SHA-256 for this Obsidian legacy metadata repair result response."
         ),
     ]
     success: Annotated[
         bool,
-        described_field(
-            "Success for this Obsidian legacy metadata repair result response."
+        Field(
+            description="Success for this Obsidian legacy metadata repair result response."
         ),
     ]
     failure_reason: Annotated[
         str | None,
-        described_field(
-            "Failure reason for this Obsidian legacy metadata repair result response."
+        Field(
+            description="Failure reason for this Obsidian legacy metadata repair result response."
         ),
     ]
 
@@ -278,44 +280,44 @@ class ObsidianLegacyMetadataRepairReportResponse(StrictSchemaModel):
 
     status: Annotated[
         str,
-        described_field(
-            "Status for this Obsidian legacy metadata repair report response."
+        Field(
+            description="Status for this Obsidian legacy metadata repair report response."
         ),
     ]
     plan_hash: Annotated[
         str,
-        described_field(
-            "Plan hash for this Obsidian legacy metadata repair report response."
+        Field(
+            description="Plan hash for this Obsidian legacy metadata repair report response."
         ),
     ]
     backup_root: Annotated[
         str,
-        described_field(
-            "Backup root for this Obsidian legacy metadata repair report response."
+        Field(
+            description="Backup root for this Obsidian legacy metadata repair report response."
         ),
     ]
     applied_count: Annotated[
         int,
-        described_field(
-            "Applied count for this Obsidian legacy metadata repair report response."
+        Field(
+            description="Applied count for this Obsidian legacy metadata repair report response."
         ),
     ]
     failed_count: Annotated[
         int,
-        described_field(
-            "Failed count for this Obsidian legacy metadata repair report response."
+        Field(
+            description="Failed count for this Obsidian legacy metadata repair report response."
         ),
     ]
     unrecoverable_redacted_urls: Annotated[
         int,
-        described_field(
-            "Unrecoverable redacted urls for this Obsidian legacy metadata repair report response."
+        Field(
+            description="Unrecoverable redacted urls for this Obsidian legacy metadata repair report response."
         ),
     ]
     results: Annotated[
         list[ObsidianLegacyMetadataRepairResultResponse],
-        described_field(
-            "Results for this Obsidian legacy metadata repair report response."
+        Field(
+            description="Results for this Obsidian legacy metadata repair report response."
         ),
     ]
 

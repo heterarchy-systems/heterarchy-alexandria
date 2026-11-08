@@ -65,9 +65,9 @@ def retrieval_metadata(match: ContextSearchMatch) -> ContextRetrievalMetadata:
     return ContextRetrievalMetadata(
         canonical_context_id=canonical_context_id(match.context),
         lifecycle_status=lifecycle_status(match.context),
-        retrieval_source=retrieval_source(match.context),
-        retrieval_strategy=retrieval_strategy(match),
-        source_actor_id=source_actor_id(match.context),
+        retrieval_source=_RetrievalSignalResolver.retrieval_source(match.context),
+        retrieval_strategy=_RetrievalSignalResolver.retrieval_strategy(match),
+        source_actor_id=_RetrievalSignalResolver.source_actor_id(match.context),
     )
 
 
@@ -118,17 +118,25 @@ def provenance_metadata(context: ContextRecord) -> ContextProvenanceMetadata:
     raw = context.context_metadata.get("provenance")
     provenance = raw if isinstance(raw, dict) else {}
     return ContextProvenanceMetadata(
-        source_actor_id=_optional_text(provenance.get("source_actor_id"))
+        source_actor_id=_MetadataFieldDecoder.optional_text(
+            provenance.get("source_actor_id")
+        )
         or context.source_agent,
-        source_actor_type=_optional_enum(
+        source_actor_type=_MetadataFieldDecoder.optional_enum(
             provenance.get("source_actor_type"), ContextSourceType
         )
         or context.source_type,
-        source_run_id=_optional_text(provenance.get("source_run_id")),
-        external_run_id=_optional_text(provenance.get("external_run_id")),
-        artifact_refs=_text_tuple(provenance.get("artifact_refs")),
-        evidence_refs=_text_tuple(provenance.get("evidence_refs")),
-        confidence=_optional_enum(provenance.get("confidence"), ContextImportance),
+        source_run_id=_MetadataFieldDecoder.optional_text(
+            provenance.get("source_run_id")
+        ),
+        external_run_id=_MetadataFieldDecoder.optional_text(
+            provenance.get("external_run_id")
+        ),
+        artifact_refs=_MetadataFieldDecoder.text_tuple(provenance.get("artifact_refs")),
+        evidence_refs=_MetadataFieldDecoder.text_tuple(provenance.get("evidence_refs")),
+        confidence=_MetadataFieldDecoder.optional_enum(
+            provenance.get("confidence"), ContextImportance
+        ),
     )
 
 
@@ -143,127 +151,141 @@ def lifecycle_metadata(context: ContextRecord) -> ContextLifecycleMetadata:
     """
     return ContextLifecycleMetadata(
         status=lifecycle_status(context),
-        content_hash=_optional_text(context.context_metadata.get("content_hash")),
-        version=_positive_int(context.context_metadata.get("version")),
-        supersedes_context_id=_optional_text(
+        content_hash=_MetadataFieldDecoder.optional_text(
+            context.context_metadata.get("content_hash")
+        ),
+        version=_MetadataFieldDecoder.positive_int(
+            context.context_metadata.get("version")
+        ),
+        supersedes_context_id=_MetadataFieldDecoder.optional_text(
             context.context_metadata.get("supersedes_context_id")
         ),
-        superseded_by_context_id=_optional_text(
+        superseded_by_context_id=_MetadataFieldDecoder.optional_text(
             context.context_metadata.get("superseded_by_context_id")
         ),
     )
 
 
-def retrieval_source(context: ContextRecord) -> ContextRetrievalSource:
-    """Return the index source independently of creator provenance.
+class _RetrievalSignalResolver:
+    """Resolve retrieval source, effective strategy, and actor provenance."""
 
-    Args:
-        context: Context read model.
+    @staticmethod
+    def retrieval_source(context: ContextRecord) -> ContextRetrievalSource:
+        """Return the index source independently of creator provenance.
 
-    Returns:
-        Retrieval index source.
-    """
-    if context.context_metadata.get("source_surface") == "obsidian_vault":
-        return "obsidian_vault"
-    return "context_vault"
+        Args:
+            context: Context read model.
 
+        Returns:
+            Retrieval index source.
+        """
+        if context.context_metadata.get("source_surface") == "obsidian_vault":
+            return "obsidian_vault"
+        return "context_vault"
 
-def retrieval_strategy(match: ContextSearchMatch) -> RagStrategy:
-    """Return the strategy evidenced by populated source scores.
+    @staticmethod
+    def retrieval_strategy(match: ContextSearchMatch) -> RagStrategy:
+        """Return the strategy evidenced by populated source scores.
 
-    Args:
-        match: Retrieved Context match.
+        Args:
+            match: Retrieved Context match.
 
-    Returns:
-        Effective retrieval strategy for the match.
-    """
-    if match.graph_score is not None:
-        return RagStrategy.AUTO
-    if match.fts_score is not None and match.vector_score is not None:
-        return RagStrategy.HYBRID
-    if match.vector_score is not None:
-        return RagStrategy.VECTOR_ONLY
-    return RagStrategy.FTS_ONLY
+        Returns:
+            Effective retrieval strategy for the match.
+        """
+        if match.graph_score is not None:
+            return RagStrategy.AUTO
+        if match.fts_score is not None and match.vector_score is not None:
+            return RagStrategy.HYBRID
+        if match.vector_score is not None:
+            return RagStrategy.VECTOR_ONLY
+        return RagStrategy.FTS_ONLY
 
+    @staticmethod
+    def source_actor_id(context: ContextRecord) -> str:
+        """Return creator provenance without conflating it with retrieval source.
 
-def source_actor_id(context: ContextRecord) -> str:
-    """Return creator provenance without conflating it with retrieval source.
+        Args:
+            context: Context read model.
 
-    Args:
-        context: Context read model.
-
-    Returns:
-        Creator actor identifier.
-    """
-    provenance = context.context_metadata.get("provenance")
-    if isinstance(provenance, dict):
-        value = provenance.get("source_actor_id")
-        if isinstance(value, str) and value:
-            return value
-    return context.source_agent
-
-
-def _optional_text(value: JSONValue) -> str | None:
-    """Execute optional text.
-
-    Args:
-        value: Value being processed.
-
-    Returns:
-        str | None result produced by optional text.
-    """
-    if not isinstance(value, str):
-        return None
-    normalized = value.strip()
-    return normalized or None
+        Returns:
+            Creator actor identifier.
+        """
+        provenance = context.context_metadata.get("provenance")
+        if isinstance(provenance, dict):
+            value = provenance.get("source_actor_id")
+            if isinstance(value, str) and value:
+                return value
+        return context.source_agent
 
 
-def _text_tuple(value: JSONValue) -> tuple[str, ...]:
-    """Execute text tuple.
+class _MetadataFieldDecoder:
+    """Decode and normalize optional scalar, sequence, and enum metadata fields."""
 
-    Args:
-        value: Value being processed.
+    @staticmethod
+    def optional_text(value: JSONValue) -> str | None:
+        """Extract a stripped non-empty string from a JSON value.
 
-    Returns:
-        tuple[str, ...] result produced by text tuple.
-    """
-    if not isinstance(value, (list, tuple)):
-        return ()
-    return tuple(
-        normalized for item in value if (normalized := _optional_text(item)) is not None
-    )
+        Args:
+            value: Raw JSON metadata field value.
 
+        Returns:
+            Stripped non-empty string, or None when absent or blank.
+        """
+        if not isinstance(value, str):
+            return None
+        normalized = value.strip()
+        return normalized or None
 
-def _positive_int(value: JSONValue) -> int | None:
-    """Execute positive int.
+    @classmethod
+    def text_tuple(cls, value: JSONValue) -> tuple[str, ...]:
+        """Extract a tuple of stripped non-empty strings from a JSON sequence.
 
-    Args:
-        value: Value being processed.
+        Args:
+            value: Raw JSON metadata field value.
 
-    Returns:
-        int | None result produced by positive int.
-    """
-    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
-        return None
-    return value
+        Returns:
+            Tuple of normalized string entries.
+        """
+        if not isinstance(value, (list, tuple)):
+            return ()
+        return tuple(
+            normalized
+            for item in value
+            if (normalized := cls.optional_text(item)) is not None
+        )
 
+    @staticmethod
+    def positive_int(value: JSONValue) -> int | None:
+        """Extract a positive integer from a JSON value, excluding booleans.
 
-def _optional_enum[EnumType: ContextSourceType | ContextImportance](
-    value: JSONValue, enum_type: type[EnumType]
-) -> EnumType | None:
-    """Execute optional enum.
+        Args:
+            value: Raw JSON metadata field value.
 
-    Args:
-        value: Value being processed.
-        enum_type: Enum type used by this operation.
+        Returns:
+            Positive integer >= 1, or None when invalid.
+        """
+        if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+            return None
+        return value
 
-    Returns:
-        EnumType | None result produced by optional enum.
-    """
-    text = _optional_text(value)
-    if text is None:
-        return None
-    try:
-        return enum_type(text.upper())
-    except ValueError:
-        return None
+    @classmethod
+    def optional_enum[EnumType: ContextSourceType | ContextImportance](
+        cls, value: JSONValue, enum_type: type[EnumType]
+    ) -> EnumType | None:
+        """Parse an optional case-insensitive enum member from a JSON string.
+
+        Args:
+            value: Raw JSON metadata field value.
+            enum_type: Target enumeration class.
+
+        Returns:
+            Parsed enum member, or None when absent or unrecognized.
+        """
+        text = cls.optional_text(value)
+        if text is None:
+            return None
+        try:
+            return enum_type(text.upper())
+        except ValueError:
+            return None

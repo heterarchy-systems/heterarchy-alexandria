@@ -9,7 +9,7 @@ from pydantic import ConfigDict, Field, StringConstraints, field_validator
 from app.operations.domain.event_enum.maintenance_job_enums import (
     MaintenanceDeadLetterRetirementClassification,
 )
-from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
+from app.shared.schemas.common_schemas import StrictSchemaModel
 from app.shared.types.extra_types import JSONObject, JSONValue
 
 
@@ -25,26 +25,28 @@ class MaintenanceEmbeddingReindexToolRequest(StrictSchemaModel):
     requested_by: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=120),
-        described_field(
-            "Requested by for this maintenance embedding reindex tool request."
+        Field(
+            description="Requested by for this maintenance embedding reindex tool request."
         ),
     ] = "mcp"
     source_id: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=200),
-        described_field(
-            "Source identifier for this maintenance embedding reindex tool request."
+        Field(
+            description="Source identifier for this maintenance embedding reindex tool request."
         ),
     ] = "manual"
     limit: Annotated[
         int,
-        described_field(
-            "Limit for this maintenance embedding reindex tool request.", ge=1, le=1000
+        Field(
+            description="Limit for this maintenance embedding reindex tool request.",
+            ge=1,
+            le=1000,
         ),
     ] = 250
     force: Annotated[
         bool,
-        described_field("Force for this maintenance embedding reindex tool request."),
+        Field(description="Force for this maintenance embedding reindex tool request."),
     ] = False
 
     @field_validator("requested_by", "source_id")
@@ -89,14 +91,14 @@ class MaintenanceBatchNoteWriteToolRequest(StrictSchemaModel):
     requested_by: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=120),
-        described_field(
-            "Requested by for this maintenance batch note write tool request."
+        Field(
+            description="Requested by for this maintenance batch note write tool request."
         ),
     ] = "mcp"
     operations: Annotated[
         list[dict[str, JSONValue]],
-        described_field(
-            "JSON write operations for this maintenance batch note write tool request."
+        Field(
+            description="JSON write operations for this maintenance batch note write tool request."
         ),
         Field(min_length=1, max_length=50),
     ]
@@ -137,7 +139,7 @@ class MaintenanceJobIdToolRequest(StrictSchemaModel):
     job_id: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=128),
-        described_field("Job identifier for this maintenance job ID tool request."),
+        Field(description="Job identifier for this maintenance job ID tool request."),
     ]
 
     @field_validator("job_id")
@@ -165,7 +167,7 @@ class MaintenanceDeadLetterIdToolRequest(StrictSchemaModel):
     entry_id: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=128),
-        described_field("Entry identifier for this dead-letter ID tool request."),
+        Field(description="Entry identifier for this dead-letter ID tool request."),
     ]
 
     @field_validator("entry_id")
@@ -193,15 +195,15 @@ class MaintenanceDeadLetterRetryToolRequest(StrictSchemaModel):
     entry_id: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=128),
-        described_field("Entry identifier for this dead-letter retry request."),
+        Field(description="Entry identifier for this dead-letter retry request."),
     ]
     dry_run: Annotated[
-        bool, described_field("Preview retry without queue mutation.")
+        bool, Field(description="Preview retry without queue mutation.")
     ] = False
     reason: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=500),
-        described_field("Operator reason for this dead-letter retry."),
+        Field(description="Operator reason for this dead-letter retry."),
     ]
 
     @field_validator("entry_id", "reason")
@@ -226,21 +228,21 @@ class MaintenanceDeadLetterRetireToolRequest(StrictSchemaModel):
     entry_id: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=128),
-        described_field("Entry identifier for this dead-letter retirement."),
+        Field(description="Entry identifier for this dead-letter retirement."),
     ]
     reason: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=500),
-        described_field("Mandatory retirement reason."),
+        Field(description="Mandatory retirement reason."),
     ]
     classification: Annotated[
         MaintenanceDeadLetterRetirementClassification,
-        described_field("Bounded retirement classification."),
+        Field(description="Bounded retirement classification."),
     ]
     retired_by: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=120),
-        described_field("Retiring actor."),
+        Field(description="Retiring actor."),
     ]
 
     @field_validator("classification", mode="before")

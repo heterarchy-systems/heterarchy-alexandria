@@ -11,6 +11,10 @@ import anyio.to_thread
 from app.obsidian.application.notes.obsidian_note_indexer import (
     note_snapshot_payload_from_path,
 )
+from app.obsidian.application.service.vault.obsidian_raw_source_snapshot_reader import (
+    read_raw_source_snapshot,
+    source_validation_error_code,
+)
 from app.obsidian.domain.contracts.obsidian_contracts import (
     ObsidianNoteIndex,
     ObsidianVaultInventoryRequest,
@@ -18,6 +22,17 @@ from app.obsidian.domain.contracts.obsidian_contracts import (
 from app.obsidian.domain.entities.obsidian_note import (
     ObsidianVaultInventoryItem,
     ObsidianVaultSourceSnapshot,
+)
+from app.obsidian.domain.entities.obsidian_raw_source_snapshot import (
+    ObsidianRawSourceSnapshot,
+)
+from app.obsidian.domain.policies.obsidian_source_scan_policy import (
+    DEFAULT_OBSIDIAN_SOURCE_SCAN_POLICY,
+    DEFAULT_SOURCE_SCAN_MAX_ENTRIES,
+    DEFAULT_SOURCE_SCAN_MAX_ERRORS,
+    DEFAULT_SOURCE_SCAN_MAX_FILE_BYTES,
+    DEFAULT_SOURCE_SCAN_MAX_TOTAL_BYTES,
+    ObsidianSourceScanPolicy,
 )
 from app.obsidian.infrastructure.markdown.paths import (
     discover_managed_markdown_paths,
@@ -29,11 +44,6 @@ from app.obsidian.infrastructure.obsidian_vault_config_store import (
     ObsidianVaultConfigStore,
 )
 from app.shared.exceptions.obsidian_exceptions import ObsidianValidationError
-
-DEFAULT_SOURCE_SCAN_MAX_ENTRIES = 10_000
-DEFAULT_SOURCE_SCAN_MAX_TOTAL_BYTES = 64 * 1024 * 1024
-DEFAULT_SOURCE_SCAN_MAX_FILE_BYTES = 8 * 1024 * 1024
-DEFAULT_SOURCE_SCAN_MAX_ERRORS = 32
 
 
 class ObsidianVaultInventoryService:
@@ -94,29 +104,24 @@ class ObsidianVaultInventoryService:
             )
         return items
 
-    async def managed_markdown_paths(self) -> list[str]:
-        """List every managed Markdown source, including invalid notes.
+    async def raw_source_snapshot(
+        self,
+        policy: ObsidianSourceScanPolicy = DEFAULT_OBSIDIAN_SOURCE_SCAN_POLICY,
+    ) -> ObsidianRawSourceSnapshot:
+        """Read a bounded, raw source observation without index access.
+
+        Args:
+            policy: Positive source-count, traversal, byte and error limits.
 
         Returns:
-            Vault-relative, path-confined Markdown source paths.
+            Raw managed Markdown and bounded completeness evidence.
         """
         config = self._vault_config_store.current()
-        root = _scope_path(
-            vault_path=config.vault_path,
-            alexandria_root=config.alexandria_root,
-            scope_path=None,
+        return await read_raw_source_snapshot(
+            config.vault_path,
+            config.alexandria_root,
+            policy,
         )
-        if not root.exists():
-            return []
-        relative_paths: list[str] = []
-        for discovered in _markdown_paths(root, managed_root=root):
-            path = validate_discovered_note_path(
-                config.vault_path,
-                config.alexandria_root,
-                discovered,
-            )
-            relative_paths.append(str(path.relative_to(config.vault_path)))
-        return relative_paths
 
     async def source_snapshot(
         self,
@@ -277,9 +282,9 @@ def _source_snapshot_sync(
                 max_source_bytes=max_file_bytes,
             )
         except ObsidianValidationError as exc:
-            _append_source_error(errors, _source_validation_error_code(exc), max_errors)
+            _append_source_error(errors, source_validation_error_code(exc), max_errors)
             continue
-        except (OSError, UnicodeError):
+        except OSError, UnicodeError:
             _append_source_error(errors, "SOURCE_READ_FAILED", max_errors)
             continue
         except ValueError as exc:
@@ -303,13 +308,6 @@ def _source_snapshot_sync(
         entries_seen=scan.entries_seen,
         total_bytes=scan.total_bytes,
     )
-
-
-def _source_validation_error_code(error: ObsidianValidationError) -> str:
-    """Map source validation failures to safe, stable snapshot codes."""
-    if "PATH_SECURITY_VIOLATION" in str(error):
-        return "PATH_SECURITY_VIOLATION"
-    return "SOURCE_VALIDATION_FAILED"
 
 
 def _append_source_error(errors: list[str], error: str, max_errors: int) -> None:

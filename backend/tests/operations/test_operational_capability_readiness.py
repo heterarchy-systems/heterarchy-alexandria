@@ -232,7 +232,7 @@ def test_fts_degradation_is_independent_from_source(tmp_path: Path) -> None:
             await service._database.shutdown()
 
     snapshot = anyio.run(scenario)
-    from app.operations.application.readiness.operational_capability_policy import (
+    from app.operations.application.readiness.policy.operational_capability_policy import (
         capability_snapshot,
     )
 
@@ -257,7 +257,7 @@ def test_vector_staleness_exposes_stale_freshness(tmp_path: Path) -> None:
             await service._database.shutdown()
 
     snapshot = anyio.run(scenario)
-    from app.operations.application.readiness.operational_capability_policy import (
+    from app.operations.application.readiness.policy.operational_capability_policy import (
         capability_snapshot,
     )
 
@@ -284,7 +284,7 @@ def test_graph_unavailable_does_not_claim_graph_ready(tmp_path: Path) -> None:
             await service._database.shutdown()
 
     snapshot = anyio.run(scenario)
-    from app.operations.application.readiness.operational_capability_policy import (
+    from app.operations.application.readiness.policy.operational_capability_policy import (
         capability_snapshot,
     )
 
@@ -310,7 +310,7 @@ def test_projection_revision_drift_is_stale_evidence(tmp_path: Path) -> None:
             await service._database.shutdown()
 
     snapshot = anyio.run(scenario)
-    from app.operations.application.readiness.operational_capability_policy import (
+    from app.operations.application.readiness.policy.operational_capability_policy import (
         capability_snapshot,
     )
 

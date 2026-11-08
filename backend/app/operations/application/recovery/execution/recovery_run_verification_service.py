@@ -24,11 +24,14 @@ from app.operations.application.recovery.execution.recovery_run_contracts import
     resolve_recovery_service,
 )
 from app.operations.application.recovery.execution.recovery_run_source_preservation import (
-    _source_preservation_result,
+    source_preservation_result,
 )
 from app.operations.domain.entities.recovery_plan import RecoveryPlan
+from app.operations.domain.event_enum.recovery_step_enums import (
+    RecoveryVerificationWarningCode,
+)
 from app.shared.infrastructure.database import Database
-from app.shared.types.extra_types import JSONObject
+from app.shared.types.extra_types import JSONObject, JSONValue
 
 
 class RecoveryRunVerificationService:
@@ -51,9 +54,10 @@ class RecoveryRunVerificationService:
             database: Shared database coordinator.
             context_service: Context readiness boundary.
             obsidian_service: Obsidian readiness, search, and read boundary.
-            context_service_factory: Factory that creates context service.
-            obsidian_service_factory: Factory that creates obsidian service.
+            context_service_factory: Optional factory that creates a request-scoped context service.
+            obsidian_service_factory: Optional factory that creates a request-scoped obsidian service.
             graph_projection_service: Graph projection status boundary.
+            current_compact_reader_callback: Optional callback probing CURRENT compact availability.
         """
         self._database = database
         self._context_service_factory = context_service_factory or (
@@ -73,13 +77,19 @@ class RecoveryRunVerificationService:
         expected_compile_policy_version: str | None = None,
         expected_compile_plan_fingerprint: str | None = None,
     ) -> JSONObject:
-        """Verify runtime readiness.
+        """Verify runtime readiness, representative search, and source preservation.
 
         Args:
-            plan: Recovery or repair plan being verified or serialized.
+            plan: Recovery or repair plan being verified.
+            compile_receipt_required: Whether compiler receipt evidence is mandatory.
+            expected_compile_policy_version: Expected compiler policy version when required.
+            expected_compile_plan_fingerprint: Expected compile plan fingerprint when required.
 
         Returns:
-            Verification result.
+            Verification result with readiness, search, and preservation evidence.
+
+        Raises:
+            Exception: Propagates any service or database failure after rolling back the session.
         """
         async with self._database.request_session() as session:
             try:
@@ -115,18 +125,26 @@ class RecoveryRunVerificationService:
                 raise
             await session.commit()
         source_preservation = await anyio.to_thread.run_sync(
-            _source_preservation_result,
+            source_preservation_result,
             plan.source_snapshot,
             limiter=anyio.to_thread.current_default_thread_limiter(),
         )
         warnings = list(snapshot.warnings)
         blockers = list(snapshot.blockers)
         if representative["matched"] is not True:
-            warnings.append("representative_search_missing")
-            blockers.append("representative_search_missing")
+            warnings.append(
+                RecoveryVerificationWarningCode.REPRESENTATIVE_SEARCH_MISSING.value
+            )
+            blockers.append(
+                RecoveryVerificationWarningCode.REPRESENTATIVE_SEARCH_MISSING.value
+            )
         if source_preservation["preserved"] is not True:
-            warnings.append("source_markdown_changed")
-            blockers.append("source_markdown_changed")
+            warnings.append(
+                RecoveryVerificationWarningCode.SOURCE_MARKDOWN_CHANGED.value
+            )
+            blockers.append(
+                RecoveryVerificationWarningCode.SOURCE_MARKDOWN_CHANGED.value
+            )
         result: JSONObject = {
             "status": snapshot.status.value,
             "ready": (
@@ -136,7 +154,7 @@ class RecoveryRunVerificationService:
             ),
             "warnings": warnings,
             "blockers": blockers,
-            "source_preservation": source_preservation,
+            "source_preservation": dict[str, JSONValue](**source_preservation),
             "representative_search": representative,
         }
         if self._current_compact_reader_callback is not None:
@@ -151,11 +169,11 @@ class RecoveryRunVerificationService:
                 }
                 result["warnings"] = [
                     *warnings,
-                    "current_compact_unavailable",
+                    RecoveryVerificationWarningCode.CURRENT_COMPACT_UNAVAILABLE.value,
                 ]
                 result["blockers"] = [
                     *blockers,
-                    "current_compact_unavailable",
+                    RecoveryVerificationWarningCode.CURRENT_COMPACT_UNAVAILABLE.value,
                 ]
                 result["ready"] = False
         return result

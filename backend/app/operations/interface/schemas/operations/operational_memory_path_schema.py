@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import Field
+
 from app.memory.domain.entities.context_projection_integrity import (
     ContextProjectionIntegrityFailure,
     ContextProjectionIntegritySnapshot,
@@ -16,11 +18,7 @@ from app.operations.domain.entities.operational_retrieval_canary import (
 from app.operations.domain.entities.operational_runtime_provenance import (
     OperationalRuntimeProvenanceSnapshot,
 )
-from app.shared.schemas.common_schemas import (
-    StrictSchemaModel,
-    described_field,
-    schema_list_default,
-)
+from app.shared.schemas.common_schemas import StrictSchemaModel, schema_list_default
 
 
 class OperationalRuntimeProvenanceResponse(StrictSchemaModel):
@@ -28,69 +26,71 @@ class OperationalRuntimeProvenanceResponse(StrictSchemaModel):
 
     checked: Annotated[
         bool,
-        described_field("Whether runtime provenance was evaluated for this snapshot."),
+        Field(
+            description="Whether runtime provenance was evaluated for this snapshot."
+        ),
     ]
     environment: Annotated[
         str,
-        described_field(
-            "Application environment associated with the runtime snapshot."
+        Field(
+            description="Application environment associated with the runtime snapshot."
         ),
     ]
     runtime_revision: Annotated[
         str | None,
-        described_field("Source revision baked into the running application image."),
+        Field(description="Source revision baked into the running application image."),
     ] = None
     expected_revision: Annotated[
         str | None,
-        described_field("Deployment revision expected by the runtime environment."),
+        Field(description="Deployment revision expected by the runtime environment."),
     ] = None
     build_timestamp: Annotated[
         str | None,
-        described_field("Build timestamp baked into the running application image."),
+        Field(description="Build timestamp baked into the running application image."),
     ] = None
     native_revision: Annotated[
         str | None,
-        described_field("Source revision baked into the loaded Rust extension."),
+        Field(description="Source revision baked into the loaded Rust extension."),
     ] = None
     native_package_version: Annotated[
         str | None,
-        described_field("Package version reported by the loaded Rust extension."),
+        Field(description="Package version reported by the loaded Rust extension."),
     ] = None
     native_build_profile: Annotated[
         str | None,
-        described_field("Cargo build profile reported by the loaded Rust extension."),
+        Field(description="Cargo build profile reported by the loaded Rust extension."),
     ] = None
     native_contract_version: Annotated[
         int | None,
-        described_field(
-            "Python/Rust compute contract version reported by native code."
+        Field(
+            description="Python/Rust compute contract version reported by native code."
         ),
     ] = None
     feature_authority_schema_version: Annotated[
         int | None,
-        described_field(
-            "Feature authority registry schema version reported by native code."
+        Field(
+            description="Feature authority registry schema version reported by native code."
         ),
     ] = None
     verified: Annotated[
         bool,
-        described_field(
-            "Whether runtime, deployment, and native revisions are verified."
+        Field(
+            description="Whether runtime, deployment, and native revisions are verified."
         ),
     ]
     drift_detected: Annotated[
         bool,
-        described_field("Whether application runtime drift was explicitly detected."),
+        Field(description="Whether application runtime drift was explicitly detected."),
     ]
     native_aligned: Annotated[
         bool,
-        described_field(
-            "Whether loaded native code is aligned with the runtime revision."
+        Field(
+            description="Whether loaded native code is aligned with the runtime revision."
         ),
     ]
     warnings: Annotated[
         list[str],
-        described_field("Runtime provenance warnings for this readiness snapshot."),
+        Field(description="Runtime provenance warnings for this readiness snapshot."),
     ] = schema_list_default()
 
     @classmethod
@@ -129,33 +129,33 @@ class OperationalRetrievalCanaryResultResponse(StrictSchemaModel):
 
     strategy: Annotated[
         RagStrategy,
-        described_field("Retrieval strategy exercised by this readiness canary."),
+        Field(description="Retrieval strategy exercised by this readiness canary."),
     ]
     ok: Annotated[
         bool,
-        described_field(
-            "Whether this retrieval lane completed without fallback or failure."
+        Field(
+            description="Whether this retrieval lane completed without fallback or failure."
         ),
     ]
     effective_strategy: Annotated[
         RagStrategy | None,
-        described_field("Effective strategy returned by the normal retrieval path."),
+        Field(description="Effective strategy returned by the normal retrieval path."),
     ] = None
     match_count: Annotated[
         int,
-        described_field("Number of matches returned by the readiness canary.", ge=0),
+        Field(description="Number of matches returned by the readiness canary.", ge=0),
     ]
     context_pack_built: Annotated[
         bool,
-        described_field("Whether normal Context Pack construction completed."),
+        Field(description="Whether normal Context Pack construction completed."),
     ]
     failure_code: Annotated[
         str | None,
-        described_field("Sanitized failure code for this retrieval canary."),
+        Field(description="Sanitized failure code for this retrieval canary."),
     ] = None
     warnings: Annotated[
         list[str],
-        described_field("Warnings returned by the normal retrieval path."),
+        Field(description="Warnings returned by the normal retrieval path."),
     ] = schema_list_default()
 
     @classmethod
@@ -187,31 +187,35 @@ class OperationalRetrievalCanarySnapshotResponse(StrictSchemaModel):
 
     checked: Annotated[
         bool,
-        described_field("Whether real retrieval canaries were executed."),
+        Field(description="Whether real retrieval canaries were executed."),
     ]
     query: Annotated[
         str,
-        described_field("Bounded query used by the retrieval readiness canaries."),
+        Field(description="Bounded query used by the retrieval readiness canaries."),
     ]
     limit: Annotated[
         int,
-        described_field("Result limit used by each retrieval readiness canary.", ge=3),
+        Field(
+            description="Result limit used by each retrieval readiness canary.", ge=3
+        ),
     ]
     healthy: Annotated[
         bool,
-        described_field("Whether all required retrieval lanes completed successfully."),
+        Field(
+            description="Whether all required retrieval lanes completed successfully."
+        ),
     ]
     fts: Annotated[
         OperationalRetrievalCanaryResultResponse,
-        described_field("FTS-only real-search readiness result."),
+        Field(description="FTS-only real-search readiness result."),
     ]
     vector: Annotated[
         OperationalRetrievalCanaryResultResponse,
-        described_field("Vector-only real-search readiness result."),
+        Field(description="Vector-only real-search readiness result."),
     ]
     hybrid: Annotated[
         OperationalRetrievalCanaryResultResponse,
-        described_field("Hybrid real-search readiness result."),
+        Field(description="Hybrid real-search readiness result."),
     ]
 
     @classmethod
@@ -245,8 +249,8 @@ class OperationalRetrievalCanarySnapshotResponse(StrictSchemaModel):
 class ContextProjectionIntegrityFailureResponse(StrictSchemaModel):
     """Aggregated projection failure count exposed by operational readiness."""
 
-    code: Annotated[str, described_field("Machine-readable projection failure code.")]
-    count: Annotated[int, described_field("Number of failures with this code.", ge=1)]
+    code: Annotated[str, Field(description="Machine-readable projection failure code.")]
+    count: Annotated[int, Field(description="Number of failures with this code.", ge=1)]
 
     @classmethod
     def from_entity(
@@ -268,44 +272,48 @@ class ContextProjectionIntegritySnapshotResponse(StrictSchemaModel):
     """Persisted full Obsidian-to-Context projection validation state."""
 
     checked: Annotated[
-        bool, described_field("Whether projection integrity was evaluated.")
+        bool, Field(description="Whether projection integrity was evaluated.")
     ]
     available: Annotated[
         bool,
-        described_field("Whether a persisted full projection scan is available."),
+        Field(description="Whether a persisted full projection scan is available."),
     ]
     healthy: Annotated[
         bool,
-        described_field("Whether the persisted projection scan is current and clean."),
+        Field(
+            description="Whether the persisted projection scan is current and clean."
+        ),
     ]
     source_revision: Annotated[
         str | None,
-        described_field("Indexed-note revision validated by the persisted full scan."),
+        Field(
+            description="Indexed-note revision validated by the persisted full scan."
+        ),
     ] = None
     current_source_revision: Annotated[
         str | None,
-        described_field("Current indexed-note revision observed by readiness."),
+        Field(description="Current indexed-note revision observed by readiness."),
     ] = None
     scanned_count: Annotated[
-        int, described_field("Notes scanned by the full projection check.", ge=0)
+        int, Field(description="Notes scanned by the full projection check.", ge=0)
     ]
     valid_count: Annotated[
-        int, described_field("Notes that projected successfully.", ge=0)
+        int, Field(description="Notes that projected successfully.", ge=0)
     ]
     invalid_count: Annotated[
-        int, described_field("Notes that failed Context projection.", ge=0)
+        int, Field(description="Notes that failed Context projection.", ge=0)
     ]
     stale: Annotated[
         bool,
-        described_field("Whether age or source revision makes this snapshot stale."),
+        Field(description="Whether age or source revision makes this snapshot stale."),
     ]
     checked_at: Annotated[
         str | None,
-        described_field("ISO-8601 time of the persisted full projection scan."),
+        Field(description="ISO-8601 time of the persisted full projection scan."),
     ] = None
     failures: Annotated[
         list[ContextProjectionIntegrityFailureResponse],
-        described_field("Aggregated machine-readable projection failure counts."),
+        Field(description="Aggregated machine-readable projection failure counts."),
     ] = schema_list_default()
 
     @classmethod

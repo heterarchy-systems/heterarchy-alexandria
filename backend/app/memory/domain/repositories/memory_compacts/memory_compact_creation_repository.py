@@ -5,6 +5,8 @@ from __future__ import annotations
 from abc import abstractmethod
 from contextlib import AbstractAsyncContextManager
 
+from app.memory.domain.entities.memory_compact import MemoryCompact
+from app.memory.domain.event_enum.memory_compact_enums import MemoryCompactStatus
 from app.memory.domain.repositories.memory_compacts.memory_compact_create_repository import (
     IMemoryCompactCreateRepository,
 )
@@ -17,7 +19,24 @@ class IMemoryCompactCreationRepository(
     IMemoryCompactCreateRepository,
     IMemoryCompactQueryRepository,
 ):
-    """Create compacts and query prior signatures for idempotency."""
+    """Create compacts and read scoped snapshots for idempotency."""
+
+    @abstractmethod
+    async def creation_snapshot(
+        self,
+        project: str | None,
+        status: MemoryCompactStatus,
+    ) -> list[MemoryCompact]:
+        """Read compacts in the exact project/status scope, newest coverage first.
+
+        Args:
+            project: Exact project scope, including the default ``None`` project.
+            status: Exact lifecycle status to inspect.
+
+        Returns:
+            Matching canonical Memory Compact entities in newest-first order.
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def creation_guard(self) -> AbstractAsyncContextManager[None]:

@@ -19,17 +19,27 @@ from __future__ import annotations
 
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 from dataclasses import dataclass
-from json import dumps, loads
 from typing import Final
+
+from typing_extensions import TypedDict
 
 from app.shared.exceptions.memory_context_exceptions import (
     ContextChangeCursorInvalidError,
     ContextChangeCursorResyncRequiredError,
 )
+from app.shared.serialization.orjson_codec import dumps_json, loads_json
 
 CONTEXT_CHANGE_CURSOR_VERSION: Final[int] = 1
 CONTEXT_CHANGE_LOG_SCOPE: Final[str] = "context-change-log"
 _CURSOR_KEYS: Final[frozenset[str]] = frozenset({"v", "scope", "last_sequence"})
+
+
+class ContextChangeCursorPayload(TypedDict, closed=True):
+    """Serialized wire payload for a Context change-log cursor token."""
+
+    v: int
+    scope: str
+    last_sequence: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,14 +58,12 @@ def encode_context_change_cursor(last_sequence: int) -> str:
     Returns:
         URL-safe base64 cursor token.
     """
-    payload = {
-        "v": CONTEXT_CHANGE_CURSOR_VERSION,
-        "scope": CONTEXT_CHANGE_LOG_SCOPE,
-        "last_sequence": last_sequence,
-    }
-    return urlsafe_b64encode(
-        dumps(payload, separators=(",", ":")).encode("utf-8")
-    ).decode("ascii")
+    payload = ContextChangeCursorPayload(
+        v=CONTEXT_CHANGE_CURSOR_VERSION,
+        scope=CONTEXT_CHANGE_LOG_SCOPE,
+        last_sequence=last_sequence,
+    )
+    return urlsafe_b64encode(dumps_json(payload)).decode("ascii")
 
 
 def decode_context_change_cursor(token: str) -> ContextChangeCursor:
@@ -75,7 +83,7 @@ def decode_context_change_cursor(token: str) -> ContextChangeCursor:
     """
     try:
         raw = urlsafe_b64decode(token.encode("ascii"))
-        payload = loads(raw)
+        payload = loads_json(raw)
     except (UnicodeEncodeError, ValueError, TypeError) as exc:
         raise ContextChangeCursorInvalidError(
             "Change-log cursor token is not decodable"

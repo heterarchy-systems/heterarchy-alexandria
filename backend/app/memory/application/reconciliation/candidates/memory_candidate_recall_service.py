@@ -66,7 +66,8 @@ class MemoryCandidateRecallService:
             query=_candidate_query(candidate),
             limit=limit,
         )
-        recalled: list[MemoryRecallCandidate] = []
+        candidate_matches: list[ContextSearchMatch] = []
+        context_ids: list[str] = []
         seen_context_ids: set[str] = set()
         for match in pack.matches:
             if not _matches_candidate_identity(match.context, candidate):
@@ -75,15 +76,22 @@ class MemoryCandidateRecallService:
             if context_id in seen_context_ids:
                 continue
             seen_context_ids.add(context_id)
-            temporal = await self._repository.get_temporal_state(context_id)
-            recalled.append(
-                recall_candidate_from_match(
-                    match,
-                    temporal_state=temporal,
-                    candidate_hash=candidate.content_hash,
-                )
+            candidate_matches.append(match)
+            context_ids.append(context_id)
+
+        temporal_states = (
+            await self._repository.get_temporal_states(tuple(context_ids))
+            if context_ids
+            else {}
+        )
+        return tuple(
+            recall_candidate_from_match(
+                match,
+                temporal_state=temporal_states.get(context_id),
+                candidate_hash=candidate.content_hash,
             )
-        return tuple(recalled)
+            for match, context_id in zip(candidate_matches, context_ids, strict=True)
+        )
 
 
 def _matches_candidate_identity(
@@ -231,7 +239,7 @@ def _canonical_claims(metadata: ContextMetadataPayload) -> tuple[CanonicalClaim,
     if isinstance(value, str):
         try:
             value = loads_json(value)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             return ()
     if not isinstance(value, list):
         return ()

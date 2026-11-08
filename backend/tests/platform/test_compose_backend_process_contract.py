@@ -28,11 +28,17 @@ def test_app_processes_extend_one_shared_env_compose_contract() -> None:
     assert compose.count("      service: alexandria-app-base\n") == 2
     assert "x-alexandria-app-base:" not in compose
     assert "x-alexandria-runtime-environment:" not in compose
-    assert "      - ./.env\n" in shared
+    assert "      - ./.env\n" not in shared
     assert "      - ./runtime-performance.env\n" in shared
-    assert shared.index("      - ./.env\n") < shared.index(
-        "      - ./runtime-performance.env\n"
-    )
+    assert "      - ./module_setting_envs:/module_setting_envs:ro\n" in shared
+    # Feature files are mounted, not injected over the image's baked provenance.
+    assert "_settings.env" not in shared
+    for provenance_key in (
+        "SERVICE_RUNTIME_REVISION",
+        "SERVICE_RUNTIME_EXPECTED_REVISION",
+        "SERVICE_RUNTIME_BUILD_TIMESTAMP",
+    ):
+        assert provenance_key not in shared
     assert "      SERVICE_OBSIDIAN_VAULT_PATH: /vault\n" in shared
     assert "      - ${ALEXANDRIA_HOST_OBSIDIAN_VAULT_PATH}:/vault\n" in shared
     assert "      - embedding-model-cache:/app/cache/embeddings\n" in shared

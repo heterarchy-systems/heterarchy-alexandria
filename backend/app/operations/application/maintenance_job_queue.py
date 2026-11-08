@@ -20,6 +20,13 @@ class MaintenanceQueueUnavailableError(RuntimeError):
     """Raised when Redis queueing is disabled or unavailable."""
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class MaintenanceJobNotAdmitted:
+    """Typed rejection of execution admission for one Streams delivery."""
+
+    acknowledgement_repaired: bool = False
+
+
 class MaintenanceSubmissionRateLimitError(RuntimeError):
     """Raised when a caller exceeds the configured submission budget."""
 
@@ -156,12 +163,6 @@ class MaintenanceJobSubmitter(ABC):
         """
         raise NotImplementedError("dead-letter inspection is not supported")
 
-    async def inspect_dead_letter(
-        self, entry_id: str
-    ) -> MaintenanceDeadLetterContext | None:
-        """Compatibility name for exact dead-letter inspection."""
-        return await self.get_dead_letter(entry_id)
-
     async def retry_dead_letter(
         self, entry_id: str, reason: str
     ) -> MaintenanceJobSnapshot:
@@ -200,27 +201,35 @@ class MaintenanceJobConsumer(ABC):
         """
 
     @abstractmethod
-    async def mark_running(self, delivery: MaintenanceJobDelivery) -> int:
-        """Mark a delivery running and return its attempt number.
+    async def mark_running(
+        self,
+        delivery: MaintenanceJobDelivery,
+    ) -> int | MaintenanceJobNotAdmitted:
+        """Atomically admit a delivery or return its typed rejection.
 
         Args:
             delivery: Claimed maintenance job and Redis stream identifier.
 
         Returns:
-            Persisted one-based execution attempt number.
+            Persisted one-based attempt number, or a non-admission outcome.
         """
 
     @abstractmethod
     async def mark_succeeded(
         self,
         delivery: MaintenanceJobDelivery,
+        attempt: int,
         result: EmbeddingReindexJobResult | BatchNoteWriteJobResult,
-    ) -> None:
-        """Persist success and acknowledge the stream entry.
+    ) -> bool:
+        """Persist success under the admitted attempt fence and acknowledge.
 
         Args:
             delivery: Claimed maintenance job and Redis stream identifier.
+            attempt: Actual one-based attempt returned by admission.
             result: Bounded kind-specific result to persist.
+
+        Returns:
+            Whether this attempt published the success outcome.
         """
 
     @abstractmethod
@@ -229,8 +238,8 @@ class MaintenanceJobConsumer(ABC):
         delivery: MaintenanceJobDelivery,
         attempt: int,
         error_summary: str,
-    ) -> bool:
-        """Persist retry or terminal failure and return terminal state.
+    ) -> bool | None:
+        """Persist retry or terminal failure under the admitted attempt fence.
 
         Args:
             delivery: Claimed maintenance job and Redis stream identifier.
@@ -238,5 +247,5 @@ class MaintenanceJobConsumer(ABC):
             error_summary: Bounded operator-safe failure summary.
 
         Returns:
-            True when the job became terminal; False when it remains retryable.
+            True when terminal, False when retryable, or None when fenced out.
         """

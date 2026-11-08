@@ -7,9 +7,9 @@ from pathlib import Path
 
 import anyio
 from fastapi.testclient import TestClient
+from tests.config_test_data import application_container
 
 from app.main import app as default_app, create_app
-from app.platform.config.app_config import AppConfig
 from app.shared.infrastructure.database import Database
 
 _ROUTER_PACKAGES = [
@@ -32,11 +32,9 @@ def test_projection_status_uses_postgresql_graph_authority(tmp_path: Path) -> No
     anyio.run(database.shutdown)
 
     app = create_app(
-        AppConfig(
-            _env_file=None,
+        application_container(
             obsidian_vault_path=str(tmp_path / "vault"),
             obsidian_vault_config_path=str(tmp_path / "vault-config.json"),
-            operational_backup_root=str(tmp_path / "backups"),
         )
     )
 

@@ -55,7 +55,7 @@ ci: python_ci rust_ci
 
 runtime_revision:
 	@set -eu; \
-	paths="backend/Dockerfile backend/pyproject.toml backend/uv.lock backend/alembic.ini backend/app backend/migrations native/Cargo.toml native/Cargo.lock native/crates native/xtask"; \
+	paths="backend/Dockerfile backend/pyproject.toml backend/uv.lock backend/alembic.ini backend/app backend/migrations native/Cargo.toml native/Cargo.lock native/crates native/xtask native/vendor"; \
 	untracked="$$(git ls-files --others --exclude-standard -- $$paths)"; \
 	if git diff --quiet HEAD -- $$paths && [ -z "$$untracked" ]; then \
 		git rev-parse HEAD; \

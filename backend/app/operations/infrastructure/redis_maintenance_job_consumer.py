@@ -1,7 +1,8 @@
-"""Redis maintenance job consumer."""
+"""Redis Streams adapter for fenced maintenance execution and recovery."""
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Awaitable
 from datetime import UTC, datetime
 from typing import cast
@@ -12,40 +13,57 @@ from redis.exceptions import RedisError
 from app.operations.application.maintenance_job_queue import (
     MaintenanceJobConsumer,
     MaintenanceJobDelivery,
+    MaintenanceJobNotAdmitted,
     MaintenanceQueueUnavailableError,
 )
 from app.operations.domain.entities.maintenance_job import (
     BatchNoteWriteJobResult,
     EmbeddingReindexJobResult,
-    MaintenanceJobAttempt,
 )
-from app.operations.domain.event_enum.maintenance_job_enums import (
-    MaintenanceJobStatus,
+from app.operations.domain.event_enum.maintenance_job_enums import MaintenanceJobStatus
+from app.operations.infrastructure.maintenance_codec.history import (
+    MaintenanceAttemptHistoryCodec,
 )
-from app.operations.infrastructure.redis_maintenance_job_codec import (
-    decode_attempt_history,
-    decode_autoclaim_delivery,
-    decode_readgroup_delivery,
-    encode_attempt_history,
-    encode_batch_note_write_result,
-    encode_embedding_result,
-    response_integer,
+from app.operations.infrastructure.maintenance_codec.results import (
+    MaintenanceResultCodec,
+)
+from app.operations.infrastructure.maintenance_codec.scalars import RedisValueDecoder
+from app.operations.infrastructure.maintenance_codec.streams import (
+    RedisMaintenanceStreamDecoder,
+)
+from app.operations.infrastructure.maintenance_consumer.consumer_enums import (
+    MaintenanceTransitionMode,
+    MaintenanceTransitionReply,
+)
+from app.operations.infrastructure.maintenance_consumer.delivery import (
+    MaintenanceDeliveryReader,
+)
+from app.operations.infrastructure.maintenance_consumer.policy import (
+    CONSUMER_LOGGER_NAME,
+    MaintenanceConsumerSnapshotPolicy,
+    MaintenanceDeliveryLogFields,
+    history_after,
+)
+from app.operations.infrastructure.maintenance_consumer.readback import (
+    MaintenanceExecutionReadback,
+)
+from app.operations.infrastructure.maintenance_consumer.responses import (
+    MaintenanceConsumerResponseDecoder,
+)
+from app.operations.infrastructure.maintenance_consumer.transitions import (
+    MaintenanceTransitionExecutor,
 )
 from app.operations.infrastructure.redis_maintenance_job_queue import (
-    MaintenanceDeadLetterFields,
-    MaintenanceStatusMutation,
     RedisMaintenanceJobSubmitter,
-    RedisStreamWriter,
-    _dead_letter_mapping,
-    _status_key,
-    _status_mapping,
 )
-from app.platform.config.maintenance_queue_config import MaintenanceQueueConfig
-from app.shared.types.redis_types import RedisHashResponse, RedisResponse
+from app.platform.config.redis_config import MaintenanceQueueConfig
+from app.shared.types.redis_types import RedisResponse
+
+logger = logging.getLogger(CONSUMER_LOGGER_NAME)
 
 
 class RedisMaintenanceJobConsumer(MaintenanceJobConsumer):
-    """Worker-facing Redis adapter for claim, retry, and acknowledgement."""
+    """Worker-facing Redis adapter for claim, fenced transitions, and ACK repair."""
 
     def __init__(
         self,
@@ -53,268 +71,224 @@ class RedisMaintenanceJobConsumer(MaintenanceJobConsumer):
         config: MaintenanceQueueConfig,
         submitter: RedisMaintenanceJobSubmitter,
     ) -> None:
-        """Initialize RedisMaintenanceJobConsumer state and dependencies.
+        """Initialize the worker-facing Redis adapter.
 
         Args:
-            client: Client used by this operation.
-            config: Typed configuration used by this operation.
-            submitter: Submitter used by this operation.
+            client: Redis client used for Streams and atomic transitions.
+            config: Typed maintenance queue settings.
+            submitter: Existing adapter for authoritative status reads.
         """
         self._client = client
         self._config = config
         self._submitter = submitter
+        self._delivery_reader = MaintenanceDeliveryReader(client, config, submitter)
+        self._transitions = MaintenanceTransitionExecutor(client, config)
+        self._readback = MaintenanceExecutionReadback(submitter)
 
     async def ensure_consumer_group(self) -> None:
         """Create the stream and consumer group idempotently."""
         await self._submitter.ensure_consumer_group()
 
     async def receive(self, consumer_name: str) -> MaintenanceJobDelivery | None:
-        """Claim one stale pending job before reading one new entry.
+        """Claim one bounded stale page, then fall through to fresh work.
 
         Args:
-            consumer_name: Unique consumer name for the worker loop.
+            consumer_name: Unique Redis Streams consumer name for this loop.
 
         Returns:
-            Claimed job delivery, or None when no work is available.
+            One delivery with readable status evidence, or None when no work is
+            available. Missing or corrupt status remains pending and is not rebuilt.
         """
         await self.ensure_consumer_group()
         try:
-            claimed_raw = await cast(
+            claimed = await self._delivery_reader.claim_stale(consumer_name)
+            if claimed is not None:
+                delivery = await self._delivery_reader.delivery_for(
+                    claimed.stream_id, claimed.job_id
+                )
+                if (
+                    delivery is not None
+                    and delivery.job.stream_id == delivery.stream_id
+                    and (delivery.job.status is not MaintenanceJobStatus.RUNNING)
+                    and MaintenanceConsumerSnapshotPolicy.snapshot_consistent_for_admission(
+                        delivery.job
+                    )
+                ):
+                    return delivery
+            fresh = await cast(
                 Awaitable[RedisResponse],
-                self._client.xautoclaim(
-                    name=self._config.stream_name,
+                self._client.xreadgroup(
                     groupname=self._config.consumer_group,
                     consumername=consumer_name,
-                    min_idle_time=self._config.retry_idle_seconds * 1000,
-                    start_id="0-0",
+                    streams={self._config.stream_name: ">"},
                     count=1,
+                    block=self._config.block_milliseconds,
                 ),
             )
-            decoded = decode_autoclaim_delivery(claimed_raw)
-            if decoded is None:
-                read_raw = await cast(
-                    Awaitable[RedisResponse],
-                    self._client.xreadgroup(
-                        groupname=self._config.consumer_group,
-                        consumername=consumer_name,
-                        streams={self._config.stream_name: ">"},
-                        count=1,
-                        block=self._config.block_milliseconds,
-                    ),
-                )
-                decoded = decode_readgroup_delivery(read_raw)
         except RedisError as exc:
             raise MaintenanceQueueUnavailableError(
                 "Redis maintenance receive failed"
             ) from exc
+        decoded = RedisMaintenanceStreamDecoder.decode_readgroup_delivery(fresh)
         if decoded is None:
             return None
-        snapshot = await self._submitter.get(decoded.job_id)
-        if snapshot is None:
-            await self._ack(decoded.stream_id)
-            return None
-        return MaintenanceJobDelivery(stream_id=decoded.stream_id, job=snapshot)
+        return await self._delivery_reader.delivery_for(
+            decoded.stream_id, decoded.job_id
+        )
 
-    async def mark_running(self, delivery: MaintenanceJobDelivery) -> int:
-        """Increment the attempt count and persist RUNNING state.
+    async def mark_running(
+        self, delivery: MaintenanceJobDelivery
+    ) -> int | MaintenanceJobNotAdmitted:
+        """Atomically admit only the current queued/retrying generation.
 
         Args:
-            delivery: Claimed maintenance job and Redis stream identifier.
+            delivery: Claimed maintenance job and source stream identifier.
 
         Returns:
-            Persisted one-based execution attempt number.
+            The persisted one-based attempt, or a typed non-admission outcome.
         """
-        key = _status_key(self._config, delivery.job.job_id)
-        now = datetime.now(UTC).isoformat()
-        mutation: MaintenanceStatusMutation = {
-            "status": MaintenanceJobStatus.RUNNING.value,
-            "started_at": now,
-            "finished_at": "",
-            "error_summary": "",
-        }
+        job = delivery.job
+        if not MaintenanceConsumerSnapshotPolicy.snapshot_consistent_for_admission(job):
+            return MaintenanceJobNotAdmitted()
+        now = datetime.now(UTC)
+        new_history = history_after(
+            job.attempt_history,
+            job.attempts + 1,
+            MaintenanceJobStatus.RUNNING.value,
+            now,
+        )
         try:
-            attempt_raw = await cast(
-                Awaitable[int],
-                self._client.hincrby(key, "attempts", 1),
+            raw = await self._transitions.eval_transition(
+                MaintenanceTransitionMode.ADMIT.value,
+                delivery,
+                job,
+                expected_status=job.status.value,
+                expected_attempt=job.attempts,
+                expected_history=MaintenanceAttemptHistoryCodec.encode_attempt_history(
+                    job.attempt_history
+                ),
+                expected_result=MaintenanceResultCodec.encode_result(job.result),
+                occurred_at=now,
+                next_history=new_history,
             )
-            attempt = response_integer(attempt_raw, "attempt")
-            history = await self._append_attempt_history(
-                key,
-                attempt,
-                MaintenanceJobStatus.RUNNING.value,
+            state, detail = MaintenanceConsumerResponseDecoder.transition_response(raw)
+            if state == MaintenanceTransitionReply.ADMITTED.value:
+                attempt = RedisValueDecoder.integer(detail, "admitted attempt")
+                if attempt == job.attempts + 1:
+                    return attempt
+                return MaintenanceJobNotAdmitted()
+            if state in {
+                MaintenanceTransitionReply.REPLAYED_SUCCEEDED.value,
+                MaintenanceTransitionReply.REPAIRED_FAILED.value,
+            }:
+                return MaintenanceJobNotAdmitted(acknowledgement_repaired=True)
+            return MaintenanceJobNotAdmitted()
+        except (RedisError, MaintenanceQueueUnavailableError) as exc:
+            await self._readback.best_effort_status_readback(delivery)
+            logger.warning(
+                "maintenance job admission response was unresolved; effects were not run",
+                extra=MaintenanceDeliveryLogFields(
+                    job_id=job.job_id, stream_id=delivery.stream_id
+                ),
+                exc_info=(type(exc), exc, exc.__traceback__),
             )
-            mutation["attempt_history_json"] = history
-            await cast(
-                Awaitable[int],
-                self._client.hset(key, mapping=_status_mapping(mutation)),
-            )
-            await cast(
-                Awaitable[bool],
-                self._client.expire(key, self._config.status_ttl_seconds),
-            )
-        except RedisError as exc:
-            raise MaintenanceQueueUnavailableError(
-                "Redis maintenance running transition failed"
-            ) from exc
-        return attempt
+            return MaintenanceJobNotAdmitted()
 
     async def mark_succeeded(
         self,
         delivery: MaintenanceJobDelivery,
+        attempt: int,
         result: EmbeddingReindexJobResult | BatchNoteWriteJobResult,
-    ) -> None:
-        """Persist a bounded result and acknowledge the Stream entry.
+    ) -> bool:
+        """Publish success only for the admitted generation and attempt.
 
         Args:
-            delivery: Claimed maintenance job and Redis stream identifier.
+            delivery: Claimed maintenance job and source stream identifier.
+            attempt: Actual one-based attempt returned by admission.
             result: Bounded kind-specific result to persist.
+
+        Returns:
+            Whether this attempt durably published success and repaired its ACK.
         """
-        key = _status_key(self._config, delivery.job.job_id)
-        mutation: MaintenanceStatusMutation = {
-            "status": MaintenanceJobStatus.SUCCEEDED.value,
-            "finished_at": datetime.now(UTC).isoformat(),
-            "result_json": (
-                encode_batch_note_write_result(result)
-                if isinstance(result, BatchNoteWriteJobResult)
-                else encode_embedding_result(result)
-            ),
-            "error_summary": "",
-        }
+        snapshot = await self._readback.current_running_snapshot(delivery, attempt)
+        if snapshot is None:
+            return False
+        now = datetime.now(UTC)
+        history = history_after(
+            snapshot.attempt_history, attempt, MaintenanceJobStatus.SUCCEEDED.value, now
+        )
+        result_json = MaintenanceResultCodec.encode_result(result)
         try:
-            history = await self._append_attempt_history(
-                key,
-                delivery.job.attempts,
-                MaintenanceJobStatus.SUCCEEDED.value,
+            raw = await self._transitions.eval_transition(
+                MaintenanceTransitionMode.SUCCEEDED.value,
+                delivery,
+                snapshot,
+                expected_status=MaintenanceJobStatus.RUNNING.value,
+                expected_attempt=attempt,
+                expected_history=MaintenanceAttemptHistoryCodec.encode_attempt_history(
+                    snapshot.attempt_history
+                ),
+                expected_result=b"",
+                occurred_at=now,
+                next_history=history,
+                result_json=result_json,
             )
-            mutation["attempt_history_json"] = history
-            await cast(
-                Awaitable[int],
-                self._client.hset(key, mapping=_status_mapping(mutation)),
+            state, _detail = MaintenanceConsumerResponseDecoder.transition_response(raw)
+            return state == MaintenanceTransitionReply.PUBLISHED_SUCCEEDED.value
+        except (RedisError, MaintenanceQueueUnavailableError) as exc:
+            return await self._readback.resolve_success_response_loss(
+                delivery, attempt, result, exc, admission_owner=self
             )
-            await cast(
-                Awaitable[bool],
-                self._client.expire(key, self._config.status_ttl_seconds),
-            )
-            await self._ack(delivery.stream_id)
-        except RedisError as exc:
-            raise MaintenanceQueueUnavailableError(
-                "Redis maintenance success transition failed"
-            ) from exc
 
     async def mark_failed(
-        self,
-        delivery: MaintenanceJobDelivery,
-        attempt: int,
-        error_summary: str,
-    ) -> bool:
-        """Keep retryable work pending or move terminal evidence to the DLQ.
+        self, delivery: MaintenanceJobDelivery, attempt: int, error_summary: str
+    ) -> bool | None:
+        """Publish retry or terminal failure under the admitted attempt fence.
 
         Args:
-            delivery: Claimed maintenance job and Redis stream identifier.
-            attempt: Current one-based execution attempt number.
+            delivery: Claimed maintenance job and source stream identifier.
+            attempt: Actual one-based attempt returned by admission.
             error_summary: Bounded operator-safe failure summary.
 
         Returns:
-            True when the job moved to terminal failure; False when retryable.
+            True when terminal, False when retryable, or None when fenced out.
         """
-        key = _status_key(self._config, delivery.job.job_id)
+        snapshot = await self._readback.current_running_snapshot(delivery, attempt)
+        if snapshot is None:
+            return None
         bounded_error = error_summary[:1000]
-        terminal = attempt >= self._config.max_attempts
-        mutation: MaintenanceStatusMutation = {
-            "status": (
-                MaintenanceJobStatus.FAILED.value
-                if terminal
-                else MaintenanceJobStatus.RETRYING.value
-            ),
-            "error_summary": bounded_error,
-        }
-        if terminal:
-            mutation["finished_at"] = datetime.now(UTC).isoformat()
-        try:
-            history = await self._append_attempt_history(
-                key,
-                attempt,
-                mutation["status"],
-                bounded_error,
-            )
-            mutation["attempt_history_json"] = history
-            await cast(
-                Awaitable[int],
-                self._client.hset(key, mapping=_status_mapping(mutation)),
-            )
-            await cast(
-                Awaitable[bool],
-                self._client.expire(key, self._config.status_ttl_seconds),
-            )
-            if terminal:
-                dead_letter: MaintenanceDeadLetterFields = {
-                    "job_id": delivery.job.job_id,
-                    "kind": delivery.job.kind.value,
-                    "attempts": str(attempt),
-                    "failed_at": datetime.now(UTC).isoformat(),
-                    "error_summary": bounded_error,
-                    "source_stream_id": delivery.stream_id,
-                    "attempt_history_json": history.decode("utf-8"),
-                }
-                writer = cast(RedisStreamWriter, self._client)
-                await writer.xadd(
-                    self._config.dead_letter_stream_name,
-                    _dead_letter_mapping(dead_letter),
-                    maxlen=self._config.max_stream_length,
-                    approximate=True,
-                )
-                await self._ack(delivery.stream_id)
-        except RedisError as exc:
-            raise MaintenanceQueueUnavailableError(
-                "Redis maintenance failure transition failed"
-            ) from exc
-        return terminal
-
-    async def _append_attempt_history(
-        self,
-        key: str,
-        attempt: int,
-        status: str,
-        error_summary: str | None = None,
-    ) -> bytes:
-        """Append one bounded lifecycle event to the status hash."""
-        raw = await cast(
-            Awaitable[RedisHashResponse],
-            self._client.hgetall(key),
-        )
-        value: str | bytes | None = None
-        if isinstance(raw, dict):
-            candidate = raw.get("attempt_history_json")
-            if candidate is None:
-                candidate = raw.get(b"attempt_history_json")
-            if isinstance(candidate, str | bytes):
-                value = candidate
-        history = decode_attempt_history(value)
-        resolved_attempt = max(
+        now = datetime.now(UTC)
+        history = history_after(
+            snapshot.attempt_history,
             attempt,
-            history[-1].attempt if history else 0,
+            MaintenanceJobStatus.FAILED.value
+            if attempt >= self._config.max_attempts
+            else MaintenanceJobStatus.RETRYING.value,
+            now,
+            bounded_error,
         )
-        return encode_attempt_history(
-            (
-                *history,
-                MaintenanceJobAttempt(
-                    attempt=resolved_attempt,
-                    status=status,
-                    occurred_at=datetime.now(UTC),
-                    error_summary=error_summary,
+        try:
+            raw = await self._transitions.eval_transition(
+                MaintenanceTransitionMode.FAILED.value,
+                delivery,
+                snapshot,
+                expected_status=MaintenanceJobStatus.RUNNING.value,
+                expected_attempt=attempt,
+                expected_history=MaintenanceAttemptHistoryCodec.encode_attempt_history(
+                    snapshot.attempt_history
                 ),
+                expected_result=b"",
+                occurred_at=now,
+                next_history=history,
+                error_summary=bounded_error,
             )
-        )
-
-    async def _ack(self, stream_id: str) -> None:
-        """Execute ack.
-
-        Args:
-            stream_id: Identifier for stream.
-        """
-        operation = self._client.xack(
-            self._config.stream_name,
-            self._config.consumer_group,
-            stream_id,
-        )
-        await cast(Awaitable[int], operation)
+            state, _detail = MaintenanceConsumerResponseDecoder.transition_response(raw)
+            if state == MaintenanceTransitionReply.PUBLISHED_RETRYING.value:
+                return False
+            if state == MaintenanceTransitionReply.PUBLISHED_FAILED.value:
+                return True
+            return None
+        except (RedisError, MaintenanceQueueUnavailableError) as exc:
+            return await self._readback.resolve_failure_response_loss(
+                delivery, attempt, bounded_error, exc, admission_owner=self
+            )

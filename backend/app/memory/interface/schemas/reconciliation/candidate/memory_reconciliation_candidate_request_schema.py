@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import StringConstraints, field_validator
+from pydantic import Field, StringConstraints, field_validator
 
 from app.memory.domain.contracts.memory_reconciliation_contracts import (
     MemoryCandidateCreate,
@@ -19,11 +19,7 @@ from app.memory.interface.schemas.reconciliation.reconciliation_string_types imp
     ReconciliationScopeFilterText,
     ReconciliationTitleText,
 )
-from app.shared.schemas.common_schemas import (
-    StrictSchemaModel,
-    described_field,
-    schema_list_default,
-)
+from app.shared.schemas.common_schemas import StrictSchemaModel, schema_list_default
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 from app.shared.types.types_convert_utils import enum_value
 
@@ -33,78 +29,78 @@ class MemoryCandidateRequest(StrictSchemaModel):
 
     title: Annotated[
         ReconciliationTitleText,
-        described_field("Title for this memory candidate request."),
+        Field(description="Title for this memory candidate request."),
     ]
     body: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=500000),
-        described_field("Body for this memory candidate request."),
+        Field(description="Body for this memory candidate request."),
     ]
     scope: Annotated[
-        ContextScope, described_field("Scope for this memory candidate request.")
+        ContextScope, Field(description="Scope for this memory candidate request.")
     ]
     project: Annotated[
         ReconciliationScopeFilterText,
-        described_field("Project for this memory candidate request."),
+        Field(description="Project for this memory candidate request."),
     ] = None
     workspace_id: Annotated[
         ReconciliationScopeFilterText,
-        described_field("Workspace identifier for this memory candidate request."),
+        Field(description="Workspace identifier for this memory candidate request."),
     ] = None
     agent_id: Annotated[
         ReconciliationScopeFilterText,
-        described_field("Agent identifier for this memory candidate request."),
+        Field(description="Agent identifier for this memory candidate request."),
     ] = None
     user_id: Annotated[
         ReconciliationScopeFilterText,
-        described_field("User identifier for this memory candidate request."),
+        Field(description="User identifier for this memory candidate request."),
     ] = None
     session_id: Annotated[
         ReconciliationScopeFilterText,
-        described_field("Session identifier for this memory candidate request."),
+        Field(description="Session identifier for this memory candidate request."),
     ] = None
     canonical_claims: Annotated[
         list[CanonicalClaimRequest],
-        described_field("Canonical claims for this memory candidate request."),
+        Field(description="Canonical claims for this memory candidate request."),
     ] = schema_list_default()
     tags: Annotated[
         list[str],
-        described_field("Tags for this memory candidate request.", max_length=200),
+        Field(description="Tags for this memory candidate request.", max_length=200),
     ] = schema_list_default()
     source_refs: Annotated[
         list[MemorySourceReferenceRequest],
-        described_field("Source refs for this memory candidate request."),
+        Field(description="Source refs for this memory candidate request."),
     ] = schema_list_default()
     recorded_at: Annotated[
         AwareTimestamp | None,
-        described_field("Recorded at for this memory candidate request."),
+        Field(description="Recorded at for this memory candidate request."),
     ] = None
     observed_at: Annotated[
         AwareTimestamp | None,
-        described_field("Observed at for this memory candidate request."),
+        Field(description="Observed at for this memory candidate request."),
     ] = None
     valid_from: Annotated[
         AwareTimestamp | None,
-        described_field("Valid from for this memory candidate request."),
+        Field(description="Valid from for this memory candidate request."),
     ] = None
     valid_to: Annotated[
         AwareTimestamp | None,
-        described_field("Valid to for this memory candidate request."),
+        Field(description="Valid to for this memory candidate request."),
     ] = None
     requested_lifecycle: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=64),
-        described_field("Requested lifecycle for this memory candidate request."),
+        Field(description="Requested lifecycle for this memory candidate request."),
     ] = "active"
     candidate_id: Annotated[
         str | None,
         StringConstraints(strict=True, max_length=255),
-        described_field("Candidate identifier for this memory candidate request."),
+        Field(description="Candidate identifier for this memory candidate request."),
     ] = None
     source_identity: Annotated[
         str | None,
         StringConstraints(strict=True, max_length=2000),
-        described_field("Source identity for this memory candidate request."),
+        Field(description="Source identity for this memory candidate request."),
     ] = None
 
     @field_validator(
@@ -201,21 +197,21 @@ class MemoryReconciliationPreviewHttpRequest(StrictSchemaModel):
 
     candidate: Annotated[
         MemoryCandidateRequest,
-        described_field(
-            "Candidate for this memory reconciliation preview HTTP request."
+        Field(
+            description="Candidate for this memory reconciliation preview HTTP request."
         ),
     ]
     idempotency_key: Annotated[
         str | None,
         StringConstraints(strict=True, max_length=128),
-        described_field(
-            "Idempotency key for this memory reconciliation preview HTTP request."
+        Field(
+            description="Idempotency key for this memory reconciliation preview HTTP request."
         ),
     ] = None
     recall_limit: Annotated[
         int,
-        described_field(
-            "Recall limit for this memory reconciliation preview HTTP request.",
+        Field(
+            description="Recall limit for this memory reconciliation preview HTTP request.",
             ge=1,
             le=100,
         ),
@@ -255,18 +251,18 @@ class MemoryReconciliationApplyRequest(StrictSchemaModel):
 
     retry_failed: Annotated[
         bool,
-        described_field("Retry failed for this memory reconciliation apply request."),
+        Field(description="Retry failed for this memory reconciliation apply request."),
     ] = False
     review_approved: Annotated[
         bool,
-        described_field(
-            "Explicit Memory Steward approval for a review-required reconciliation plan."
+        Field(
+            description="Explicit Memory Steward approval for a review-required reconciliation plan."
         ),
     ] = False
     reviewer: Annotated[
         str | None,
         StringConstraints(strict=True, max_length=255),
-        described_field("Memory Steward identity recorded with explicit approval."),
+        Field(description="Memory Steward identity recorded with explicit approval."),
     ] = None
 
     @field_validator("reviewer")

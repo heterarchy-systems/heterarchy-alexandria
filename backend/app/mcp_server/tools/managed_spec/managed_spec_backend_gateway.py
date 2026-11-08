@@ -19,7 +19,15 @@ async def alexandria_execute_managed_spec(
     client: AlexandriaApiClient,
     request: ManagedSpecRequestSchema,
 ) -> ManagedSpecResponseSchema:
-    """Send one validated prepare/complete request to the backend."""
+    """Send one validated prepare/complete request to the backend.
+
+    Args:
+        client: Backend HTTP API client.
+        request: Validated managed-spec prepare or complete request payload.
+
+    Returns:
+        Validated managed-spec execution response payload.
+    """
     response = await client.post(
         "/obsidian/managed-specs/execute",
         schema_payload(request, exclude_none=True),

@@ -10,8 +10,10 @@ from starlette.datastructures import UploadFile
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, RedirectResponse, Response
 
-from app.mcp_server.local_oauth.provider import LocalMcpOAuthProvider
-from app.mcp_server.local_oauth.provider_approval import LocalOAuthApprovalError
+from app.mcp_server.local_oauth.provider_approval import (
+    LocalMcpOAuthApprovalService,
+    LocalOAuthApprovalError,
+)
 
 _COMMON_SECURITY_HEADERS: Final[dict[str, str]] = {
     "Cache-Control": "no-store",
@@ -30,13 +32,13 @@ _PAGE_SECURITY_HEADERS: Final[dict[str, str]] = {
 
 def register_local_oauth_approval_route(
     server: MCPServer,
-    provider: LocalMcpOAuthProvider,
+    approval_service: LocalMcpOAuthApprovalService,
 ) -> None:
     """Register the public browser approval route on one MCPServer server.
 
     Args:
         server: MCPServer server receiving standard OAuth routes.
-        provider: Local authorization provider owning pending approvals.
+        approval_service: Application service owning pending requests.
     """
 
     @server.custom_route(
@@ -57,7 +59,7 @@ def register_local_oauth_approval_route(
         if request.method == "GET":
             request_id = request.query_params.get("request_id", "")
             try:
-                pending = await provider.pending_authorization(request_id)
+                pending = await approval_service.pending_authorization(request_id)
             except LocalOAuthApprovalError as exc:
                 return _error_response(exc)
             return HTMLResponse(
@@ -74,12 +76,12 @@ def register_local_oauth_approval_route(
         decision = _form_text(form.get("decision"))
         try:
             if decision == "approve":
-                redirect_url = await provider.approve_authorization(
+                redirect_url = await approval_service.approve_authorization(
                     request_id=request_id,
                     approval_code=approval_code,
                 )
             elif decision == "deny":
-                redirect_url = await provider.deny_authorization(
+                redirect_url = await approval_service.deny_authorization(
                     request_id=request_id,
                     approval_code=approval_code,
                 )

@@ -5,8 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass
-
-from asyncer import asyncify
+from functools import partial
 
 from app.memory.application.contexts.embedding.context_embedding_health_service import (
     ContextEmbeddingHealthService,
@@ -29,6 +28,7 @@ from app.memory.domain.repositories.contexts.context_search_source import (
     IContextSearchSource,
 )
 from app.shared.exceptions.memory_context_exceptions import MemoryContextValidationError
+from app.shared.infrastructure.critical_task import run_critical_sync
 from app.shared.types.embedding_types import normalize_embedding_vector
 from app.shared.types.types_convert_utils import now_utc
 
@@ -220,7 +220,7 @@ async def _embed_documents(
     Returns:
         list[list[float]] result produced by embed documents.
     """
-    return await asyncify(provider.embed_documents, abandon_on_cancel=True)(texts)
+    return await run_critical_sync(partial(provider.embed_documents, texts))
 
 
 async def _embedding_updates(

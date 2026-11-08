@@ -40,7 +40,7 @@ class MemoryCompactNoteStore:
             Deduplicated Memory Compact entities.
         """
         compacts_by_id: dict[str, MemoryCompact] = {}
-        for path in self._note_paths():
+        for path in _note_paths(self._base_dir):
             compact = read_compact_file(path)
             if compact is None:
                 continue
@@ -70,6 +70,9 @@ class MemoryCompactNoteStore:
 
         Args:
             compact: Memory Compact entity to persist.
+
+        Raises:
+            ValueError: When the compact identifier cannot be used as a safe note filename.
         """
         existing_paths = self._paths_for_compact_id(compact.id)
         path = self._compact_path(compact.id, created_at=compact.created_at)
@@ -93,50 +96,19 @@ class MemoryCompactNoteStore:
             if path.exists():
                 path.unlink()
 
-    def _note_paths(self) -> list[Path]:
-        """Execute note paths.
-
-        Returns:
-            list[Path] result produced by note paths.
-        """
-        if not self._base_dir.exists():
-            return []
-        return sorted(self._base_dir.rglob(f"*{NOTE_SUFFIX}"))
-
-    def _compact_path(
-        self,
-        compact_id: str,
-        created_at: datetime | None = None,
-    ) -> Path | None:
-        """Execute compact path.
-
-        Args:
-            compact_id: Identifier for compact.
-            created_at: Created at used by this operation.
-
-        Returns:
-            Path | None result produced by compact path.
-        """
-        if not is_safe_note_id(compact_id):
-            return None
-        directory = self._base_dir
-        if created_at is not None:
-            directory = directory / f"{created_at.year:04d}" / f"{created_at.month:02d}"
-        return directory / f"{compact_id}{NOTE_SUFFIX}"
-
     def _paths_for_compact_id(self, compact_id: str) -> list[Path]:
-        """Execute paths for compact id.
+        """Find all note files matching a given Memory Compact identifier.
 
         Args:
-            compact_id: Identifier for compact.
+            compact_id: Memory Compact identifier to locate.
 
         Returns:
-            list[Path] result produced by paths for compact id.
+            List of matching Markdown note paths.
         """
         if not is_safe_note_id(compact_id) or not self._base_dir.exists():
             return []
         matching_paths: list[Path] = []
-        for candidate in self._note_paths():
+        for candidate in _note_paths(self._base_dir):
             if candidate.stem == compact_id:
                 matching_paths.append(candidate)
                 continue
@@ -145,14 +117,49 @@ class MemoryCompactNoteStore:
                 matching_paths.append(candidate)
         return matching_paths
 
+    def _compact_path(
+        self,
+        compact_id: str,
+        created_at: datetime | None = None,
+    ) -> Path | None:
+        """Resolve the canonical note path for a Memory Compact identifier and creation date.
 
-def _compact_sort_key(compact: MemoryCompact) -> tuple[datetime, datetime]:
-    """Execute compact sort key.
+        Args:
+            compact_id: Memory Compact identifier.
+            created_at: Optional creation timestamp used to partition year/month folders.
+
+        Returns:
+            Resolved Markdown note path when the identifier is safe, otherwise None.
+        """
+        if not is_safe_note_id(compact_id):
+            return None
+        directory = self._base_dir
+        if created_at is not None:
+            directory = directory / f"{created_at.year:04d}" / f"{created_at.month:02d}"
+        return directory / f"{compact_id}{NOTE_SUFFIX}"
+
+
+def _note_paths(base_dir: Path) -> list[Path]:
+    """List all Markdown note paths under the configured Memory Compact directory.
 
     Args:
-        compact: Compact used by this operation.
+        base_dir: Base directory for Memory Compact notes.
 
     Returns:
-        tuple[datetime, datetime] result produced by compact sort key.
+        Sorted list of Markdown note paths.
+    """
+    if not base_dir.exists():
+        return []
+    return sorted(base_dir.rglob(f"*{NOTE_SUFFIX}"))
+
+
+def _compact_sort_key(compact: MemoryCompact) -> tuple[datetime, datetime]:
+    """Build a chronological sort key ordering compacts by update and creation time.
+
+    Args:
+        compact: Memory Compact entity to order.
+
+    Returns:
+        Tuple of ``(updated_at, created_at)`` timestamps.
     """
     return compact.updated_at, compact.created_at

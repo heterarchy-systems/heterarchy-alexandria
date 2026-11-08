@@ -73,8 +73,7 @@ class SkillContractStatusService:
         """Initialize the read-only contract boundary.
 
         Args:
-            config: App config carrying the runtime revision and the optional
-                skill bundle root override.
+            config: App identity and runtime revision settings.
             tool_names_provider: Live registered MCP tool names.
             runtime_contract_provider: Loaded input/output schema manifest.
             vault_config_store: Active Vault mirror location owner.
@@ -268,7 +267,7 @@ class SkillContractStatusService:
                     raise ValueError("mirror exceeds byte bound")
                 document = parse_markdown_document(raw.decode("utf-8"))
                 metadata = frontmatter_json(document.frontmatter)
-            except (OSError, UnicodeError, ValueError):
+            except OSError, UnicodeError, ValueError:
                 warnings.append("skill_mirror_source_unavailable:" + path.name)
                 continue
             if metadata.get("alexandria_type") != "skill" or metadata.get(

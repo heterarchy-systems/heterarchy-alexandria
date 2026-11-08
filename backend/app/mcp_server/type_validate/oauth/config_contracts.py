@@ -3,9 +3,75 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Annotated, Protocol
+
+from pydantic import AliasChoices, Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.mcp_server.type_validate.oauth.mcp_auth_enums import McpAuthMode
+from app.shared.types.configuration_enums import SettingsModule
+from app.shared.utils.config import settings_model_config
+
+
+class McpApiConfig(BaseSettings):
+    """Environment-backed settings for the MCP HTTP client."""
+
+    model_config = settings_model_config(
+        env_prefix="", module_name=SettingsModule.MCP
+    ) | SettingsConfigDict(populate_by_name=True)
+
+    base_url: Annotated[
+        str,
+        Field(
+            description="Base URL for the Alexandria API.",
+            validation_alias=AliasChoices("ALEXANDRIA_API_URL", "HERMES_API_URL"),
+        ),
+    ]
+    timeout: Annotated[
+        float,
+        Field(
+            description="Timeout for the Alexandria API.",
+            validation_alias="ALEXANDRIA_API_TIMEOUT_SECONDS",
+        ),
+    ]
+
+    @classmethod
+    def from_env(cls) -> McpApiConfig:
+        """Create settings through the typed MCP settings boundary.
+
+        Returns:
+            Environment-backed MCP API client configuration.
+        """
+        return cls()
+
+    @field_validator("base_url")
+    @classmethod
+    def normalize_base_url(cls, value: str) -> str:
+        """Normalize the explicitly configured backend URL.
+
+        Args:
+            value: Raw backend URL string.
+
+        Returns:
+            Trimmed backend URL without a trailing slash.
+        """
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("Alexandria API base URL must not be blank")
+        return stripped.rstrip("/")
+
+    @field_validator("timeout")
+    @classmethod
+    def normalize_timeout(cls, value: float) -> float:
+        """Clamp configured timeout to at least one second.
+
+        Args:
+            value: Raw timeout value in seconds.
+
+        Returns:
+            Bounded timeout value in seconds.
+        """
+        return max(1.0, value)
 
 
 # protocol-contract: structural-seam
@@ -91,7 +157,7 @@ class LocalMcpOAuthRuntimeConfig(Protocol):
 class DefaultMcpProtectedResourceConfig:
     """Safe metadata fallback used before application state is initialized."""
 
-    mcp_oauth_resource: str | None = None
+    mcp_oauth_resource: str | None
 
     def mcp_oauth_required_scopes(self) -> tuple[str, ...]:
         """Return the repository default protected-resource scope.

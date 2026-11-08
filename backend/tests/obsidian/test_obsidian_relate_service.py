@@ -24,7 +24,7 @@ from app.obsidian.application.graph.projection.obsidian_graph_projection_rebuild
 from app.obsidian.application.graph.projection.obsidian_graph_projection_source_builder import (
     ObsidianGraphProjectionSourceBuilder,
 )
-from app.obsidian.application.service.notes.obsidian_relate_service import (
+from app.obsidian.application.notes.relations.obsidian_relate_service import (
     ObsidianRelateService,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
@@ -68,7 +68,6 @@ from app.obsidian.infrastructure.obsidian_vault_config_store import (
 from app.obsidian.infrastructure.repositories.obsidian_index_repository import (
     SqlAlchemyObsidianIndexRepository,
 )
-from app.platform.config.app_config import AppConfig
 from app.shared.application.index_maintenance_coordinator import (
     IndexMaintenanceCoordinator,
 )
@@ -134,7 +133,6 @@ def _build_services(
     )
     source = SqlAlchemyObsidianGraphProjectionSource(session=session)
     projection = ObsidianGraphProjectionRebuildService(
-        config=AppConfig(_env_file=None),
         source_builder=ObsidianGraphProjectionSourceBuilder(
             compute_provider=create_native_obsidian_graph_projection_compute_provider(),
             source=source,

@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from collections.abc import Callable
 
 from app.memory.application.retrieval.embeddings.embedding_contract import (
     DEFAULT_EMBEDDING_DIMENSIONS,
     DEFAULT_EMBEDDING_MODEL,
     DEFAULT_EMBEDDING_THREADS,
     EmbeddingProvider,
+    EmbeddingProviderName,
 )
 from app.memory.application.retrieval.embeddings.fake_embedding_provider import (
     FakeEmbeddingProvider,
@@ -16,8 +17,9 @@ from app.memory.application.retrieval.embeddings.fake_embedding_provider import 
 from app.memory.infrastructure.providers.native_fastembed_embedding_provider import (
     create_native_fastembed_embedding_provider,
 )
-
-EmbeddingProviderName = Literal["fastembed", "fake-test", "disabled"]
+from app.platform.config.memory_config import (
+    EmbeddingModelArtifactConfig,
+)
 
 
 def create_embedding_provider(
@@ -27,6 +29,7 @@ def create_embedding_provider(
     dimensions: int = DEFAULT_EMBEDDING_DIMENSIONS,
     cache_dir: str | None = None,
     threads: int = DEFAULT_EMBEDDING_THREADS,
+    artifact_config_factory: Callable[[], EmbeddingModelArtifactConfig] | None = None,
 ) -> EmbeddingProvider | None:
     """Create the configured local embedding provider.
 
@@ -37,6 +40,7 @@ def create_embedding_provider(
         dimensions: Embedding vector dimension count.
         cache_dir: Optional model cache directory.
         threads: ONNX Runtime thread count for local E5 inference.
+        artifact_config_factory: Lazy settings owner for real model acquisition.
 
     Returns:
         EmbeddingProvider | None: Provider instance when vector recall can embed text.
@@ -50,4 +54,7 @@ def create_embedding_provider(
         dimensions=dimensions,
         cache_dir=cache_dir,
         threads=threads,
+        artifact_config=artifact_config_factory()
+        if artifact_config_factory is not None
+        else None,
     )

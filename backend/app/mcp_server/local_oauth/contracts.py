@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 
+from typing_extensions import TypedDict
+
 from app.mcp_server.local_oauth.local_oauth_enums import (
     LocalOAuthClientConnectionStatus,
     LocalOAuthTokenKind,
@@ -107,3 +109,18 @@ class LocalOAuthClientConnectionRecord:
     access_token_expires_at: int | None
     refresh_token_expires_at: int | None
     active_token_families: int
+
+
+class OAuthClientCredentialFields(TypedDict, closed=True):
+    """Credential attributes reconstructed at the MCP SDK response boundary."""
+
+    client_id: str
+    client_secret: str | None
+    client_id_issued_at: int
+    client_secret_expires_at: int | None
+
+
+class OAuthApprovalQuery(TypedDict, closed=True):
+    """Browser query identifying one pending local approval request."""
+
+    request_id: str

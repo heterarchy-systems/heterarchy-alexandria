@@ -13,7 +13,7 @@ from app.memory.application.memory_compacts.lifecycle.memory_compact_query_servi
     MemoryCompactQueryService,
 )
 from app.memory.application.memory_compacts.lifecycle.memory_compact_signature import (
-    _body_hash,
+    body_hash,
     compact_state_hash,
     reviewed_compact_hash,
 )
@@ -72,6 +72,10 @@ class MemoryCompactLifecycleService:
 
         Returns:
             Updated current Memory Compact entity.
+
+        Raises:
+            MemoryCompactValidationError: If source refs or required sections are missing, or review fails without a receipt fence.
+            MemoryCompactReviewConflictError: If review or source evidence drifted from the expected review receipt hash.
         """
         async with self._repository.creation_guard():
             compact = await self._query_service.get(compact_id)
@@ -124,7 +128,7 @@ class MemoryCompactLifecycleService:
                 review_max_score=review.max_score,
                 reviewed_at=datetime.now(UTC),
                 expected_state_hash=compact_state_hash(compact),
-                reviewed_body_hash=_body_hash(compact.markdown_body),
+                reviewed_body_hash=body_hash(compact.markdown_body),
                 review_receipt_hash=review_hash,
             )
 
@@ -146,6 +150,9 @@ class MemoryCompactLifecycleService:
             compact_id: Memory Compact identifier.
             confirm: Explicit hard-delete confirmation; deletion is refused
                 without it.
+
+        Raises:
+            MemoryCompactValidationError: If `confirm` is False.
         """
         if not confirm:
             raise MemoryCompactValidationError(

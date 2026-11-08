@@ -74,7 +74,14 @@ class MemoryCompactCreationService:
     async def _review_current(
         self, payload: MemoryCompactCreate
     ) -> MemoryCompactCreate:
-        """Review a legacy CURRENT create candidate under the creation lock."""
+        """Review a legacy CURRENT create candidate under the creation lock.
+
+        Args:
+            payload: Normalized CURRENT creation payload to review.
+
+        Returns:
+            Creation payload enriched with verified review metadata.
+        """
         candidate = candidate_compact(payload)
         observations = await read_current_source_observations(
             candidate,
@@ -98,19 +105,15 @@ class MemoryCompactCreationService:
             Matched existing by signature.
         """
         signature = create_signature(payload)
-        offset = 0
-        while True:
-            compacts, total = await self._repository.list_compacts(
-                project=payload.project,
-                limit=200,
-                offset=offset,
-            )
-            for compact in compacts:
-                if (
-                    compact.status is payload.status
-                    and compact_signature(compact) == signature
-                ):
-                    return compact
-            if not compacts or offset + len(compacts) >= total:
-                return None
-            offset += len(compacts)
+        compacts = await self._repository.creation_snapshot(
+            project=payload.project,
+            status=payload.status,
+        )
+        return next(
+            (
+                compact
+                for compact in compacts
+                if compact_signature(compact) == signature
+            ),
+            None,
+        )

@@ -18,15 +18,15 @@ from app.main import app
 from app.mcp_server.backend_api_client import (
     AlexandriaApiClient,
     AlexandriaApiError,
-    AlexandriaApiSettings,
 )
 from app.mcp_server.tools.contexts.context_backend_gateway import (
     alexandria_context_brief,
 )
 from app.memory.domain.event_enum.context_enums import ContextKind, ContextScope
-from app.memory.interface.schemas.context.context_retrieval_schema import (
+from app.memory.interface.schemas.context.context_brief_schema import (
     ContextBriefRequest,
 )
+from app.platform.config.mcp_config import McpApiConfig
 from app.shared.infrastructure.database import Database
 
 _BRIEF_CONTENT = (
@@ -206,7 +206,7 @@ async def _mcp_round_trip() -> None:
 
     transport = httpx.ASGITransport(app=app)
     client = AlexandriaApiClient(
-        AlexandriaApiSettings(base_url="http://testserver"),
+        McpApiConfig(base_url="http://testserver", timeout=30.0),
         transport=transport,
     )
     payload = await alexandria_context_brief(

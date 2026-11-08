@@ -204,7 +204,7 @@ class ObsidianIndexErrorRepairService:
                 )
                 atomic_write_markdown(path, updated)
                 patched.append(path)
-        except (OSError, UnicodeError, ValueError, ObsidianValidationError):
+        except OSError, UnicodeError, ValueError, ObsidianValidationError:
             for path in patched:
                 raw = next(item[1] for item in originals.values() if item[0] == path)
                 atomic_write_markdown(path, raw.decode("utf-8"))

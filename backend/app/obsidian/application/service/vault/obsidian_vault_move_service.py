@@ -167,7 +167,8 @@ class ObsidianVaultMoveService:
             source_roots.add(source.parent)
             if active_skill_path(move.destination_path):
                 policy = (
-                    self._skill_publication_policy or default_skill_publication_policy()
+                    self._skill_publication_policy
+                    or default_skill_publication_policy(None)
                 )
                 async with self._index_maintenance_coordinator.operation(
                     "active_skill_move", wait=True

@@ -15,7 +15,15 @@ async def alexandria_get_mutation_outcome(
     client: AlexandriaApiClient,
     request: ObsidianMutationOutcomeRequestSchema,
 ) -> ObsidianMutationOutcomeResponseSchema:
-    """Resolve one mutation outcome before any retry decision."""
+    """Resolve one mutation outcome before any retry decision.
+
+    Args:
+        client: Backend HTTP API client.
+        request: Validated mutation outcome lookup request contract.
+
+    Returns:
+        Validated mutation outcome response payload.
+    """
     response = await client.post(
         "/obsidian/mutations/outcome",
         schema_payload(request, exclude_none=True),

@@ -13,9 +13,16 @@ from pathlib import Path
 from types import ModuleType
 from typing import Protocol, cast
 
+from fastembed_runtime import (
+    DEFAULT_FASTEMBED_CACHE,
+    FastEmbedRuntimeBootstrap,
+    FastEmbedRuntimeModule,
+    FastEmbedRuntimeSession,
+    bootstrap_cached_fastembed_runtime,
+)
+
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-NATIVE_TARGET = REPOSITORY_ROOT / "native" / "target"
-DEFAULT_CACHE_DIR = NATIVE_TARGET / "fastembed-parity-cache"
+DEFAULT_CACHE_DIR = DEFAULT_FASTEMBED_CACHE
 CORPUS_PATH = (
     REPOSITORY_ROOT
     / "native/corpora/bulk_embedding/v1/python_fastembed_numerical_baseline.json"
@@ -35,49 +42,48 @@ type JsonScalar = str | int | float | bool | None
 type JsonValue = JsonScalar | list["JsonValue"] | dict[str, "JsonValue"]
 
 
-class NativeModule(Protocol):
+class NativeModule(FastEmbedRuntimeModule, Protocol):
     """Narrow native extension surface used by this numerical gate."""
 
     def compute_contract_version(self) -> int: ...
-
-    def run_bulk_embedding_batch_json(self, payload: bytes) -> bytes: ...
-
-    def embed_multilingual_e5_query(
-        self,
-        query_input: str,
-        cache_directory: str | None,
-        threads: int,
-    ) -> list[float]: ...
 
 
 def main() -> int:
     cache_dir = Path(
         os.environ.get("ALEXANDRIA_FASTEMBED_PARITY_CACHE", str(DEFAULT_CACHE_DIR))
     ).resolve()
-    if not _directory_has_files(cache_dir):
-        raise RuntimeError(
-            "frozen FastEmbed numerical parity requires the local multilingual-e5-small cache"
-        )
     corpus = _load_json_object(CORPUS_PATH)
     provider = _require_object(corpus, "provider")
     _validate_frozen_provider(provider)
-    documents = [_require_object_value(value) for value in _require_list(corpus, "documents")]
-    queries = [_require_object_value(value) for value in _require_list(corpus, "queries")]
-    frozen_document_vectors = [_require_float_list(case.get("vector")) for case in documents]
+    documents = [
+        _require_object_value(value) for value in _require_list(corpus, "documents")
+    ]
+    queries = [
+        _require_object_value(value) for value in _require_list(corpus, "queries")
+    ]
+    frozen_document_vectors = [
+        _require_float_list(case.get("vector")) for case in documents
+    ]
     frozen_query_vectors = [_require_float_list(case.get("vector")) for case in queries]
 
-    with tempfile.TemporaryDirectory(prefix="heterarchy-fastembed-parity-") as directory:
+    with tempfile.TemporaryDirectory(
+        prefix="heterarchy-fastembed-parity-"
+    ) as directory:
         native_module = _load_native_module(Path(directory))
+        runtime = bootstrap_cached_fastembed_runtime(
+            native_module,
+            cache_dir,
+            threads=THREADS,
+        )
         native_document_vectors = _native_document_vectors(
             native_module,
             documents,
             provider=provider,
-            cache_dir=cache_dir,
+            runtime=runtime,
         )
         native_query_vectors = _native_query_vectors(
-            native_module,
+            runtime.session,
             queries,
-            cache_dir=cache_dir,
         )
 
     document_metrics = _compare_vectors(
@@ -119,7 +125,7 @@ def _native_document_vectors(
     documents: list[dict[str, JsonValue]],
     *,
     provider: dict[str, JsonValue],
-    cache_dir: Path,
+    runtime: FastEmbedRuntimeBootstrap,
 ) -> list[list[float]]:
     if native_module.compute_contract_version() != 1:
         raise AssertionError("native compute contract version must be 1")
@@ -127,8 +133,7 @@ def _native_document_vectors(
         "contract_version": 1,
         "embedding_version": 1,
         "runtime": {
-            "cache_directory": str(cache_dir),
-            "threads": THREADS,
+            "version": 4,
         },
         "request": {
             "model": {
@@ -155,7 +160,9 @@ def _native_document_vectors(
             ],
         },
     }
-    response = _load_json_bytes(native_module.run_bulk_embedding_batch_json(_encode(request)))
+    response = _load_json_bytes(
+        runtime.session.run_bulk_embedding_batch_json(_encode(request))
+    )
     records = _require_list(response, "records")
     if len(records) != len(documents):
         raise AssertionError("native embedding record cardinality mismatch")
@@ -169,18 +176,14 @@ def _native_document_vectors(
 
 
 def _native_query_vectors(
-    native_module: NativeModule,
+    session: FastEmbedRuntimeSession,
     queries: list[dict[str, JsonValue]],
-    *,
-    cache_dir: Path,
 ) -> list[list[float]]:
     return [
         [
             float(value)
-            for value in native_module.embed_multilingual_e5_query(
+            for value in session.embed_query(
                 f"query: {_require_string(case, 'query').strip()}",
-                str(cache_dir),
-                THREADS,
             )
         ]
         for case in queries
@@ -277,10 +280,6 @@ def _native_library_path() -> Path:
         if candidate.is_file():
             return candidate
     raise FileNotFoundError(f"native extension artifact is missing under {target}")
-
-
-def _directory_has_files(directory: Path) -> bool:
-    return directory.is_dir() and any(path.is_file() for path in directory.rglob("*"))
 
 
 def _encode(value: dict[str, JsonValue]) -> bytes:

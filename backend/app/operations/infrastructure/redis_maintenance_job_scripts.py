@@ -46,10 +46,10 @@ redis.call(
   'attempt_history_json', '[]',
   'last_retry_reason', '',
   'last_retry_at', '',
-  'dlq_state', 'ACTIVE'
+  'dlq_state', 'ACTIVE',
+  'dlq_entry_id', ''
 )
-redis.call('EXPIRE', KEYS[3], ARGV[11])
-redis.call('SET', KEYS[1], ARGV[4], 'EX', ARGV[12])
+redis.call('SET', KEYS[1], ARGV[4], 'EX', ARGV[11])
 return {'QUEUED', ARGV[4], stream_id}
 """
 
@@ -72,8 +72,8 @@ if status ~= 'FAILED' then
   return {'CONFLICT', redis.call('HGET', KEYS[1], 'job_id') or '', lifecycle}
 end
 local original_stream_id = redis.call('HGET', KEYS[1], 'stream_id')
-if original_stream_id and ARGV[6] ~= '' then
-  local pending = redis.call('XPENDING', KEYS[2], ARGV[6], original_stream_id, original_stream_id, 1)
+if original_stream_id and ARGV[5] ~= '' then
+  local pending = redis.call('XPENDING', KEYS[2], ARGV[5], original_stream_id, original_stream_id, 1)
   if #pending > 0 then
     return {'CONFLICT', redis.call('HGET', KEYS[1], 'job_id') or '', 'ACTIVE_DELIVERY'}
   end
@@ -99,10 +99,14 @@ redis.call(
   'started_at', '',
   'finished_at', '',
   'stream_id', stream_id,
+  'result_json', '',
+  'error_summary', '',
+  'dlq_entry_id', '',
+  'dlq_state', 'ACTIVE',
   'last_retry_reason', ARGV[3],
   'last_retry_at', ARGV[4]
 )
-redis.call('EXPIRE', KEYS[1], ARGV[5])
+redis.call('PERSIST', KEYS[1])
 redis.call('SET', KEYS[4], 'RETRIED:' .. redis.call('HGET', KEYS[1], 'job_id'))
 return {'QUEUED', redis.call('HGET', KEYS[1], 'job_id'), stream_id}
 """

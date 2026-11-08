@@ -11,8 +11,10 @@ import pytest
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.obsidian.application.notes.obsidian_note_indexer import note_index_from_path
+from app.obsidian.application.notes.reading.obsidian_note_reader import (
+    ObsidianNoteReader,
+)
 from app.obsidian.application.service.notes.obsidian_note_service import (
-    DEFAULT_SOURCE_SCAN_LIMIT,
     ObsidianNoteService,
 )
 from app.obsidian.application.service.vault.obsidian_vault_inventory_service import (
@@ -25,6 +27,9 @@ from app.obsidian.domain.entities.obsidian_note import (
 from app.obsidian.domain.event_enum.obsidian_enums import (
     AlexandriaNoteType,
     ObsidianIndexStatus,
+)
+from app.obsidian.domain.policies.obsidian_source_scan_policy import (
+    DEFAULT_SOURCE_SCAN_LIMIT,
 )
 from app.obsidian.domain.repositories.obsidian_index_repository import (
     IObsidianIndexRepository,
@@ -112,7 +117,7 @@ def _service(
     repository: _Repository,
     *,
     source_scan_limit: int = DEFAULT_SOURCE_SCAN_LIMIT,
-) -> tuple[ObsidianNoteService, list[int]]:
+) -> tuple[ObsidianNoteReader, list[int]]:
     vault_path = tmp_path / "vault"
     vault_path.mkdir(parents=True, exist_ok=True)
     (vault_path / "Alexandria").mkdir(parents=True, exist_ok=True)
@@ -145,7 +150,7 @@ def _service(
         source_snapshot=inventory.source_snapshot,
         source_scan_limit=source_scan_limit,
     )
-    return service, reindex_calls
+    return service.reader, reindex_calls
 
 
 def test_path_read_uses_canonical_source_without_index_or_reindex(

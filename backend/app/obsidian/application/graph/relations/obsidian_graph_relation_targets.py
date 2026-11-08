@@ -126,7 +126,7 @@ def _structured_value(value: str) -> JSONValue | None:
     except ValueError:
         try:
             return cast(JSONValue, ast.literal_eval(value))
-        except (SyntaxError, ValueError):
+        except SyntaxError, ValueError:
             return None
 
 

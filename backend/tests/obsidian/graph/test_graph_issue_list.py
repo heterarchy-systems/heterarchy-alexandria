@@ -61,24 +61,9 @@ def _save(title: str, note_id: str, body: str) -> ObsidianSaveNote:
     )
 
 
-def _config(vault_path: Path) -> object:
-    """Build a minimal app config for the temporary vault.
-
-    Args:
-        vault_path: Temporary vault path.
-
-    Returns:
-        App config namespace.
-    """
-    from app.platform.config.app_config import AppConfig
-
-    return AppConfig(obsidian_vault_path=str(vault_path))
-
-
 def _issue_services(
     session: AsyncSession,
     repository: SqlAlchemyObsidianIndexRepository,
-    vault_path: Path,
 ) -> tuple[ObsidianGraphIssueListService, ObsidianGraphProjectionRebuildService]:
     """Wire the issue list service with the real compute authority.
 
@@ -93,7 +78,6 @@ def _issue_services(
     compute = create_native_obsidian_graph_projection_compute_provider()
     source = SqlAlchemyObsidianGraphProjectionSource(session=session)
     rebuild = ObsidianGraphProjectionRebuildService(
-        config=_config(vault_path),
         source_builder=ObsidianGraphProjectionSourceBuilder(
             source=source,
             compute_provider=compute,
@@ -135,7 +119,7 @@ def test_graph_issue_list_reports_exact_source_and_target(tmp_path: Path) -> Non
                     "See [[ctx_issue_missing]] for details.",
                 )
             )
-            service, rebuild = _issue_services(session, repository, vault_path)
+            service, rebuild = _issue_services(session, repository)
             await rebuild.rebuild()
             result = await service.list_issues(
                 ObsidianGraphIssueListQuery(code="missing_target_note", limit=50)
@@ -176,7 +160,7 @@ def test_graph_issue_list_filters_and_paginates(tmp_path: Path) -> None:
                 _save("Filter Source", "ctx_filter_source", "See [[ctx_absent]].")
             )
             await obsidian.save_note(_save("Quiet", "ctx_quiet", "No links here."))
-            service, rebuild = _issue_services(session, repository, vault_path)
+            service, rebuild = _issue_services(session, repository)
             await rebuild.rebuild()
             filtered = await service.list_issues(
                 ObsidianGraphIssueListQuery(code="ambiguous_target_note", limit=50)

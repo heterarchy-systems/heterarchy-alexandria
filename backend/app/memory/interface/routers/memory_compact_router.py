@@ -17,6 +17,7 @@ from app.memory.domain.entities.memory_compact import MemoryCompact
 from app.memory.domain.event_enum.context_enums import RagHealthState
 from app.memory.domain.event_enum.memory_compact_enums import (
     MemoryCompactStatus,
+    MemoryStewardReadinessWarningCode,
 )
 from app.memory.interface.schemas.memory_compact.memory_compact_review_schema import (
     MemoryCompactDraftEditRequest,
@@ -132,7 +133,10 @@ async def get_current_memory_compact(
     """
     compact = await service.current(project=project)
     return MemoryCompactResponse.from_entity(
-        compact, warnings=_current_compact_warnings(compact, max_compact_age_days)
+        compact,
+        warnings=_CurrentCompactRagGuard.current_compact_warnings(
+            compact, max_compact_age_days
+        ),
     )
 
 
@@ -199,7 +203,9 @@ async def create_memory_compact(
     """
     rag_gate = None
     if request.status == MemoryCompactStatus.CURRENT:
-        rag_gate = await _ensure_rag_healthy_for_current(context_service)
+        rag_gate = await _CurrentCompactRagGuard.ensure_rag_healthy_for_current(
+            context_service
+        )
     compact = await service.create(request.to_create())
     return MemoryCompactResponse.from_entity(compact, rag_gate=rag_gate)
 
@@ -238,7 +244,9 @@ async def mark_memory_compact_current(
     Returns:
         Updated current Memory Compact response.
     """
-    rag_gate = await _ensure_rag_healthy_for_current(context_service)
+    rag_gate = await _CurrentCompactRagGuard.ensure_rag_healthy_for_current(
+        context_service
+    )
     compact = await service.mark_current(
         compact_id,
         expected_review_hash=None if request is None else request.expected_review_hash,
@@ -273,14 +281,14 @@ async def review_memory_compact(
 
     Args:
         compact_id: Memory Compact identifier.
-        request: Optional current source observations.
+        request: Validated compatibility input; current sources are read server-side.
         service: Memory Compact application service.
 
     Returns:
         Structured quality review result.
     """
-    observations = () if request is None else request.to_observations()
-    result = await service.review(compact_id, source_observations=observations)
+    del request
+    result = await service.review(compact_id)
     return MemoryCompactReviewResponse.from_result(result)
 
 
@@ -349,125 +357,151 @@ async def archive_memory_compact(
     return MemoryCompactResponse.from_entity(compact)
 
 
-def _current_compact_warnings(
-    compact: MemoryCompact, max_compact_age_days: int
-) -> list[str]:
-    """Execute current compact warnings.
+class _CurrentCompactRagGuard:
+    """Enforce RAG health gates and freshness warnings for CURRENT compacts."""
 
-    Args:
-        compact: Compact used by this operation.
-        max_compact_age_days: Max compact age days used by this operation.
+    @staticmethod
+    def current_compact_warnings(
+        compact: MemoryCompact, max_compact_age_days: int
+    ) -> list[str]:
+        """Derive freshness warnings for the current Memory Compact response.
 
-    Returns:
-        list[str] result produced by current compact warnings.
-    """
-    freshness_reference = compact.reviewed_at or compact.updated_at
-    if datetime.now(UTC) - freshness_reference > timedelta(days=max_compact_age_days):
-        return ["current_memory_compact_stale"]
-    return []
+        Args:
+            compact: Current Memory Compact entity.
+            max_compact_age_days: Maximum accepted age in days before flagging staleness.
 
+        Returns:
+            List of freshness warning codes for the current compact.
+        """
+        freshness_reference = compact.reviewed_at or compact.updated_at
+        if datetime.now(UTC) - freshness_reference > timedelta(
+            days=max_compact_age_days
+        ):
+            return [
+                MemoryStewardReadinessWarningCode.CURRENT_MEMORY_COMPACT_STALE.value
+            ]
+        return []
 
-async def _ensure_rag_healthy_for_current(
-    context_service: ContextService,
-) -> MemoryCompactRagGateResponse:
-    """Ensure rag healthy for current.
+    @classmethod
+    async def ensure_rag_healthy_for_current(
+        cls,
+        context_service: ContextService,
+    ) -> MemoryCompactRagGateResponse:
+        """Verify RAG subsystem health before creating or promoting a CURRENT compact.
 
-    Args:
-        context_service: Context service dependency.
+        Args:
+            context_service: Context and RAG application service dependency.
 
-    Returns:
-        MemoryCompactRagGateResponse result produced by ensure rag healthy for current.
-    """
-    try:
-        health = await context_service.rag_health_with_index_status()
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=_rag_health_block_detail(
-                blockers=["rag_status_unavailable"],
-                warnings=[],
-            ),
-        ) from exc
-    blockers = _rag_health_blockers(health)
-    if blockers:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=_rag_health_block_detail(
-                blockers=blockers,
-                warnings=list(health.warnings),
-            ),
+        Returns:
+            Passed RAG health gate summary attached to the compact response.
+
+        Raises:
+            HTTPException: If RAG status cannot be inspected or any component is unhealthy.
+        """
+        try:
+            health = await context_service.rag_health_with_index_status()
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=cls._rag_health_block_detail(
+                    blockers=[
+                        MemoryStewardReadinessWarningCode.RAG_STATUS_UNAVAILABLE.value
+                    ],
+                    warnings=[],
+                ),
+            ) from exc
+        blockers = cls._rag_health_blockers(health)
+        if blockers:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=cls._rag_health_block_detail(
+                    blockers=blockers,
+                    warnings=list(health.warnings),
+                ),
+            )
+        return MemoryCompactRagGateResponse(
+            gate_status="passed",
+            checked_at=datetime.now(UTC),
+            fingerprint=health.fingerprint,
+            warnings=list(health.warnings),
         )
-    return MemoryCompactRagGateResponse(
-        gate_status="passed",
-        checked_at=datetime.now(UTC),
-        fingerprint=health.fingerprint,
-        warnings=list(health.warnings),
-    )
 
+    @staticmethod
+    def _rag_health_blockers(health: RagDependencyHealth) -> list[str]:
+        """Collect blocking RAG health warning codes from dependency health status.
 
-def _rag_health_blockers(health: RagDependencyHealth) -> list[str]:
-    """Execute rag health blockers.
+        Args:
+            health: RAG dependency health snapshot.
 
-    Args:
-        health: Health used by this operation.
+        Returns:
+            Ordered list of blocking RAG health warning codes.
+        """
+        blockers: list[str] = []
+        if health.fts is not RagHealthState.HEALTHY:
+            blockers.append(MemoryStewardReadinessWarningCode.RAG_FTS_NOT_HEALTHY.value)
+        if health.vector is not RagHealthState.HEALTHY:
+            blockers.append(
+                MemoryStewardReadinessWarningCode.RAG_VECTOR_NOT_HEALTHY.value
+            )
+        if health.embedding is RagHealthState.REINDEX_REQUIRED:
+            blockers.append(
+                MemoryStewardReadinessWarningCode.RAG_EMBEDDING_REINDEX_REQUIRED.value
+            )
+        elif health.embedding is not RagHealthState.HEALTHY:
+            blockers.append(
+                MemoryStewardReadinessWarningCode.RAG_EMBEDDING_NOT_HEALTHY.value
+            )
+        if health.warnings:
+            blockers.append(
+                MemoryStewardReadinessWarningCode.RAG_STATUS_WARNINGS_PRESENT.value
+            )
+        return blockers
 
-    Returns:
-        list[str] result produced by rag health blockers.
-    """
-    blockers: list[str] = []
-    if health.fts is not RagHealthState.HEALTHY:
-        blockers.append("rag_fts_not_healthy")
-    if health.vector is not RagHealthState.HEALTHY:
-        blockers.append("rag_vector_not_healthy")
-    if health.embedding is RagHealthState.REINDEX_REQUIRED:
-        blockers.append("rag_embedding_reindex_required")
-    elif health.embedding is not RagHealthState.HEALTHY:
-        blockers.append("rag_embedding_not_healthy")
-    if health.warnings:
-        blockers.append("rag_status_warnings_present")
-    return blockers
+    @classmethod
+    def _rag_health_block_detail(
+        cls,
+        blockers: list[str],
+        warnings: list[str],
+    ) -> RagHealthGateBlockDetail:
+        """Build the structured HTTP error detail payload for a blocked RAG gate.
 
+        Args:
+            blockers: Blocking RAG component warning codes.
+            warnings: Additional diagnostic warnings from RAG status.
 
-def _rag_health_block_detail(
-    blockers: list[str],
-    warnings: list[str],
-) -> RagHealthGateBlockDetail:
-    """Execute rag health block detail.
+        Returns:
+            Structured RAG health gate block detail dictionary.
+        """
+        return RagHealthGateBlockDetail(
+            error="blocked_by_rag_health",
+            gate_status="blocked",
+            components=blockers,
+            warnings=warnings,
+            recommended_recovery_tools=cls._rag_health_recovery_tools(blockers),
+            retryable=True,
+        )
 
-    Args:
-        blockers: Blockers used by this operation.
-        warnings: Warnings used by this operation.
+    @staticmethod
+    def _rag_health_recovery_tools(blockers: list[str]) -> list[str]:
+        """Recommend MCP recovery tools for a set of RAG health gate blockers.
 
-    Returns:
-        RagHealthGateBlockDetail result produced by rag health block detail.
-    """
-    return RagHealthGateBlockDetail(
-        error="blocked_by_rag_health",
-        gate_status="blocked",
-        components=blockers,
-        warnings=warnings,
-        recommended_recovery_tools=_rag_health_recovery_tools(blockers),
-        retryable=True,
-    )
+        Args:
+            blockers: Blocking RAG component warning codes.
 
-
-def _rag_health_recovery_tools(blockers: list[str]) -> list[str]:
-    """Execute rag health recovery tools.
-
-    Args:
-        blockers: Blockers used by this operation.
-
-    Returns:
-        list[str] result produced by rag health recovery tools.
-    """
-    tools: list[str] = []
-    if "rag_embedding_reindex_required" in blockers:
-        tools.append("alexandria_reindex_context_embeddings")
-    if any(blocker != "rag_embedding_reindex_required" for blocker in blockers):
-        tools.append("alexandria_check_context_rag_status")
-    if not tools:
-        tools.append("alexandria_check_context_rag_status")
-    return tools
+        Returns:
+            Ordered list of recommended MCP tool names.
+        """
+        reindex_code = (
+            MemoryStewardReadinessWarningCode.RAG_EMBEDDING_REINDEX_REQUIRED.value
+        )
+        tools: list[str] = []
+        if reindex_code in blockers:
+            tools.append("alexandria_reindex_context_embeddings")
+        if any(blocker != reindex_code for blocker in blockers):
+            tools.append("alexandria_check_context_rag_status")
+        if not tools:
+            tools.append("alexandria_check_context_rag_status")
+        return tools
 
 
 @router.post("/{compact_id}/draft", response_model=MemoryCompactResponse)

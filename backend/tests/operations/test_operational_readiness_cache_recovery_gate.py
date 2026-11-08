@@ -119,7 +119,7 @@ def test_active_recovery_bypasses_cached_ready_snapshot(
     async def scenario() -> tuple[str | None, int, int, int, int]:
         monkeypatch.setattr(
             readiness_module,
-            "_active_recovery_run_id",
+            "active_recovery_run_id",
             lambda: None,
         )
         cached = await _fresh_snapshot()
@@ -128,7 +128,7 @@ def test_active_recovery_bypasses_cached_ready_snapshot(
         obsidian_service = _CountingObsidianService()
         monkeypatch.setattr(
             readiness_module,
-            "_active_recovery_run_id",
+            "active_recovery_run_id",
             lambda: "active-recovery-run",
         )
         service = OperationalReadinessService(
@@ -166,7 +166,7 @@ def test_cache_hit_still_checks_authoritative_recovery_state(
 
         monkeypatch.setattr(
             readiness_module,
-            "_active_recovery_run_id",
+            "active_recovery_run_id",
             no_active_recovery,
         )
         cached = await _fresh_snapshot()

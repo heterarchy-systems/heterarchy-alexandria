@@ -37,19 +37,19 @@ from app.operations.application.recovery.planning.recovery_plan_contracts import
     RecoveryPlanRequest,
 )
 from app.operations.application.recovery.planning.recovery_plan_policy import (
-    _blocked_reasons,
-    _bounded_error_note_paths,
-    _default_idempotency_key,
-    _diagnosis,
-    _missing_step_capabilities,
-    _next_actions,
-    _plan_hash,
-    _plan_status,
-    _steps,
+    blocked_reasons as _collect_blocked_reasons,
+    bounded_error_note_paths,
+    default_idempotency_key,
+    diagnosis,
+    missing_step_capabilities,
+    next_actions,
+    plan_hash,
+    plan_status,
+    steps as _build_steps,
 )
 from app.operations.application.recovery.planning.recovery_plan_source_policy import (
-    _file_sha256,
-    _source_snapshot,
+    file_sha256,
+    source_snapshot as _build_source_snapshot,
 )
 from app.operations.domain.entities.recovery_plan import RecoveryPlan
 from app.operations.domain.event_enum.operational_readiness_enums import (
@@ -146,7 +146,7 @@ class RecoveryPlanService:
                         ),
                     )
         created_at = datetime.now(UTC)
-        idempotency_key = request.idempotency_key or _default_idempotency_key(
+        idempotency_key = request.idempotency_key or default_idempotency_key(
             trigger=request.trigger,
             actor=request.actor,
         )
@@ -158,20 +158,20 @@ class RecoveryPlanService:
         )
         source_snapshot = await anyio.to_thread.run_sync(
             partial(
-                _source_snapshot,
+                _build_source_snapshot,
                 vault_path=readiness.vault.vault_path,
                 alexandria_root=readiness.vault.alexandria_root,
                 disk_usage_provider=disk_usage,
             ),
         )
-        blocked_reasons = _blocked_reasons(
+        blocked_reasons = _collect_blocked_reasons(
             readiness,
             source_snapshot,
         )
         error_note_repairs: list[str] = []
         if readiness.database.reachable:
             vault_status = await self._obsidian_service.status()
-            error_note_repairs = _bounded_error_note_paths(
+            error_note_repairs = bounded_error_note_paths(
                 [error.note_path for error in vault_status.index_errors]
             )
         # Hash only the bounded effect targets; the rest of the inventory keeps
@@ -184,13 +184,13 @@ class RecoveryPlanService:
                 readiness.vault.alexandria_root,
                 resolve_note_path(readiness.vault.vault_path, path),
             )
-            source_hash = await anyio.to_thread.run_sync(_file_sha256, absolute)
+            source_hash = await anyio.to_thread.run_sync(file_sha256, absolute)
             if source_hash is not None:
                 manifest[path] = "sha256:" + source_hash
         source_snapshot = replace(source_snapshot, markdown_manifest=manifest)
-        steps = _steps(readiness, error_note_paths=error_note_repairs)
+        steps = _build_steps(readiness, error_note_paths=error_note_repairs)
         blocked_reasons.extend(
-            _missing_step_capabilities(
+            missing_step_capabilities(
                 steps,
                 embedding_recovery_available=(
                     self._embedding_recovery_callback is not None
@@ -203,7 +203,7 @@ class RecoveryPlanService:
                 ),
             )
         )
-        status = _plan_status(readiness, blocked_reasons)
+        status = plan_status(readiness, blocked_reasons)
         has_automatic_repair = any(step.mutates_state for step in steps)
         automatic_execution_allowed = (
             self._database.is_postgresql
@@ -223,13 +223,13 @@ class RecoveryPlanService:
             created_at=created_at,
             dry_run=True,
             automatic_execution_allowed=automatic_execution_allowed,
-            diagnosis=tuple(_diagnosis(readiness)),
+            diagnosis=tuple(diagnosis(readiness)),
             blocked_reasons=tuple(blocked_reasons),
             source_snapshot=source_snapshot,
             steps=tuple(steps),
-            plan_hash=_plan_hash(
-                steps=steps,
-                diagnosis=_diagnosis(readiness),
+            plan_hash=plan_hash(
+                planned_steps=steps,
+                diagnosis=diagnosis(readiness),
                 source_snapshot=source_snapshot,
             ),
             error_note_repairs=tuple(error_note_repairs),
@@ -246,7 +246,7 @@ class RecoveryPlanService:
                 ),
             ),
             next_actions=tuple(
-                _next_actions(
+                next_actions(
                     status,
                     blocked_reasons,
                     list(readiness.warnings),

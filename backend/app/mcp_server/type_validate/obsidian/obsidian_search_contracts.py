@@ -4,13 +4,9 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import ConfigDict
+from pydantic import ConfigDict, Field
 
-from app.shared.schemas.common_schemas import (
-    StrictSchemaModel,
-    described_field,
-    schema_list_default,
-)
+from app.shared.schemas.common_schemas import StrictSchemaModel, schema_list_default
 from app.shared.types.extra_types import JSONObject, JSONValue
 
 
@@ -20,30 +16,34 @@ class VaultSearchBackendNote(StrictSchemaModel):
     model_config = ConfigDict(extra="ignore", frozen=True)
 
     id: Annotated[
-        str, described_field("Stable identifier for this vault search backend note.")
+        str, Field(description="Stable identifier for this vault search backend note.")
     ]
     alexandria_type: Annotated[
-        str, described_field("Alexandria type for this vault search backend note.")
+        str, Field(description="Alexandria type for this vault search backend note.")
     ]
-    path: Annotated[str, described_field("Path for this vault search backend note.")]
-    title: Annotated[str, described_field("Title for this vault search backend note.")]
+    path: Annotated[str, Field(description="Path for this vault search backend note.")]
+    title: Annotated[
+        str, Field(description="Title for this vault search backend note.")
+    ]
     status: Annotated[
-        str, described_field("Status for this vault search backend note.")
+        str, Field(description="Status for this vault search backend note.")
     ]
     tags: Annotated[
-        list[str], described_field("Tags for this vault search backend note.")
+        list[str], Field(description="Tags for this vault search backend note.")
     ] = schema_list_default()
     project: Annotated[
-        str | None, described_field("Project for this vault search backend note.")
+        str | None, Field(description="Project for this vault search backend note.")
     ] = None
     content_hash: Annotated[
-        str | None, described_field("Content hash for this vault search backend note.")
+        str | None,
+        Field(description="Content hash for this vault search backend note."),
     ] = None
     index_status: Annotated[
-        str | None, described_field("Index status for this vault search backend note.")
+        str | None,
+        Field(description="Index status for this vault search backend note."),
     ] = None
     wikilink: Annotated[
-        str | None, described_field("Wikilink for this vault search backend note.")
+        str | None, Field(description="Wikilink for this vault search backend note.")
     ] = None
 
 
@@ -54,18 +54,20 @@ class VaultSearchBackendHit(StrictSchemaModel):
 
     note: Annotated[
         VaultSearchBackendNote,
-        described_field("Note for this vault search backend hit."),
+        Field(description="Note for this vault search backend hit."),
     ]
     excerpt: Annotated[
-        str, described_field("Excerpt for this vault search backend hit.")
+        str, Field(description="Excerpt for this vault search backend hit.")
     ]
-    score: Annotated[float, described_field("Score for this vault search backend hit.")]
+    score: Annotated[
+        float, Field(description="Score for this vault search backend hit.")
+    ]
     chunk_id: Annotated[
         str | None,
-        described_field("Chunk identifier for this vault search backend hit."),
+        Field(description="Chunk identifier for this vault search backend hit."),
     ] = None
     heading_path: Annotated[
-        str | None, described_field("Heading path for this vault search backend hit.")
+        str | None, Field(description="Heading path for this vault search backend hit.")
     ] = None
 
 
@@ -76,10 +78,10 @@ class VaultSearchBackendResponse(StrictSchemaModel):
 
     items: Annotated[
         list[VaultSearchBackendHit],
-        described_field("Items for this vault search backend response."),
+        Field(description="Items for this vault search backend response."),
     ] = schema_list_default()
     total: Annotated[
-        int, described_field("Total for this vault search backend response.")
+        int, Field(description="Total for this vault search backend response.")
     ] = 0
 
 
@@ -89,28 +91,28 @@ class VaultSearchToolNote(StrictSchemaModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     note_id: Annotated[
-        str, described_field("Note identifier for this vault search tool note.")
+        str, Field(description="Note identifier for this vault search tool note.")
     ]
     alexandria_type: Annotated[
-        str, described_field("Alexandria type for this vault search tool note.")
+        str, Field(description="Alexandria type for this vault search tool note.")
     ]
-    path: Annotated[str, described_field("Path for this vault search tool note.")]
-    title: Annotated[str, described_field("Title for this vault search tool note.")]
-    status: Annotated[str, described_field("Status for this vault search tool note.")]
+    path: Annotated[str, Field(description="Path for this vault search tool note.")]
+    title: Annotated[str, Field(description="Title for this vault search tool note.")]
+    status: Annotated[str, Field(description="Status for this vault search tool note.")]
     tags: Annotated[
-        list[str], described_field("Tags for this vault search tool note.")
+        list[str], Field(description="Tags for this vault search tool note.")
     ] = schema_list_default()
     project: Annotated[
-        str | None, described_field("Project for this vault search tool note.")
+        str | None, Field(description="Project for this vault search tool note.")
     ] = None
     content_hash: Annotated[
-        str | None, described_field("Content hash for this vault search tool note.")
+        str | None, Field(description="Content hash for this vault search tool note.")
     ] = None
     index_status: Annotated[
-        str | None, described_field("Index status for this vault search tool note.")
+        str | None, Field(description="Index status for this vault search tool note.")
     ] = None
     wikilink: Annotated[
-        str | None, described_field("Wikilink for this vault search tool note.")
+        str | None, Field(description="Wikilink for this vault search tool note.")
     ] = None
 
     @classmethod
@@ -162,15 +164,18 @@ class VaultSearchToolHit(StrictSchemaModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     note: Annotated[
-        VaultSearchToolNote, described_field("Note for this vault search tool hit.")
+        VaultSearchToolNote, Field(description="Note for this vault search tool hit.")
     ]
-    excerpt: Annotated[str, described_field("Excerpt for this vault search tool hit.")]
-    score: Annotated[float, described_field("Score for this vault search tool hit.")]
+    excerpt: Annotated[
+        str, Field(description="Excerpt for this vault search tool hit.")
+    ]
+    score: Annotated[float, Field(description="Score for this vault search tool hit.")]
     chunk_id: Annotated[
-        str | None, described_field("Chunk identifier for this vault search tool hit.")
+        str | None,
+        Field(description="Chunk identifier for this vault search tool hit."),
     ] = None
     heading_path: Annotated[
-        str | None, described_field("Heading path for this vault search tool hit.")
+        str | None, Field(description="Heading path for this vault search tool hit.")
     ] = None
 
     @classmethod

@@ -9,6 +9,8 @@ pub mod document_analysis;
 pub mod graph_compute;
 pub mod hash_fingerprint;
 pub mod markdown_chunking;
+pub mod onnx_initializer_projection;
+pub mod onnx_model_policy;
 pub mod reconciliation_candidates;
 pub mod reference_extraction;
 pub mod retrieval_kernel;

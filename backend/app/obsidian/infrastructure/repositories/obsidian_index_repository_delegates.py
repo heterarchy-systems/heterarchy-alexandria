@@ -108,6 +108,17 @@ class ObsidianIndexQueryRepositoryDelegate:
         """
         return await self._query_store.get_by_id(note_id)
 
+    async def get_by_ids(self, note_ids: tuple[str, ...]) -> tuple[ObsidianNote, ...]:
+        """Read found indexed notes for one bounded set of stable ids.
+
+        Args:
+            note_ids: Bounded stable note ids supplied by the caller.
+
+        Returns:
+            Found notes delegated from the focused query store.
+        """
+        return await self._query_store.get_by_ids(note_ids)
+
     async def get_by_path(self, relative_path: str) -> ObsidianNote | None:
         """Read one indexed note by vault-relative path.
 

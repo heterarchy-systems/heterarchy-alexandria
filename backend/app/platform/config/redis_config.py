@@ -1,117 +1,69 @@
-"""Optional Redis cache, queue, and rate-limit settings."""
+"""Optional Redis cache and rate-limit settings."""
 
 from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import StringConstraints, field_validator
-from pydantic_settings import BaseSettings
+from pydantic import Field, StringConstraints, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from app.shared.schemas.common_schemas import described_field
+from app.shared.types.configuration_enums import SettingsModule
 from app.shared.utils.config import settings_model_config
 
 
 class RedisConfig(BaseSettings):
     """Redis remains removable infrastructure, never canonical storage."""
 
-    model_config = settings_model_config(env_prefix="SERVICE_REDIS_")
+    model_config = settings_model_config(
+        env_prefix="SERVICE_REDIS_", module_name=SettingsModule.REDIS
+    )
 
     url: Annotated[
         str | None,
         StringConstraints(strict=True, min_length=1),
-        described_field("URL for this Redis config.", repr=False),
-    ] = None
+        Field(description="URL for this Redis config.", repr=False),
+    ]
     max_connections: Annotated[
-        int, described_field("Max connections for this Redis config.", ge=1, le=64)
-    ] = 8
+        int, Field(description="Max connections for this Redis config.", ge=1, le=64)
+    ]
 
     operational_readiness_ttl_seconds: Annotated[
         int,
-        described_field(
-            "Operational readiness TTL seconds for this Redis config.", ge=1, le=30
+        Field(
+            description="Operational readiness TTL seconds for this Redis config.",
+            ge=1,
+            le=30,
         ),
-    ] = 5
+    ]
     graph_status_ttl_seconds: Annotated[
         int,
-        described_field("Graph status TTL seconds for this Redis config.", ge=1, le=30),
-    ] = 5
+        Field(
+            description="Graph status TTL seconds for this Redis config.", ge=1, le=30
+        ),
+    ]
     embedding_health_ttl_seconds: Annotated[
         int,
-        described_field(
-            "Embedding health TTL seconds for this Redis config.", ge=1, le=60
-        ),
-    ] = 10
-
-    maintenance_queue_enabled: Annotated[
-        bool, described_field("Maintenance queue enabled for this Redis config.")
-    ] = True
-    maintenance_worker_concurrency: Annotated[
-        int,
-        described_field(
-            "Maintenance worker concurrency for this Redis config.", ge=1, le=4
-        ),
-    ] = 1
-    maintenance_poll_interval_ms: Annotated[
-        int,
-        described_field(
-            "Maintenance poll interval ms for this Redis config.", ge=50, le=5000
-        ),
-    ] = 250
-    maintenance_claim_idle_ms: Annotated[
-        int,
-        described_field(
-            "Maintenance claim idle ms for this Redis config.",
-            ge=60000,
-            le=24 * 60 * 60 * 1000,
-        ),
-    ] = 30 * 60 * 1000
-    maintenance_job_max_attempts: Annotated[
-        int,
-        described_field(
-            "Maintenance job max attempts for this Redis config.", ge=1, le=10
-        ),
-    ] = 3
-    maintenance_job_status_ttl_seconds: Annotated[
-        int,
-        described_field(
-            "Maintenance job status TTL seconds for this Redis config.",
-            ge=60,
-            le=7 * 24 * 60 * 60,
-        ),
-    ] = 24 * 60 * 60
-    maintenance_stream_max_length: Annotated[
-        int,
-        described_field(
-            "Maintenance stream max length for this Redis config.", ge=100, le=100000
-        ),
-    ] = 10000
-    maintenance_manual_cooldown_seconds: Annotated[
-        int,
-        described_field(
-            "Maintenance manual cooldown seconds for this Redis config.", ge=1, le=3600
-        ),
-    ] = 30
-    maintenance_scheduler_cooldown_seconds: Annotated[
-        int,
-        described_field(
-            "Maintenance scheduler cooldown seconds for this Redis config.",
+        Field(
+            description="Embedding health TTL seconds for this Redis config.",
             ge=1,
-            le=24 * 60 * 60,
+            le=60,
         ),
-    ] = 5 * 60
+    ]
 
     external_api_rate_limit: Annotated[
         int,
-        described_field(
-            "External API rate limit for this Redis config.", ge=1, le=10000
+        Field(
+            description="External API rate limit for this Redis config.", ge=1, le=10000
         ),
-    ] = 60
+    ]
     external_api_rate_window_seconds: Annotated[
         int,
-        described_field(
-            "External API rate window seconds for this Redis config.", ge=1, le=3600
+        Field(
+            description="External API rate window seconds for this Redis config.",
+            ge=1,
+            le=3600,
         ),
-    ] = 60
+    ]
 
     @field_validator("url", mode="before")
     @classmethod
@@ -128,3 +80,139 @@ class RedisConfig(BaseSettings):
             normalized = value.strip()
             return normalized or None
         return value
+
+
+class MaintenanceQueueConfig(BaseSettings):
+    """Validated process settings for the Redis maintenance queue."""
+
+    model_config = settings_model_config(
+        env_prefix="SERVICE_REDIS_MAINTENANCE_", module_name=SettingsModule.REDIS
+    ) | SettingsConfigDict(frozen=True, validate_default=True)
+
+    redis_url: Annotated[
+        str | None,
+        Field(
+            description="Redis URL for this maintenance queue config.",
+            validation_alias="SERVICE_REDIS_URL",
+            repr=False,
+        ),
+    ]
+    queue_enabled: Annotated[
+        bool,
+        Field(description="Enable submission and processing of maintenance jobs."),
+    ]
+    stream_name: str
+    dead_letter_stream_name: str
+    consumer_group: str
+    status_key_prefix: str
+    dedup_key_prefix: str
+    rate_key_prefix: str
+    embedding_threads: Annotated[
+        int,
+        Field(
+            description="Embedding threads for this maintenance queue config.",
+            ge=1,
+            le=32,
+            validation_alias="SERVICE_RAG_MAINTENANCE_EMBEDDING_THREADS",
+        ),
+    ]
+    worker_concurrency: Annotated[
+        int,
+        Field(
+            description="Worker concurrency for this maintenance queue config.",
+            ge=1,
+            le=4,
+        ),
+    ]
+    batch_limit: Annotated[
+        int,
+        Field(
+            description="Batch limit for this maintenance queue config.", ge=1, le=1000
+        ),
+    ]
+    max_attempts: Annotated[
+        int,
+        Field(
+            description="Max attempts for this maintenance queue config.", ge=1, le=10
+        ),
+    ]
+    retry_idle_seconds: Annotated[
+        int,
+        Field(
+            description="Retry idle seconds for this maintenance queue config.",
+            ge=1,
+            le=3600,
+        ),
+    ]
+    block_milliseconds: Annotated[
+        int,
+        Field(
+            description="Block milliseconds for this maintenance queue config.",
+            ge=100,
+            le=60000,
+        ),
+    ]
+    status_ttl_seconds: Annotated[
+        int,
+        Field(
+            description="Status TTL seconds for this maintenance queue config.",
+            ge=60,
+            le=604800,
+        ),
+    ]
+    dedup_cooldown_seconds: Annotated[
+        int,
+        Field(
+            description="Dedup cooldown seconds for this maintenance queue config.",
+            ge=1,
+            le=3600,
+        ),
+    ]
+    submission_limit: Annotated[
+        int,
+        Field(
+            description="Submission limit for this maintenance queue config.",
+            ge=1,
+            le=1000,
+        ),
+    ]
+    submission_window_seconds: Annotated[
+        int,
+        Field(
+            description="Submission window seconds for this maintenance queue config.",
+            ge=1,
+            le=3600,
+        ),
+    ]
+    max_stream_length: Annotated[
+        int,
+        Field(
+            description="Max stream length for this maintenance queue config.",
+            ge=100,
+            le=1000000,
+        ),
+    ]
+    worker_max_connections: Annotated[
+        int,
+        Field(
+            description="Worker max connections for this maintenance queue config.",
+            ge=1,
+            le=16,
+        ),
+    ]
+
+    @field_validator("redis_url", mode="before")
+    @classmethod
+    def normalize_optional_redis_url(cls, value: str | None) -> str | None:
+        """Normalize an optional Redis URL without enabling Redis implicitly.
+
+        Args:
+            value: Raw Redis URL loaded from settings, or None when disabled.
+
+        Returns:
+            Trimmed Redis URL, or None for a missing or blank value.
+        """
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized or None

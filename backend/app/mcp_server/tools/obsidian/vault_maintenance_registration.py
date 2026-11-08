@@ -9,7 +9,7 @@ from mcp.server import MCPServer
 from app.mcp_server.backend_api_client import AlexandriaApiClient
 from app.mcp_server.tools.backend_gateway_policy import DEFAULT_CONTEXT_SEARCH_LIMIT
 from app.mcp_server.tools.obsidian.obsidian_backend_gateway import (
-    alexandria_search_vault,
+    ObsidianNoteBatchGateway,
 )
 from app.mcp_server.tools.obsidian.vault_maintenance_backend_gateway import (
     alexandria_get_graph_build_status,
@@ -81,7 +81,7 @@ def register_vault_maintenance_tools(
         """Rebuild the Obsidian vault index cache.
 
         Returns:
-            JSONValue result produced by tool reindex vault.
+            Vault reindex summary payload from the backend.
         """
         return await alexandria_reindex_vault(api_client)
 
@@ -90,7 +90,7 @@ def register_vault_maintenance_tools(
         """Return PostgreSQL graph projection status.
 
         Returns:
-            JSONValue result produced by tool get graph projection status.
+            Active graph projection snapshot and freshness metadata.
         """
         return await alexandria_get_graph_projection_status(api_client)
 
@@ -112,7 +112,7 @@ def register_vault_maintenance_tools(
             cursor: Keyset cursor from the previous page.
 
         Returns:
-            JSONValue result produced by tool graph list issues.
+            Paginated graph projection issue list and next-page cursor.
         """
         return await alexandria_graph_list_issues(
             api_client,
@@ -128,7 +128,7 @@ def register_vault_maintenance_tools(
         """Rebuild the PostgreSQL graph projection from the current PostgreSQL index.
 
         Returns:
-            JSONValue result produced by tool rebuild graph projection.
+            Rebuilt graph projection snapshot summary payload.
         """
         return await alexandria_rebuild_graph_projection(api_client)
 
@@ -137,7 +137,7 @@ def register_vault_maintenance_tools(
         """Return graph build status for snapshot projection diagnostics.
 
         Returns:
-            JSONValue result produced by tool get graph build status.
+            Graph projection build diagnostic status payload.
         """
         return await alexandria_get_graph_build_status(api_client)
 
@@ -150,12 +150,12 @@ def register_vault_maintenance_tools(
         """Validate outgoing graph links for one indexed Obsidian note.
 
         Args:
-            note_id: Identifier for note.
-            path: Path used by this operation.
-            include_resolved_targets: Whether to include resolved targets.
+            note_id: Stable identifier of the note to validate.
+            path: Vault-relative Markdown path of the note to validate.
+            include_resolved_targets: Whether to include resolved target details.
 
         Returns:
-            JSONValue result produced by tool validate note links.
+            Outgoing link validation report for the selected note.
         """
         return await alexandria_validate_note_links(
             api_client,
@@ -173,12 +173,12 @@ def register_vault_maintenance_tools(
         """Replace one note's indexed edges and activate a fresh graph snapshot.
 
         Args:
-            note_id: Identifier for note.
-            path: Path used by this operation.
-            replace_existing_edges: Replace existing edges used by this operation.
+            note_id: Stable identifier of the note whose edges are rebuilt.
+            path: Vault-relative Markdown path of the note whose edges are rebuilt.
+            replace_existing_edges: Whether to replace previously indexed outgoing edges.
 
         Returns:
-            JSONValue result produced by tool rebuild note graph.
+            Single-note graph rebuild and projection refresh result.
         """
         return await alexandria_rebuild_note_graph(
             api_client,
@@ -198,16 +198,16 @@ def register_vault_maintenance_tools(
         """Search Alexandria-managed Obsidian Markdown notes.
 
         Args:
-            query: Query used by this operation.
-            limit: Maximum number of items to process or return.
-            alexandria_type: Alexandria type used by this operation.
-            project: Project used by this operation.
-            tags: Tags used by this operation.
+            query: Full-text or semantic search query string.
+            limit: Maximum number of matching notes to return.
+            alexandria_type: Optional managed note type filter.
+            project: Optional project slug filter.
+            tags: Optional list of required note tags.
 
         Returns:
-            JSONValue result produced by tool search vault.
+            Compacted vault search results payload.
         """
-        return await alexandria_search_vault(
+        return await ObsidianNoteBatchGateway.search_vault(
             api_client, query, limit, alexandria_type, project, tags
         )
 
@@ -216,10 +216,10 @@ def register_vault_maintenance_tools(
         """Inventory managed Obsidian notes for core maintenance.
 
         Args:
-            scope_path: Scope path used by this operation.
+            scope_path: Optional vault-relative directory prefix restricting the inventory.
 
         Returns:
-            JSONValue result produced by tool vault inventory.
+            Managed note inventory summary for the requested vault scope.
         """
         return await alexandria_vault_inventory(api_client, scope_path)
 
@@ -231,11 +231,11 @@ def register_vault_maintenance_tools(
         """Search managed Obsidian note paths and metadata.
 
         Args:
-            query: Query used by this operation.
-            scope_path: Scope path used by this operation.
+            query: Path or metadata substring query.
+            scope_path: Optional vault-relative directory prefix restricting the search.
 
         Returns:
-            JSONValue result produced by tool vault path search.
+            Matching vault note paths and metadata entries.
         """
         return await alexandria_vault_path_search(api_client, query, scope_path)
 
@@ -244,10 +244,10 @@ def register_vault_maintenance_tools(
         """Build a dry-run safe move plan for explicit vault moves.
 
         Args:
-            moves: Moves used by this operation.
+            moves: Source-to-destination vault path move specifications.
 
         Returns:
-            JSONValue result produced by tool vault move plan.
+            Dry-run move plan detailing link rewrites and collision checks.
         """
         return await alexandria_vault_move_plan(api_client, moves)
 
@@ -261,13 +261,13 @@ def register_vault_maintenance_tools(
         """Apply explicit safe vault moves through Alexandria Core maintenance.
 
         Args:
-            moves: Moves used by this operation.
-            report_path: Report path used by this operation.
-            reindex: Reindex used by this operation.
-            verification_query: Verification query used by this operation.
+            moves: Source-to-destination vault path move specifications.
+            report_path: Optional vault-relative path for persisting the move report.
+            reindex: Whether to reindex modified notes after applying moves.
+            verification_query: Optional search query executed after reindexing.
 
         Returns:
-            JSONValue result produced by tool vault apply moves.
+            Applied vault move receipt with link update and verification outcomes.
         """
         return await alexandria_vault_apply_moves(
             api_client,

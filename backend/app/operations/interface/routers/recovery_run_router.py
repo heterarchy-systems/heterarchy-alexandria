@@ -17,6 +17,8 @@ from app.operations.application.recovery.execution.recovery_run_contracts import
 )
 from app.operations.application.recovery.execution.recovery_run_errors import (
     RecoveryInProgressError,
+    RecoveryRunNotRetryableError,
+    RecoveryRunObservationUnavailableError,
 )
 from app.operations.application.recovery.execution.recovery_run_service import (
     RecoveryRunService,
@@ -209,6 +211,23 @@ async def retry_recovery_run(
                 "idempotency_key": exc.idempotency_key,
             },
         ) from exc
+    except RecoveryRunObservationUnavailableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "RECOVERY_RUN_OBSERVATION_UNAVAILABLE",
+                "run_id": exc.run_id,
+            },
+        ) from exc
+    except RecoveryRunNotRetryableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "RECOVERY_RUN_NOT_RETRYABLE",
+                "run_id": exc.run_id,
+                "status": exc.status,
+            },
+        ) from exc
     if run is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -225,7 +244,7 @@ async def retry_recovery_run(
     response_model=RecoveryRunResponse,
     status_code=status.HTTP_200_OK,
     summary="Get operational recovery run",
-    description="Return a persisted recovery run manifest by id.",
+    description="Return the last persisted recovery manifest; RUNNING is not a liveness signal.",
 )
 @inject
 async def get_recovery_run(
@@ -262,7 +281,16 @@ async def get_recovery_run(
         obsidian_service=obsidian_service,
         graph_projection_service=graph_projection_service,
     )
-    run = await service.get(run_id)
+    try:
+        run = await service.get(run_id)
+    except RecoveryRunObservationUnavailableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "RECOVERY_RUN_OBSERVATION_UNAVAILABLE",
+                "run_id": exc.run_id,
+            },
+        ) from exc
     if run is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

@@ -5,10 +5,12 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated
 
-from app.memory.interface.schemas.context.context_mapping import source_status_payload
-from app.memory.interface.schemas.context.context_retrieval_schema import (
+from pydantic import Field
+
+from app.memory.interface.schemas.context.context_index_schema import (
     ContextEmbeddingSourceStatusResponse,
 )
+from app.memory.interface.schemas.context.context_mapping import source_status_payload
 from app.operations.domain.entities.operational_readiness import (
     OperationalCompileReceiptSnapshot,
     OperationalDatabaseSnapshot,
@@ -17,11 +19,7 @@ from app.operations.domain.entities.operational_readiness import (
     OperationalReconciliationSnapshot,
     OperationalVaultSnapshot,
 )
-from app.shared.schemas.common_schemas import (
-    StrictSchemaModel,
-    described_field,
-    schema_list_default,
-)
+from app.shared.schemas.common_schemas import StrictSchemaModel, schema_list_default
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 from app.shared.types.extra_types import JSONObject
 
@@ -30,37 +28,41 @@ class OperationalVaultSnapshotResponse(StrictSchemaModel):
     """Vault state in the operational readiness response."""
 
     exists: Annotated[
-        bool, described_field("Exists for this operational vault snapshot response.")
+        bool, Field(description="Exists for this operational vault snapshot response.")
     ]
     readable: Annotated[
-        bool, described_field("Readable for this operational vault snapshot response.")
+        bool,
+        Field(description="Readable for this operational vault snapshot response."),
     ]
     vault_path: Annotated[
-        str, described_field("Vault path for this operational vault snapshot response.")
+        str,
+        Field(description="Vault path for this operational vault snapshot response."),
     ]
     alexandria_root: Annotated[
         str,
-        described_field(
-            "Alexandria root for this operational vault snapshot response."
+        Field(
+            description="Alexandria root for this operational vault snapshot response."
         ),
     ]
     alexandria_root_exists: Annotated[
         bool,
-        described_field(
-            "Alexandria root exists for this operational vault snapshot response."
+        Field(
+            description="Alexandria root exists for this operational vault snapshot response."
         ),
     ]
     indexed_notes: Annotated[
         int | None,
-        described_field("Indexed notes for this operational vault snapshot response."),
+        Field(
+            description="Indexed notes for this operational vault snapshot response."
+        ),
     ]
     stale_notes: Annotated[
         int | None,
-        described_field("Stale notes for this operational vault snapshot response."),
+        Field(description="Stale notes for this operational vault snapshot response."),
     ]
     error_notes: Annotated[
         int | None,
-        described_field("Error notes for this operational vault snapshot response."),
+        Field(description="Error notes for this operational vault snapshot response."),
     ]
 
     @classmethod
@@ -93,22 +95,22 @@ class OperationalDatabaseSnapshotResponse(StrictSchemaModel):
 
     reachable: Annotated[
         bool,
-        described_field("Reachable for this operational database snapshot response."),
+        Field(description="Reachable for this operational database snapshot response."),
     ]
     integrity: Annotated[
         str,
-        described_field("Integrity for this operational database snapshot response."),
+        Field(description="Integrity for this operational database snapshot response."),
     ]
     schema_version: Annotated[
         str | None,
-        described_field(
-            "Schema version for this operational database snapshot response."
+        Field(
+            description="Schema version for this operational database snapshot response."
         ),
     ]
     corruption_detected: Annotated[
         bool,
-        described_field(
-            "Corruption detected for this operational database snapshot response."
+        Field(
+            description="Corruption detected for this operational database snapshot response."
         ),
     ] = False
 
@@ -136,23 +138,23 @@ class OperationalDatabaseSnapshotResponse(StrictSchemaModel):
 class OperationalGraphSnapshotResponse(StrictSchemaModel):
     """Graph projection status evidence."""
 
-    status: Annotated[str, described_field("Graph projection status.")]
-    enabled: Annotated[bool, described_field("Whether graph projection is enabled.")]
-    node_count: Annotated[int | None, described_field("Observed graph node count.")]
-    edge_count: Annotated[int | None, described_field("Observed graph edge count.")]
+    status: Annotated[str, Field(description="Graph projection status.")]
+    enabled: Annotated[bool, Field(description="Whether graph projection is enabled.")]
+    node_count: Annotated[int | None, Field(description="Observed graph node count.")]
+    edge_count: Annotated[int | None, Field(description="Observed graph edge count.")]
     run_id: Annotated[
-        str | None, described_field("Graph projection activation run id.")
+        str | None, Field(description="Graph projection activation run id.")
     ]
     projection_revision: Annotated[
         str | None,
-        described_field("Graph projection activation revision."),
+        Field(description="Graph projection activation revision."),
     ]
-    warnings: Annotated[list[str], described_field("Graph status warnings.")] = (
+    warnings: Annotated[list[str], Field(description="Graph status warnings.")] = (
         schema_list_default()
     )
     recommended_operation: Annotated[
         str | None,
-        described_field("Detail API that lists the exact graph issues."),
+        Field(description="Detail API that lists the exact graph issues."),
     ] = None
 
     @classmethod
@@ -176,39 +178,39 @@ class OperationalGraphSnapshotResponse(StrictSchemaModel):
 class OperationalCompileReceiptSnapshotResponse(StrictSchemaModel):
     """Latest knowledge compile receipt evidence."""
 
-    available: Annotated[bool, described_field("Whether a receipt is persisted.")]
+    available: Annotated[bool, Field(description="Whether a receipt is persisted.")]
     required: Annotated[
-        bool, described_field("Whether this path requires compiler evidence.")
+        bool, Field(description="Whether this path requires compiler evidence.")
     ]
     status: Annotated[
-        str, described_field("Receipt necessity, validity and revision state.")
+        str, Field(description="Receipt necessity, validity and revision state.")
     ]
-    blockers: Annotated[list[str], described_field("Blocking receipt failures.")]
+    blockers: Annotated[list[str], Field(description="Blocking receipt failures.")]
     applied_at: Annotated[
         datetime | None,
-        described_field("Timestamp of the last successful compile application."),
+        Field(description="Timestamp of the last successful compile application."),
     ] = None
     plan_fingerprint: Annotated[
         str | None,
-        described_field("Fingerprint of the applied compile plan."),
+        Field(description="Fingerprint of the applied compile plan."),
     ] = None
     policy_version: Annotated[
-        str | None, described_field("Compile policy version fingerprint.")
+        str | None, Field(description="Compile policy version fingerprint.")
     ] = None
     changed_documents: Annotated[
-        int | None, described_field("Documents changed by the applied plan.")
+        int | None, Field(description="Documents changed by the applied plan.")
     ] = None
     removed_documents: Annotated[
-        int | None, described_field("Documents removed by the applied plan.")
+        int | None, Field(description="Documents removed by the applied plan.")
     ] = None
     embedding_invalidated_documents: Annotated[
         int | None,
-        described_field("Documents whose chunks must re-embed."),
+        Field(description="Documents whose chunks must re-embed."),
     ] = None
     diagnostic_count: Annotated[
-        int | None, described_field("Diagnostics emitted by the compile.")
+        int | None, Field(description="Diagnostics emitted by the compile.")
     ] = None
-    warnings: Annotated[list[str], described_field("Receipt warnings.")] = (
+    warnings: Annotated[list[str], Field(description="Receipt warnings.")] = (
         schema_list_default()
     )
 
@@ -238,37 +240,39 @@ class OperationalRagSnapshotResponse(StrictSchemaModel):
     """RAG state in the operational readiness response."""
 
     fts: Annotated[
-        str, described_field("FTS for this operational RAG snapshot response.")
+        str, Field(description="FTS for this operational RAG snapshot response.")
     ]
     vector: Annotated[
-        str, described_field("Vector for this operational RAG snapshot response.")
+        str, Field(description="Vector for this operational RAG snapshot response.")
     ]
     embedding: Annotated[
-        str, described_field("Embedding for this operational RAG snapshot response.")
+        str, Field(description="Embedding for this operational RAG snapshot response.")
     ]
     effective_strategy: Annotated[
         str,
-        described_field(
-            "Effective strategy for this operational RAG snapshot response."
+        Field(
+            description="Effective strategy for this operational RAG snapshot response."
         ),
     ]
     model_name: Annotated[
-        str, described_field("Model name for this operational RAG snapshot response.")
+        str, Field(description="Model name for this operational RAG snapshot response.")
     ]
     dimensions: Annotated[
-        int, described_field("Dimensions for this operational RAG snapshot response.")
+        int, Field(description="Dimensions for this operational RAG snapshot response.")
     ]
     fingerprint: Annotated[
         JSONObject | None,
-        described_field("Fingerprint for this operational RAG snapshot response."),
+        Field(description="Fingerprint for this operational RAG snapshot response."),
     ]
     source_statuses: Annotated[
         list[ContextEmbeddingSourceStatusResponse],
-        described_field("Source statuses for this operational RAG snapshot response."),
+        Field(
+            description="Source statuses for this operational RAG snapshot response."
+        ),
     ] = schema_list_default()
     warnings: Annotated[
         list[str],
-        described_field("Warnings for this operational RAG snapshot response."),
+        Field(description="Warnings for this operational RAG snapshot response."),
     ] = schema_list_default()
 
     @classmethod
@@ -307,98 +311,98 @@ class OperationalReconciliationSnapshotResponse(StrictSchemaModel):
 
     configured: Annotated[
         bool,
-        described_field(
-            "Configured for this operational reconciliation snapshot response."
+        Field(
+            description="Configured for this operational reconciliation snapshot response."
         ),
     ]
     reachable: Annotated[
         bool,
-        described_field(
-            "Reachable for this operational reconciliation snapshot response."
+        Field(
+            description="Reachable for this operational reconciliation snapshot response."
         ),
     ]
     total_contexts: Annotated[
         int,
-        described_field(
-            "Total contexts for this operational reconciliation snapshot response."
+        Field(
+            description="Total contexts for this operational reconciliation snapshot response."
         ),
     ]
     temporal_state_count: Annotated[
         int,
-        described_field(
-            "Temporal state count for this operational reconciliation snapshot response."
+        Field(
+            description="Temporal state count for this operational reconciliation snapshot response."
         ),
     ]
     missing_temporal_states: Annotated[
         int,
-        described_field(
-            "Missing temporal states for this operational reconciliation snapshot response."
+        Field(
+            description="Missing temporal states for this operational reconciliation snapshot response."
         ),
     ]
     backfill_complete: Annotated[
         bool,
-        described_field(
-            "Backfill complete for this operational reconciliation snapshot response."
+        Field(
+            description="Backfill complete for this operational reconciliation snapshot response."
         ),
     ]
     total_plans: Annotated[
         int,
-        described_field(
-            "Total plans for this operational reconciliation snapshot response."
+        Field(
+            description="Total plans for this operational reconciliation snapshot response."
         ),
     ]
     pending_review_plans: Annotated[
         int,
-        described_field(
-            "Pending review plans for this operational reconciliation snapshot response."
+        Field(
+            description="Pending review plans for this operational reconciliation snapshot response."
         ),
     ]
     total_results: Annotated[
         int,
-        described_field(
-            "Total results for this operational reconciliation snapshot response."
+        Field(
+            description="Total results for this operational reconciliation snapshot response."
         ),
     ]
     partial_apply_results: Annotated[
         int,
-        described_field(
-            "Partial apply results for this operational reconciliation snapshot response."
+        Field(
+            description="Partial apply results for this operational reconciliation snapshot response."
         ),
     ]
     failed_results: Annotated[
         int,
-        described_field(
-            "Failed results for this operational reconciliation snapshot response."
+        Field(
+            description="Failed results for this operational reconciliation snapshot response."
         ),
     ]
     open_conflicts: Annotated[
         int,
-        described_field(
-            "Open conflicts for this operational reconciliation snapshot response."
+        Field(
+            description="Open conflicts for this operational reconciliation snapshot response."
         ),
     ]
     reviewing_conflicts: Annotated[
         int,
-        described_field(
-            "Reviewing conflicts for this operational reconciliation snapshot response."
+        Field(
+            description="Reviewing conflicts for this operational reconciliation snapshot response."
         ),
     ]
     hard_delete_results: Annotated[
         int,
-        described_field(
-            "Hard delete results for this operational reconciliation snapshot response."
+        Field(
+            description="Hard delete results for this operational reconciliation snapshot response."
         ),
     ]
     latest_failure_code: Annotated[
         str | None,
-        described_field(
-            "Latest failure code for this operational reconciliation snapshot response."
+        Field(
+            description="Latest failure code for this operational reconciliation snapshot response."
         ),
     ]
     latest_failure_at: Annotated[
         AwareTimestamp | None,
-        described_field(
-            "Latest failure at for this operational reconciliation snapshot response."
+        Field(
+            description="Latest failure at for this operational reconciliation snapshot response."
         ),
     ]
 

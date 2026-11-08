@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 import os
-
 from pathlib import Path
 
 import anyio
 import pytest
-from app.main import app as default_app, create_app
-from app.platform.config.app_config import AppConfig
-from app.shared.infrastructure.database import Database
 from fastapi.testclient import TestClient
+from tests.config_test_data import application_container
+
+from app.main import app as default_app, create_app
+from app.shared.infrastructure.database import Database
 
 ISSUER = "http://localhost"
 RESOURCE = "http://localhost/mcp"
@@ -38,14 +38,14 @@ def test_create_app_exposes_local_oauth_routes_without_shadowing_rest_routes(
 
     anyio.run(prepare_database)
     monkeypatch.setenv("DATABASE_URL", database_url)
-    config = AppConfig(
-        _env_file=None,
-        mcp_auth_mode="local_oauth2",
-        mcp_oauth_issuer=ISSUER,
-        mcp_oauth_resource=RESOURCE,
-        mcp_local_approval_key=APPROVAL_KEY,
+    app = create_app(
+        application_container(
+            mcp_auth_mode="local_oauth2",
+            mcp_oauth_issuer=ISSUER,
+            mcp_oauth_resource=RESOURCE,
+            mcp_local_approval_key=APPROVAL_KEY,
+        )
     )
-    app = create_app(config)
 
     try:
         with TestClient(app, base_url=ISSUER) as client:

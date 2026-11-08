@@ -7,6 +7,7 @@ from typing import Annotated
 from pydantic import (
     BeforeValidator,
     ConfigDict,
+    Field,
     ValidationError,
     ValidationInfo,
     field_validator,
@@ -34,7 +35,7 @@ from app.obsidian.application.notes.frontmatter.obsidian_context_frontmatter_val
 from app.obsidian.domain.event_enum.obsidian_enums import (
     ObsidianContextLifecycleStatus,
 )
-from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
+from app.shared.schemas.common_schemas import StrictSchemaModel
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 from app.shared.type_validation.strict_json_value import model_validate_json_value
 from app.shared.types.extra_types import JSONObject, JSONValue
@@ -52,35 +53,37 @@ class ContextProvenanceBoundary(StrictSchemaModel):
 
     source_actor_id: Annotated[
         str | None,
-        described_field(
-            "Source actor identifier for this context provenance boundary."
+        Field(
+            description="Source actor identifier for this context provenance boundary."
         ),
     ] = None
     source_actor_type: Annotated[
         ContextSourceType | None,
-        described_field("Source actor type for this context provenance boundary."),
+        Field(description="Source actor type for this context provenance boundary."),
     ] = None
     source_run_id: Annotated[
         str | None,
-        described_field("Source run identifier for this context provenance boundary."),
+        Field(
+            description="Source run identifier for this context provenance boundary."
+        ),
     ] = None
     external_run_id: Annotated[
         str | None,
-        described_field(
-            "External run identifier for this context provenance boundary."
+        Field(
+            description="External run identifier for this context provenance boundary."
         ),
     ] = None
     artifact_refs: Annotated[
         tuple[str, ...],
-        described_field("Artifact refs for this context provenance boundary."),
+        Field(description="Artifact refs for this context provenance boundary."),
     ] = ()
     evidence_refs: Annotated[
         tuple[str, ...],
-        described_field("Evidence refs for this context provenance boundary."),
+        Field(description="Evidence refs for this context provenance boundary."),
     ] = ()
     confidence: Annotated[
         ContextImportance | None,
-        described_field("Confidence for this context provenance boundary."),
+        Field(description="Confidence for this context provenance boundary."),
     ] = None
 
     @field_validator("source_actor_type", "confidence", mode="before")
@@ -144,137 +147,143 @@ class ContextFrontmatterBoundary(StrictSchemaModel):
 
     scope: Annotated[
         ContextScope | None,
-        described_field("Scope for this context frontmatter boundary."),
+        Field(description="Scope for this context frontmatter boundary."),
     ] = None
     project: Annotated[
-        str | None, described_field("Project for this context frontmatter boundary.")
+        str | None, Field(description="Project for this context frontmatter boundary.")
     ] = None
     workspace_id: Annotated[
         str | None,
-        described_field("Workspace identifier for this context frontmatter boundary."),
+        Field(
+            description="Workspace identifier for this context frontmatter boundary."
+        ),
     ] = None
     agent_id: Annotated[
         str | None,
-        described_field("Agent identifier for this context frontmatter boundary."),
+        Field(description="Agent identifier for this context frontmatter boundary."),
     ] = None
     user_id: Annotated[
         str | None,
-        described_field("User identifier for this context frontmatter boundary."),
+        Field(description="User identifier for this context frontmatter boundary."),
     ] = None
     session_id: Annotated[
         str | None,
-        described_field("Session identifier for this context frontmatter boundary."),
+        Field(description="Session identifier for this context frontmatter boundary."),
     ] = None
     visibility: Annotated[
         ContextScope | None,
-        described_field("Visibility for this context frontmatter boundary."),
+        Field(description="Visibility for this context frontmatter boundary."),
     ] = None
     status: Annotated[
         ObsidianContextLifecycleStatus | None,
-        described_field("Status for this context frontmatter boundary."),
+        Field(description="Status for this context frontmatter boundary."),
     ] = None
     source_actor_id: Annotated[
         str | None,
-        described_field(
-            "Source actor identifier for this context frontmatter boundary."
+        Field(
+            description="Source actor identifier for this context frontmatter boundary."
         ),
     ] = None
     source_actor_type: Annotated[
         ContextSourceType | None,
-        described_field("Source actor type for this context frontmatter boundary."),
+        Field(description="Source actor type for this context frontmatter boundary."),
     ] = None
     source_run_id: Annotated[
         str | None,
-        described_field("Source run identifier for this context frontmatter boundary."),
+        Field(
+            description="Source run identifier for this context frontmatter boundary."
+        ),
     ] = None
     external_run_id: Annotated[
         str | None,
-        described_field(
-            "External run identifier for this context frontmatter boundary."
+        Field(
+            description="External run identifier for this context frontmatter boundary."
         ),
     ] = None
     artifact_refs: Annotated[
         tuple[str, ...],
-        described_field("Artifact refs for this context frontmatter boundary."),
+        Field(description="Artifact refs for this context frontmatter boundary."),
     ] = ()
     evidence_refs: Annotated[
         tuple[str, ...],
-        described_field("Evidence refs for this context frontmatter boundary."),
+        Field(description="Evidence refs for this context frontmatter boundary."),
     ] = ()
     confidence: Annotated[
         ContextImportance | None,
-        described_field("Confidence for this context frontmatter boundary."),
+        Field(description="Confidence for this context frontmatter boundary."),
     ] = None
     provenance: Annotated[
         ContextProvenanceBoundary | None,
-        described_field("Provenance for this context frontmatter boundary."),
+        Field(description="Provenance for this context frontmatter boundary."),
     ] = None
     content_hash: Annotated[
         str | None,
-        described_field("Content hash for this context frontmatter boundary."),
+        Field(description="Content hash for this context frontmatter boundary."),
     ] = None
     version: Annotated[
         int | None,
         BeforeValidator(normalized_context_version),
-        described_field("Version for this context frontmatter boundary."),
+        Field(description="Version for this context frontmatter boundary."),
     ] = None
     supersedes_context_id: Annotated[
         str | None,
-        described_field(
-            "Supersedes context identifier for this context frontmatter boundary."
+        Field(
+            description="Supersedes context identifier for this context frontmatter boundary."
         ),
     ] = None
     superseded_by_context_id: Annotated[
         str | None,
-        described_field(
-            "Superseded by context identifier for this context frontmatter boundary."
+        Field(
+            description="Superseded by context identifier for this context frontmatter boundary."
         ),
     ] = None
     context_kind: Annotated[
         ContextKind | None,
-        described_field("Context kind for this context frontmatter boundary."),
+        Field(description="Context kind for this context frontmatter boundary."),
     ] = None
     memory_function: Annotated[
         MemoryFunction | None,
-        described_field("Memory function for this context frontmatter boundary."),
+        Field(description="Memory function for this context frontmatter boundary."),
     ] = None
     kind: Annotated[
-        str | None, described_field("Kind for this context frontmatter boundary.")
+        str | None, Field(description="Kind for this context frontmatter boundary.")
     ] = None
     created_at: Annotated[
         AwareTimestamp | None,
-        described_field("Creation timestamp for this context frontmatter boundary."),
+        Field(description="Creation timestamp for this context frontmatter boundary."),
     ] = None
     updated_at: Annotated[
         AwareTimestamp | None,
-        described_field("Last-update timestamp for this context frontmatter boundary."),
+        Field(
+            description="Last-update timestamp for this context frontmatter boundary."
+        ),
     ] = None
     recorded_at: Annotated[
         AwareTimestamp | None,
-        described_field("Recorded at for this context frontmatter boundary."),
+        Field(description="Recorded at for this context frontmatter boundary."),
     ] = None
     observed_at: Annotated[
         AwareTimestamp | None,
-        described_field("Observed at for this context frontmatter boundary."),
+        Field(description="Observed at for this context frontmatter boundary."),
     ] = None
     valid_from: Annotated[
         AwareTimestamp | None,
-        described_field("Valid from for this context frontmatter boundary."),
+        Field(description="Valid from for this context frontmatter boundary."),
     ] = None
     valid_to: Annotated[
         AwareTimestamp | None,
-        described_field("Valid to for this context frontmatter boundary."),
+        Field(description="Valid to for this context frontmatter boundary."),
     ] = None
     reconciliation_candidate_id: Annotated[
         str | None,
-        described_field(
-            "Reconciliation candidate identifier for this context frontmatter boundary."
+        Field(
+            description="Reconciliation candidate identifier for this context frontmatter boundary."
         ),
     ] = None
     conflict_set_ids: Annotated[
         tuple[str, ...],
-        described_field(
-            "Conflict set identifiers for this context frontmatter boundary."
+        Field(
+            description="Conflict set identifiers for this context frontmatter boundary."
         ),
     ] = ()
 

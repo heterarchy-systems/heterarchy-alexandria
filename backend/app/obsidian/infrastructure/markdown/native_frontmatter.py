@@ -10,11 +10,14 @@ from app.obsidian.infrastructure.markdown.frontmatter import (
     FrontmatterValue,
     MarkdownDocument,
 )
-from app.shared.infrastructure.native_compute_extension import (
+from app.shared.infrastructure.native_compute.native_compute_extension import (
     NativeComputeContractModule,
     load_native_compute_module,
 )
-from app.shared.infrastructure.native_wire_values import wire_array, wire_object
+from app.shared.infrastructure.native_compute.native_wire_values import (
+    wire_array,
+    wire_object,
+)
 from app.shared.serialization.orjson_codec import dumps_json, loads_json
 from app.shared.types.extra_types import JSONObject, JSONValue
 

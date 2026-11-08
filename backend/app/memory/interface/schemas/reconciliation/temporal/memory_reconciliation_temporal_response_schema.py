@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import TypeAdapter
+from pydantic import Field, TypeAdapter
 
 from app.memory.domain.entities.memory_reconciliation import MemoryTemporalRecallPack
 from app.memory.domain.event_enum.reconciliation_enums import (
@@ -12,10 +12,10 @@ from app.memory.domain.event_enum.reconciliation_enums import (
 )
 from app.memory.domain.types.context_payload_types import ContextSearchMatchPayload
 from app.memory.interface.schemas.context.context_mapping import match_payload
-from app.memory.interface.schemas.context.context_retrieval_schema import (
+from app.memory.interface.schemas.context.context_search_schema import (
     ContextSearchMatchResponse,
 )
-from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
+from app.shared.schemas.common_schemas import StrictSchemaModel
 from app.shared.schemas.datetime_schemas import AwareTimestamp
 
 _MATCH_PAYLOAD_ADAPTER = TypeAdapter(ContextSearchMatchPayload)
@@ -26,44 +26,46 @@ class MemoryTemporalStateResponse(StrictSchemaModel):
 
     context_id: Annotated[
         str,
-        described_field("Context identifier for this memory temporal state response."),
+        Field(
+            description="Context identifier for this memory temporal state response."
+        ),
     ]
     recorded_at: Annotated[
         AwareTimestamp,
-        described_field("Recorded at for this memory temporal state response."),
+        Field(description="Recorded at for this memory temporal state response."),
     ]
     observed_at: Annotated[
         AwareTimestamp | None,
-        described_field("Observed at for this memory temporal state response."),
+        Field(description="Observed at for this memory temporal state response."),
     ]
     valid_from: Annotated[
         AwareTimestamp | None,
-        described_field("Valid from for this memory temporal state response."),
+        Field(description="Valid from for this memory temporal state response."),
     ]
     valid_to: Annotated[
         AwareTimestamp | None,
-        described_field("Valid to for this memory temporal state response."),
+        Field(description="Valid to for this memory temporal state response."),
     ]
     is_current: Annotated[
-        bool, described_field("Is current for this memory temporal state response.")
+        bool, Field(description="Is current for this memory temporal state response.")
     ]
     conflict_set_ids: Annotated[
         list[str],
-        described_field(
-            "Conflict set identifiers for this memory temporal state response."
+        Field(
+            description="Conflict set identifiers for this memory temporal state response."
         ),
     ]
     superseded_by: Annotated[
         list[str],
-        described_field("Superseded by for this memory temporal state response."),
+        Field(description="Superseded by for this memory temporal state response."),
     ]
     supersedes: Annotated[
         list[str],
-        described_field("Supersedes for this memory temporal state response."),
+        Field(description="Supersedes for this memory temporal state response."),
     ]
     relation_summary: Annotated[
         list[str],
-        described_field("Relation summary for this memory temporal state response."),
+        Field(description="Relation summary for this memory temporal state response."),
     ]
 
 
@@ -72,38 +74,38 @@ class MemoryTemporalRecallMatchResponse(StrictSchemaModel):
 
     match: Annotated[
         ContextSearchMatchResponse,
-        described_field("Match for this memory temporal recall match response."),
+        Field(description="Match for this memory temporal recall match response."),
     ]
     temporal_state: Annotated[
         MemoryTemporalStateResponse | None,
-        described_field(
-            "Temporal state for this memory temporal recall match response."
+        Field(
+            description="Temporal state for this memory temporal recall match response."
         ),
     ]
     is_current: Annotated[
         bool,
-        described_field("Is current for this memory temporal recall match response."),
+        Field(description="Is current for this memory temporal recall match response."),
     ]
     conflict_set_ids: Annotated[
         list[str],
-        described_field(
-            "Conflict set identifiers for this memory temporal recall match response."
+        Field(
+            description="Conflict set identifiers for this memory temporal recall match response."
         ),
     ]
     superseded_by: Annotated[
         list[str],
-        described_field(
-            "Superseded by for this memory temporal recall match response."
+        Field(
+            description="Superseded by for this memory temporal recall match response."
         ),
     ]
     supersedes: Annotated[
         list[str],
-        described_field("Supersedes for this memory temporal recall match response."),
+        Field(description="Supersedes for this memory temporal recall match response."),
     ]
     relation_summary: Annotated[
         list[str],
-        described_field(
-            "Relation summary for this memory temporal recall match response."
+        Field(
+            description="Relation summary for this memory temporal recall match response."
         ),
     ]
 
@@ -112,36 +114,39 @@ class MemoryTemporalRecallResponse(StrictSchemaModel):
     """Context recall result filtered through an explicit temporal perspective."""
 
     query: Annotated[
-        str, described_field("Query for this memory temporal recall response.")
+        str, Field(description="Query for this memory temporal recall response.")
     ]
     mode: Annotated[
         MemoryTemporalRecallMode,
-        described_field("Mode for this memory temporal recall response."),
+        Field(description="Mode for this memory temporal recall response."),
     ]
     as_of: Annotated[
         AwareTimestamp | None,
-        described_field("As of for this memory temporal recall response."),
+        Field(description="As of for this memory temporal recall response."),
     ]
     strategy: Annotated[
-        str, described_field("Strategy for this memory temporal recall response.")
+        str, Field(description="Strategy for this memory temporal recall response.")
     ]
     effective_strategy: Annotated[
         str,
-        described_field("Effective strategy for this memory temporal recall response."),
+        Field(
+            description="Effective strategy for this memory temporal recall response."
+        ),
     ]
     warnings: Annotated[
-        list[str], described_field("Warnings for this memory temporal recall response.")
+        list[str],
+        Field(description="Warnings for this memory temporal recall response."),
     ]
     recall_scopes: Annotated[
         list[str],
-        described_field("Recall scopes for this memory temporal recall response."),
+        Field(description="Recall scopes for this memory temporal recall response."),
     ]
     matches: Annotated[
         list[MemoryTemporalRecallMatchResponse],
-        described_field("Matches for this memory temporal recall response."),
+        Field(description="Matches for this memory temporal recall response."),
     ]
     context_pack: Annotated[
-        str, described_field("Context pack for this memory temporal recall response.")
+        str, Field(description="Context pack for this memory temporal recall response.")
     ]
 
     @classmethod

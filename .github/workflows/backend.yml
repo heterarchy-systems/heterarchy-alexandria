@@ -38,7 +38,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.14.7"
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@1.98

@@ -26,11 +26,11 @@ from app.obsidian.application.notes.obsidian_note_indexer import (
     _read_source_text,
     note_index_from_path,
 )
+from app.obsidian.application.notes.verified_upsert.obsidian_verified_upsert_service import (
+    ObsidianVerifiedUpsertService,
+)
 from app.obsidian.application.service.notes.obsidian_canonical_identity_service import (
     ObsidianCanonicalIdentityService,
-)
-from app.obsidian.application.service.notes.obsidian_verified_upsert_service import (
-    ObsidianVerifiedUpsertService,
 )
 from app.obsidian.application.service.notes.obsidian_write_target_resolver import (
     ObsidianWriteTargetResolver,

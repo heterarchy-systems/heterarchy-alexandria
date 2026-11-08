@@ -5,8 +5,8 @@ from __future__ import annotations
 from app.mcp_server.backend_api_client import AlexandriaApiClient
 from app.mcp_server.tools.backend_gateway_policy import (
     DEFAULT_SOURCE_AGENT,
-    _path_segment,
-    _required_recovery_run_idempotency_key,
+    path_segment,
+    required_recovery_run_idempotency_key,
 )
 from app.shared.types.extra_types import JSONObject, JSONValue
 
@@ -78,7 +78,7 @@ async def _recovery_run(
     Returns:
         Recovery run response.
     """
-    required_idempotency_key = _required_recovery_run_idempotency_key(idempotency_key)
+    required_idempotency_key = required_recovery_run_idempotency_key(idempotency_key)
     if (
         expected_plan_hash is None
         or len(expected_plan_hash) != 64
@@ -110,7 +110,7 @@ async def alexandria_recovery_run_status(
     Returns:
         Recovery run response.
     """
-    response = await client.get(f"/operations/recovery/runs/{_path_segment(run_id)}")
+    response = await client.get(f"/operations/recovery/runs/{path_segment(run_id)}")
     return response
 
 

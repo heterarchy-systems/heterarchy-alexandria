@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import StringConstraints
+from pydantic import Field, StringConstraints
 
 from app.obsidian.domain.entities.obsidian_note import (
     ObsidianCanonicalIdentityResult,
@@ -13,30 +13,27 @@ from app.obsidian.domain.entities.obsidian_note import (
 from app.obsidian.domain.event_enum.obsidian_enums import (
     ObsidianIndexStatus,
 )
-from app.shared.schemas.common_schemas import (
-    StrictSchemaModel,
-    described_field,
-)
+from app.shared.schemas.common_schemas import StrictSchemaModel
 
 
 class ObsidianExactPathStatusResponse(StrictSchemaModel):
     """Exact managed-path existence response."""
 
     exists: Annotated[
-        bool, described_field("Exists for this Obsidian exact path status response.")
+        bool, Field(description="Exists for this Obsidian exact path status response.")
     ]
     note_id: Annotated[
         str | None,
-        described_field(
-            "Note identifier for this Obsidian exact path status response."
+        Field(
+            description="Note identifier for this Obsidian exact path status response."
         ),
     ]
     path: Annotated[
-        str, described_field("Path for this Obsidian exact path status response.")
+        str, Field(description="Path for this Obsidian exact path status response.")
     ]
     index_status: Annotated[
         ObsidianIndexStatus | None,
-        described_field("Index status for this Obsidian exact path status response."),
+        Field(description="Index status for this Obsidian exact path status response."),
     ]
 
     @classmethod
@@ -66,26 +63,26 @@ class ObsidianCanonicalIdentityRequest(StrictSchemaModel):
     project: Annotated[
         str,
         StringConstraints(strict=True, min_length=1),
-        described_field("Project for this Obsidian canonical identity request."),
+        Field(description="Project for this Obsidian canonical identity request."),
     ]
     report: Annotated[
         str,
         StringConstraints(strict=True, min_length=1),
-        described_field("Report for this Obsidian canonical identity request."),
+        Field(description="Report for this Obsidian canonical identity request."),
     ]
     date: Annotated[
         str,
         StringConstraints(strict=True, pattern="^\\d{4}-\\d{2}-\\d{2}$"),
-        described_field("Date for this Obsidian canonical identity request."),
+        Field(description="Date for this Obsidian canonical identity request."),
     ]
     entity: Annotated[
         str,
         StringConstraints(strict=True, min_length=1),
-        described_field("Entity for this Obsidian canonical identity request."),
+        Field(description="Entity for this Obsidian canonical identity request."),
     ]
     edition: Annotated[
         str | None,
-        described_field("Edition for this Obsidian canonical identity request."),
+        Field(description="Edition for this Obsidian canonical identity request."),
     ] = None
 
 
@@ -94,40 +91,40 @@ class ObsidianCanonicalIdentityResponse(StrictSchemaModel):
 
     canonical_report_family: Annotated[
         str,
-        described_field(
-            "Canonical report family for this Obsidian canonical identity response."
+        Field(
+            description="Canonical report family for this Obsidian canonical identity response."
         ),
     ]
     canonical_entity: Annotated[
         str,
-        described_field(
-            "Canonical entity for this Obsidian canonical identity response."
+        Field(
+            description="Canonical entity for this Obsidian canonical identity response."
         ),
     ]
     canonical_path: Annotated[
         str,
-        described_field(
-            "Canonical path for this Obsidian canonical identity response."
+        Field(
+            description="Canonical path for this Obsidian canonical identity response."
         ),
     ]
     existing_note_id: Annotated[
         str | None,
-        described_field(
-            "Existing note identifier for this Obsidian canonical identity response."
+        Field(
+            description="Existing note identifier for this Obsidian canonical identity response."
         ),
     ]
     aliases: Annotated[
         list[str],
-        described_field("Aliases for this Obsidian canonical identity response."),
+        Field(description="Aliases for this Obsidian canonical identity response."),
     ]
     resolution: Annotated[
         str,
-        described_field("Resolution for this Obsidian canonical identity response."),
+        Field(description="Resolution for this Obsidian canonical identity response."),
     ]
     candidate_paths: Annotated[
         list[str],
-        described_field(
-            "Candidate paths for this Obsidian canonical identity response."
+        Field(
+            description="Candidate paths for this Obsidian canonical identity response."
         ),
     ]
 

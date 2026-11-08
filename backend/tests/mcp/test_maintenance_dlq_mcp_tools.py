@@ -5,10 +5,7 @@ from __future__ import annotations
 import anyio
 import httpx
 
-from app.mcp_server.backend_api_client import (
-    AlexandriaApiClient,
-    AlexandriaApiSettings,
-)
+from app.mcp_server.backend_api_client import AlexandriaApiClient
 from app.mcp_server.server_runtime import build_mcp_server
 from app.mcp_server.tools.operations.maintenance_backend_gateway import (
     alexandria_maintenance_dlq_inspect,
@@ -16,6 +13,7 @@ from app.mcp_server.tools.operations.maintenance_backend_gateway import (
     alexandria_maintenance_dlq_retire,
     alexandria_maintenance_dlq_retry,
 )
+from app.platform.config.mcp_config import McpApiConfig
 from app.shared.serialization.orjson_codec import dumps_json, loads_json
 
 
@@ -28,7 +26,7 @@ def _client() -> tuple[AlexandriaApiClient, list[httpx.Request]]:
 
     return (
         AlexandriaApiClient(
-            AlexandriaApiSettings(base_url="http://backend:8000", timeout=12.0),
+            McpApiConfig(base_url="http://backend:8000", timeout=12.0),
             transport=httpx.MockTransport(fake_transport),
         ),
         calls,

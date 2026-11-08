@@ -13,6 +13,12 @@ from pydantic import AnyHttpUrl
 
 from app.mcp_server.local_oauth.contracts import LocalMcpOAuthSettings
 from app.mcp_server.local_oauth.provider import LocalMcpOAuthProvider
+from app.mcp_server.local_oauth.provider_approval import (
+    LocalMcpOAuthApprovalService,
+)
+from app.mcp_server.local_oauth.provider_connections import (
+    LocalMcpOAuthConnectionService,
+)
 from app.mcp_server.local_oauth.repository import LocalMcpOAuthRepository
 from app.mcp_server.type_validate.oauth.config_contracts import (
     LocalMcpOAuthRuntimeConfig,
@@ -27,6 +33,8 @@ class LocalMcpOAuthRuntime:
 
     provider: LocalMcpOAuthProvider
     auth_settings: AuthSettings
+    approval_service: LocalMcpOAuthApprovalService
+    connections_service: LocalMcpOAuthConnectionService
 
 
 def build_local_mcp_oauth_runtime(
@@ -49,24 +57,34 @@ def build_local_mcp_oauth_runtime(
     approval_key = config.mcp_local_approval_key_value()
     required_scopes = config.mcp_oauth_required_scopes()
     default_scopes = config.mcp_local_oauth_default_scopes()
-    provider = LocalMcpOAuthProvider(
-        repository=LocalMcpOAuthRepository(database.session_factory()),
-        secret_cipher=secret_cipher,
-        settings=LocalMcpOAuthSettings(
-            issuer_url=issuer,
-            resource_url=resource,
-            required_scopes=required_scopes,
-            default_scopes=default_scopes,
-            access_token_ttl_seconds=config.mcp_local_access_token_ttl_seconds,
-            refresh_token_ttl_seconds=config.mcp_local_refresh_token_ttl_seconds,
-            authorization_code_ttl_seconds=(
-                config.mcp_local_authorization_code_ttl_seconds
-            ),
-            approval_ttl_seconds=config.mcp_local_approval_ttl_seconds,
-            pairing_code_ttl_seconds=config.mcp_local_pairing_code_ttl_seconds,
-            max_approval_attempts=config.mcp_local_max_approval_attempts,
-            approval_key=approval_key,
+    repository = LocalMcpOAuthRepository(database.session_factory())
+    settings = LocalMcpOAuthSettings(
+        issuer_url=issuer,
+        resource_url=resource,
+        required_scopes=required_scopes,
+        default_scopes=default_scopes,
+        access_token_ttl_seconds=config.mcp_local_access_token_ttl_seconds,
+        refresh_token_ttl_seconds=config.mcp_local_refresh_token_ttl_seconds,
+        authorization_code_ttl_seconds=(
+            config.mcp_local_authorization_code_ttl_seconds
         ),
+        approval_ttl_seconds=config.mcp_local_approval_ttl_seconds,
+        pairing_code_ttl_seconds=config.mcp_local_pairing_code_ttl_seconds,
+        max_approval_attempts=config.mcp_local_max_approval_attempts,
+        approval_key=approval_key,
+    )
+    provider = LocalMcpOAuthProvider(
+        repository=repository,
+        secret_cipher=secret_cipher,
+        settings=settings,
+    )
+    approval_service = LocalMcpOAuthApprovalService(
+        repository=repository,
+        settings=settings,
+    )
+    connections_service = LocalMcpOAuthConnectionService(
+        repository=repository,
+        settings=settings,
     )
     auth_settings = AuthSettings(
         issuer_url=AnyHttpUrl(issuer),
@@ -79,4 +97,9 @@ def build_local_mcp_oauth_runtime(
         ),
         revocation_options=RevocationOptions(enabled=True),
     )
-    return LocalMcpOAuthRuntime(provider=provider, auth_settings=auth_settings)
+    return LocalMcpOAuthRuntime(
+        provider=provider,
+        auth_settings=auth_settings,
+        approval_service=approval_service,
+        connections_service=connections_service,
+    )

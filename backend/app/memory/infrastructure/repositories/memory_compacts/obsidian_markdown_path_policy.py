@@ -32,6 +32,9 @@ def resolve_base_dir(vault_path: str | Path, relative_dir: str | Path) -> Path:
 
     Returns:
         Absolute Memory Compact note directory path.
+
+    Raises:
+        ValueError: If `relative_dir` is absolute or traverses outside the vault.
     """
     vault = Path(vault_path).expanduser()
     if not vault.is_absolute():

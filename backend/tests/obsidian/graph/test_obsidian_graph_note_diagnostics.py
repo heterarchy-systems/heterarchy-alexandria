@@ -2,15 +2,21 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
+import threading
 from datetime import UTC, datetime
 from pathlib import Path
 
 import anyio
 import pytest
 from fastapi.testclient import TestClient
+from tests.config_test_data import application_container
 
 from app.main import app as default_app, create_app
+from app.obsidian.application.graph.diagnostics import (
+    obsidian_graph_note_diagnostics_service as graph_note_diagnostics_module,
+)
 from app.obsidian.application.graph.diagnostics.obsidian_graph_note_diagnostics_service import (
     ObsidianGraphNoteDiagnosticsService,
 )
@@ -31,7 +37,13 @@ from app.obsidian.infrastructure.models.obsidian_index_models import (
     ObsidianEdgeORM,
     ObsidianFileORM,
 )
-from app.platform.config.app_config import AppConfig
+from app.obsidian.infrastructure.obsidian_vault_config_store import (
+    ObsidianVaultConfigStore,
+)
+from app.shared.application.index_maintenance_coordinator import (
+    IndexMaintenanceCoordinator,
+)
+from app.shared.exceptions.common_exceptions import IndexMaintenanceConflictError
 from app.shared.infrastructure.database import Database
 
 _OBSIDIAN_MODELS_LOADED = _obsidian_index_models
@@ -107,6 +119,20 @@ class _Repository:
 
     async def get_by_path(self, relative_path: str) -> ObsidianNote | None:
         return self._by_path.get(relative_path)
+
+
+class _LookupObservingRepository(_Repository):
+    def __init__(self, notes: tuple[ObsidianNote, ...]) -> None:
+        super().__init__(notes)
+        self.lookups = 0
+
+    async def get_by_id(self, note_id: str) -> ObsidianNote | None:
+        self.lookups += 1
+        return await super().get_by_id(note_id)
+
+    async def get_by_path(self, relative_path: str) -> ObsidianNote | None:
+        self.lookups += 1
+        return await super().get_by_path(relative_path)
 
 
 class _Source:
@@ -247,6 +273,136 @@ def test_validate_note_links_does_not_mask_missing_explicit_id_with_path() -> No
     assert unresolved.candidate_paths == ("Alexandria/Target.md",)
 
 
+def test_rebuild_note_graph_fails_fast_before_target_read_or_canonical_parse(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """An active lease must reject a note rebuild before it reads its target."""
+    repository = _LookupObservingRepository((_note("source", "Alexandria/Source.md"),))
+    coordinator = IndexMaintenanceCoordinator()
+    store = ObsidianVaultConfigStore(
+        default_vault_path=str(tmp_path),
+        default_alexandria_root="Alexandria",
+        config_path=None,
+    )
+    parse_calls: list[Path] = []
+
+    def observe_parse(
+        path: Path,
+        relative_path: str,
+        alexandria_root: str,
+        max_source_bytes: int | None = None,
+    ) -> None:
+        parse_calls.append(path)
+        return None
+
+    monkeypatch.setattr(
+        graph_note_diagnostics_module,
+        "note_index_from_path",
+        observe_parse,
+    )
+    service = ObsidianGraphNoteDiagnosticsService(
+        repository=repository,
+        source=_Source((), ()),
+        projection_service=_ProjectionStatusService(),
+        vault_config_store=store,
+        index_maintenance_coordinator=coordinator,
+    )
+
+    async def scenario() -> None:
+        lease_acquired = anyio.Event()
+        release_lease = anyio.Event()
+
+        async def hold_lease() -> None:
+            async with coordinator.operation("other_graph_maintenance"):
+                lease_acquired.set()
+                await release_lease.wait()
+
+        async with anyio.create_task_group() as tasks:
+            tasks.start_soon(hold_lease)
+            await lease_acquired.wait()
+            try:
+                with pytest.raises(IndexMaintenanceConflictError):
+                    await service.rebuild_note_graph(note_id="source")
+            finally:
+                release_lease.set()
+
+    anyio.run(scenario)
+
+    assert repository.lookups == 0
+    assert parse_calls == []
+
+
+def test_rebuild_keeps_lease_until_blocking_parse_finishes_after_cancel(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Cancellation must not detach the parse worker from its maintenance lease."""
+    repository = _LookupObservingRepository((_note("source", "Alexandria/Source.md"),))
+    coordinator = IndexMaintenanceCoordinator()
+    store = ObsidianVaultConfigStore(
+        default_vault_path=str(tmp_path),
+        default_alexandria_root="Alexandria",
+        config_path=None,
+    )
+    parse_started = threading.Event()
+    release_parse = threading.Event()
+    parse_finished = threading.Event()
+    parse_arguments: list[tuple[Path, str, str, int | None]] = []
+
+    def block_parse(
+        path: Path,
+        relative_path: str,
+        alexandria_root: str,
+        max_source_bytes: int | None = None,
+    ) -> None:
+        assert threading.current_thread() is not threading.main_thread()
+        parse_arguments.append((path, relative_path, alexandria_root, max_source_bytes))
+        parse_started.set()
+        if not release_parse.wait(timeout=5):
+            raise TimeoutError("test did not release the blocking parser")
+        parse_finished.set()
+        return None
+
+    monkeypatch.setattr(
+        graph_note_diagnostics_module,
+        "note_index_from_path",
+        block_parse,
+    )
+    service = ObsidianGraphNoteDiagnosticsService(
+        repository=repository,
+        source=_Source((), ()),
+        projection_service=_ProjectionStatusService(),
+        vault_config_store=store,
+        index_maintenance_coordinator=coordinator,
+    )
+
+    async def scenario() -> tuple[bool, bool]:
+        rebuild = asyncio.create_task(service.rebuild_note_graph(note_id="source"))
+        assert await anyio.to_thread.run_sync(parse_started.wait, 5)
+        rebuild.cancel()
+        await anyio.lowlevel.checkpoint()
+        remains_pending = not rebuild.done()
+        lease_remains_owned = coordinator.active_operation == "note_graph_rebuild"
+        release_parse.set()
+        try:
+            with pytest.raises(anyio.get_cancelled_exc_class()):
+                await rebuild
+        finally:
+            release_parse.set()
+            assert await anyio.to_thread.run_sync(parse_finished.wait, 5)
+        return remains_pending, lease_remains_owned
+
+    remains_pending, lease_remains_owned = anyio.run(scenario)
+
+    assert remains_pending is True
+    assert lease_remains_owned is True
+    assert repository.lookups == 1
+    assert len(parse_arguments) == 1
+    assert parse_finished.is_set()
+    assert coordinator.active_operation is None
+
+
 def _database_url() -> str:
     return os.environ["DATABASE_URL"]
 
@@ -310,11 +466,9 @@ def test_graph_note_diagnostics_rest_contract_reports_validation_only_status(
     anyio.run(seed_database, database_url)
     monkeypatch.setenv("DATABASE_URL", database_url)
     app = create_app(
-        AppConfig(
-            _env_file=None,
+        application_container(
             obsidian_vault_path=str(tmp_path / "vault"),
             obsidian_vault_config_path=str(tmp_path / "vault-config.json"),
-            operational_backup_root=str(tmp_path / "backups"),
         )
     )
 

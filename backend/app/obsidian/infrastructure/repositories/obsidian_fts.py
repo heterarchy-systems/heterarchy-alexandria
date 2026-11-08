@@ -113,36 +113,39 @@ def build_obsidian_fts_query(
         ),
         else_=0.0,
     )
-    exact_alias_match = _exact_alias_match()
+    alias_notes = (
+        select(ObsidianFileORM.note_id)
+        .where(_exact_alias_match())
+        .cte("obsidian_fts_alias_notes")
+        .prefix_with("MATERIALIZED")
+    )
+    # Keep the lexical branch indexable independently of JSON alias matching.
+    matching_notes = union(
+        select(ObsidianFileORM.note_id).where(note_document.op("@@")(query)),
+        select(alias_notes.c.note_id),
+    ).subquery("obsidian_fts_note_candidates")
+    chunk_candidates = select(
+        ObsidianChunkORM.id.label("chunk_id"), ObsidianChunkORM.note_id
+    ).where(chunk_document.op("@@")(query))
+    note_candidates = select(
+        ObsidianChunkORM.id.label("chunk_id"), ObsidianChunkORM.note_id
+    ).join(matching_notes, matching_notes.c.note_id == ObsidianChunkORM.note_id)
+    candidates = union(chunk_candidates, note_candidates).cte("obsidian_fts_candidates")
+    candidate_notes = select(candidates.c.note_id).distinct().subquery()
     exact_alias_boost = case(
-        (exact_alias_match, EXACT_ALIAS_FTS_RANK_BOOST),
+        (alias_notes.c.note_id.is_not(None), EXACT_ALIAS_FTS_RANK_BOOST),
         else_=0.0,
     )
-    rank = cast(
-        ColumnElement[float],
-        (
-            func.ts_rank_cd(chunk_document, query)
-            + (func.ts_rank_cd(note_document, query) * 0.5)
-            + exact_title_boost
-            + exact_alias_boost
-        ).label("rank"),
-    )
-    chunk_candidates = select(ObsidianChunkORM.id.label("chunk_id")).where(
-        chunk_document.op("@@")(query)
-    )
-    note_candidates = (
-        select(ObsidianChunkORM.id.label("chunk_id"))
-        .select_from(ObsidianFileORM)
-        .join(ObsidianChunkORM, ObsidianChunkORM.note_id == ObsidianFileORM.note_id)
-        .where(or_(note_document.op("@@")(query), exact_alias_match))
-    )
-    candidates = union(chunk_candidates, note_candidates).subquery(
-        "obsidian_fts_candidates"
-    )
+    note_rank = (func.ts_rank_cd(note_document, query) * 0.5).label("note_rank")
     statement = (
-        select(ObsidianChunkORM.id, ObsidianChunkORM.note_id, rank)
-        .join(ObsidianFileORM, ObsidianFileORM.note_id == ObsidianChunkORM.note_id)
-        .join(candidates, candidates.c.chunk_id == ObsidianChunkORM.id)
+        select(
+            ObsidianFileORM.note_id,
+            note_rank,
+            exact_title_boost.label("title_boost"),
+            exact_alias_boost.label("alias_boost"),
+        )
+        .join(candidate_notes, candidate_notes.c.note_id == ObsidianFileORM.note_id)
+        .outerjoin(alias_notes, alias_notes.c.note_id == ObsidianFileORM.note_id)
         .where(ObsidianFileORM.index_status == bindparam("indexed_status"))
     )
     parameters: dict[str, ObsidianFtsParameter] = {
@@ -207,9 +210,28 @@ def build_obsidian_fts_query(
                 tags_jsonb.contains(bindparam(parameter_name, type_=JSONB))
             )
             parameters[parameter_name] = [tag]
-    statement = statement.order_by(rank.desc()).limit(bindparam("limit"))
+    # File bodies and alias boosts are scored once per eligible candidate note.
+    note_scores = statement.cte("obsidian_fts_note_scores").prefix_with("MATERIALIZED")
+    rank = cast(
+        ColumnElement[float],
+        (
+            func.ts_rank_cd(chunk_document, query)
+            + note_scores.c.note_rank
+            + note_scores.c.title_boost
+            + note_scores.c.alias_boost
+        ).label("rank"),
+    )
+    # Context recall appends scope predicates against the base file table.
+    ranked_chunks = (
+        select(ObsidianChunkORM.id, ObsidianChunkORM.note_id, rank)
+        .join(ObsidianFileORM, ObsidianFileORM.note_id == ObsidianChunkORM.note_id)
+        .join(note_scores, note_scores.c.note_id == ObsidianChunkORM.note_id)
+        .join(candidates, candidates.c.chunk_id == ObsidianChunkORM.id)
+        .order_by(rank.desc())
+        .limit(bindparam("limit"))
+    )
     return ObsidianFtsQuery(
-        statement=statement,
+        statement=ranked_chunks,
         parameters=parameters,
     )
 

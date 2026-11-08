@@ -16,7 +16,7 @@ from app.obsidian.infrastructure.markdown.paths import (
 from app.shared.exceptions.obsidian_exceptions import (
     ObsidianValidationError,
 )
-from app.shared.infrastructure.native_compile_plan import (
+from app.shared.infrastructure.native_compute.native_compile_plan import (
     DiagnosticEdgeWire,
     DiagnosticNoteWire,
     create_native_compile_plan_provider,

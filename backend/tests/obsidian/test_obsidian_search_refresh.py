@@ -5,7 +5,6 @@ from __future__ import annotations
 import anyio
 
 from app.obsidian.application.service.notes.obsidian_note_service import (
-    DEFAULT_SOURCE_SCAN_LIMIT,
     ObsidianNoteService,
 )
 from app.obsidian.application.service.vault.obsidian_vault_inventory_service import (
@@ -13,6 +12,9 @@ from app.obsidian.application.service.vault.obsidian_vault_inventory_service imp
 )
 from app.obsidian.domain.contracts.obsidian_contracts import ObsidianSearchQuery
 from app.obsidian.domain.entities.obsidian_note import ObsidianReindexResult
+from app.obsidian.domain.policies.obsidian_source_scan_policy import (
+    DEFAULT_SOURCE_SCAN_LIMIT,
+)
 from app.obsidian.infrastructure.obsidian_vault_config_store import (
     ObsidianVaultConfigStore,
 )

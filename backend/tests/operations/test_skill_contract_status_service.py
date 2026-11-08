@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from tests.config_test_data import app_config_values
+
 from app.operations.application.skill_contract.skill_contract_status_service import (
     SkillContractStatusService,
 )
@@ -52,7 +54,9 @@ def _service(
 ) -> tuple[SkillContractStatusService, AppConfig]:
     config = AppConfig(
         _env_file=None,
-        skill_bundle_root=None if skill_root is None else str(skill_root),
+        **app_config_values(
+            skill_bundle_root=None if skill_root is None else str(skill_root)
+        ),
     )
     return SkillContractStatusService(config, lambda: tools), config
 
@@ -195,7 +199,7 @@ def test_vault_mirror_drift_and_catalog_gap_are_independent_runtime_evidence(
     (active / "Matching.md").write_text(
         render_markdown_document(metadata, _MATCHING_SKILL), encoding="utf-8"
     )
-    config = AppConfig(_env_file=None, skill_bundle_root=str(repo))
+    config = AppConfig(_env_file=None, **app_config_values(skill_bundle_root=str(repo)))
     store = ObsidianVaultConfigStore(
         default_vault_path=str(vault),
         default_alexandria_root="Alexandria",

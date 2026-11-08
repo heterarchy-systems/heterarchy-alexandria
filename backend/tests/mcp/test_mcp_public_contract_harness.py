@@ -27,8 +27,9 @@ import pytest
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import BaseModel
 
-from app.mcp_server.backend_api_client import AlexandriaApiClient, AlexandriaApiSettings
+from app.mcp_server.backend_api_client import AlexandriaApiClient
 from app.mcp_server.server_runtime import build_mcp_server
+from app.platform.config.mcp_config import McpApiConfig
 from app.shared.serialization.orjson_codec import dumps_json
 from app.shared.types.extra_types import JSONValue
 
@@ -57,7 +58,7 @@ def _stub_client(
         return httpx.Response(200, content=dumps_json(response_payload))
 
     client = AlexandriaApiClient(
-        AlexandriaApiSettings(base_url="http://backend:8000", timeout=12.0),
+        McpApiConfig(base_url="http://backend:8000", timeout=12.0),
         transport=httpx.MockTransport(transport),
     )
     return client, recorded

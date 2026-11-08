@@ -22,7 +22,7 @@ from app.mcp_server.tools.operations.maintenance_backend_gateway import (
     alexandria_replay_maintenance_dead_letter,
     alexandria_submit_batch_note_write_job,
 )
-from app.operations.interface.schemas.operations.maintenance_job_schema import (
+from app.operations.interface.schemas.operations.maintenance.job_schema import (
     MaintenanceJobsResponse,
 )
 from app.shared.types.extra_types import JSONValue

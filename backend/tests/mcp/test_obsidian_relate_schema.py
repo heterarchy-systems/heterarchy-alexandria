@@ -7,10 +7,7 @@ import httpx
 import pytest
 from pydantic import ValidationError
 
-from app.mcp_server.backend_api_client import (
-    AlexandriaApiClient,
-    AlexandriaApiSettings,
-)
+from app.mcp_server.backend_api_client import AlexandriaApiClient
 from app.mcp_server.tools.obsidian.obsidian_relation_backend_gateway import (
     alexandria_relate,
 )
@@ -22,6 +19,7 @@ from app.obsidian.interface.schemas.obsidian.obsidian_relation_schema import (
     ObsidianRelateRequestSchema,
     ObsidianRelateResponse,
 )
+from app.platform.config.mcp_config import McpApiConfig
 from app.shared.serialization.orjson_codec import dumps_json, loads_json
 from app.shared.types.extra_types import JSONObject
 
@@ -83,7 +81,7 @@ def test_relate_mcp_gateway_validates_typed_response_model() -> None:
         return httpx.Response(200, content=dumps_json(_payload()))
 
     client = AlexandriaApiClient(
-        AlexandriaApiSettings(base_url="http://backend:8000", timeout=12.0),
+        McpApiConfig(base_url="http://backend:8000", timeout=12.0),
         transport=httpx.MockTransport(transport),
     )
     request = ObsidianRelateRequestSchema(

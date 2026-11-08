@@ -16,7 +16,6 @@ from mcp.server.auth.provider import (
 from app.mcp_server.local_oauth.contracts import (
     LocalMcpOAuthSettings,
     LocalOAuthAuthorizationRequestRecord,
-    LocalOAuthClientConnectionRecord,
     LocalOAuthPairingCode,
 )
 from app.mcp_server.local_oauth.repository import LocalMcpOAuthRepository
@@ -31,7 +30,7 @@ class LocalOAuthApprovalError(Exception):
 
 
 class LocalMcpOAuthApprovalService:
-    """Own pairing-code approval and public-safe client connection operations."""
+    """Own browser approval and single-use pairing-code transitions."""
 
     def __init__(
         self, repository: LocalMcpOAuthRepository, settings: LocalMcpOAuthSettings
@@ -44,54 +43,6 @@ class LocalMcpOAuthApprovalService:
         """
         self._repository = repository
         self._settings = settings
-
-    async def list_client_connections(
-        self,
-    ) -> tuple[LocalOAuthClientConnectionRecord, ...]:
-        """List OAuth MCP clients for the local operator without token material.
-
-        Returns:
-            Public-safe registered client connection records.
-        """
-        return await self._repository.list_client_connections(current_epoch_seconds())
-
-    async def extend_client_connection(
-        self,
-        client_id: str,
-    ) -> LocalOAuthClientConnectionRecord | None:
-        """Extend one currently connected MCP client's refresh-token window.
-
-        Args:
-            client_id: Registered OAuth client id.
-
-        Returns:
-            Updated connection record, or None when the client is unknown or expired.
-        """
-        if await self._repository.get_client(client_id) is None:
-            return None
-        now = current_epoch_seconds()
-        extended_count = await self._repository.extend_client_refresh_tokens(
-            client_id=client_id,
-            extension_seconds=self._settings.refresh_token_ttl_seconds,
-            now=now,
-        )
-        if extended_count == 0:
-            return None
-        return await self._client_connection(client_id)
-
-    async def delete_client_connection(
-        self,
-        client_id: str,
-    ) -> bool:
-        """Hard-delete one MCP OAuth client and all credential state.
-
-        Args:
-            client_id: Registered OAuth client id.
-
-        Returns:
-            Whether the client aggregate existed and was deleted.
-        """
-        return await self._repository.delete_client(client_id)
 
     async def pending_authorization(
         self,
@@ -155,6 +106,7 @@ class LocalMcpOAuthApprovalService:
             code_hash=hash_opaque_value(code),
             code_expires_at=now + self._settings.authorization_code_ttl_seconds,
             now=now,
+            max_approval_attempts=self._settings.max_approval_attempts,
             pairing_code_hash=pairing_code_hash,
         )
         if issued is None:
@@ -181,6 +133,7 @@ class LocalMcpOAuthApprovalService:
         denied = await self._repository.deny_authorization_request(
             request_id,
             current_epoch_seconds(),
+            max_approval_attempts=self._settings.max_approval_attempts,
             pairing_code_hash=self._pairing_code_hash(approval_code),
         )
         if not denied:
@@ -215,7 +168,9 @@ class LocalMcpOAuthApprovalService:
             request_id: Identifier for request.
         """
         attempts = await self._repository.record_failed_approval(
-            request_id, current_epoch_seconds()
+            request_id,
+            current_epoch_seconds(),
+            max_approval_attempts=self._settings.max_approval_attempts,
         )
         if attempts == 0:
             raise LocalOAuthApprovalError(
@@ -231,23 +186,6 @@ class LocalMcpOAuthApprovalService:
             HTTPStatus.FORBIDDEN,
             "OAuth pairing code is invalid",
         )
-
-    async def _client_connection(
-        self,
-        client_id: str,
-    ) -> LocalOAuthClientConnectionRecord | None:
-        """Execute client connection.
-
-        Args:
-            client_id: Identifier for client.
-
-        Returns:
-            LocalOAuthClientConnectionRecord | None result produced by client connection.
-        """
-        for connection in await self.list_client_connections():
-            if connection.client_id == client_id:
-                return connection
-        return None
 
 
 def new_opaque_value() -> str:

@@ -6,11 +6,11 @@ from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, status
 
 from app.container import ApplicationContainer
-from app.operations.application.readiness.operational_capability_policy import (
-    capability_snapshot,
-)
 from app.operations.application.readiness.operational_readiness_service import (
     OperationalReadinessService,
+)
+from app.operations.application.readiness.policy.operational_capability_policy import (
+    capability_snapshot,
 )
 from app.operations.application.steward.memory_steward_service import (
     MemoryStewardDiagnoseService,

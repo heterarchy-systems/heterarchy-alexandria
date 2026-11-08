@@ -3,32 +3,28 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Awaitable, Callable, Sequence
+from collections.abc import Sequence
 from datetime import UTC, datetime
 
-from app.obsidian.application.service.notes.obsidian_note_mutation_receipts import (
-    note_mutation_identity,
-)
 from app.obsidian.domain.contracts.obsidian_batch_contracts import (
     BatchValidationError,
     BatchWriteOperation,
 )
-from app.obsidian.domain.contracts.obsidian_contracts import (
-    ObsidianSaveNote,
-    ObsidianWriteNote,
-)
 from app.obsidian.domain.entities.obsidian_mutation_outcome import (
     ObsidianMutationOutcome,
-)
-from app.obsidian.domain.event_enum.obsidian_enums import (
-    AlexandriaNoteType,
-    ObsidianFrontmatterMode,
-    ObsidianWriteMatchBy,
-    ObsidianWriteMode,
 )
 from app.obsidian.domain.event_enum.obsidian_mutation_enums import (
     ObsidianMutationOutcomeStatus,
 )
+from app.operations.application.dlq.archive_codec import ArchiveCodec
+from app.operations.application.dlq.contracts import (
+    ArchiveReader,
+    ArchiveWriter,
+    BatchIdentity,
+    NoteOutcomeReader,
+    PayloadReader,
+)
+from app.operations.application.dlq.live_inspection import LiveInspection
 from app.operations.application.maintenance_job_queue import (
     MaintenanceDeadLetterNotFoundError,
     MaintenanceDeadLetterNotRetryableError,
@@ -36,16 +32,11 @@ from app.operations.application.maintenance_job_queue import (
     MaintenanceQueueUnavailableError,
 )
 from app.operations.domain.entities.maintenance_job import (
-    MaintenanceDeadLetterContext,
-    MaintenanceDeadLetterEntry,
     MaintenanceDeadLetterInspection,
     MaintenanceDeadLetterReconcileItem,
     MaintenanceDeadLetterReconcileResult,
     MaintenanceDeadLetterRetireResult,
     MaintenanceDeadLetterRetryResult,
-    MaintenanceJobAttempt,
-    MaintenanceJobRequest,
-    MaintenanceJobSnapshot,
 )
 from app.operations.domain.event_enum.maintenance_job_enums import (
     MaintenanceDeadLetterOutcomeClass,
@@ -54,14 +45,6 @@ from app.operations.domain.event_enum.maintenance_job_enums import (
     MaintenanceJobStatus,
 )
 from app.shared.types.extra_types import JSONValue
-
-PayloadReader = Callable[[str], Awaitable[dict[str, JSONValue] | None]]
-ArchiveWriter = Callable[[str, dict[str, JSONValue]], Awaitable[bool]]
-ArchiveReader = Callable[[str], Awaitable[dict[str, JSONValue] | None]]
-NoteOutcomeReader = Callable[[str], Awaitable[ObsidianMutationOutcome]]
-BatchIdentity = Callable[[BatchWriteOperation], tuple[str, str]]
-
-_ARCHIVE_KIND = "maintenance_dlq_retirement"
 
 
 class MaintenanceDeadLetterLifecycleService:
@@ -83,23 +66,23 @@ class MaintenanceDeadLetterLifecycleService:
             raise ValueError("archive_namespace must not be blank")
         self._queue = queue
         self._archive_namespace = archive_namespace.strip()
-        self._payload_reader = payload_reader
         self._archive_writer = archive_writer
         self._archive_reader = archive_reader
         self._note_outcome_reader = note_outcome_reader
-        self._batch_identity = batch_identity or batch_operation_identity
+        self._live_inspection = LiveInspection(payload_reader, batch_identity)
+        self._archive_codec = ArchiveCodec()
 
     async def inspect(self, entry_id: str) -> MaintenanceDeadLetterInspection:
         """Read exact live or archived evidence without mutating state."""
         normalized_entry_id = _entry_id(entry_id)
         context = await self._queue.get_dead_letter(normalized_entry_id)
         if context is not None:
-            return await self._inspect_context(context)
+            return await self._live_inspection.inspect(context)
         archive_id = self.archive_id(normalized_entry_id)
         archive = await self._read_archive(archive_id)
         if archive is None:
             raise MaintenanceDeadLetterNotFoundError("dead-letter entry was not found")
-        return _inspection_from_archive(archive, archive_id)
+        return self._archive_codec.decode_inspection(archive, archive_id)
 
     async def retry(
         self,
@@ -212,7 +195,7 @@ class MaintenanceDeadLetterLifecycleService:
                 recommended_action="retire_invalid_source",
                 source_available=False,
             )
-        if self._batch_identity is None or self._note_outcome_reader is None:
+        if self._note_outcome_reader is None:
             return MaintenanceDeadLetterReconcileResult(
                 entry_id=inspection.entry.entry_id,
                 job_id=inspection.entry.job_id,
@@ -227,8 +210,10 @@ class MaintenanceDeadLetterLifecycleService:
         for index, raw_operation in enumerate(raw_operations):
             try:
                 operation = BatchWriteOperation.from_payload(raw_operation)
-                idempotency_key, effect_identity = self._batch_identity(operation)
-            except (BatchValidationError, TypeError, ValueError):
+                idempotency_key, effect_identity = self._live_inspection.identity_for(
+                    operation
+                )
+            except BatchValidationError, TypeError, ValueError:
                 has_unknown = True
                 items.append(
                     MaintenanceDeadLetterReconcileItem(
@@ -313,13 +298,13 @@ class MaintenanceDeadLetterLifecycleService:
         archive = await self._read_archive(archive_id)
         context = await self._queue.get_dead_letter(normalized_entry_id)
         if archive is not None and context is None:
-            return _retire_result_from_archive(archive, archive_id)
+            return self._archive_codec.decode_retirement(archive, archive_id)
         if context is None:
             raise MaintenanceDeadLetterNotFoundError("dead-letter entry was not found")
         reserved = await self._queue.reserve_dead_letter_retirement(normalized_entry_id)
         if archive is None:
-            inspection = await self._inspect_context(reserved)
-            archive_body = _archive_body(
+            inspection = await self._live_inspection.inspect(reserved)
+            archive_body = self._archive_codec.encode(
                 inspection,
                 archive_id=archive_id,
                 reason=normalized_reason,
@@ -369,169 +354,10 @@ class MaintenanceDeadLetterLifecycleService:
             f"alexandria:maintenance-dlq:{self._archive_namespace}:{entry_id}",
         ).hex
 
-    async def _inspect_context(
-        self, context: MaintenanceDeadLetterContext
-    ) -> MaintenanceDeadLetterInspection:
-        entry = context.entry
-        job = context.original_job
-        source_request = context.source_request
-        source_identity = _source_identity(source_request, job)
-        payload: dict[str, JSONValue] | None = None
-        if (
-            source_request is not None
-            and source_request.kind is MaintenanceJobKind.BATCH_NOTE_WRITE
-            and self._payload_reader is not None
-        ):
-            payload = await self._payload_reader(source_request.source_id)
-        idempotency_keys, effect_identities = _batch_effect_identities(
-            payload,
-            self._batch_identity,
-        )
-        if (
-            source_request is not None
-            and source_request.kind is not MaintenanceJobKind.BATCH_NOTE_WRITE
-        ):
-            idempotency_keys = (source_identity,)
-            effect_identities = (source_identity,)
-        if job is None:
-            return _inspection(
-                context,
-                payload,
-                idempotency_keys=idempotency_keys,
-                effect_identities=effect_identities,
-                source_identity=source_identity,
-                outcome_class=MaintenanceDeadLetterOutcomeClass.UNKNOWN_OUTCOME,
-                retryable=False,
-                recommended_action="reconcile_missing_job",
-            )
-        if entry.lifecycle.startswith("RETRIED:"):
-            return _inspection(
-                context,
-                payload,
-                idempotency_keys=idempotency_keys,
-                effect_identities=effect_identities,
-                source_identity=source_identity,
-                outcome_class=(
-                    MaintenanceDeadLetterOutcomeClass.OBSOLETE
-                    if job.status is MaintenanceJobStatus.SUCCEEDED
-                    else MaintenanceDeadLetterOutcomeClass.NON_RETRYABLE
-                ),
-                retryable=False,
-                recommended_action="observe_original_job",
-            )
-        if job.status is MaintenanceJobStatus.SUCCEEDED:
-            return _inspection(
-                context,
-                payload,
-                idempotency_keys=idempotency_keys,
-                effect_identities=effect_identities,
-                source_identity=source_identity,
-                outcome_class=MaintenanceDeadLetterOutcomeClass.OBSOLETE,
-                retryable=False,
-                recommended_action="retire_obsolete_entry",
-            )
-        if job.status is not MaintenanceJobStatus.FAILED:
-            return _inspection(
-                context,
-                payload,
-                idempotency_keys=idempotency_keys,
-                effect_identities=effect_identities,
-                source_identity=source_identity,
-                outcome_class=MaintenanceDeadLetterOutcomeClass.NON_RETRYABLE,
-                retryable=False,
-                recommended_action="observe_active_job",
-            )
-        if source_request is None:
-            return _inspection(
-                context,
-                payload,
-                idempotency_keys=idempotency_keys,
-                effect_identities=effect_identities,
-                source_identity=source_identity,
-                outcome_class=MaintenanceDeadLetterOutcomeClass.UNKNOWN_OUTCOME,
-                retryable=False,
-                recommended_action="retain_and_reconcile_source",
-            )
-        if source_request.kind is MaintenanceJobKind.BATCH_NOTE_WRITE:
-            if payload is None:
-                return _inspection(
-                    context,
-                    payload,
-                    idempotency_keys=idempotency_keys,
-                    effect_identities=effect_identities,
-                    source_identity=source_identity,
-                    outcome_class=MaintenanceDeadLetterOutcomeClass.UNKNOWN_OUTCOME,
-                    retryable=False,
-                    recommended_action="retain_missing_payload",
-                )
-            if not _valid_batch_payload(payload):
-                return _inspection(
-                    context,
-                    payload,
-                    idempotency_keys=idempotency_keys,
-                    effect_identities=effect_identities,
-                    source_identity=source_identity,
-                    outcome_class=MaintenanceDeadLetterOutcomeClass.NON_RETRYABLE,
-                    retryable=False,
-                    recommended_action="retire_invalid_source",
-                )
-            return _inspection(
-                context,
-                payload,
-                idempotency_keys=idempotency_keys,
-                effect_identities=effect_identities,
-                source_identity=source_identity,
-                outcome_class=MaintenanceDeadLetterOutcomeClass.UNKNOWN_OUTCOME,
-                retryable=False,
-                recommended_action="reconcile_before_retry",
-            )
-        return _inspection(
-            context,
-            payload,
-            idempotency_keys=idempotency_keys,
-            effect_identities=effect_identities,
-            source_identity=source_identity,
-            outcome_class=MaintenanceDeadLetterOutcomeClass.DEFINITIVE_FAILURE,
-            retryable=True,
-            recommended_action="retry_same_identity",
-        )
-
     async def _read_archive(self, archive_id: str) -> dict[str, JSONValue] | None:
         if self._archive_reader is None:
             return None
         return await self._archive_reader(archive_id)
-
-
-def _inspection(
-    context: MaintenanceDeadLetterContext,
-    payload: dict[str, JSONValue] | None,
-    *,
-    idempotency_keys: tuple[str, ...] = (),
-    effect_identities: tuple[str, ...] = (),
-    source_identity: str,
-    outcome_class: MaintenanceDeadLetterOutcomeClass,
-    retryable: bool,
-    recommended_action: str,
-) -> MaintenanceDeadLetterInspection:
-    entry = context.entry
-    errors = tuple(
-        item.error_summary for item in entry.attempt_history if item.error_summary
-    )
-    if entry.error_summary and entry.error_summary not in errors:
-        errors += (entry.error_summary,)
-    return MaintenanceDeadLetterInspection(
-        entry=entry,
-        original_job=context.original_job,
-        source_request=context.source_request,
-        source_payload=payload,
-        idempotency_keys=idempotency_keys,
-        effect_identities=effect_identities,
-        source_identity=source_identity,
-        retryable=retryable,
-        outcome_class=outcome_class,
-        recommended_action=recommended_action,
-        error_history=errors,
-    )
 
 
 def _entry_id(entry_id: str) -> str:
@@ -546,87 +372,6 @@ def _reason(value: str, field: str) -> str:
     if not normalized or len(normalized) > 500:
         raise ValueError(f"{field} must contain 1..500 characters")
     return normalized
-
-
-def _source_identity(
-    request: MaintenanceJobRequest | None,
-    job: MaintenanceJobSnapshot | None,
-) -> str:
-    source = request or (
-        MaintenanceJobRequest(
-            kind=job.kind,
-            requested_by=job.requested_by,
-            source_id=job.source_id,
-            limit=job.limit,
-            force=job.force,
-        )
-        if job is not None
-        else None
-    )
-    if source is None:
-        return "unavailable"
-    return ":".join(
-        (
-            source.kind.value,
-            source.source_id,
-            str(source.limit),
-            "1" if source.force else "0",
-        )
-    )
-
-
-def _valid_batch_payload(payload: dict[str, JSONValue]) -> bool:
-    operations = payload.get("operations")
-    if not isinstance(operations, Sequence) or isinstance(operations, str | bytes):
-        return False
-    try:
-        for operation in operations:
-            BatchWriteOperation.from_payload(operation)
-    except (BatchValidationError, TypeError, ValueError):
-        return False
-    return True
-
-
-def _batch_effect_identities(
-    payload: dict[str, JSONValue] | None,
-    identity: BatchIdentity,
-) -> tuple[tuple[str, ...], tuple[str, ...]]:
-    if payload is None:
-        return (), ()
-    operations = payload.get("operations")
-    if not isinstance(operations, Sequence) or isinstance(operations, str | bytes):
-        return (), ()
-    keys: list[str] = []
-    identities: list[str] = []
-    for raw_operation in operations:
-        try:
-            operation = BatchWriteOperation.from_payload(raw_operation)
-            key, effect = identity(operation)
-        except (BatchValidationError, TypeError, ValueError):
-            return (), ()
-        keys.append(key)
-        identities.append(effect)
-    return tuple(keys), tuple(identities)
-
-
-def batch_operation_identity(operation: BatchWriteOperation) -> tuple[str, str]:
-    """Reuse the ordinary note-write identity for one batch operation."""
-    payload = ObsidianSaveNote(
-        title=operation.title,
-        body=operation.body,
-        alexandria_type=AlexandriaNoteType.CONTEXT,
-        note_id=operation.note_id,
-        relative_path=operation.relative_path,
-        frontmatter=dict(operation.frontmatter),
-        expected_content_hash=operation.expected_content_hash,
-    )
-    command = ObsidianWriteNote(
-        note=payload,
-        write_mode=ObsidianWriteMode.UPSERT,
-        match_by=ObsidianWriteMatchBy.PATH,
-        frontmatter_mode=ObsidianFrontmatterMode.MERGE,
-    )
-    return note_mutation_identity(payload, command)
 
 
 def _reconcile_item(
@@ -644,264 +389,3 @@ def _reconcile_item(
         canonical_path=outcome.canonical_path,
         content_hash=outcome.content_hash,
     )
-
-
-def _archive_body(
-    inspection: MaintenanceDeadLetterInspection,
-    *,
-    archive_id: str,
-    reason: str,
-    classification: MaintenanceDeadLetterRetirementClassification,
-    retired_by: str,
-    retired_at: datetime,
-) -> dict[str, JSONValue]:
-    entry = inspection.entry
-    job = inspection.original_job
-    request = inspection.source_request
-    return {
-        "archive_kind": _ARCHIVE_KIND,
-        "archive_id": archive_id,
-        "entry_id": entry.entry_id,
-        "job_id": entry.job_id,
-        "kind": entry.kind.value,
-        "attempts": entry.attempts,
-        "failed_at": entry.failed_at.isoformat(),
-        "error_summary": entry.error_summary,
-        "source_stream_id": entry.source_stream_id,
-        "attempt_history": [
-            {
-                "attempt": item.attempt,
-                "status": item.status,
-                "occurred_at": item.occurred_at.isoformat(),
-                "error_summary": item.error_summary,
-            }
-            for item in entry.attempt_history
-        ],
-        "source_identity": inspection.source_identity,
-        "source_request": None
-        if request is None
-        else {
-            "kind": request.kind.value,
-            "requested_by": request.requested_by,
-            "source_id": request.source_id,
-            "limit": request.limit,
-            "force": request.force,
-        },
-        "source_payload": inspection.source_payload,
-        "original_job": None if job is None else _job_payload(job),
-        "idempotency_keys": list(inspection.idempotency_keys),
-        "effect_identities": list(inspection.effect_identities),
-        "retryable": inspection.retryable,
-        "outcome_class": inspection.outcome_class.value,
-        "recommended_action": inspection.recommended_action,
-        "error_history": list(inspection.error_history),
-        "retirement_reason": reason,
-        "retirement_classification": classification.value,
-        "retired_by": retired_by,
-        "retired_at": retired_at.isoformat(),
-    }
-
-
-def _job_payload(job: MaintenanceJobSnapshot) -> dict[str, JSONValue]:
-    return {
-        "job_id": job.job_id,
-        "kind": job.kind.value,
-        "status": job.status.value,
-        "requested_by": job.requested_by,
-        "source_id": job.source_id,
-        "limit": job.limit,
-        "force": job.force,
-        "attempts": job.attempts,
-        "submitted_at": job.submitted_at.isoformat(),
-        "started_at": None if job.started_at is None else job.started_at.isoformat(),
-        "finished_at": None if job.finished_at is None else job.finished_at.isoformat(),
-        "stream_id": job.stream_id,
-        "error_summary": job.error_summary,
-    }
-
-
-def _inspection_from_archive(
-    archive: dict[str, JSONValue], archive_id: str
-) -> MaintenanceDeadLetterInspection:
-    entry = _entry_from_archive(archive)
-    job = _job_from_archive(archive.get("original_job"))
-    request = _request_from_archive(archive.get("source_request"))
-    outcome_value = _string(archive.get("outcome_class"), "UNKNOWN_OUTCOME")
-    try:
-        outcome_class = MaintenanceDeadLetterOutcomeClass(outcome_value)
-    except ValueError:
-        outcome_class = MaintenanceDeadLetterOutcomeClass.UNKNOWN_OUTCOME
-    classification_value = archive.get("retirement_classification")
-    classification = None
-    if isinstance(classification_value, str):
-        try:
-            classification = MaintenanceDeadLetterRetirementClassification(
-                classification_value
-            )
-        except ValueError:
-            classification = None
-    retired_at = _datetime_or_none(archive.get("retired_at"))
-    return MaintenanceDeadLetterInspection(
-        entry=entry,
-        original_job=job,
-        source_request=request,
-        source_payload=_json_object_or_none(archive.get("source_payload")),
-        idempotency_keys=_string_tuple(archive.get("idempotency_keys")),
-        effect_identities=_string_tuple(archive.get("effect_identities")),
-        source_identity=_string(archive.get("source_identity"), "unavailable"),
-        retryable=False,
-        outcome_class=outcome_class,
-        recommended_action="already_retired",
-        error_history=_string_tuple(archive.get("error_history")),
-        retired=True,
-        archive_id=archive_id,
-        retirement_reason=_string_or_none(archive.get("retirement_reason")),
-        retirement_classification=classification,
-        retired_by=_string_or_none(archive.get("retired_by")),
-        retired_at=retired_at,
-    )
-
-
-def _retire_result_from_archive(
-    archive: dict[str, JSONValue], archive_id: str
-) -> MaintenanceDeadLetterRetireResult:
-    classification_raw = _string(
-        archive.get("retirement_classification"),
-        MaintenanceDeadLetterRetirementClassification.HISTORICAL_RESIDUAL.value,
-    )
-    try:
-        classification = MaintenanceDeadLetterRetirementClassification(
-            classification_raw
-        )
-    except ValueError:
-        classification = (
-            MaintenanceDeadLetterRetirementClassification.HISTORICAL_RESIDUAL
-        )
-    retired_at = _datetime_or_none(archive.get("retired_at")) or datetime.now(UTC)
-    return MaintenanceDeadLetterRetireResult(
-        entry_id=_string(archive.get("entry_id"), ""),
-        job_id=_string(archive.get("job_id"), ""),
-        archive_id=archive_id,
-        retired_by=_string(archive.get("retired_by"), ""),
-        retired_at=retired_at,
-        reason=_string(archive.get("retirement_reason"), ""),
-        classification=classification,
-        retired=True,
-    )
-
-
-def _entry_from_archive(
-    archive: dict[str, JSONValue],
-) -> MaintenanceDeadLetterEntry:
-    return MaintenanceDeadLetterEntry(
-        entry_id=_string(archive.get("entry_id"), ""),
-        job_id=_string(archive.get("job_id"), ""),
-        kind=MaintenanceJobKind(
-            _string(archive.get("kind"), MaintenanceJobKind.EMBEDDING_REINDEX.value)
-        ),
-        attempts=_integer(archive.get("attempts")),
-        failed_at=_datetime_or_none(archive.get("failed_at")) or datetime.now(UTC),
-        error_summary=_string(archive.get("error_summary"), ""),
-        source_stream_id=_string(archive.get("source_stream_id"), ""),
-        lifecycle="RETIRED",
-        attempt_history=_attempts_from_archive(archive.get("attempt_history")),
-    )
-
-
-def _attempts_from_archive(
-    value: JSONValue,
-) -> tuple[MaintenanceJobAttempt, ...]:
-    if not isinstance(value, Sequence) or isinstance(value, str | bytes):
-        return ()
-    attempts: list[MaintenanceJobAttempt] = []
-    for item in value:
-        if not isinstance(item, dict):
-            continue
-        occurred_at = _datetime_or_none(item.get("occurred_at"))
-        status = item.get("status")
-        if occurred_at is None or not isinstance(status, str):
-            continue
-        attempts.append(
-            MaintenanceJobAttempt(
-                attempt=_integer(item.get("attempt")),
-                status=status,
-                occurred_at=occurred_at,
-                error_summary=_string_or_none(item.get("error_summary")),
-            )
-        )
-    return tuple(attempts)
-
-
-def _request_from_archive(value: JSONValue) -> MaintenanceJobRequest | None:
-    if not isinstance(value, dict):
-        return None
-    try:
-        return MaintenanceJobRequest(
-            kind=MaintenanceJobKind(_string(value.get("kind"), "")),
-            requested_by=_string(value.get("requested_by"), ""),
-            source_id=_string(value.get("source_id"), ""),
-            limit=_integer(value.get("limit")),
-            force=_boolean(value.get("force")),
-        )
-    except (TypeError, ValueError):
-        return None
-
-
-def _job_from_archive(value: JSONValue) -> MaintenanceJobSnapshot | None:
-    if not isinstance(value, dict):
-        return None
-    try:
-        return MaintenanceJobSnapshot(
-            job_id=_string(value.get("job_id"), ""),
-            kind=MaintenanceJobKind(_string(value.get("kind"), "")),
-            status=MaintenanceJobStatus(_string(value.get("status"), "")),
-            requested_by=_string(value.get("requested_by"), ""),
-            source_id=_string(value.get("source_id"), ""),
-            limit=_integer(value.get("limit")),
-            force=_boolean(value.get("force")),
-            attempts=_integer(value.get("attempts")),
-            submitted_at=_datetime_or_none(value.get("submitted_at"))
-            or datetime.now(UTC),
-            started_at=_datetime_or_none(value.get("started_at")),
-            finished_at=_datetime_or_none(value.get("finished_at")),
-            stream_id=_string_or_none(value.get("stream_id")),
-            error_summary=_string_or_none(value.get("error_summary")),
-        )
-    except (TypeError, ValueError):
-        return None
-
-
-def _json_object_or_none(value: JSONValue) -> dict[str, JSONValue] | None:
-    return value if isinstance(value, dict) else None
-
-
-def _string_tuple(value: JSONValue) -> tuple[str, ...]:
-    if not isinstance(value, Sequence) or isinstance(value, str | bytes):
-        return ()
-    return tuple(item for item in value if isinstance(item, str))
-
-
-def _string(value: JSONValue, default: str) -> str:
-    return value if isinstance(value, str) else default
-
-
-def _string_or_none(value: JSONValue) -> str | None:
-    return value if isinstance(value, str) else None
-
-
-def _integer(value: JSONValue) -> int:
-    return value if isinstance(value, int) and not isinstance(value, bool) else 0
-
-
-def _boolean(value: JSONValue) -> bool:
-    return value if isinstance(value, bool) else False
-
-
-def _datetime_or_none(value: JSONValue) -> datetime | None:
-    if not isinstance(value, str):
-        return None
-    try:
-        parsed = datetime.fromisoformat(value)
-    except ValueError:
-        return None
-    return parsed if parsed.tzinfo is not None else None

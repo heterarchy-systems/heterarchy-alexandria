@@ -22,16 +22,16 @@ _BLOCKING_CONTRADICTION_PATTERNS = (
 )
 
 
-def _missing_ref_reasons(
+def missing_ref_reasons(
     source_refs: tuple[MemoryCompactSourceRef, ...],
 ) -> tuple[str, ...]:
-    """Execute missing ref reasons.
+    """Identify missing, incomplete, or broken source reference declarations.
 
     Args:
-        source_refs: Source refs used by this operation.
+        source_refs: Declared source references on the compact.
 
     Returns:
-        tuple[str, ...] result produced by missing ref reasons.
+        Tuple of missing or broken source-reference reason codes.
     """
     if not source_refs:
         return ("source_refs_missing",)
@@ -49,18 +49,18 @@ def _missing_ref_reasons(
     return tuple(reasons)
 
 
-def _unlinked_source_refs(
+def unlinked_source_refs(
     evidence_summary: str,
     source_refs: tuple[MemoryCompactSourceRef, ...],
 ) -> tuple[str, ...]:
-    """Execute unlinked source refs.
+    """Find declared source references that are not cited in the evidence summary.
 
     Args:
-        evidence_summary: Evidence summary used by this operation.
-        source_refs: Source refs used by this operation.
+        evidence_summary: Extracted Markdown text of the Evidence Summary section.
+        source_refs: Declared source references on the compact.
 
     Returns:
-        tuple[str, ...] result produced by unlinked source refs.
+        Tuple of unlinked source-reference reason codes.
     """
     normalized_summary = evidence_summary.lower()
     reasons: list[str] = []
@@ -75,26 +75,26 @@ def _unlinked_source_refs(
     return tuple(reasons)
 
 
-def _stale_reasons(
+def stale_reasons(
     source_refs: tuple[MemoryCompactSourceRef, ...],
     source_observations: tuple[MemoryCompactSourceObservation, ...],
 ) -> tuple[str, ...]:
-    """Execute stale reasons.
+    """Compare declared source hashes against current source observations.
 
     Args:
-        source_refs: Source refs used by this operation.
-        source_observations: Source observations used by this operation.
+        source_refs: Declared source references on the compact.
+        source_observations: Current canonical source observations.
 
     Returns:
-        tuple[str, ...] result produced by stale reasons.
+        Tuple of staleness or unavailability reason codes.
     """
     observations = {
-        _observation_key(observation): observation
+        (observation.source_id, observation.detail_path): observation
         for observation in source_observations
     }
     reasons: list[str] = []
     for source_ref in source_refs:
-        observation = observations.get(_source_ref_key(source_ref))
+        observation = observations.get((source_ref.source_id, source_ref.detail_path))
         if observation is None:
             observation = observations.get((source_ref.source_id, None))
         if observation is not None and not observation.available:
@@ -117,14 +117,14 @@ def _stale_reasons(
     return tuple(reasons)
 
 
-def _contradictions(markdown_body: str) -> tuple[str, ...]:
-    """Execute contradictions.
+def contradictions(markdown_body: str) -> tuple[str, ...]:
+    """Detect blocking contradiction markers in the compact Markdown body.
 
     Args:
-        markdown_body: Markdown body used by this operation.
+        markdown_body: Full Markdown body of the compact under review.
 
     Returns:
-        tuple[str, ...] result produced by contradictions.
+        Tuple of normalized contradiction marker codes found in the body.
     """
     body = markdown_body.lower()
     return tuple(
@@ -134,24 +134,24 @@ def _contradictions(markdown_body: str) -> tuple[str, ...]:
     )
 
 
-def _recommended_actions(
+def recommended_actions(
     verdict: MemoryCompactReviewVerdict,
     scores: tuple[MemoryCompactRubricScore, ...],
     missing_refs: tuple[str, ...],
     stale_reasons: tuple[str, ...],
     contradictions: tuple[str, ...],
 ) -> tuple[str, ...]:
-    """Execute recommended actions.
+    """Derive deterministic remediation or promotion actions from review findings.
 
     Args:
-        verdict: Verdict used by this operation.
-        scores: Scores used by this operation.
-        missing_refs: Missing refs used by this operation.
-        stale_reasons: Stale reasons used by this operation.
-        contradictions: Contradictions used by this operation.
+        verdict: Computed review verdict for the compact.
+        scores: Rubric item score breakdown.
+        missing_refs: Missing or incomplete source reference reasons.
+        stale_reasons: Source hash mismatch or unavailability reasons.
+        contradictions: Blocking contradiction markers found in the body.
 
     Returns:
-        tuple[str, ...] result produced by recommended actions.
+        Tuple of recommended next action codes.
     """
     actions: list[str] = []
     if missing_refs:
@@ -180,29 +180,3 @@ def _recommended_actions(
     elif not actions:
         actions.append("revise_memory_compact")
     return tuple(actions)
-
-
-def _source_ref_key(source_ref: MemoryCompactSourceRef) -> tuple[str, str | None]:
-    """Execute source ref key.
-
-    Args:
-        source_ref: Source ref used by this operation.
-
-    Returns:
-        tuple[str, str | None] result produced by source ref key.
-    """
-    return source_ref.source_id, source_ref.detail_path
-
-
-def _observation_key(
-    observation: MemoryCompactSourceObservation,
-) -> tuple[str, str | None]:
-    """Execute observation key.
-
-    Args:
-        observation: Observation used by this operation.
-
-    Returns:
-        tuple[str, str | None] result produced by observation key.
-    """
-    return observation.source_id, observation.detail_path

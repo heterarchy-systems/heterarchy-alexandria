@@ -77,9 +77,9 @@ def _derive_key(raw_key: str) -> bytes:
 class SecretCipherSettings:
     """Primitive settings needed to build the provider secret cipher."""
 
-    app_name: str = "heterarchy-alexandria"
-    app_env: Literal["local", "stage", "prod"] = "local"
-    secret_encryption_key: str | None = None
+    app_name: str
+    app_env: Literal["local", "stage", "prod"]
+    secret_encryption_key: str | None
 
 
 @dataclass(frozen=True, slots=True)

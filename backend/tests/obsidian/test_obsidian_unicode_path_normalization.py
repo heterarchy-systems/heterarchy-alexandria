@@ -8,7 +8,7 @@ from typing import Any
 from app.obsidian.domain.contracts.obsidian_contracts import ObsidianNoteIndex
 from app.obsidian.domain.event_enum.obsidian_enums import AlexandriaNoteType
 from app.obsidian.infrastructure.markdown.paths import canonical_relative_path
-from app.shared.infrastructure.native_compile_plan import (
+from app.shared.infrastructure.native_compute.native_compile_plan import (
     create_native_compile_plan_provider,
 )
 

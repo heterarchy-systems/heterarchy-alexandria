@@ -51,11 +51,11 @@ async def preview_existing_memory_reconciliation(
     """Return a write-free existing-memory reconciliation report.
 
     Args:
-        request: Request.
-        service: Service.
+        request: Validated HTTP request specifying reconciliation scope and filters.
+        service: Injected existing-memory reconciliation application service.
 
     Returns:
-        ExistingMemoryReconciliationResponse: Operation result.
+        Dry-run reconciliation report detailing candidate overlays and plans.
     """
     return ExistingMemoryReconciliationResponse.from_entity(
         await service.preview(request.to_contract())
@@ -89,11 +89,11 @@ async def apply_existing_memory_reconciliation(
     """Apply safe and idempotent existing-memory read-model backfill.
 
     Args:
-        request: Request.
-        service: Service.
+        request: Validated HTTP request specifying backfill scope and options.
+        service: Injected existing-memory reconciliation application service.
 
     Returns:
-        ExistingMemoryReconciliationResponse: Operation result.
+        Applied backfill reconciliation report with persisted plan outcomes.
     """
     return ExistingMemoryReconciliationResponse.from_entity(
         await service.apply(request.to_contract())

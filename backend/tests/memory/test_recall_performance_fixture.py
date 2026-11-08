@@ -25,7 +25,7 @@ from app.memory.application.contexts.records.context_service import ContextServi
 from app.memory.application.reconciliation.conflicts.memory_temporal_recall_service import (
     MemoryTemporalRecallService,
 )
-from app.memory.application.retrieval.recall_service import RecallService
+from app.memory.application.retrieval.recall.recall_service import RecallService
 from app.memory.domain.contracts.context_recall_contracts import ScopeIdentity
 from app.memory.domain.contracts.recall_contracts import RecallRequest
 from app.memory.domain.entities.context_read_models import (
@@ -45,10 +45,12 @@ from app.memory.infrastructure.repositories.memory_reconciliation_repository imp
     SqlAlchemyMemoryReconciliationRepository,
 )
 from app.memory.interface.schemas.context.context_mapping import pack_payload
-from app.memory.interface.schemas.context.context_retrieval_schema import (
+from app.memory.interface.schemas.context.context_search_schema import (
     ContextPackResponse,
 )
-from app.memory.interface.schemas.context.recall_schema import RecallResponseSchema
+from app.memory.interface.schemas.context.recall_response_schema import (
+    RecallResponseSchema,
+)
 from app.shared.infrastructure.database import Database
 
 _SAMPLES = 20

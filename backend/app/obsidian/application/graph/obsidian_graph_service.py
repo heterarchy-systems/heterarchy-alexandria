@@ -113,9 +113,15 @@ class ObsidianGraphService:
             note_id=note_id,
             limit=limit,
         )
+        if not graph_results:
+            return []
+        note_ids = tuple(dict.fromkeys(result.note_id for result in graph_results))
+        notes_by_id = {
+            note.note_id: note for note in await self._repository.get_by_ids(note_ids)
+        }
         hydrated: list[ObsidianRelatedNote] = []
         for result in graph_results:
-            note = await self._repository.get_by_id(result.note_id)
+            note = notes_by_id.get(result.note_id)
             if note is None:
                 continue
             hydrated.append(

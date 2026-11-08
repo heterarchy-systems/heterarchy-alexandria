@@ -32,6 +32,9 @@ class MemoryCompactQueryService:
 
         Returns:
             Matching Memory Compact entity.
+
+        Raises:
+            MemoryCompactNotFoundError: If no compact exists for `compact_id`.
         """
         compact = await self._repository.get(compact_id)
         if compact is None:
@@ -79,6 +82,9 @@ class MemoryCompactQueryService:
 
         Returns:
             Current Memory Compact entity.
+
+        Raises:
+            MemoryCompactNotFoundError: If no CURRENT compact exists for `project`.
         """
         compact = await self._repository.current(project=project)
         if compact is None:

@@ -4,23 +4,21 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import Field
+
 from app.operations.application.steward.memory_steward_service import (
     StewardCurrentCompactsEvidence,
     StewardDiagnoseResult,
     StewardDiagnostic,
 )
 from app.operations.domain.event_enum.memory_steward_enums import MemoryStewardStatus
-from app.operations.interface.schemas.operations.maintenance_job_schema import (
+from app.operations.interface.schemas.operations.maintenance.job_schema import (
     MaintenanceQueueStatusResponse,
 )
 from app.operations.interface.schemas.operations.operational_readiness_detail_schema import (
     OperationalReadinessSnapshotResponse,
 )
-from app.shared.schemas.common_schemas import (
-    StrictSchemaModel,
-    described_field,
-    schema_list_default,
-)
+from app.shared.schemas.common_schemas import StrictSchemaModel, schema_list_default
 
 
 class MemoryStewardDiagnosticResponse(StrictSchemaModel):
@@ -28,23 +26,25 @@ class MemoryStewardDiagnosticResponse(StrictSchemaModel):
 
     code: Annotated[
         str,
-        described_field("Code for this steward diagnostic response."),
+        Field(description="Code for this steward diagnostic response."),
     ]
     blocking: Annotated[
         bool,
-        described_field("Blocking for this steward diagnostic response."),
+        Field(description="Blocking for this steward diagnostic response."),
     ]
     count: Annotated[
         int,
-        described_field("Count for this steward diagnostic response."),
+        Field(description="Count for this steward diagnostic response."),
     ]
     detail_operation: Annotated[
         str,
-        described_field("Detail operation for this steward diagnostic response."),
+        Field(description="Detail operation for this steward diagnostic response."),
     ]
     recommended_operation: Annotated[
         str,
-        described_field("Recommended operation for this steward diagnostic response."),
+        Field(
+            description="Recommended operation for this steward diagnostic response."
+        ),
     ]
 
     @classmethod
@@ -71,11 +71,13 @@ class MemoryStewardCurrentCompactsResponse(StrictSchemaModel):
 
     count: Annotated[
         int,
-        described_field("Count for this steward current compacts response."),
+        Field(description="Count for this steward current compacts response."),
     ]
     unique_projects: Annotated[
         bool,
-        described_field("Unique projects for this steward current compacts response."),
+        Field(
+            description="Unique projects for this steward current compacts response."
+        ),
     ]
 
     @classmethod
@@ -102,25 +104,27 @@ class MemoryStewardDiagnoseResponse(StrictSchemaModel):
 
     overall_status: Annotated[
         MemoryStewardStatus,
-        described_field("Overall status for this steward diagnose response."),
+        Field(description="Overall status for this steward diagnose response."),
     ]
     diagnostics: Annotated[
         list[MemoryStewardDiagnosticResponse],
-        described_field("Diagnostics for this steward diagnose response."),
+        Field(description="Diagnostics for this steward diagnose response."),
     ] = schema_list_default()
     readiness: Annotated[
         OperationalReadinessSnapshotResponse,
-        described_field("Readiness evidence for this steward diagnose response."),
+        Field(description="Readiness evidence for this steward diagnose response."),
     ]
     queue: Annotated[
         MaintenanceQueueStatusResponse | None,
-        described_field(
-            "Maintenance queue evidence for this steward diagnose response."
+        Field(
+            description="Maintenance queue evidence for this steward diagnose response."
         ),
     ] = None
     current_compacts: Annotated[
         MemoryStewardCurrentCompactsResponse | None,
-        described_field("CURRENT compact evidence for this steward diagnose response."),
+        Field(
+            description="CURRENT compact evidence for this steward diagnose response."
+        ),
     ] = None
 
     @classmethod

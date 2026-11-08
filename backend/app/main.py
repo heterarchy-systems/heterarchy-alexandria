@@ -1,23 +1,21 @@
 """Backend application entrypoint for heterarchy-alexandria."""
 
-from __future__ import annotations
-
 import asyncio
 import logging
 from collections.abc import AsyncGenerator, Awaitable
-from contextlib import asynccontextmanager, suppress
+from contextlib import asynccontextmanager
 from typing import cast
 
-from dependency_injector import providers
 from fastapi import FastAPI
 from redis.asyncio import Redis
+from redis.exceptions import RedisError
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.connections.interface.routers.connection_hub_router import (
     router as connection_hub_router,
 )
 from app.container import ApplicationContainer
-from app.mcp_server.backend_api_client import AlexandriaApiClient, AlexandriaApiSettings
+from app.mcp_server.backend_api_client import AlexandriaApiClient
 from app.mcp_server.http_auth_factory import build_mcp_http_auth_gate
 from app.mcp_server.http_mount import (
     MCP_HTTP_MOUNT_PATH,
@@ -62,8 +60,17 @@ from app.obsidian.interface.routers.obsidian_router import router as obsidian_ro
 from app.obsidian.interface.routers.obsidian_settings_router import (
     router as obsidian_settings_router,
 )
-from app.operations.interface.routers.maintenance_job_router import (
-    router as maintenance_job_router,
+from app.operations.interface.routers.maintenance.dead_letter_lifecycle_router import (
+    router as maintenance_dead_letter_lifecycle_router,
+)
+from app.operations.interface.routers.maintenance.dead_letter_listing_router import (
+    router as maintenance_dead_letter_listing_router,
+)
+from app.operations.interface.routers.maintenance.dead_letter_replay_router import (
+    router as maintenance_dead_letter_replay_router,
+)
+from app.operations.interface.routers.maintenance.jobs_router import (
+    router as maintenance_jobs_router,
 )
 from app.operations.interface.routers.operational_readiness_router import (
     router as operational_readiness_router,
@@ -80,9 +87,9 @@ from app.operations.interface.routers.retrieval_diagnostics_router import (
 from app.operations.interface.routers.skill_contract_router import (
     router as skill_contract_router,
 )
-from app.platform.config.app_config import AppConfig
 from app.platform.health_router import install_health_routes
 from app.platform.lifecycle.dependency_health_enums import PlatformDependency
+from app.platform.lifecycle.lifecycle_enums import LifecycleStatus
 from app.platform.lifecycle.state import LifecycleState
 from app.platform.logging.formatter.config import configure_logging
 from app.platform.middleware.database_session import install_database_session_middleware
@@ -131,7 +138,7 @@ async def _recover_embeddings_after_startup(
                 },
             },
         )
-    except (OSError, RuntimeError, SQLAlchemyError):
+    except OSError, RuntimeError, SQLAlchemyError:
         logger.exception(
             "startup embedding recovery failed",
             extra={"event": "startup_embedding_recovery_failed"},
@@ -152,22 +159,24 @@ def _docs_urls(app_env: str) -> tuple[str | None, str | None, str | None]:
     return None, None, None
 
 
-def create_app(app_config: AppConfig) -> FastAPI:
+def create_app(container: ApplicationContainer) -> FastAPI:
     """Build the FastAPI application and wire core runtime dependencies.
 
     Args:
-        app_config: Application configuration values.
+        container: Application dependency container with explicit settings providers.
 
     Returns:
         Configured FastAPI app.
     """
     lifecycle = LifecycleState()
-    container = ApplicationContainer()
-    container.app_config.override(providers.Object(app_config))
+    app_config = container.app_config()
+    mcp_config = container.mcp_config()
+    embedding_config = container.embedding_config()
+    # Validate every service feature before serving, without opening resources.
+    container.vault_config()
+    mcp_api_client = AlexandriaApiClient(container.mcp_api_config())
     container.memory.context_service.enable_async_mode()
-    mcp_mount = McpHttpMount(build_mcp_http_auth_gate(app_config))
-    mcp_api_settings = AlexandriaApiSettings.from_env()
-    mcp_api_client = AlexandriaApiClient(mcp_api_settings)
+    mcp_mount = McpHttpMount(build_mcp_http_auth_gate(mcp_config))
 
     async def refresh_dependency_health() -> None:
         """Refresh dependency health before serving readiness requests.
@@ -178,11 +187,33 @@ def create_app(app_config: AppConfig) -> FastAPI:
         Returns:
             None.
         """
+        if lifecycle.snapshot().status in {
+            LifecycleStatus.DRAINING,
+            LifecycleStatus.STOPPING,
+        }:
+            return
         database = await cast(Awaitable[Database], container.database())
         if await database.ping():
             lifecycle.dependencies.mark_healthy(PlatformDependency.DATABASE)
         else:
             lifecycle.dependencies.mark_unavailable(PlatformDependency.DATABASE)
+        if lifecycle.snapshot().status in {
+            LifecycleStatus.DRAINING,
+            LifecycleStatus.STOPPING,
+        }:
+            return
+        redis_client = await cast(Awaitable[Redis | None], container.redis_client())
+        if redis_client is None:
+            lifecycle.dependencies.mark_disabled(PlatformDependency.REDIS)
+            return
+        try:
+            redis_healthy = await cast(Awaitable[bool], redis_client.ping())
+        except RedisError, OSError:
+            redis_healthy = False
+        if redis_healthy:
+            lifecycle.dependencies.mark_healthy(PlatformDependency.REDIS)
+        else:
+            lifecycle.dependencies.mark_unavailable(PlatformDependency.REDIS)
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
@@ -197,58 +228,62 @@ def create_app(app_config: AppConfig) -> FastAPI:
         Returns:
             Async lifecycle context.
         """
-        configure_logging()
-        await cast(Awaitable[None], container.init_resources())
-        database = await cast(Awaitable[Database], container.database())
-        local_oauth_runtime = None
-        if app_config.mcp_auth_mode is McpAuthMode.LOCAL_OAUTH2:
-            secret_cipher = container.secret_cipher()
-            local_oauth_runtime = build_local_mcp_oauth_runtime(
-                config=app_config,
-                database=database,
-                secret_cipher=secret_cipher,
-            )
-        app.state.local_mcp_oauth_provider = (
-            None if local_oauth_runtime is None else local_oauth_runtime.provider
-        )
+        configure_logging(app_config)
         embedding_recovery_task: asyncio.Task[None] | None = None
-        if app_config.rag_embedding_recovery_on_startup:
-            embedding_recovery_task = asyncio.create_task(
-                _recover_embeddings_after_startup(
-                    container=container,
-                    database=database,
-                ),
-                name="alexandria-startup-embedding-recovery",
-            )
-        lifecycle.dependencies.mark_starting(PlatformDependency.DATABASE)
-        if await database.ping():
-            lifecycle.dependencies.mark_healthy(PlatformDependency.DATABASE)
-        else:
-            lifecycle.dependencies.mark_unavailable(PlatformDependency.DATABASE)
-        lifecycle.mark_running()
         try:
+            await cast(Awaitable[None], container.init_resources())
+            database = await cast(Awaitable[Database], container.database())
+            local_oauth_runtime = None
+            if mcp_config.mcp_auth_mode is McpAuthMode.LOCAL_OAUTH2:
+                secret_cipher = container.secret_cipher()
+                local_oauth_runtime = build_local_mcp_oauth_runtime(
+                    config=mcp_config,
+                    database=database,
+                    secret_cipher=secret_cipher,
+                )
+            app.state.local_mcp_oauth_runtime = local_oauth_runtime
+            if embedding_config.rag_embedding_recovery_on_startup:
+                embedding_recovery_task = asyncio.create_task(
+                    _recover_embeddings_after_startup(
+                        container=container,
+                        database=database,
+                    ),
+                    name="alexandria-startup-embedding-recovery",
+                )
+            lifecycle.dependencies.mark_starting(PlatformDependency.DATABASE)
+            lifecycle.dependencies.mark_starting(PlatformDependency.REDIS)
+            lifecycle.mark_running()
+            await refresh_dependency_health()
             async with mcp_streamable_http_lifespan(
                 client=mcp_api_client,
-                transport_host=app_config.mcp_transport_host,
+                transport_host=mcp_config.mcp_transport_host,
                 local_oauth_runtime=local_oauth_runtime,
             ) as mcp_app:
                 mcp_mount.set_app(mcp_app)
                 try:
                     yield
                 finally:
+                    lifecycle.mark_stopping()
                     mcp_mount.set_app(None)
         finally:
-            app.state.local_mcp_oauth_provider = None
-            if (
-                embedding_recovery_task is not None
-                and not embedding_recovery_task.done()
-            ):
-                embedding_recovery_task.cancel()
-            if embedding_recovery_task is not None:
-                with suppress(asyncio.CancelledError):
-                    await embedding_recovery_task
-            await cast(Awaitable[None], container.shutdown_resources())
             lifecycle.mark_stopping()
+            app.state.local_mcp_oauth_runtime = None
+            try:
+                if (
+                    embedding_recovery_task is not None
+                    and not embedding_recovery_task.done()
+                ):
+                    embedding_recovery_task.cancel()
+                if embedding_recovery_task is not None:
+                    (recovery_result,) = await asyncio.gather(
+                        embedding_recovery_task, return_exceptions=True
+                    )
+                    if isinstance(recovery_result, BaseException) and not isinstance(
+                        recovery_result, asyncio.CancelledError
+                    ):
+                        raise recovery_result
+            finally:
+                await cast(Awaitable[None], container.shutdown_resources())
 
     docs_url, redoc_url, openapi_url = _docs_urls(app_config.app_env)
     app = FastAPI(
@@ -263,7 +298,8 @@ def create_app(app_config: AppConfig) -> FastAPI:
     app.state.lifecycle = lifecycle
     app.state.container = container
     app.state.app_config = app_config
-    app.state.local_mcp_oauth_provider = None
+    app.state.mcp_config = mcp_config
+    app.state.local_mcp_oauth_runtime = None
 
     async def resolve_database() -> Database:
         """Resolve the lifecycle-owned database resource for request middleware.
@@ -323,7 +359,10 @@ def create_app(app_config: AppConfig) -> FastAPI:
     app.include_router(recovery_plan_router)
     app.include_router(skill_contract_router)
     app.include_router(recovery_run_router)
-    app.include_router(maintenance_job_router)
+    app.include_router(maintenance_jobs_router)
+    app.include_router(maintenance_dead_letter_listing_router)
+    app.include_router(maintenance_dead_letter_lifecycle_router)
+    app.include_router(maintenance_dead_letter_replay_router)
 
     @app.get("/")
     def root() -> dict[str, str]:
@@ -345,7 +384,7 @@ def create_app(app_config: AppConfig) -> FastAPI:
     return app
 
 
-app = create_app(AppConfig())
+app = create_app(ApplicationContainer())
 
 
 if __name__ == "__main__":  # pragma: no cover

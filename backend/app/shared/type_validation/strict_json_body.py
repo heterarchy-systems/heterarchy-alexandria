@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from json import dumps
 
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from pydantic import BeforeValidator, TypeAdapter, ValidationError
 
 from app.shared.schemas.common_schemas import StrictRootSchemaModel, StrictSchemaModel
+from app.shared.serialization.orjson_codec import dumps_strict_json
 from app.shared.types.extra_types import JSONValue
 
 _JSON_VALUE_ADAPTER = TypeAdapter(JSONValue)
@@ -28,13 +28,16 @@ def model_validate_json_body[SchemaT: StrictSchemaModel](
     """
 
     async def dependency(request: Request) -> SchemaT:
-        """Execute dependency.
+        """Validate the raw FastAPI request body in strict JSON mode.
 
         Args:
-            request: Validated request for this operation.
+            request: Incoming FastAPI HTTP request.
 
         Returns:
-            SchemaT result produced by dependency.
+            Validated request schema instance.
+
+        Raises:
+            RequestValidationError: If the request body fails strict JSON schema validation.
         """
         try:
             return schema_type.model_validate_json(await request.body())
@@ -67,12 +70,22 @@ def json_mode_body[SchemaT: StrictSchemaModel | StrictRootSchemaModel[object]](
     """
 
     def validate(value: object) -> SchemaT:
-        """Validate one framework-decoded request body."""
+        """Validate one framework-decoded request body.
+
+        Args:
+            value: Decoded request body object supplied by FastAPI.
+
+        Returns:
+            Strictly validated schema instance.
+
+        Raises:
+            ValueError: If `value` is not JSON-serializable or fails schema validation.
+        """
         if isinstance(value, schema_type):
             return value
         json_value = _JSON_VALUE_ADAPTER.validate_python(value)
         try:
-            encoded = dumps(json_value, allow_nan=False)
+            encoded = dumps_strict_json(json_value)
         except (TypeError, ValueError) as exc:
             raise ValueError(
                 "request body must contain JSON-compatible values"
@@ -99,13 +112,16 @@ def model_validate_optional_json_body[SchemaT: StrictSchemaModel](
     """
 
     async def dependency(request: Request) -> SchemaT | None:
-        """Execute dependency.
+        """Validate an optional FastAPI request body in strict JSON mode.
 
         Args:
-            request: Validated request for this operation.
+            request: Incoming FastAPI HTTP request.
 
         Returns:
-            SchemaT | None result produced by dependency.
+            Validated request schema instance, or None when absent or null.
+
+        Raises:
+            RequestValidationError: If a non-null request body fails strict JSON schema validation.
         """
         body = (await request.body()).strip()
         if not body or body == b"null":

@@ -9,6 +9,9 @@ from typing import Protocol
 
 from app.obsidian.infrastructure.markdown.paths import discover_managed_markdown_paths
 from app.operations.domain.entities.recovery_plan import RecoverySourceSnapshot
+from app.operations.domain.event_enum.recovery_step_enums import (
+    RecoveryPlanBlockerCode,
+)
 
 
 # protocol-contract: structural-seam
@@ -32,14 +35,14 @@ class DiskUsageProvider(Protocol):
         """Return capacity values for one filesystem path.
 
         Args:
-            path: Path used by this operation.
+            path: Filesystem path to inspect.
 
         Returns:
-            DiskUsageSnapshot result produced by call.
+            Capacity snapshot for the filesystem containing path.
         """
 
 
-def _source_snapshot(
+def source_snapshot(
     vault_path: str,
     alexandria_root: str,
     disk_usage_provider: DiskUsageProvider = disk_usage,
@@ -47,12 +50,12 @@ def _source_snapshot(
     """Capture bounded canonical Markdown evidence for recovery planning.
 
     Args:
-        vault_path: Vault path used by this operation.
-        alexandria_root: Alexandria root used by this operation.
-        disk_usage_provider: Disk usage provider provider dependency.
+        vault_path: Configured Obsidian vault root directory path.
+        alexandria_root: Managed Alexandria subdirectory relative to the vault.
+        disk_usage_provider: Callable returning free disk space for the root path.
 
     Returns:
-        RecoverySourceSnapshot result produced by source snapshot.
+        Captured source snapshot with file count, representative hash, and manifest.
     """
     vault = Path(vault_path)
     root = vault / alexandria_root
@@ -61,19 +64,19 @@ def _source_snapshot(
         markdown_files = discover_managed_markdown_paths(root) if root.exists() else []
     except OSError:
         markdown_files = []
-        access_error = "source_snapshot_unreadable"
+        access_error = RecoveryPlanBlockerCode.SOURCE_SNAPSHOT_UNREADABLE.value
     representative = markdown_files[0] if markdown_files else None
     try:
-        representative_hash = _file_sha256(representative) if representative else None
+        representative_hash = file_sha256(representative) if representative else None
     except OSError:
         representative_hash = None
-        access_error = "source_snapshot_unreadable"
+        access_error = RecoveryPlanBlockerCode.SOURCE_SNAPSHOT_UNREADABLE.value
     free_bytes = None
     if root.exists():
         try:
             free_bytes = disk_usage_provider(root).free
         except OSError:
-            access_error = "source_snapshot_unreadable"
+            access_error = RecoveryPlanBlockerCode.SOURCE_SNAPSHOT_UNREADABLE.value
     return RecoverySourceSnapshot(
         vault_path=vault_path,
         alexandria_root=alexandria_root,
@@ -82,19 +85,19 @@ def _source_snapshot(
         representative_sha256=representative_hash,
         disk_free_bytes=free_bytes,
         access_error=access_error,
-        markdown_manifest=_markdown_manifest(vault, markdown_files),
+        markdown_manifest=markdown_manifest(vault, markdown_files),
     )
 
 
-def _markdown_manifest(vault: Path, markdown_files: list[Path]) -> dict[str, str]:
+def markdown_manifest(vault: Path, markdown_files: list[Path]) -> dict[str, str]:
     """Return a metadata inventory without rereading every Markdown file.
 
     Args:
-        vault: Vault used by this operation.
-        markdown_files: Markdown files used by this operation.
+        vault: Vault root path used to compute relative file paths.
+        markdown_files: Discovered managed Markdown file paths.
 
     Returns:
-        dict[str, str] result produced by markdown manifest.
+        Mapping from vault-relative path to size-and-mtime inventory token.
     """
     return {
         str(path.relative_to(vault)): inventory_token
@@ -107,10 +110,10 @@ def _file_inventory_token(path: Path) -> str | None:
     """Return a cheap token that detects ordinary file writes.
 
     Args:
-        path: Path used by this operation.
+        path: Filesystem path to inspect.
 
     Returns:
-        str | None result produced by file inventory token.
+        Formatted size and nanosecond mtime token, or None if unreadable.
     """
     try:
         stat = path.stat()
@@ -119,14 +122,14 @@ def _file_inventory_token(path: Path) -> str | None:
     return f"{stat.st_size}:{stat.st_mtime_ns}"
 
 
-def _file_sha256(path: Path | None) -> str | None:
-    """Execute file sha256.
+def file_sha256(path: Path | None) -> str | None:
+    """Compute the SHA-256 hex digest of a file if it exists.
 
     Args:
-        path: Path used by this operation.
+        path: Filesystem path to hash, or None.
 
     Returns:
-        str | None result produced by file sha256.
+        Hex-encoded SHA-256 digest, or None when the path is absent or not a file.
     """
     if path is None or not path.exists() or not path.is_file():
         return None

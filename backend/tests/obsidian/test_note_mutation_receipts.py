@@ -7,12 +7,14 @@ from pathlib import Path
 import pytest
 from tests.obsidian.test_obsidian_frontmatter_repair import _services
 
-from app.obsidian.application.service.notes.obsidian_mutation_outcome_service import (
+from app.obsidian.application.notes.mutations.outcome_service import (
     ObsidianMutationOutcomeService,
 )
-from app.obsidian.application.service.notes.obsidian_note_mutation_receipts import (
-    NoteMutationReceipts,
-    note_mutation_id,
+from app.obsidian.application.notes.mutations.receipt_identity import (
+    ReceiptIdentityPolicy,
+)
+from app.obsidian.application.notes.mutations.receipt_reader import (
+    NoteMutationReceiptReader,
 )
 from app.obsidian.domain.contracts.obsidian_contracts import (
     ObsidianSaveNote,
@@ -82,11 +84,11 @@ def test_create_response_loss_replay_update_and_conflict_receipts(
             assert direct.operation_identity == outcome.operation_identity
             assert direct.mutation_id == outcome.mutation_id
             missing_direct = await outcomes.note_write_outcome(
-                mutation_id=note_mutation_id("never-admitted-direct"),
+                mutation_id=ReceiptIdentityPolicy.mutation_id("never-admitted-direct"),
             )
             assert missing_direct.status.value == "NOT_COMMITTED"
             assert missing_direct.idempotency_key is None
-            assert missing_direct.mutation_id == note_mutation_id(
+            assert missing_direct.mutation_id == ReceiptIdentityPolicy.mutation_id(
                 "never-admitted-direct"
             )
             assert command.note.relative_path is not None
@@ -156,12 +158,12 @@ def test_invalid_receipt_identity_and_started_evidence_fail_closed(
             default_alexandria_root="Alexandria",
             config_path=None,
         )
-        receipts = NoteMutationReceipts(vault_store)
+        reader = NoteMutationReceiptReader(vault_store)
         outcomes = ObsidianMutationOutcomeService(service, vault_store)
 
         def save_raw(key: str, record: JSONObject) -> None:
             store.save(
-                note_mutation_id(key),
+                ReceiptIdentityPolicy.mutation_id(key),
                 {"kind": "note-write", "record": record},
             )
 
@@ -170,7 +172,7 @@ def test_invalid_receipt_identity_and_started_evidence_fail_closed(
                 "wrong-key",
                 {
                     "idempotency_key": "different-key",
-                    "mutation_id": note_mutation_id("different-key"),
+                    "mutation_id": ReceiptIdentityPolicy.mutation_id("different-key"),
                     "operation_identity": "a" * 64,
                     "status": "NOT_COMMITTED",
                 },
@@ -182,7 +184,9 @@ def test_invalid_receipt_identity_and_started_evidence_fail_closed(
                 "incomplete-started",
                 {
                     "idempotency_key": "incomplete-started",
-                    "mutation_id": note_mutation_id("incomplete-started"),
+                    "mutation_id": ReceiptIdentityPolicy.mutation_id(
+                        "incomplete-started"
+                    ),
                     "operation_identity": "b" * 64,
                     "status": "UNKNOWN",
                     "effect_started": True,
@@ -198,7 +202,7 @@ def test_invalid_receipt_identity_and_started_evidence_fail_closed(
                 "naive-committed",
                 {
                     "idempotency_key": "naive-committed",
-                    "mutation_id": note_mutation_id("naive-committed"),
+                    "mutation_id": ReceiptIdentityPolicy.mutation_id("naive-committed"),
                     "operation_identity": "c" * 64,
                     "status": "COMMITTED",
                     "effect_started": True,
@@ -212,7 +216,7 @@ def test_invalid_receipt_identity_and_started_evidence_fail_closed(
             naive = await outcomes.note_write_outcome("naive-committed")
             assert naive.status.value == "RECONCILIATION_REQUIRED"
 
-            corrupt_path = store._path(note_mutation_id("corrupt"))
+            corrupt_path = store._path(ReceiptIdentityPolicy.mutation_id("corrupt"))
             corrupt_path.parent.mkdir(parents=True, exist_ok=True)
             corrupt_path.write_text("{not-json", encoding="utf-8")
             corrupt = await outcomes.note_write_outcome("corrupt")
@@ -235,7 +239,7 @@ def test_invalid_receipt_identity_and_started_evidence_fail_closed(
             assert not (vault / command.note.relative_path).exists()
 
             with pytest.raises(ObsidianValidationError):
-                await receipts.load_by_mutation_id("note-write:" + "f" * 63 + "g")
+                await reader.load_by_mutation_id("note-write:" + "f" * 63 + "g")
         finally:
             await session.close()
             await database.shutdown()
@@ -247,7 +251,7 @@ def test_source_commit_with_pipeline_failure_is_read_back_once_and_never_rewritt
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A filesystem response failure cannot trigger another canonical write."""
-    import app.obsidian.application.service.notes.obsidian_note_service as write_module
+    import app.obsidian.application.notes.writing.obsidian_note_persistence as write_module
 
     real_write = write_module.atomic_write_markdown
     writes: list[bytes] = []

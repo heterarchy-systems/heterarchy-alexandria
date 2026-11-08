@@ -30,37 +30,11 @@ from app.memory.domain.repositories.memory_compacts.memory_compact_repository_co
 from app.shared.exceptions.memory_compact_exceptions import MemoryCompactValidationError
 
 
-class MemoryCompactService:
-    """Expose the stable Memory Compact API over focused use-case services.
+class _MemoryCompactReadFacade:
+    """Provide read, pagination, and creation-guard delegation for Memory Compacts."""
 
-    Creation policy, duplicate signatures, read pagination, lifecycle mutation,
-    and rubric review are delegated to focused collaborators. The facade keeps the
-    eight public methods because HTTP, MCP, CLI, and operations consume this single
-    application contract.
-    """
-
-    def __init__(
-        self,
-        repository: IMemoryCompactRepository,
-        source_reader: MemoryCompactSourceReader | None = None,
-    ) -> None:
-        """Initialize service dependencies.
-
-        Args:
-            repository: Persistence port for Memory Compact artifacts.
-            source_reader: Owning source reader used for current evidence.
-        """
-        self._query_service = MemoryCompactQueryService(repository)
-        self._creation_service = MemoryCompactCreationService(
-            repository,
-            source_reader=source_reader,
-        )
-        self._lifecycle_service = MemoryCompactLifecycleService(
-            repository=repository,
-            query_service=self._query_service,
-            source_reader=source_reader,
-        )
-        self._repository = repository
+    _query_service: MemoryCompactQueryService
+    _repository: IMemoryCompactRepository
 
     def creation_guard(self) -> AbstractAsyncContextManager[None]:
         """Serialize a full application-level check-and-create section.
@@ -74,17 +48,6 @@ class MemoryCompactService:
             Async context manager backed by the cross-process creation lock.
         """
         return self._repository.creation_guard()
-
-    async def create(self, payload: MemoryCompactCreate) -> MemoryCompact:
-        """Create a compact and enforce lifecycle invariants.
-
-        Args:
-            payload: Validated Memory Compact creation contract.
-
-        Returns:
-            Created Memory Compact entity.
-        """
-        return await self._creation_service.create(payload)
 
     async def get(self, compact_id: str) -> MemoryCompact:
         """Read one Memory Compact by id.
@@ -139,6 +102,50 @@ class MemoryCompactService:
         """
         return await self._query_service.current(project=project)
 
+
+class MemoryCompactService(_MemoryCompactReadFacade):
+    """Expose the stable Memory Compact API over focused use-case services.
+
+    Creation policy, duplicate signatures, read pagination, lifecycle mutation,
+    and rubric review are delegated to focused collaborators. The facade keeps the
+    public methods because HTTP, MCP, CLI, and operations consume this single
+    application contract.
+    """
+
+    def __init__(
+        self,
+        repository: IMemoryCompactRepository,
+        source_reader: MemoryCompactSourceReader | None = None,
+    ) -> None:
+        """Initialize service dependencies.
+
+        Args:
+            repository: Persistence port for Memory Compact artifacts.
+            source_reader: Owning source reader used for current evidence.
+        """
+        self._query_service = MemoryCompactQueryService(repository)
+        self._creation_service = MemoryCompactCreationService(
+            repository,
+            source_reader=source_reader,
+        )
+        self._lifecycle_service = MemoryCompactLifecycleService(
+            repository=repository,
+            query_service=self._query_service,
+            source_reader=source_reader,
+        )
+        self._repository = repository
+
+    async def create(self, payload: MemoryCompactCreate) -> MemoryCompact:
+        """Create a compact and enforce lifecycle invariants.
+
+        Args:
+            payload: Validated Memory Compact creation contract.
+
+        Returns:
+            Created Memory Compact entity.
+        """
+        return await self._creation_service.create(payload)
+
     async def edit_draft(
         self, compact_id: str, markdown_body: str, expected_state_hash: str
     ) -> MemoryCompact:
@@ -151,6 +158,9 @@ class MemoryCompactService:
 
         Returns:
             Draft requiring a fresh review before promotion.
+
+        Raises:
+            MemoryCompactValidationError: If `markdown_body` is blank.
         """
         if not markdown_body.strip():
             raise MemoryCompactValidationError("Draft body must not be empty")

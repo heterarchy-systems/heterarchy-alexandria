@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import StringConstraints, field_validator
+from pydantic import Field, StringConstraints, field_validator
 
 from app.memory.domain.event_enum.reconciliation_enums import (
     MemoryConflictStatus,
 )
-from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
+from app.shared.schemas.common_schemas import StrictSchemaModel
 from app.shared.types.types_convert_utils import enum_value
 
 
@@ -18,12 +18,12 @@ class MemoryConflictResolutionRequest(StrictSchemaModel):
 
     status: Annotated[
         MemoryConflictStatus,
-        described_field("Status for this memory conflict resolution request."),
+        Field(description="Status for this memory conflict resolution request."),
     ]
     resolution: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=10000),
-        described_field("Resolution for this memory conflict resolution request."),
+        Field(description="Resolution for this memory conflict resolution request."),
     ]
 
     @field_validator("status")

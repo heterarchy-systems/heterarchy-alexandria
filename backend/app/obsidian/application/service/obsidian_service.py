@@ -5,6 +5,20 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable, Sequence
 from pathlib import Path
 
+from app.obsidian.application.notes.reading.obsidian_note_readback import (
+    ObsidianNoteReadback,
+)
+from app.obsidian.application.notes.reading.obsidian_note_reader import (
+    ObsidianNoteReader,
+)
+from app.obsidian.application.notes.writing import (
+    ObsidianNoteBodyPatcher,
+    ObsidianNoteRepair,
+    ObsidianNoteRevalidation,
+)
+from app.obsidian.application.notes.writing.obsidian_note_body_patch import (
+    ObsidianNoteBodyPatchResult,
+)
 from app.obsidian.application.service.notes.obsidian_context_lifecycle_service import (
     ObsidianContextLifecycleService,
 )
@@ -15,7 +29,6 @@ from app.obsidian.application.service.notes.obsidian_legacy_metadata_repair_serv
     ObsidianLegacyMetadataRepairService,
 )
 from app.obsidian.application.service.notes.obsidian_note_service import (
-    DEFAULT_SOURCE_SCAN_LIMIT,
     ObsidianNoteService,
 )
 from app.obsidian.application.service.obsidian_service_ports import (
@@ -25,14 +38,14 @@ from app.obsidian.application.service.obsidian_service_ports import (
 from app.obsidian.application.service.vault.obsidian_vault_inventory_service import (
     ObsidianVaultInventoryService,
 )
-from app.obsidian.application.service.vault.obsidian_vault_lifecycle_service import (
-    ObsidianVaultLifecycleService,
-)
 from app.obsidian.application.service.vault.obsidian_vault_move_service import (
     ObsidianVaultMoveService,
 )
 from app.obsidian.application.service.vault.obsidian_vault_operations import (
     ObsidianVaultOperations,
+)
+from app.obsidian.application.vault.vault_lifecycle_service import (
+    ObsidianVaultLifecycleService,
 )
 from app.obsidian.domain.contracts.obsidian_contracts import (
     ObsidianNoteIndex,
@@ -46,6 +59,9 @@ from app.obsidian.domain.entities.obsidian_note import (
     ObsidianNoteRawRead,
     ObsidianNoteWriteResult,
     ObsidianSearchHit,
+)
+from app.obsidian.domain.policies.obsidian_source_scan_policy import (
+    DEFAULT_SOURCE_SCAN_LIMIT,
 )
 from app.obsidian.domain.repositories.obsidian_index_repository import (
     IObsidianIndexRepository,
@@ -149,6 +165,16 @@ class ObsidianService(
             source_scan_limit=DEFAULT_SOURCE_SCAN_LIMIT,
             skill_publication_policy=skill_publication_policy,
         )
+        self._note_reader: ObsidianNoteReader = self._note_service.reader
+        self._note_readback: ObsidianNoteReadback = self._note_service.readback
+        self._note_repairer: ObsidianNoteRepair = self._note_service.repairer
+        self._note_body_patcher: ObsidianNoteBodyPatcher = (
+            self._note_service.body_patcher
+        )
+        self._note_revalidation: ObsidianNoteRevalidation = (
+            self._note_service.revalidation
+        )
+        self._write_target_resolver = self._note_service.write_target_resolver
         self._vault_move_service = ObsidianVaultMoveService(
             vault_config_store=self._vault_config_store,
             reindex=self.reindex,
@@ -182,7 +208,7 @@ class ObsidianService(
         Returns:
             Authoritative note loaded from Markdown.
         """
-        return await self._note_service.read_note(note_id)
+        return await self._note_reader.read_note(note_id)
 
     async def read_note_by_path(self, relative_path: str) -> ObsidianNote:
         """Read one managed note by vault-relative path.
@@ -193,7 +219,7 @@ class ObsidianService(
         Returns:
             Authoritative note loaded from Markdown.
         """
-        return await self._note_service.read_note_by_path(relative_path)
+        return await self._note_reader.read_note_by_path(relative_path)
 
     async def read_note_raw(
         self,
@@ -210,7 +236,7 @@ class ObsidianService(
         Returns:
             Raw source read result with bounded, secret-free diagnostics.
         """
-        return await self._note_service.read_note_raw(path=path, note_id=note_id)
+        return await self._note_reader.read_note_raw(path=path, note_id=note_id)
 
     async def repair_note_raw(
         self,
@@ -229,7 +255,7 @@ class ObsidianService(
         Returns:
             The repaired note as parsed and indexed after the write.
         """
-        return await self._note_service.repair_note_raw(
+        return await self._note_repairer.repair_note_raw(
             path=path,
             expected_content_hash=expected_content_hash,
             raw_content=raw_content,
@@ -252,10 +278,24 @@ class ObsidianService(
         Returns:
             Before/after hash evidence with body preservation proof.
         """
-        return await self._note_service.repair_note_frontmatter(
+        return await self._note_repairer.repair_note_frontmatter(
             path=path,
             expected_content_hash=expected_content_hash,
             replacement_frontmatter=replacement_frontmatter,
+        )
+
+    async def patch_note_body(
+        self,
+        *,
+        path: str,
+        expected_content_hash: str,
+        replacements: Sequence[tuple[str, str]],
+    ) -> ObsidianNoteBodyPatchResult:
+        """Apply bounded exact body spans behind the canonical source boundary."""
+        return await self._note_body_patcher.patch_note_body(
+            path=path,
+            expected_content_hash=expected_content_hash,
+            replacements=replacements,
         )
 
     async def revalidate_note_index(
@@ -270,7 +310,7 @@ class ObsidianService(
         Returns:
             The refreshed authoritative note.
         """
-        return await self._note_service.revalidate_note_index(
+        return await self._note_revalidation.revalidate_note_index(
             path=path, expected_source_hash=expected_source_hash
         )
 
@@ -288,7 +328,7 @@ class ObsidianService(
         Returns:
             Authoritative note, or ``None`` when the bytes cannot be proven.
         """
-        return await self._note_service.read_note_by_path_verified(
+        return await self._note_readback.read_note_by_path_verified(
             relative_path,
             payload,
         )
@@ -310,7 +350,7 @@ class ObsidianService(
         Returns:
             The committed authoritative note, or ``None`` when unverified.
         """
-        return await self._note_service.read_note_from_write_evidence(
+        return await self._note_readback.read_note_from_write_evidence(
             relative_path,
             source_hash=source_hash,
             expected_note=expected_note,
@@ -412,4 +452,4 @@ class ObsidianService(
         Returns:
             str | None result produced by note id from existing file.
         """
-        return self._note_service.note_id_from_existing_file(path)
+        return self._write_target_resolver.note_id_from_existing_file(path)

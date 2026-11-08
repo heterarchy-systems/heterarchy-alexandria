@@ -1,6 +1,8 @@
-"""Shared constants for Obsidian-backed Memory Compact Markdown."""
+"""Shared constants and type contracts for Obsidian-backed Memory Compact Markdown."""
 
 from __future__ import annotations
+
+type CompactFrontmatterValue = str | bool | tuple[str, ...] | None
 
 FRONTMATTER_DELIMITER = "---"
 NOTE_SUFFIX = ".md"

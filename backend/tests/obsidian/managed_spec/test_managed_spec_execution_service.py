@@ -12,8 +12,12 @@ import anyio
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import TypeAdapter
+from tests.config_test_data import application_container
 
 from app.mcp_server.type_validate.oauth.mcp_auth_enums import McpAuthMode
+from app.obsidian.application.notes.verified_upsert.obsidian_verified_upsert_service import (
+    ObsidianVerifiedUpsertService,
+)
 from app.obsidian.application.service.managed_spec.managed_spec_adapters import (
     ObsidianManagedSpecCheckpointStore,
     ObsidianManagedSpecOutputWriter,
@@ -23,9 +27,6 @@ from app.obsidian.application.service.managed_spec.managed_spec_execution_servic
 )
 from app.obsidian.application.service.notes.obsidian_canonical_identity_service import (
     ObsidianCanonicalIdentityService,
-)
-from app.obsidian.application.service.notes.obsidian_verified_upsert_service import (
-    ObsidianVerifiedUpsertService,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.obsidian.domain.contracts.managed_spec_contracts import (
@@ -64,7 +65,6 @@ from app.obsidian.interface.schemas.managed_spec.managed_spec_schema import (
     ManagedSpecPrepareRequestSchema,
     ManagedSpecRequestSchema,
 )
-from app.platform.config.app_config import AppConfig
 from app.shared.application.index_maintenance_coordinator import (
     IndexMaintenanceCoordinator,
 )
@@ -694,15 +694,15 @@ def test_managed_spec_full_http_prepare_complete_replay_and_pins(
     from app.main import create_app
 
     vault_path = tmp_path / "http-managed-spec-vault"
-    config = AppConfig(
-        _env_file=None,
-        obsidian_vault_path=str(vault_path),
-        alexandria_obsidian_root="Alexandria",
-        obsidian_vault_config_path=str(tmp_path / "http-vault-config.json"),
-        rag_embedding_recovery_on_startup=False,
-        mcp_auth_mode=McpAuthMode.NONE,
+    application = create_app(
+        application_container(
+            obsidian_vault_path=str(vault_path),
+            alexandria_obsidian_root="Alexandria",
+            obsidian_vault_config_path=str(tmp_path / "http-vault-config.json"),
+            rag_embedding_recovery_on_startup=False,
+            mcp_auth_mode=McpAuthMode.NONE,
+        )
     )
-    application = create_app(config)
     policy_path = (
         "Alexandria/Prompts/System/Scheduler/Policies/Scheduler Runtime Policy.md"
     )

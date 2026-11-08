@@ -20,9 +20,7 @@ def should_skip_request_log(path: str, status_code: int) -> bool:
     Returns:
         True when the request should be skipped (healthcheck handling rule).
     """
-    skip_request_log = path in HEALTHCHECK_PATHS and (
-        status_code < 500 or status_code == 503
-    )
+    skip_request_log = path in HEALTHCHECK_PATHS and status_code < 400
     return skip_request_log
 
 
@@ -45,7 +43,11 @@ def request_log_metadata(
         )
         return metadata
 
-    metadata = logging.INFO, "request_completed", "request completed"
+    if response.status_code >= 400:
+        metadata = logging.INFO, "request_completed", "request completed"
+        return metadata
+
+    metadata = logging.DEBUG, "request_completed", "request completed"
     return metadata
 
 

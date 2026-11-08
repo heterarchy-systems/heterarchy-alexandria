@@ -27,7 +27,7 @@ from app.memory.infrastructure.repositories.memory_compact_repository import (
     ObsidianMemoryCompactRepository,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
-from app.obsidian.application.service.vault import obsidian_vault_lifecycle_service
+from app.obsidian.application.vault import vault_reindex
 from app.obsidian.domain.contracts.obsidian_contracts import (
     ObsidianChunkIndex,
     ObsidianNoteIndex,
@@ -294,7 +294,9 @@ def test_obsidian_reindex_excludes_hidden_internal_vault_directories(
         (obsidian_dir / "README.md").write_text("# Plugin Metadata\n", encoding="utf-8")
         try:
             result = await service.reindex()
-            paths = await service.managed_markdown_paths()
+            source_snapshot = await service.raw_source_snapshot()
+            assert source_snapshot.complete is True
+            paths = [source.relative_path for source in source_snapshot.files]
         finally:
             await session.close()
             await database.shutdown()
@@ -874,7 +876,7 @@ def test_obsidian_reindex_classifies_source_read_failure_separately(
                 f"---\n\n# {title}",
                 encoding="utf-8",
             )
-        original_indexer = obsidian_vault_lifecycle_service.note_index_from_path
+        original_indexer = vault_reindex.note_index_from_path
 
         def fail_one(path: Path, relative_path: str, alexandria_root: str):
             if path.name == "A Unavailable.md":
@@ -882,7 +884,7 @@ def test_obsidian_reindex_classifies_source_read_failure_separately(
             return original_indexer(path, relative_path, alexandria_root)
 
         monkeypatch.setattr(
-            obsidian_vault_lifecycle_service,
+            vault_reindex,
             "note_index_from_path",
             fail_one,
         )
@@ -922,13 +924,13 @@ def test_obsidian_reindex_clears_prior_read_error_for_unmanaged_markdown(
             "# Unmanaged\n\nNo Alexandria frontmatter.\n",
             encoding="utf-8",
         )
-        original_indexer = obsidian_vault_lifecycle_service.note_index_from_path
+        original_indexer = vault_reindex.note_index_from_path
 
         def fail_read(path: Path, relative_path: str, alexandria_root: str):
             raise OSError(35, "Resource deadlock avoided")
 
         monkeypatch.setattr(
-            obsidian_vault_lifecycle_service,
+            vault_reindex,
             "note_index_from_path",
             fail_read,
         )
@@ -936,7 +938,7 @@ def test_obsidian_reindex_clears_prior_read_error_for_unmanaged_markdown(
             failed = await service.reindex()
             failed_status = await service.status()
             monkeypatch.setattr(
-                obsidian_vault_lifecycle_service,
+                vault_reindex,
                 "note_index_from_path",
                 original_indexer,
             )
@@ -1979,7 +1981,9 @@ def test_obsidian_vault_inventory_and_path_search(
                 / "Invalid.md"
             )
             invalid_path.write_text("# Missing frontmatter\n", encoding="utf-8")
-            managed_paths = await service.managed_markdown_paths()
+            source_snapshot = await service.raw_source_snapshot()
+            assert source_snapshot.complete is True
+            managed_paths = [source.relative_path for source in source_snapshot.files]
             matches = await service.search_vault_paths(
                 query="Loose Project",
                 scope_path="Alexandria/Contexts/Projects",

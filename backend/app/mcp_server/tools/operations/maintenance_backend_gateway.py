@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from app.mcp_server.backend_api_client import AlexandriaApiClient
-from app.mcp_server.tools.backend_gateway_policy import _path_segment
+from app.mcp_server.tools.backend_gateway_policy import path_segment
 from app.mcp_server.type_validate.maintenance_contracts import (
     MaintenanceBatchNoteWriteToolRequest,
     MaintenanceDeadLetterIdToolRequest,
@@ -15,7 +15,7 @@ from app.mcp_server.type_validate.maintenance_contracts import (
 from app.operations.domain.event_enum.maintenance_job_enums import (
     MaintenanceDeadLetterRetirementClassification,
 )
-from app.operations.interface.schemas.operations.maintenance_job_schema import (
+from app.operations.interface.schemas.operations.maintenance.job_schema import (
     MaintenanceJobsRequest,
     MaintenanceJobsResponse,
 )
@@ -113,7 +113,7 @@ async def alexandria_get_maintenance_job(
     """
     request = MaintenanceJobIdToolRequest(job_id=job_id)
     return await client.get(
-        f"/operations/maintenance/jobs/{_path_segment(request.job_id)}"
+        f"/operations/maintenance/jobs/{path_segment(request.job_id)}"
     )
 
 
@@ -179,7 +179,7 @@ async def alexandria_replay_maintenance_dead_letter(
     """
     request = MaintenanceDeadLetterIdToolRequest(entry_id=entry_id)
     return await client.post(
-        f"/operations/maintenance/dead-letters/{_path_segment(request.entry_id)}/replay",
+        f"/operations/maintenance/dead-letters/{path_segment(request.entry_id)}/replay",
         {},
     )
 
@@ -188,10 +188,18 @@ async def alexandria_maintenance_dlq_inspect(
     client: AlexandriaApiClient,
     entry_id: str,
 ) -> JSONValue:
-    """Inspect exact live or archived DLQ evidence."""
+    """Inspect exact live or archived DLQ evidence.
+
+    Args:
+        client: Backend API client used to read DLQ evidence.
+        entry_id: Dead-letter stream entry identifier to inspect.
+
+    Returns:
+        Decoded backend response containing DLQ entry evidence.
+    """
     request = MaintenanceDeadLetterIdToolRequest(entry_id=entry_id)
     return await client.get(
-        f"/operations/maintenance/dead-letters/{_path_segment(request.entry_id)}"
+        f"/operations/maintenance/dead-letters/{path_segment(request.entry_id)}"
     )
 
 
@@ -201,14 +209,24 @@ async def alexandria_maintenance_dlq_retry(
     dry_run: bool = False,
     reason: str = "operator retry",
 ) -> JSONValue:
-    """Preview or same-ID retry one DLQ entry after evidence review."""
+    """Preview or same-ID retry one DLQ entry after evidence review.
+
+    Args:
+        client: Backend API client used to call the DLQ retry endpoint.
+        entry_id: Dead-letter stream entry identifier to retry.
+        dry_run: Whether to preview retry admissibility without requeueing.
+        reason: Operator rationale recorded on the retry audit trail.
+
+    Returns:
+        Decoded backend response containing retry preview or queued job state.
+    """
     request = MaintenanceDeadLetterRetryToolRequest(
         entry_id=entry_id,
         dry_run=dry_run,
         reason=reason,
     )
     return await client.post(
-        f"/operations/maintenance/dead-letters/{_path_segment(request.entry_id)}/retry",
+        f"/operations/maintenance/dead-letters/{path_segment(request.entry_id)}/retry",
         request.to_payload(),
     )
 
@@ -217,10 +235,18 @@ async def alexandria_maintenance_dlq_reconcile(
     client: AlexandriaApiClient,
     entry_id: str,
 ) -> JSONValue:
-    """Read per-item mutation receipts without requeueing effects."""
+    """Read per-item mutation receipts without requeueing effects.
+
+    Args:
+        client: Backend API client used to reconcile DLQ mutation receipts.
+        entry_id: Dead-letter stream entry identifier to reconcile.
+
+    Returns:
+        Decoded backend response containing per-item receipt evidence.
+    """
     request = MaintenanceDeadLetterIdToolRequest(entry_id=entry_id)
     return await client.post(
-        f"/operations/maintenance/dead-letters/{_path_segment(request.entry_id)}/reconcile",
+        f"/operations/maintenance/dead-letters/{path_segment(request.entry_id)}/reconcile",
         {},
     )
 
@@ -232,7 +258,18 @@ async def alexandria_maintenance_dlq_retire(
     classification: str,
     retired_by: str = "mcp",
 ) -> JSONValue:
-    """Archive provenance and retire exactly one DLQ entry."""
+    """Archive provenance and retire exactly one DLQ entry.
+
+    Args:
+        client: Backend API client used to retire the DLQ entry.
+        entry_id: Dead-letter stream entry identifier to retire.
+        reason: Operator rationale recorded in the retirement archive.
+        classification: Terminal retirement classification code.
+        retired_by: Operator or automation identity performing retirement.
+
+    Returns:
+        Decoded backend response confirming archived DLQ retirement.
+    """
     request = MaintenanceDeadLetterRetireToolRequest(
         entry_id=entry_id,
         reason=reason,
@@ -240,13 +277,6 @@ async def alexandria_maintenance_dlq_retire(
         retired_by=retired_by,
     )
     return await client.post(
-        f"/operations/maintenance/dead-letters/{_path_segment(request.entry_id)}/retire",
+        f"/operations/maintenance/dead-letters/{path_segment(request.entry_id)}/retire",
         request.to_payload(),
     )
-
-
-# Explicit descriptive aliases retained for callers that use verb-first names.
-alexandria_inspect_maintenance_dead_letter = alexandria_maintenance_dlq_inspect
-alexandria_retry_maintenance_dead_letter = alexandria_maintenance_dlq_retry
-alexandria_reconcile_maintenance_dead_letter = alexandria_maintenance_dlq_reconcile
-alexandria_retire_maintenance_dead_letter = alexandria_maintenance_dlq_retire

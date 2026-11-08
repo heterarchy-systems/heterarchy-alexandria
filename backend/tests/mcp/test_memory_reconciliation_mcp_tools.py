@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import anyio
 import httpx
-from app.mcp_server.backend_api_client import AlexandriaApiClient, AlexandriaApiSettings
+
+from app.mcp_server.backend_api_client import AlexandriaApiClient
 from app.mcp_server.server_runtime import build_mcp_server
 from app.mcp_server.tools.reconciliation.memory_reconciliation_tools import (
     alexandria_apply_existing_memory_reconciliation,
@@ -23,15 +24,16 @@ from app.memory.domain.event_enum.reconciliation_enums import (
     MemoryConflictStatus,
     MemoryTemporalRecallMode,
 )
-from app.memory.interface.schemas.reconciliation.existing.memory_existing_reconciliation_request_schema import (
-    ExistingMemoryReconciliationHttpRequest,
-)
 from app.memory.interface.schemas.reconciliation.candidate.memory_reconciliation_candidate_request_schema import (
     MemoryCandidateRequest,
+)
+from app.memory.interface.schemas.reconciliation.existing.memory_existing_reconciliation_request_schema import (
+    ExistingMemoryReconciliationHttpRequest,
 )
 from app.memory.interface.schemas.reconciliation.temporal.memory_reconciliation_temporal_request_schema import (
     MemoryTemporalRecallHttpRequest,
 )
+from app.platform.config.mcp_config import McpApiConfig
 from app.shared.serialization.orjson_codec import dumps_json, loads_json
 from app.shared.types.extra_types import JSONValue
 
@@ -46,7 +48,7 @@ def _client() -> tuple[AlexandriaApiClient, list[RecordedCall]]:
         return httpx.Response(200, content=dumps_json({"ok": True}))
 
     client = AlexandriaApiClient(
-        AlexandriaApiSettings(
+        McpApiConfig(
             base_url="http://backend:8000",
             timeout=12.0,
         ),

@@ -23,11 +23,7 @@ from app.obsidian.domain.event_enum.managed_spec_enums import (
     ManagedSpecCompletionStatus,
     ManagedSpecPrepareStatus,
 )
-from app.shared.schemas.common_schemas import (
-    StrictRootSchemaModel,
-    StrictSchemaModel,
-    described_field,
-)
+from app.shared.schemas.common_schemas import StrictRootSchemaModel, StrictSchemaModel
 
 _NoteId = Annotated[
     str,
@@ -53,7 +49,7 @@ class ManagedSpecIdentityRequest(StrictSchemaModel):
 
     note_id: Annotated[
         _NoteId,
-        described_field("Exact canonical note identifier for the execution spec."),
+        Field(description="Exact canonical note identifier for the execution spec."),
     ]
 
     def to_command(self) -> ManagedSpecIdentity:
@@ -67,25 +63,25 @@ class ManagedSpecExecutionContextRequest(StrictSchemaModel):
     project: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=256),
-        described_field("Project identity for the logical managed-spec output."),
+        Field(description="Project identity for the logical managed-spec output."),
     ]
     workflow: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=256),
-        described_field("Workflow/report identity declared by the scheduler."),
+        Field(description="Workflow/report identity declared by the scheduler."),
     ]
     entity: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=256),
-        described_field("Entity identity for the logical managed-spec output."),
+        Field(description="Entity identity for the logical managed-spec output."),
     ]
     edition: Annotated[
         str | None,
-        described_field("Optional edition identity for the logical output."),
+        Field(description="Optional edition identity for the logical output."),
     ] = None
     expected_policy_note_id: Annotated[
         _NoteId,
-        described_field("Trusted exact runtime-policy note identifier."),
+        Field(description="Trusted exact runtime-policy note identifier."),
     ]
 
     def to_command(self) -> ManagedSpecExecutionContext:
@@ -105,7 +101,7 @@ class ManagedSpecPrepareRequestSchema(StrictSchemaModel):
     operation: Literal["prepare"] = "prepare"
     spec_identity: Annotated[
         ManagedSpecIdentityRequest,
-        described_field("Exact execution specification identity."),
+        Field(description="Exact execution specification identity."),
     ]
     logical_date: Annotated[
         str,
@@ -115,15 +111,15 @@ class ManagedSpecPrepareRequestSchema(StrictSchemaModel):
             max_length=10,
             pattern=r"^\d{4}-\d{2}-\d{2}$",
         ),
-        described_field("ISO calendar date for the logical execution."),
+        Field(description="ISO calendar date for the logical execution."),
     ]
     idempotency_key: Annotated[
         _IdempotencyKey,
-        described_field("Retry identity for the prepare envelope."),
+        Field(description="Retry identity for the prepare envelope."),
     ]
     execution_context: Annotated[
         ManagedSpecExecutionContextRequest,
-        described_field("Trusted typed execution context."),
+        Field(description="Trusted typed execution context."),
     ]
 
     def to_command(self) -> ManagedSpecPrepareRequest:
@@ -142,25 +138,25 @@ class ManagedSpecCompleteRequestSchema(StrictSchemaModel):
     operation: Literal["complete"] = "complete"
     idempotency_key: Annotated[
         _IdempotencyKey,
-        described_field("Prepare idempotency key whose envelope will be completed."),
+        Field(description="Prepare idempotency key whose envelope will be completed."),
     ]
     prepared_envelope_hash: Annotated[
         _Sha256,
-        described_field("Exact hash returned by the durable prepare operation."),
+        Field(description="Exact hash returned by the durable prepare operation."),
     ]
     output_title: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=512),
-        described_field("Title for the caller-produced durable output."),
+        Field(description="Title for the caller-produced durable output."),
     ]
     output_body: Annotated[
         str,
         StringConstraints(strict=True, min_length=1),
-        described_field("Body for the caller-produced durable output."),
+        Field(description="Body for the caller-produced durable output."),
     ]
     expected_output_content_hash: Annotated[
         _Sha256 | None,
-        described_field("Optional CAS hash for an existing logical output."),
+        Field(description="Optional CAS hash for an existing logical output."),
     ] = None
 
     def to_command(self) -> ManagedSpecCompleteRequest:
@@ -187,13 +183,15 @@ class ManagedSpecRequestBody(StrictRootSchemaModel[ManagedSpecRequestSchema]):
 class ObsidianLogicalIdentityResponse(StrictSchemaModel):
     """Logical output identity independent of physical note path/id."""
 
-    project: Annotated[str, described_field("Project identity for the output.")]
-    report: Annotated[str, described_field("Workflow/report identity for the output.")]
-    date: Annotated[str, described_field("Logical date for the output.")]
-    entity: Annotated[str, described_field("Entity identity for the output.")]
+    project: Annotated[str, Field(description="Project identity for the output.")]
+    report: Annotated[
+        str, Field(description="Workflow/report identity for the output.")
+    ]
+    date: Annotated[str, Field(description="Logical date for the output.")]
+    entity: Annotated[str, Field(description="Entity identity for the output.")]
     edition: Annotated[
         str | None,
-        described_field("Optional edition identity for the output."),
+        Field(description="Optional edition identity for the output."),
     ] = None
 
     @classmethod
@@ -216,59 +214,59 @@ class ManagedSpecEnvelopeResponse(StrictSchemaModel):
 
     idempotency_key: Annotated[
         str,
-        described_field("Prepare idempotency key pinned by the envelope."),
+        Field(description="Prepare idempotency key pinned by the envelope."),
     ]
     spec_note_id: Annotated[
         str,
-        described_field("Exact execution specification note identifier."),
+        Field(description="Exact execution specification note identifier."),
     ]
     logical_identity: Annotated[
         ObsidianLogicalIdentityResponse,
-        described_field("Stable logical output identity."),
+        Field(description="Stable logical output identity."),
     ]
     policy_note_id: Annotated[
         str,
-        described_field("Exact runtime-policy note identifier."),
+        Field(description="Exact runtime-policy note identifier."),
     ]
     policy_version: Annotated[
         int,
-        described_field("Pinned runtime-policy version."),
+        Field(description="Pinned runtime-policy version."),
     ]
     policy_content_hash: Annotated[
         str,
-        described_field("Pinned runtime-policy content hash."),
+        Field(description="Pinned runtime-policy content hash."),
     ]
     policy_body: Annotated[
         str,
-        described_field("Bounded pinned runtime-policy body."),
+        Field(description="Bounded pinned runtime-policy body."),
     ]
     spec_version: Annotated[
         int,
-        described_field("Pinned execution specification version."),
+        Field(description="Pinned execution specification version."),
     ]
     spec_content_hash: Annotated[
         str,
-        described_field("Pinned execution specification content hash."),
+        Field(description="Pinned execution specification content hash."),
     ]
     spec_body: Annotated[
         str,
-        described_field("Bounded pinned execution specification body."),
+        Field(description="Bounded pinned execution specification body."),
     ]
     allowed_workflow: Annotated[
         str,
-        described_field("Workflow the inert envelope is allowed to describe."),
+        Field(description="Workflow the inert envelope is allowed to describe."),
     ]
     reference_only: Annotated[
         bool,
-        described_field("Whether the envelope is reference-only data."),
+        Field(description="Whether the envelope is reference-only data."),
     ]
     may_expand_permissions: Annotated[
         bool,
-        described_field("Whether the envelope may expand caller permissions."),
+        Field(description="Whether the envelope may expand caller permissions."),
     ]
     may_start_unrelated_work: Annotated[
         bool,
-        described_field("Whether the envelope may start unrelated work."),
+        Field(description="Whether the envelope may start unrelated work."),
     ]
 
     @classmethod
@@ -300,15 +298,15 @@ class ManagedSpecPrepareResponse(StrictSchemaModel):
     operation: Literal["prepare"] = "prepare"
     status: Annotated[
         ManagedSpecPrepareStatus,
-        described_field("Prepare lifecycle status."),
+        Field(description="Prepare lifecycle status."),
     ]
     envelope: Annotated[
         ManagedSpecEnvelopeResponse,
-        described_field("Inert pinned managed-spec envelope."),
+        Field(description="Inert pinned managed-spec envelope."),
     ]
     envelope_hash: Annotated[
         str,
-        described_field("Hash fencing the exact prepare envelope."),
+        Field(description="Hash fencing the exact prepare envelope."),
     ]
 
     @classmethod
@@ -326,49 +324,49 @@ class ManagedSpecPrepareResponse(StrictSchemaModel):
 class ManagedSpecOutputResponse(StrictSchemaModel):
     """Verified output evidence returned by complete."""
 
-    operation: Annotated[str, described_field("Canonical output write operation.")]
-    note_id: Annotated[str, described_field("Canonical output note identifier.")]
-    canonical_path: Annotated[str, described_field("Canonical output note path.")]
+    operation: Annotated[str, Field(description="Canonical output write operation.")]
+    note_id: Annotated[str, Field(description="Canonical output note identifier.")]
+    canonical_path: Annotated[str, Field(description="Canonical output note path.")]
     logical_identity: Annotated[
         ObsidianLogicalIdentityResponse,
-        described_field("Logical identity used for duplicate safety."),
+        Field(description="Logical identity used for duplicate safety."),
     ]
-    content_hash: Annotated[str, described_field("Read-back output content hash.")]
+    content_hash: Annotated[str, Field(description="Read-back output content hash.")]
     storage_durable: Annotated[
         bool,
-        described_field("Whether canonical source storage is durable."),
+        Field(description="Whether canonical source storage is durable."),
     ]
     readback_verified: Annotated[
         bool,
-        described_field("Whether output source readback was verified."),
+        Field(description="Whether output source readback was verified."),
     ]
     metadata_status: Annotated[
         str,
-        described_field("Metadata index state after output persistence."),
+        Field(description="Metadata index state after output persistence."),
     ]
     fts_status: Annotated[
         str,
-        described_field("FTS projection state after output persistence."),
+        Field(description="FTS projection state after output persistence."),
     ]
     vector_status: Annotated[
         str,
-        described_field("Vector projection state after output persistence."),
+        Field(description="Vector projection state after output persistence."),
     ]
     graph_edge_index_status: Annotated[
         str,
-        described_field("Graph edge index state after output persistence."),
+        Field(description="Graph edge index state after output persistence."),
     ]
     graph_projection_status: Annotated[
         str,
-        described_field("Graph projection state after output persistence."),
+        Field(description="Graph projection state after output persistence."),
     ]
     duplicate_safe: Annotated[
         bool,
-        described_field("Whether logical duplicate safety was verified."),
+        Field(description="Whether logical duplicate safety was verified."),
     ]
     warnings: Annotated[
         list[str],
-        described_field("Projection or recovery warnings for the output."),
+        Field(description="Projection or recovery warnings for the output."),
     ]
 
     @classmethod
@@ -403,19 +401,19 @@ class ManagedSpecCompleteResponse(StrictSchemaModel):
     operation: Literal["complete"] = "complete"
     status: Annotated[
         ManagedSpecCompletionStatus,
-        described_field("Complete lifecycle status."),
+        Field(description="Complete lifecycle status."),
     ]
     envelope: Annotated[
         ManagedSpecEnvelopeResponse,
-        described_field("Pinned envelope used for completion."),
+        Field(description="Pinned envelope used for completion."),
     ]
     envelope_hash: Annotated[
         str,
-        described_field("Hash fencing the exact prepare envelope."),
+        Field(description="Hash fencing the exact prepare envelope."),
     ]
     output: Annotated[
         ManagedSpecOutputResponse,
-        described_field("Verified canonical output evidence."),
+        Field(description="Verified canonical output evidence."),
     ]
 
     @classmethod

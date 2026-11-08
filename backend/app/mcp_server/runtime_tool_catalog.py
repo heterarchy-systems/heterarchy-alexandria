@@ -3,14 +3,22 @@
 from __future__ import annotations
 
 from hashlib import sha256
-from typing import cast
+
+from typing_extensions import TypedDict
 
 from app.operations.domain.entities.skill_contract import SkillRuntimeContract
 from app.shared.serialization.orjson_codec import dumps_canonical_json
-from app.shared.types.extra_types import JSONValue
 
 _CACHED_TOOL_NAMES: tuple[str, ...] | None = None
 _CACHED_FINGERPRINT: str | None = None
+
+
+class ToolRuntimeManifestEntry(TypedDict, closed=True):
+    """Canonical schema entry for one registered MCP tool."""
+
+    name: str
+    input: object
+    output: object
 
 
 def registered_runtime_tool_names() -> tuple[str, ...]:
@@ -26,28 +34,28 @@ def registered_runtime_tool_names() -> tuple[str, ...]:
     global _CACHED_TOOL_NAMES
     global _CACHED_FINGERPRINT
     if _CACHED_TOOL_NAMES is None:
-        from app.mcp_server.backend_api_client import (
-            AlexandriaApiClient,
-            AlexandriaApiSettings,
-        )
+        from app.mcp_server.backend_api_client import AlexandriaApiClient
         from app.mcp_server.server_runtime import build_mcp_server
+        from app.mcp_server.type_validate.oauth.config_contracts import McpApiConfig
 
         client = AlexandriaApiClient(
-            AlexandriaApiSettings(base_url="http://localhost:8000", timeout=1.0)
+            McpApiConfig(base_url="http://localhost:8000", timeout=1.0)
         )
         server = build_mcp_server(client=client)
         _CACHED_TOOL_NAMES = tuple(
             sorted(tool.name for tool in server._tool_manager.list_tools())
         )
         manifest = [
-            {"name": tool.name, "input": tool.parameters, "output": tool.output_schema}
+            ToolRuntimeManifestEntry(
+                name=tool.name,
+                input=tool.parameters,
+                output=tool.output_schema,
+            )
             for tool in sorted(
                 server._tool_manager.list_tools(), key=lambda item: item.name
             )
         ]
-        _CACHED_FINGERPRINT = sha256(
-            dumps_canonical_json(cast(JSONValue, manifest))
-        ).hexdigest()
+        _CACHED_FINGERPRINT = sha256(dumps_canonical_json(manifest)).hexdigest()
     return _CACHED_TOOL_NAMES
 
 

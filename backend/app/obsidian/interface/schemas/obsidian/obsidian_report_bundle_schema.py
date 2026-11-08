@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import replace
 from typing import Annotated
 
-from pydantic import StringConstraints
+from pydantic import Field, StringConstraints
 
 from app.obsidian.domain.contracts.obsidian_contracts import (
     ObsidianReportBundleOwner,
@@ -23,17 +23,13 @@ from app.obsidian.domain.event_enum.obsidian_enums import (
     ObsidianReportBundleCompletionStatus,
     ObsidianWriteOperation,
 )
-from app.obsidian.interface.schemas.obsidian.obsidian_note_write_schema import (
+from app.obsidian.interface.schemas.obsidian.notes.obsidian_note_schema import (
     ObsidianSaveNoteRequest,
 )
 from app.obsidian.interface.schemas.obsidian.obsidian_string_types import (
     ObsidianPathText,
 )
-from app.shared.schemas.common_schemas import (
-    StrictSchemaModel,
-    described_field,
-    schema_list_default,
-)
+from app.shared.schemas.common_schemas import StrictSchemaModel, schema_list_default
 from app.shared.types.extra_types import JSONObject
 
 
@@ -62,11 +58,11 @@ class ObsidianReportBundleOwnerRequest(StrictSchemaModel):
 
     path: Annotated[
         ObsidianPathText,
-        described_field("Path for this Obsidian report bundle owner request."),
+        Field(description="Path for this Obsidian report bundle owner request."),
     ]
     relation: Annotated[
         ObsidianRelationType,
-        described_field("Relation for this Obsidian report bundle owner request."),
+        Field(description="Relation for this Obsidian report bundle owner request."),
     ] = ObsidianRelationType.CONTAINS
 
     def to_command(self) -> ObsidianReportBundleOwner:
@@ -86,17 +82,19 @@ class ObsidianReportBundleVerifyRequest(StrictSchemaModel):
 
     index_status: Annotated[
         bool,
-        described_field("Index status for this Obsidian report bundle verify request."),
+        Field(
+            description="Index status for this Obsidian report bundle verify request."
+        ),
     ] = True
     incoming_edges: Annotated[
         bool,
-        described_field(
-            "Incoming edges for this Obsidian report bundle verify request."
+        Field(
+            description="Incoming edges for this Obsidian report bundle verify request."
         ),
     ] = True
     duplicates: Annotated[
         bool,
-        described_field("Duplicates for this Obsidian report bundle verify request."),
+        Field(description="Duplicates for this Obsidian report bundle verify request."),
     ] = True
 
     def to_command(self) -> ObsidianReportBundleVerify:
@@ -118,22 +116,22 @@ class ObsidianReportBundleRequestSchema(StrictSchemaModel):
     idempotency_key: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=512),
-        described_field("Idempotency key for this Obsidian report bundle request."),
+        Field(description="Idempotency key for this Obsidian report bundle request."),
     ]
     source: Annotated[
         ObsidianReportBundleSourceRequest,
-        described_field("Source for this Obsidian report bundle request."),
+        Field(description="Source for this Obsidian report bundle request."),
     ]
     graph_owners: Annotated[
         list[ObsidianReportBundleOwnerRequest],
-        described_field("Graph owners for this Obsidian report bundle request."),
+        Field(description="Graph owners for this Obsidian report bundle request."),
     ] = schema_list_default()
     reindex: Annotated[
-        bool, described_field("Reindex for this Obsidian report bundle request.")
+        bool, Field(description="Reindex for this Obsidian report bundle request.")
     ] = True
     verify: Annotated[
         ObsidianReportBundleVerifyRequest,
-        described_field("Verify for this Obsidian report bundle request."),
+        Field(description="Verify for this Obsidian report bundle request."),
     ] = ObsidianReportBundleVerifyRequest()
 
     def to_command(self) -> ObsidianReportBundleRequest:
@@ -156,21 +154,21 @@ class ObsidianReportBundleSourceResponse(StrictSchemaModel):
 
     note_id: Annotated[
         str,
-        described_field(
-            "Note identifier for this Obsidian report bundle source response."
+        Field(
+            description="Note identifier for this Obsidian report bundle source response."
         ),
     ]
     path: Annotated[
-        str, described_field("Path for this Obsidian report bundle source response.")
+        str, Field(description="Path for this Obsidian report bundle source response.")
     ]
     operation: Annotated[
         ObsidianWriteOperation,
-        described_field("Operation for this Obsidian report bundle source response."),
+        Field(description="Operation for this Obsidian report bundle source response."),
     ]
     index_status: Annotated[
         ObsidianIndexStatus,
-        described_field(
-            "Index status for this Obsidian report bundle source response."
+        Field(
+            description="Index status for this Obsidian report bundle source response."
         ),
     ]
 
@@ -180,20 +178,20 @@ class ObsidianReportBundleGraphResponse(StrictSchemaModel):
 
     expected_incoming_edges: Annotated[
         int,
-        described_field(
-            "Expected incoming edges for this Obsidian report bundle graph response."
+        Field(
+            description="Expected incoming edges for this Obsidian report bundle graph response."
         ),
     ]
     verified_incoming_edges: Annotated[
         int,
-        described_field(
-            "Verified incoming edges for this Obsidian report bundle graph response."
+        Field(
+            description="Verified incoming edges for this Obsidian report bundle graph response."
         ),
     ]
     unresolved_links: Annotated[
         list[str],
-        described_field(
-            "Unresolved links for this Obsidian report bundle graph response."
+        Field(
+            description="Unresolved links for this Obsidian report bundle graph response."
         ),
     ]
 
@@ -203,42 +201,46 @@ class ObsidianReportBundleResponse(StrictSchemaModel):
 
     completion_status: Annotated[
         ObsidianReportBundleCompletionStatus,
-        described_field("Completion status for this Obsidian report bundle response."),
+        Field(
+            description="Completion status for this Obsidian report bundle response."
+        ),
     ]
     idempotency_key: Annotated[
         str,
-        described_field("Idempotency key for this Obsidian report bundle response."),
+        Field(description="Idempotency key for this Obsidian report bundle response."),
     ]
     replayed: Annotated[
-        bool, described_field("Replayed for this Obsidian report bundle response.")
+        bool, Field(description="Replayed for this Obsidian report bundle response.")
     ]
     source: Annotated[
         ObsidianReportBundleSourceResponse | None,
-        described_field("Source for this Obsidian report bundle response."),
+        Field(description="Source for this Obsidian report bundle response."),
     ]
     owner_operations: Annotated[
         list[ObsidianWriteOperation],
-        described_field("Owner operations for this Obsidian report bundle response."),
+        Field(description="Owner operations for this Obsidian report bundle response."),
     ]
     graph: Annotated[
         ObsidianReportBundleGraphResponse,
-        described_field("Graph for this Obsidian report bundle response."),
+        Field(description="Graph for this Obsidian report bundle response."),
     ]
     duplicates: Annotated[
         list[str],
-        described_field("Duplicates for this Obsidian report bundle response."),
+        Field(description="Duplicates for this Obsidian report bundle response."),
     ]
     failed_stage: Annotated[
         str | None,
-        described_field("Failed stage for this Obsidian report bundle response."),
+        Field(description="Failed stage for this Obsidian report bundle response."),
     ]
     rollback_performed: Annotated[
         bool,
-        described_field("Rollback performed for this Obsidian report bundle response."),
+        Field(
+            description="Rollback performed for this Obsidian report bundle response."
+        ),
     ]
     errors: Annotated[
         list[JSONObject],
-        described_field("Errors for this Obsidian report bundle response."),
+        Field(description="Errors for this Obsidian report bundle response."),
     ]
 
     @classmethod

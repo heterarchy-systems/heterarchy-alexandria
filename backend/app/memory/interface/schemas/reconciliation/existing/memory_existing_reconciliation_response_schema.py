@@ -4,12 +4,14 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from pydantic import Field
+
 from app.memory.domain.entities.memory_existing_reconciliation import (
     ExistingMemoryAssessment,
     ExistingMemoryReconciliationReport,
 )
 from app.memory.domain.event_enum.reconciliation_enums import MemoryRelationType
-from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
+from app.shared.schemas.common_schemas import StrictSchemaModel
 
 
 class ExistingMemoryAssessmentResponse(StrictSchemaModel):
@@ -17,59 +19,61 @@ class ExistingMemoryAssessmentResponse(StrictSchemaModel):
 
     context_id: Annotated[
         str,
-        described_field(
-            "Context identifier for this existing memory assessment response."
+        Field(
+            description="Context identifier for this existing memory assessment response."
         ),
     ]
     temporal_overlay_present: Annotated[
         bool,
-        described_field(
-            "Temporal overlay present for this existing memory assessment response."
+        Field(
+            description="Temporal overlay present for this existing memory assessment response."
         ),
     ]
     temporal_backfill_required: Annotated[
         bool,
-        described_field(
-            "Temporal backfill required for this existing memory assessment response."
+        Field(
+            description="Temporal backfill required for this existing memory assessment response."
         ),
     ]
     canonical_claim_count: Annotated[
         int,
-        described_field(
-            "Canonical claim count for this existing memory assessment response."
+        Field(
+            description="Canonical claim count for this existing memory assessment response."
         ),
     ]
     primary_relation: Annotated[
         MemoryRelationType | None,
-        described_field(
-            "Primary relation for this existing memory assessment response."
+        Field(
+            description="Primary relation for this existing memory assessment response."
         ),
     ]
     related_context_ids: Annotated[
         list[str],
-        described_field(
-            "Related context identifiers for this existing memory assessment response."
+        Field(
+            description="Related context identifiers for this existing memory assessment response."
         ),
     ]
     plan_id: Annotated[
         str | None,
-        described_field(
-            "Plan identifier for this existing memory assessment response."
+        Field(
+            description="Plan identifier for this existing memory assessment response."
         ),
     ]
     plan_persisted: Annotated[
         bool,
-        described_field("Plan persisted for this existing memory assessment response."),
+        Field(
+            description="Plan persisted for this existing memory assessment response."
+        ),
     ]
     requires_review: Annotated[
         bool,
-        described_field(
-            "Requires review for this existing memory assessment response."
+        Field(
+            description="Requires review for this existing memory assessment response."
         ),
     ]
     warnings: Annotated[
         list[str],
-        described_field("Warnings for this existing memory assessment response."),
+        Field(description="Warnings for this existing memory assessment response."),
     ]
 
     @classmethod
@@ -104,68 +108,68 @@ class ExistingMemoryReconciliationResponse(StrictSchemaModel):
 
     dry_run: Annotated[
         bool,
-        described_field("Dry run for this existing memory reconciliation response."),
+        Field(description="Dry run for this existing memory reconciliation response."),
     ]
     scanned: Annotated[
         int,
-        described_field("Scanned for this existing memory reconciliation response."),
+        Field(description="Scanned for this existing memory reconciliation response."),
     ]
     total_available: Annotated[
         int,
-        described_field(
-            "Total available for this existing memory reconciliation response."
+        Field(
+            description="Total available for this existing memory reconciliation response."
         ),
     ]
     temporal_backfill_candidates: Annotated[
         int,
-        described_field(
-            "Temporal backfill candidates for this existing memory reconciliation response."
+        Field(
+            description="Temporal backfill candidates for this existing memory reconciliation response."
         ),
     ]
     temporal_states_written: Annotated[
         int,
-        described_field(
-            "Temporal states written for this existing memory reconciliation response."
+        Field(
+            description="Temporal states written for this existing memory reconciliation response."
         ),
     ]
     plans_generated: Annotated[
         int,
-        described_field(
-            "Plans generated for this existing memory reconciliation response."
+        Field(
+            description="Plans generated for this existing memory reconciliation response."
         ),
     ]
     plans_persisted: Annotated[
         int,
-        described_field(
-            "Plans persisted for this existing memory reconciliation response."
+        Field(
+            description="Plans persisted for this existing memory reconciliation response."
         ),
     ]
     contexts_missing_claims: Annotated[
         int,
-        described_field(
-            "Contexts missing claims for this existing memory reconciliation response."
+        Field(
+            description="Contexts missing claims for this existing memory reconciliation response."
         ),
     ]
     review_required: Annotated[
         int,
-        described_field(
-            "Review required for this existing memory reconciliation response."
+        Field(
+            description="Review required for this existing memory reconciliation response."
         ),
     ]
     assessments: Annotated[
         list[ExistingMemoryAssessmentResponse],
-        described_field(
-            "Assessments for this existing memory reconciliation response."
+        Field(
+            description="Assessments for this existing memory reconciliation response."
         ),
     ]
     warnings: Annotated[
         list[str],
-        described_field("Warnings for this existing memory reconciliation response."),
+        Field(description="Warnings for this existing memory reconciliation response."),
     ]
     hard_delete_performed: Annotated[
         bool,
-        described_field(
-            "Hard delete performed for this existing memory reconciliation response."
+        Field(
+            description="Hard delete performed for this existing memory reconciliation response."
         ),
     ]
 

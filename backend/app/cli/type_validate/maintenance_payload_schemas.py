@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import ConfigDict, field_validator
+from pydantic import ConfigDict, Field, field_validator
 
-from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
+from app.shared.schemas.common_schemas import StrictSchemaModel
 from app.shared.type_validation.strict_json_value import model_validate_json_value
 from app.shared.types.extra_types import JSONObject, JSONValue
 
@@ -29,11 +29,11 @@ class McpSmokePayload(CliPayloadSchema):
     mcp_url: JSONValue | None = None
     required_tools: Annotated[
         tuple[JSONValue, ...],
-        described_field("Required tools for this MCP smoke payload."),
+        Field(description="Required tools for this MCP smoke payload."),
     ] = ()
     missing_tools: Annotated[
         tuple[JSONValue, ...],
-        described_field("Missing tools for this MCP smoke payload."),
+        Field(description="Missing tools for this MCP smoke payload."),
     ] = ()
     tool_count: JSONValue | None = None
 
@@ -63,7 +63,7 @@ class CurrentCompactReviewPayload(CliPayloadSchema):
     max_score: int | None = None
     recommended_actions: Annotated[
         tuple[str, ...],
-        described_field("Recommended actions for this compact review payload."),
+        Field(description="Recommended actions for this compact review payload."),
     ] = ()
 
     @field_validator("recommended_actions", mode="before")
@@ -87,19 +87,19 @@ class ReadinessPayload(CliPayloadSchema):
 
     ready: bool | None = None
     warnings: Annotated[
-        tuple[JSONValue, ...], described_field("Warnings for this readiness payload.")
+        tuple[JSONValue, ...], Field(description="Warnings for this readiness payload.")
     ] = ()
     rag: Annotated[
-        RagStatusPayload, described_field("RAG for this readiness payload.")
+        RagStatusPayload, Field(description="RAG for this readiness payload.")
     ] = RagStatusPayload()
     current_memory_compact: Annotated[
         CurrentCompactPayload,
-        described_field("Current memory compact for this readiness payload."),
+        Field(description="Current memory compact for this readiness payload."),
     ] = CurrentCompactPayload()
     current_memory_compact_review: CurrentCompactReviewPayload | None = None
     next_actions: Annotated[
         tuple[NextActionPayload, ...],
-        described_field("Next actions for this readiness payload."),
+        Field(description="Next actions for this readiness payload."),
     ] = ()
 
     @field_validator("next_actions", mode="before")
@@ -168,14 +168,14 @@ class MaintenanceCheckSummaryPayload(CliPayloadSchema):
     mcp_required_tools_count: int
     mcp_required_tools: Annotated[
         tuple[JSONValue, ...],
-        described_field(
-            "MCP required tools for this maintenance check summary payload."
+        Field(
+            description="MCP required tools for this maintenance check summary payload."
         ),
     ] = ()
     mcp_missing_tools: Annotated[
         tuple[JSONValue, ...],
-        described_field(
-            "MCP missing tools for this maintenance check summary payload."
+        Field(
+            description="MCP missing tools for this maintenance check summary payload."
         ),
     ] = ()
     preflight_status: JSONValue | None = None
@@ -185,7 +185,7 @@ class MaintenanceCheckSummaryPayload(CliPayloadSchema):
     ready: bool | None = None
     warnings: Annotated[
         tuple[JSONValue, ...],
-        described_field("Warnings for this maintenance check summary payload."),
+        Field(description="Warnings for this maintenance check summary payload."),
     ] = ()
     current_compact_id: JSONValue | None = None
     compact_age_days: JSONValue | None = None
@@ -198,7 +198,7 @@ class MaintenanceCheckSummaryPayload(CliPayloadSchema):
     current_compact_review_max_score: int | None = None
     current_compact_review_recommended_actions: Annotated[
         tuple[str, ...],
-        described_field("Recommended actions from the current compact review."),
+        Field(description="Recommended actions from the current compact review."),
     ] = ()
     next_actions_count: int
     next_action: JSONValue | None = None

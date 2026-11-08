@@ -6,7 +6,7 @@ from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, Request, status
 
 from app.container import ApplicationContainer
-from app.obsidian.application.service.notes.obsidian_verified_upsert_service import (
+from app.obsidian.application.notes.verified_upsert.obsidian_verified_upsert_service import (
     ObsidianVerifiedUpsertService,
 )
 from app.obsidian.interface.schemas.obsidian.obsidian_verified_upsert_schema import (

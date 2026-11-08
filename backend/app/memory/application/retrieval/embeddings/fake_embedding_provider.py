@@ -87,13 +87,13 @@ class FakeEmbeddingProvider(EmbeddingProvider):
         return vector
 
     def _embed(self, text: str) -> list[float]:
-        """Execute embed.
+        """Compute a deterministic normalized byte-bucket vector for text.
 
         Args:
-            text: Text used by this operation.
+            text: Input text to embed.
 
         Returns:
-            list[float] result produced by embed.
+            Unit-normalized embedding vector of length self.dimensions.
         """
         buckets = [0.0 for _ in range(self.dimensions)]
         for index, byte in enumerate(text.encode("utf-8")):

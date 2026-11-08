@@ -21,7 +21,12 @@ def register_obsidian_relation_tools(
     server: MCPServer,
     api_client: AlexandriaApiClient,
 ) -> None:
-    """Register the single high-level relation tool."""
+    """Register the single high-level relation tool.
+
+    Args:
+        server: MCPServer server receiving tool registrations.
+        api_client: Backend HTTP API client used by tool callbacks.
+    """
 
     @server.tool(name="alexandria_relate")
     async def _tool_relate(
@@ -30,5 +35,12 @@ def register_obsidian_relation_tools(
             json_mode_arg(ObsidianRelateRequestSchema),
         ],
     ) -> ObsidianRelateResponse:
-        """Relate two existing notes and verify source, index, and graph state."""
+        """Relate two existing notes and verify source, index, and graph state.
+
+        Args:
+            request: Validated relation mutation request.
+
+        Returns:
+            Relation mutation and verification response.
+        """
         return await alexandria_relate(api_client, request)

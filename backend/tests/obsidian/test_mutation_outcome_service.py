@@ -12,14 +12,14 @@ from pydantic import TypeAdapter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.main import app
-from app.obsidian.application.service.notes.obsidian_canonical_identity_service import (
-    ObsidianCanonicalIdentityService,
-)
-from app.obsidian.application.service.notes.obsidian_mutation_outcome_service import (
+from app.obsidian.application.notes.mutations.outcome_service import (
     ObsidianMutationOutcomeService,
 )
-from app.obsidian.application.service.notes.obsidian_verified_upsert_service import (
+from app.obsidian.application.notes.verified_upsert.obsidian_verified_upsert_service import (
     ObsidianVerifiedUpsertService,
+)
+from app.obsidian.application.service.notes.obsidian_canonical_identity_service import (
+    ObsidianCanonicalIdentityService,
 )
 from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.obsidian.domain.contracts.obsidian_contracts import ObsidianSaveNote

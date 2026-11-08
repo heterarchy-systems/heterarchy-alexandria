@@ -10,7 +10,7 @@ from app.obsidian.application.service.obsidian_service import ObsidianService
 from app.obsidian.interface.schemas.obsidian.maintenance.obsidian_settings_schema import (
     ObsidianVaultSettingsUpdateRequest,
 )
-from app.obsidian.interface.schemas.obsidian.obsidian_schema import (
+from app.obsidian.interface.schemas.obsidian.obsidian_vault_schema import (
     ObsidianStatusResponse,
 )
 from app.shared.exceptions.exception_decorators import router_exception_status

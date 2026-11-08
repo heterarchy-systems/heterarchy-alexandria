@@ -10,7 +10,7 @@ from app.operations.application.recovery.planning.operational_recovery_paths imp
     recovery_directory,
 )
 from app.operations.application.recovery.execution.recovery_run_manifest import (
-    _manifest_path_by_id,
+    manifest_path_by_id,
 )
 
 
@@ -31,6 +31,6 @@ def test_manifest_path_uses_persistent_recovery_directory(
     """Recovery run manifests should use the persistent application path."""
     monkeypatch.chdir(tmp_path)
 
-    assert _manifest_path_by_id(run_id="run-1") == (
+    assert manifest_path_by_id(run_id="run-1") == (
         tmp_path / "data" / RECOVERY_DIRECTORY_NAME / "run-1" / "recovery-run.json"
     )

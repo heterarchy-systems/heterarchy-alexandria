@@ -29,6 +29,17 @@ class IObsidianIndexQueryRepository(ABC):
         """
 
     @abstractmethod
+    async def get_by_ids(self, note_ids: tuple[str, ...]) -> tuple[ObsidianNote, ...]:
+        """Read found indexed notes for one bounded set of stable ids.
+
+        Args:
+            note_ids: Bounded stable note ids supplied by the caller.
+
+        Returns:
+            Found note entities. Result order is repository-defined.
+        """
+
+    @abstractmethod
     async def get_by_path(self, relative_path: str) -> ObsidianNote | None:
         """Read one indexed note by vault-relative path.
 

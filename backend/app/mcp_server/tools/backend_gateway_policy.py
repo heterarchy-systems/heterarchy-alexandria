@@ -10,47 +10,22 @@ from app.shared.types.extra_types import JSONObject
 DEFAULT_CONTEXT_SEARCH_LIMIT = 5
 DEFAULT_CONTEXT_SEARCH_STRATEGY = RagStrategy.HYBRID
 DEFAULT_SOURCE_AGENT = "Hermes"
-DEFAULT_CANDIDATE_AUTHOR = "Hermes"
 
 
-def _bounded_packet_budget(limit: int) -> int:
-    """Execute bounded packet budget.
-
-    Args:
-        limit: Maximum number of items to process or return.
-
-    Returns:
-        int result produced by bounded packet budget.
-    """
-    return min(max(limit, 1_000), 120_000)
-
-
-def _bounded_source_ref_limit(limit: int) -> int:
-    """Execute bounded source ref limit.
+def bounded_search_limit(limit: int) -> int:
+    """Clamp a search result limit to the supported MCP gateway range.
 
     Args:
-        limit: Maximum number of items to process or return.
+        limit: Requested maximum number of search results.
 
     Returns:
-        int result produced by bounded source ref limit.
-    """
-    return min(max(limit, 1), 100)
-
-
-def _bounded_search_limit(limit: int) -> int:
-    """Execute bounded search limit.
-
-    Args:
-        limit: Maximum number of items to process or return.
-
-    Returns:
-        int result produced by bounded search limit.
+        Search result limit clamped between 1 and 50.
     """
     bounded_limit = min(max(limit, 1), 50)
     return bounded_limit
 
 
-def _path_segment(value: str) -> str:
+def path_segment(value: str) -> str:
     """Return one URL-safe path segment.
 
     Args:
@@ -62,21 +37,24 @@ def _path_segment(value: str) -> str:
     return quote(value, safe="")
 
 
-def _required_recovery_run_idempotency_key(value: str | None) -> str:
-    """Execute required recovery run idempotency key.
+def required_recovery_run_idempotency_key(value: str | None) -> str:
+    """Validate and normalize a required recovery apply idempotency key.
 
     Args:
-        value: Value being processed.
+        value: Candidate idempotency key supplied by the caller.
 
     Returns:
-        str result produced by required recovery run idempotency key.
+        Stripped non-empty idempotency key.
+
+    Raises:
+        ValueError: If the key is missing or blank.
     """
     if value is None or not value.strip():
         raise ValueError("idempotency_key is required when recovery dry_run is false")
     return value.strip()
 
 
-def _items_or_empty(items: list[str] | None) -> list[str]:
+def items_or_empty(items: list[str] | None) -> list[str]:
     """Normalize optional bullet lists for compact handoff payloads.
 
     Args:
@@ -90,30 +68,14 @@ def _items_or_empty(items: list[str] | None) -> list[str]:
     return items
 
 
-def _evidence_items_or_empty(
-    items: list[JSONObject] | None,
-) -> list[JSONObject]:
-    """Copy optional evidence payloads without importing an HTTP interface schema.
+def move_payloads(moves: list[dict[str, str]]) -> list[JSONObject]:
+    """Normalize vault move descriptors into backend JSON payloads.
 
     Args:
-        items: Caller-provided evidence item dictionaries or omitted value.
+        moves: Source, destination, and reason dictionaries for each move.
 
     Returns:
-        Independent JSON payload copies for backend boundary validation.
-    """
-    if items is None:
-        return []
-    return [dict(item) for item in items]
-
-
-def _move_payloads(moves: list[dict[str, str]]) -> list[JSONObject]:
-    """Execute move payloads.
-
-    Args:
-        moves: Moves used by this operation.
-
-    Returns:
-        list[JSONObject] result produced by move payloads.
+        Normalized JSON payload dictionaries for backend move endpoints.
     """
     return [
         {

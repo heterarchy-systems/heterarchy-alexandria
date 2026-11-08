@@ -2,20 +2,28 @@
 
 from __future__ import annotations
 
-from contextlib import asynccontextmanager
+import asyncio
+from collections.abc import Generator
+from contextlib import asynccontextmanager, contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
+from threading import Event as ThreadEvent, Lock
 from types import SimpleNamespace
 
 import anyio
 import pytest
 from tests.operations.operational_readiness_fakes import HealthyGraphProjectionService
 
+from app.operations.application.recovery.execution import recovery_run_manifest
 from app.operations.application.recovery.execution.recovery_run_errors import (
     RecoveryInProgressError,
+    RecoveryRunNotRetryableError,
+    RecoveryRunObservationUnavailableError,
 )
 from app.operations.application.recovery.execution.recovery_run_manifest import (
-    _write_active_lock,
+    RecoveryActiveLockStore,
+    active_lock_path,
+    manifest_path_by_id,
 )
 from app.operations.application.recovery.execution.recovery_run_service import (
     RecoveryRunService,
@@ -31,6 +39,7 @@ from app.operations.domain.entities.recovery_plan import (
     RecoveryPlanStep,
     RecoverySourceSnapshot,
 )
+from app.operations.domain.entities.recovery_run import RecoveryRun
 from app.operations.domain.event_enum.operational_readiness_enums import (
     OperationalReadinessStatus,
 )
@@ -87,6 +96,55 @@ class _FakeCompileObsidianService(_FakeObsidianService):
             embedding_invalidated_documents=0,
             diagnostic_count=0,
         )
+
+
+class _PausedCompileObsidianService(_FakeCompileObsidianService):
+    def __init__(
+        self, effect_started: asyncio.Event, resume_effect: asyncio.Event
+    ) -> None:
+        self.effect_started = effect_started
+        self.resume_effect = resume_effect
+        self.status_reads = 0
+        self.vault_path = "/vault"
+        self.alexandria_root = "Alexandria"
+
+    async def status(self) -> SimpleNamespace:
+        self.status_reads += 1
+        return SimpleNamespace(
+            vault_path=self.vault_path,
+            alexandria_root=self.alexandria_root,
+        )
+
+    async def reindex(self) -> SimpleNamespace:
+        self.effect_started.set()
+        await self.resume_effect.wait()
+        return await super().reindex()
+
+
+class _CountingCompileObsidianService(_FakeCompileObsidianService):
+    def __init__(self) -> None:
+        self.reindex_calls = 0
+
+    async def reindex(self) -> SimpleNamespace:
+        self.reindex_calls += 1
+        return await super().reindex()
+
+
+class _StatusCountingObsidianService(_FakeObsidianService):
+    def __init__(self) -> None:
+        self.status_reads = 0
+
+    async def status(self) -> SimpleNamespace:
+        self.status_reads += 1
+        return await super().status()
+
+
+def _files_under(root: Path) -> dict[str, bytes]:
+    return {
+        str(path.relative_to(root)): path.read_bytes()
+        for path in root.rglob("*")
+        if path.is_file()
+    }
 
 
 def _plan(
@@ -400,7 +458,7 @@ def test_active_lock_rejects_second_recovery_start(
 ) -> None:
     monkeypatch.chdir(tmp_path)
     plan = _plan(key="locked", automatic=True, steps=())
-    _write_active_lock(plan)
+    RecoveryActiveLockStore.write(plan)
 
     async def fake_plan(self, request):
         del self, request
@@ -420,6 +478,297 @@ def test_active_lock_rejects_second_recovery_start(
     error = anyio.run(scenario)
     assert error.run_id == plan.id
     assert error.idempotency_key == plan.idempotency_key
+
+
+def test_running_manifest_is_read_only_and_same_key_start_replays_it(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    plan_steps = (RecoveryPlanStep("VAULT_REINDEX", "Rebuild vault", True),)
+
+    async def fake_plan(self, request: RecoveryPlanRequest) -> RecoveryPlan:
+        del self
+        return _plan(
+            key=request.idempotency_key or "generated",
+            automatic=True,
+            steps=plan_steps,
+        )
+
+    monkeypatch.setattr(RecoveryPlanService, "plan", fake_plan)
+    start_request = RecoveryPlanRequest(
+        idempotency_key="in-flight", expected_plan_hash="0" * 64
+    )
+
+    async def scenario() -> tuple[RecoveryRun, RecoveryRun, RecoveryRun | None]:
+        effect_started = asyncio.Event()
+        resume_effect = asyncio.Event()
+        obsidian_service = _PausedCompileObsidianService(effect_started, resume_effect)
+        service = _service(obsidian_service)
+        completed_runs: dict[str, RecoveryRun] = {}
+
+        async def execute() -> None:
+            completed_runs["run"] = await service.start(start_request)
+
+        async with anyio.create_task_group() as task_group:
+            task_group.start_soon(execute)
+            await effect_started.wait()
+
+            manifest_path = manifest_path_by_id(run_id="run-in-flight")
+            recovery_root = manifest_path.parents[1]
+            active_path = active_lock_path()
+            before_files = _files_under(recovery_root)
+            before_manifest = manifest_path.read_bytes()
+            before_active = active_path.read_bytes()
+
+            obsidian_service.vault_path = "/changed-vault"
+            obsidian_service.alexandria_root = "ChangedRoot"
+            for _ in range(2):
+                observed = await service.get("run-in-flight")
+                assert observed is not None
+                assert observed.status is RecoveryRunStatus.RUNNING
+                assert observed.source_snapshot.vault_path == "/vault"
+                assert observed.source_snapshot.alexandria_root == "Alexandria"
+                assert await service.start(start_request) == observed
+                assert _files_under(recovery_root) == before_files
+
+            with pytest.raises(RecoveryRunNotRetryableError):
+                await service.retry(
+                    "run-in-flight",
+                    RecoveryPlanRequest(idempotency_key="retry-running"),
+                )
+            with pytest.raises(RecoveryInProgressError):
+                await service.start(
+                    RecoveryPlanRequest(
+                        idempotency_key="competing", expected_plan_hash="0" * 64
+                    )
+                )
+
+            assert manifest_path.read_bytes() == before_manifest
+            assert active_path.read_bytes() == before_active
+            assert _files_under(recovery_root) == before_files
+            assert obsidian_service.status_reads == 0
+            resume_effect.set()
+
+        completed = completed_runs["run"]
+        final_replay = await service.start(start_request)
+        unknown = await service.get("unknown-run")
+        return completed, final_replay, unknown
+
+    completed, final_replay, unknown = anyio.run(scenario)
+    assert completed.status is RecoveryRunStatus.COMPLETED
+    assert RecoveryActiveLockStore.read() is None
+    assert final_replay == completed
+    assert unknown is None
+
+
+def test_same_key_waiter_replays_owner_result_after_guard_delay(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    steps = (RecoveryPlanStep("VAULT_REINDEX", "Rebuild vault", True),)
+    obsidian_service = _CountingCompileObsidianService()
+    service = _service(obsidian_service)
+    request = RecoveryPlanRequest(
+        idempotency_key="same-key-race", expected_plan_hash="0" * 64
+    )
+
+    async def fake_plan(self, plan_request: RecoveryPlanRequest) -> RecoveryPlan:
+        del self
+        return _plan(
+            key=plan_request.idempotency_key or "generated",
+            automatic=True,
+            steps=steps,
+        )
+
+    monkeypatch.setattr(RecoveryPlanService, "plan", fake_plan)
+    waiting_b_at_guard = ThreadEvent()
+    resume_b = ThreadEvent()
+    guard_call_lock = Lock()
+    guard_call_count = 0
+    original_guard = recovery_run_manifest._active_record_guard
+
+    @contextmanager
+    def delay_first_guard() -> Generator[None]:
+        nonlocal guard_call_count
+        with guard_call_lock:
+            delay = guard_call_count == 0
+            guard_call_count += 1
+        if delay:
+            waiting_b_at_guard.set()
+            if not resume_b.wait(timeout=10):
+                raise TimeoutError("second recovery did not release the guard wait")
+        with original_guard():
+            yield
+
+    monkeypatch.setattr(
+        recovery_run_manifest,
+        "_active_record_guard",
+        delay_first_guard,
+    )
+    results: dict[str, RecoveryRun] = {}
+
+    async def execute_b() -> None:
+        results["b"] = await service.start(request)
+
+    async def scenario() -> tuple[RecoveryRun, bytes]:
+        async with anyio.create_task_group() as task_group:
+            task_group.start_soon(execute_b)
+            if not await asyncio.to_thread(waiting_b_at_guard.wait, 10):
+                raise TimeoutError("second recovery did not reach the guard")
+
+            try:
+                owner_run = await service.start(request)
+                assert owner_run.status is RecoveryRunStatus.COMPLETED
+                assert RecoveryActiveLockStore.read() is None
+                manifest_path = manifest_path_by_id(owner_run.id)
+                owner_manifest = manifest_path.read_bytes()
+            finally:
+                resume_b.set()
+        return owner_run, owner_manifest
+
+    owner_run, owner_manifest = anyio.run(scenario)
+    replay = results["b"]
+    manifest_path = manifest_path_by_id(owner_run.id)
+    assert replay == owner_run
+    assert obsidian_service.reindex_calls == 1
+    assert manifest_path.read_bytes() == owner_manifest
+
+
+def test_start_cleans_active_lock_when_manifest_fsync_fails_after_replace(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    plan = _plan(
+        key="initial-write-failure",
+        automatic=True,
+        steps=(RecoveryPlanStep("VAULT_REINDEX", "Rebuild vault", True),),
+    )
+    obsidian_service = _CountingCompileObsidianService()
+
+    async def fake_plan(self, request: RecoveryPlanRequest) -> RecoveryPlan:
+        del self, request
+        return plan
+
+    monkeypatch.setattr(RecoveryPlanService, "plan", fake_plan)
+    manifest_path = manifest_path_by_id(plan.id)
+    sync_directory = recovery_run_manifest._sync_recovery_directory
+
+    def fail_manifest_directory_sync(path: Path) -> None:
+        if path == manifest_path.parent:
+            raise OSError("simulated initial manifest publication failure")
+        sync_directory(path)
+
+    monkeypatch.setattr(
+        recovery_run_manifest,
+        "_sync_recovery_directory",
+        fail_manifest_directory_sync,
+    )
+    service = _service(obsidian_service)
+
+    async def scenario() -> None:
+        with pytest.raises(
+            OSError, match="simulated initial manifest publication failure"
+        ):
+            await service.start(
+                RecoveryPlanRequest(
+                    idempotency_key="initial-write-failure",
+                    expected_plan_hash="0" * 64,
+                )
+            )
+
+    anyio.run(scenario)
+
+    assert RecoveryActiveLockStore.read() is None
+    assert not active_lock_path().exists()
+    assert not manifest_path_by_id(plan.id).exists()
+    assert anyio.run(service.get, plan.id) is None
+    assert obsidian_service.reindex_calls == 0
+
+
+def test_uncertain_final_manifest_publication_keeps_active_admission(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    plan = _plan(
+        key="final-write-failure",
+        automatic=True,
+        steps=(RecoveryPlanStep("VAULT_REINDEX", "Rebuild vault", True),),
+    )
+    obsidian_service = _CountingCompileObsidianService()
+
+    async def fake_plan(self, request: RecoveryPlanRequest) -> RecoveryPlan:
+        del self, request
+        return plan
+
+    monkeypatch.setattr(RecoveryPlanService, "plan", fake_plan)
+    manifest_path = manifest_path_by_id(plan.id)
+    sync_directory = recovery_run_manifest._sync_recovery_directory
+    manifest_directory_syncs = 0
+
+    def fail_final_manifest_directory_sync(path: Path) -> None:
+        nonlocal manifest_directory_syncs
+        if path == manifest_path.parent:
+            manifest_directory_syncs += 1
+            if manifest_directory_syncs == 2:
+                raise OSError("simulated final manifest publication failure")
+        sync_directory(path)
+
+    monkeypatch.setattr(
+        recovery_run_manifest,
+        "_sync_recovery_directory",
+        fail_final_manifest_directory_sync,
+    )
+    service = _service(obsidian_service)
+
+    async def scenario() -> None:
+        with pytest.raises(OSError, match="final manifest publication failure"):
+            await service.start(
+                RecoveryPlanRequest(
+                    idempotency_key="final-write-failure",
+                    expected_plan_hash="0" * 64,
+                )
+            )
+
+    anyio.run(scenario)
+
+    active_lock = RecoveryActiveLockStore.read()
+    assert active_lock is not None
+    assert active_lock.run_id == plan.id
+    persisted = anyio.run(service.get, plan.id)
+    assert persisted is not None
+    assert persisted.status is RecoveryRunStatus.COMPLETED
+    assert obsidian_service.reindex_calls == 1
+    assert manifest_directory_syncs == 2
+
+
+def test_matching_orphaned_active_record_is_unavailable_and_read_only(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    plan = _plan(key="orphan", automatic=True, steps=())
+    RecoveryActiveLockStore.write(plan)
+    obsidian_service = _StatusCountingObsidianService()
+    service = _service(obsidian_service)
+    manifest_path = manifest_path_by_id(plan.id)
+    recovery_root = manifest_path.parents[1]
+    before_files = _files_under(recovery_root)
+
+    async def scenario() -> None:
+        with pytest.raises(RecoveryRunObservationUnavailableError):
+            await service.get(plan.id)
+        with pytest.raises(RecoveryRunObservationUnavailableError):
+            await service.retry(
+                plan.id,
+                RecoveryPlanRequest(idempotency_key="retry-orphan"),
+            )
+
+    anyio.run(scenario)
+
+    assert _files_under(recovery_root) == before_files
+    assert RecoveryActiveLockStore.read() is not None
+    assert not manifest_path.exists()
+    assert obsidian_service.status_reads == 0
 
 
 def test_plan_hash_drift_fails_apply_fence_closed(
@@ -476,6 +825,50 @@ def test_plan_hash_match_proceeds_with_apply(
 
     run = anyio.run(scenario)
     assert run.status is RecoveryRunStatus.COMPLETED
+
+
+@pytest.mark.parametrize("expected_hash", ["0" * 64, "f" * 64])
+def test_retry_preserves_apply_fence_and_parent_link(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, expected_hash: str
+) -> None:
+    """A retry admits only the reviewed plan and retains its parent identity."""
+    monkeypatch.chdir(tmp_path)
+    obsidian_service = _CountingCompileObsidianService()
+    service = _service(obsidian_service)
+
+    async def fake_plan(self, request: RecoveryPlanRequest) -> RecoveryPlan:
+        del self
+        plan = _plan(
+            key=request.idempotency_key or "generated",
+            automatic=request.parent_run_id is not None,
+            steps=(RecoveryPlanStep("VAULT_REINDEX", "Rebuild vault", True),),
+        )
+        plan.parent_run_id = request.parent_run_id
+        return plan
+
+    monkeypatch.setattr(RecoveryPlanService, "plan", fake_plan)
+
+    async def scenario() -> tuple[RecoveryRun, RecoveryRun | None]:
+        parent = await service.start(RecoveryPlanRequest(idempotency_key="parent"))
+        child = await service.retry(
+            parent.id,
+            RecoveryPlanRequest(
+                idempotency_key="child", expected_plan_hash=expected_hash
+            ),
+        )
+        return parent, child
+
+    parent, child = anyio.run(scenario)
+    assert parent.status is RecoveryRunStatus.BLOCKED
+    assert child is not None
+    assert child.parent_run_id == parent.id
+    if expected_hash == "0" * 64:
+        assert child.status is RecoveryRunStatus.COMPLETED
+        assert obsidian_service.reindex_calls == 1
+    else:
+        assert child.status is RecoveryRunStatus.BLOCKED
+        assert child.error_code == "RECOVERY_PLAN_DRIFT"
+        assert obsidian_service.reindex_calls == 0
 
 
 def test_vault_compile_evidence_is_required_by_current_readiness_check(
@@ -625,3 +1018,115 @@ def test_successful_note_repair_records_each_note_truthfully(
     )
     assert len(repair_step.result["repaired"]) == 2
     assert repair_step.result["requires_manual_repair"] == []
+
+
+def test_admit_rolls_back_manifest_on_lock_write_failure_and_rejects_corrupt_manifest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Failed active-lock writes unlink the manifest; corrupt manifests raise ObservationUnavailable."""
+    monkeypatch.chdir(tmp_path)
+    plan = _plan(
+        key="lock-rollback",
+        automatic=True,
+        steps=(RecoveryPlanStep("snapshot_sources", "Snapshot sources", False),),
+    )
+
+    async def fake_plan(self, request: RecoveryPlanRequest) -> RecoveryPlan:
+        del self, request
+        return plan
+
+    monkeypatch.setattr(RecoveryPlanService, "plan", fake_plan)
+    original_write_record = RecoveryActiveLockStore.write_record
+
+    def fail_lock_write(
+        plan: RecoveryPlan, *, started_at: datetime | None = None
+    ) -> None:
+        del plan, started_at
+        raise OSError("simulated active lock write failure")
+
+    monkeypatch.setattr(RecoveryActiveLockStore, "write_record", fail_lock_write)
+    service = _service()
+
+    async def fail_scenario() -> None:
+        with pytest.raises(OSError, match="simulated active lock write failure"):
+            await service.start(
+                RecoveryPlanRequest(
+                    idempotency_key="lock-rollback", expected_plan_hash="0" * 64
+                )
+            )
+
+    anyio.run(fail_scenario)
+    manifest_file = manifest_path_by_id(plan.id)
+    assert not manifest_file.exists()
+    assert not active_lock_path().exists()
+    assert RecoveryActiveLockStore.read() is None
+
+    monkeypatch.setattr(RecoveryActiveLockStore, "write_record", original_write_record)
+    sync_directory = recovery_run_manifest._sync_recovery_directory
+
+    def fail_lock_directory_sync(path: Path) -> None:
+        if path == active_lock_path().parent:
+            raise OSError("simulated active lock directory sync failure")
+        sync_directory(path)
+
+    monkeypatch.setattr(
+        recovery_run_manifest,
+        "_sync_recovery_directory",
+        fail_lock_directory_sync,
+    )
+
+    async def fail_lock_sync_scenario() -> None:
+        with pytest.raises(
+            OSError, match="simulated active lock directory sync failure"
+        ):
+            await service.start(
+                RecoveryPlanRequest(
+                    idempotency_key="lock-rollback", expected_plan_hash="0" * 64
+                )
+            )
+
+    anyio.run(fail_lock_sync_scenario)
+    assert not manifest_file.exists()
+    assert not active_lock_path().exists()
+    assert RecoveryActiveLockStore.read() is None
+
+    monkeypatch.setattr(
+        recovery_run_manifest,
+        "_sync_recovery_directory",
+        sync_directory,
+    )
+    monkeypatch.setattr(RecoveryActiveLockStore, "write_record", fail_lock_write)
+    original_unlink = Path.unlink
+
+    def fail_active_lock_unlink(self: Path, missing_ok: bool = False) -> None:
+        if self == active_lock_path():
+            raise OSError("simulated active lock unlink failure")
+        original_unlink(self, missing_ok=missing_ok)
+
+    monkeypatch.setattr(Path, "unlink", fail_active_lock_unlink)
+
+    async def fail_lock_unlink_scenario() -> None:
+        with pytest.raises(OSError, match="simulated active lock unlink failure"):
+            await service.start(
+                RecoveryPlanRequest(
+                    idempotency_key="lock-rollback", expected_plan_hash="0" * 64
+                )
+            )
+
+    anyio.run(fail_lock_unlink_scenario)
+    monkeypatch.setattr(Path, "unlink", original_unlink)
+    monkeypatch.setattr(RecoveryActiveLockStore, "write_record", original_write_record)
+    assert not manifest_file.exists()
+
+    manifest_file.parent.mkdir(parents=True, exist_ok=True)
+    manifest_file.write_text("{corrupt-json", encoding="utf-8")
+
+    async def corrupt_scenario() -> None:
+        with pytest.raises(RecoveryRunObservationUnavailableError):
+            await service.start(
+                RecoveryPlanRequest(
+                    idempotency_key="lock-rollback", expected_plan_hash="0" * 64
+                )
+            )
+
+    anyio.run(corrupt_scenario)

@@ -1,4 +1,4 @@
-.PHONY: install-local format_check type_checking cli_smoke test ci benchmark_check mechanical_check
+.PHONY: install-local format_check type_checking cli_smoke test redis_check ci benchmark_check mechanical_check
 
 PYTHONPYCACHEPREFIX ?= $(or $(XDG_CACHE_HOME),$(HOME)/.cache)/heterarchy-alexandria/pycache
 export PYTHONPYCACHEPREFIX
@@ -26,7 +26,10 @@ benchmark_check:
 test:
 	./scripts/run-postgres-tests.sh
 
+redis_check:
+	./scripts/verification/run-redis-maintenance-tests.sh
+
 mechanical_check:
 	uv run python scripts/verification/verify_contracts.py
 
-ci: format_check type_checking cli_smoke test benchmark_check mechanical_check
+ci: format_check type_checking cli_smoke test redis_check benchmark_check mechanical_check

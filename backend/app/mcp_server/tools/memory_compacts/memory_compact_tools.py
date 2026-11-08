@@ -68,7 +68,7 @@ async def alexandria_create_memory_compact(
         "covered_to": covered_to,
         "markdown_body": markdown_body,
         "status": status.value,
-        "source_refs": _source_ref_payloads(source_refs),
+        "source_refs": _MemoryCompactPayloadNormalizer.source_ref_payloads(source_refs),
     }
     if project is not None:
         payload["project"] = project
@@ -147,7 +147,9 @@ async def alexandria_review_memory_compact(
         Backend Memory Compact review response.
     """
     payload: JSONObject = {
-        "source_observations": _source_observation_payloads(source_observations)
+        "source_observations": _MemoryCompactPayloadNormalizer.source_observation_payloads(
+            source_observations
+        )
     }
     return await client.post(
         f"/memory/compacts/{quote(compact_id, safe='')}/review",
@@ -155,60 +157,64 @@ async def alexandria_review_memory_compact(
     )
 
 
-def _source_ref_payloads(
-    source_refs: Sequence[Mapping[str, JSONValue]] | None,
-) -> list[JSONObject]:
-    """Execute source ref payloads.
+class _MemoryCompactPayloadNormalizer:
+    """Normalize optional compact source reference and observation payloads."""
 
-    Args:
-        source_refs: Source refs used by this operation.
+    @staticmethod
+    def source_ref_payloads(
+        source_refs: Sequence[Mapping[str, JSONValue]] | None,
+    ) -> list[JSONObject]:
+        """Normalize optional source reference mappings into JSON request payloads.
 
-    Returns:
-        list[JSONObject] result produced by source ref payloads.
-    """
-    if source_refs is None:
-        return []
-    payloads: list[JSONObject] = []
-    for source_ref in source_refs:
-        payload: JSONObject = {
-            "source_type": source_ref["source_type"],
-            "source_id": source_ref["source_id"],
-            "title": source_ref["title"],
-            "detail_path": source_ref["detail_path"],
-        }
-        source_hash = source_ref.get("source_hash")
-        if source_hash is not None:
-            payload["source_hash"] = source_hash
-        payloads.append(payload)
-    return payloads
+        Args:
+            source_refs: Optional sequence of source reference mappings.
 
+        Returns:
+            Serialized source reference objects for the compact create payload.
+        """
+        if source_refs is None:
+            return []
+        payloads: list[JSONObject] = []
+        for source_ref in source_refs:
+            payload: JSONObject = {
+                "source_type": source_ref["source_type"],
+                "source_id": source_ref["source_id"],
+                "title": source_ref["title"],
+                "detail_path": source_ref["detail_path"],
+            }
+            source_hash = source_ref.get("source_hash")
+            if source_hash is not None:
+                payload["source_hash"] = source_hash
+            payloads.append(payload)
+        return payloads
 
-def _source_observation_payloads(
-    source_observations: Sequence[Mapping[str, JSONValue]] | None,
-) -> list[JSONObject]:
-    """Execute source observation payloads.
+    @staticmethod
+    def source_observation_payloads(
+        source_observations: Sequence[Mapping[str, JSONValue]] | None,
+    ) -> list[JSONObject]:
+        """Normalize optional source observation mappings into review request payloads.
 
-    Args:
-        source_observations: Source observations used by this operation.
+        Args:
+            source_observations: Optional sequence of current source hash observations.
 
-    Returns:
-        list[JSONObject] result produced by source observation payloads.
-    """
-    if source_observations is None:
-        return []
-    payloads: list[JSONObject] = []
-    for observation in source_observations:
-        payload: JSONObject = {
-            "source_id": observation["source_id"],
-        }
-        detail_path = observation.get("detail_path")
-        if detail_path is not None:
-            payload["detail_path"] = detail_path
-        current_source_hash = observation.get("current_source_hash")
-        if current_source_hash is not None:
-            payload["current_source_hash"] = current_source_hash
-        payloads.append(payload)
-    return payloads
+        Returns:
+            Serialized source observation objects for the compact review payload.
+        """
+        if source_observations is None:
+            return []
+        payloads: list[JSONObject] = []
+        for observation in source_observations:
+            payload: JSONObject = {
+                "source_id": observation["source_id"],
+            }
+            detail_path = observation.get("detail_path")
+            if detail_path is not None:
+                payload["detail_path"] = detail_path
+            current_source_hash = observation.get("current_source_hash")
+            if current_source_hash is not None:
+                payload["current_source_hash"] = current_source_hash
+            payloads.append(payload)
+        return payloads
 
 
 async def alexandria_mark_memory_compact_current(

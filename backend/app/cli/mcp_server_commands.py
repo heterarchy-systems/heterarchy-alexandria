@@ -21,8 +21,9 @@ from app.cli.type_validate.mcp_protocol_payload_contracts import (
     mcp_tool_names,
 )
 from app.mcp_server import server_runtime
-from app.mcp_server.backend_api_client import AlexandriaApiError, AlexandriaApiSettings
+from app.mcp_server.backend_api_client import AlexandriaApiError
 from app.mcp_server.type_validate.mcp_transport_enums import McpTransport
+from app.platform.config.mcp_config import McpApiConfig
 from app.shared.types.extra_types import JSONValue
 
 mcp_app = typer.Typer(
@@ -37,7 +38,7 @@ class McpToolSmokeChecker:
 
     def __init__(
         self,
-        settings: AlexandriaApiSettings,
+        settings: McpApiConfig,
         mcp_url: str | None,
         required_tools: Sequence[str],
     ) -> None:
@@ -183,7 +184,7 @@ def _smoke_tools_command(
             JSONValue result produced by operation.
         """
         return await _mcp_smoke_tools(
-            settings=AlexandriaApiSettings.from_env(),
+            settings=McpApiConfig.from_env(),
             mcp_url=mcp_url,
             required_tools=required_tools,
         )
@@ -197,7 +198,7 @@ def _smoke_tools_command(
 
 
 async def _mcp_smoke_tools(
-    settings: AlexandriaApiSettings,
+    settings: McpApiConfig,
     mcp_url: str | None,
     required_tools: Sequence[str],
 ) -> JSONValue:

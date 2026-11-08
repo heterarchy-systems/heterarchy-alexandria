@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from json import dumps
 from typing import Any
 
 from pydantic import BaseModel, BeforeValidator, TypeAdapter
+
+from app.shared.serialization.orjson_codec import dumps_strict_json
 
 
 def json_mode_arg(
@@ -38,9 +39,17 @@ def json_mode_arg(
 
         Returns:
             Strictly validated schema instance.
+
+        Raises:
+            ValueError: If `value` contains non-JSON-compatible values or fails schema validation.
         """
         if isinstance(value, BaseModel):
             return value
-        return adapter.validate_json(dumps(value, allow_nan=False))
+        try:
+            encoded = dumps_strict_json(value)
+        except (TypeError, ValueError) as exc:
+            msg = "argument must contain JSON-compatible values"
+            raise ValueError(msg) from exc
+        return adapter.validate_json(encoded)
 
     return BeforeValidator(validate)

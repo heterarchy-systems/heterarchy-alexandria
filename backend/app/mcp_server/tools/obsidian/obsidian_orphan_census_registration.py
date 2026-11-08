@@ -27,7 +27,12 @@ def register_obsidian_orphan_census_tools(
     server: MCPServer,
     api_client: AlexandriaApiClient,
 ) -> None:
-    """Register bounded orphan census and suggestion tools."""
+    """Register bounded orphan census and suggestion tools.
+
+    Args:
+        server: MCPServer server receiving tool registrations.
+        api_client: Backend HTTP API client used by tool callbacks.
+    """
 
     @server.tool(name="alexandria_list_graph_orphans")
     async def _tool_list_graph_orphans(
@@ -36,7 +41,14 @@ def register_obsidian_orphan_census_tools(
             json_mode_arg(ObsidianGraphOrphanListRequest),
         ],
     ) -> JSONValue:
-        """List graph orphan debt and bounded durable census metadata."""
+        """List graph orphan debt and bounded durable census metadata.
+
+        Args:
+            request: Validated orphan list filter and pagination request.
+
+        Returns:
+            Graph orphan list and census metadata payload.
+        """
         return await alexandria_list_graph_orphans(
             api_client,
             request.model_dump(mode="json", exclude_none=True),
@@ -49,7 +61,14 @@ def register_obsidian_orphan_census_tools(
             json_mode_arg(ObsidianGraphOrphanAcknowledgeRequest),
         ],
     ) -> JSONValue:
-        """Record standalone or ignored-with-reason orphan provenance."""
+        """Record standalone or ignored-with-reason orphan provenance.
+
+        Args:
+            request: Validated orphan acknowledgment request.
+
+        Returns:
+            Updated orphan acknowledgment receipt payload.
+        """
         return await alexandria_acknowledge_graph_orphan(
             api_client,
             request.model_dump(mode="json", exclude_none=True),
@@ -62,7 +81,14 @@ def register_obsidian_orphan_census_tools(
             json_mode_arg(ObsidianGraphOrphanStatusRequest),
         ],
     ) -> JSONValue:
-        """Read one exact note orphan status from the current projection."""
+        """Read one exact note orphan status from the current projection.
+
+        Args:
+            request: Validated note orphan status request.
+
+        Returns:
+            Current orphan projection status for the requested note.
+        """
         return await alexandria_get_graph_orphan_status(
             api_client,
             request.model_dump(mode="json", exclude_none=True),
@@ -75,7 +101,14 @@ def register_obsidian_orphan_census_tools(
             json_mode_arg(ObsidianGraphSuggestRelationsRequest),
         ],
     ) -> JSONValue:
-        """Return evidence-backed relation suggestions without mutation."""
+        """Return evidence-backed relation suggestions without mutation.
+
+        Args:
+            request: Validated relation suggestion request.
+
+        Returns:
+            Candidate relation suggestions with supporting evidence.
+        """
         return await alexandria_suggest_graph_relations(
             api_client,
             request.model_dump(mode="json", exclude_none=True),

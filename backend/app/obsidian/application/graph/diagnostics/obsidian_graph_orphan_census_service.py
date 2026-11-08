@@ -9,13 +9,10 @@ Suggestions are informational only; nothing is auto-related.
 
 from __future__ import annotations
 
-from dataclasses import replace
-from datetime import UTC, datetime
-
-import anyio
-import anyio.to_thread
-from pydantic import TypeAdapter
-
+from app.obsidian.application.graph.diagnostics.orphan_census.checkpoints import (
+    OrphanCensusCheckpointStore,
+    utc_now,
+)
 from app.obsidian.application.service.obsidian_service_ports import ObsidianReadPort
 from app.obsidian.domain.contracts.obsidian_graph_diagnostics_contracts import (
     ObsidianGraphDiagnosticEdge,
@@ -30,7 +27,6 @@ from app.obsidian.domain.entities.obsidian_orphan_census import (
     ObsidianGraphRelationSuggestion,
     ObsidianGraphRelationSuggestionsResult,
     ObsidianOrphanAcknowledgement,
-    ObsidianOrphanCensusMetadata,
     OrphanDecision,
 )
 from app.obsidian.domain.event_enum.obsidian_enums import ObsidianRelationType
@@ -43,9 +39,6 @@ from app.obsidian.domain.repositories.obsidian_graph_projection_repository impor
 from app.obsidian.domain.repositories.obsidian_index_repository import (
     IObsidianIndexRepository,
 )
-from app.obsidian.infrastructure.obsidian_report_bundle_run_store import (
-    ObsidianReportBundleRunStore,
-)
 from app.obsidian.infrastructure.obsidian_vault_config_store import (
     ObsidianVaultConfigStore,
 )
@@ -53,17 +46,9 @@ from app.shared.application.index_maintenance_coordinator import (
     IndexMaintenanceCoordinator,
 )
 from app.shared.exceptions.obsidian_exceptions import (
+    ObsidianDomainError,
     ObsidianNotFoundError,
     ObsidianValidationError,
-)
-
-_ACK_PREFIX = "orphan-ack:"
-_CENSUS_PREFIX = "orphan-census:"
-_ACK_ADAPTER: TypeAdapter[ObsidianOrphanAcknowledgement] = TypeAdapter(
-    ObsidianOrphanAcknowledgement
-)
-_CENSUS_ADAPTER: TypeAdapter[ObsidianOrphanCensusMetadata] = TypeAdapter(
-    ObsidianOrphanCensusMetadata
 )
 
 
@@ -105,7 +90,7 @@ class ObsidianGraphOrphanCensusService:
             source_reader: Canonical Obsidian read port for exact suggestions.
         """
         self._graph_repository = graph_repository
-        self._vault_config_store = vault_config_store
+        self._checkpoints = OrphanCensusCheckpointStore(vault_config_store)
         self._compute_provider = compute_provider
         self._index_maintenance_coordinator = index_maintenance_coordinator
         self._source_reader = source_reader
@@ -172,8 +157,10 @@ class ObsidianGraphOrphanCensusService:
             )
             entries: list[ObsidianGraphOrphanEntry] = []
             for orphan in result.orphans:
-                acknowledgement = await self._load_acknowledgement(orphan.note_id)
-                metadata = await self._observe_orphan(
+                acknowledgement = await self._checkpoints.load_acknowledgement(
+                    orphan.note_id
+                )
+                metadata = await self._checkpoints.observe_orphan(
                     note_id=orphan.note_id,
                     graph_run_id=state.run_id,
                 )
@@ -223,7 +210,16 @@ class ObsidianGraphOrphanCensusService:
         note_id: str,
         index_repository: IObsidianIndexRepository | None = None,
     ) -> ObsidianGraphOrphanEntry:
-        """Read exact current debt for one note through native diagnosis."""
+        """Read exact current debt for one note through native diagnosis.
+
+        Args:
+            note_id: Stable identifier of the note to diagnose.
+            index_repository: Optional session-scoped index reader used to
+                inspect declared relation metadata.
+
+        Returns:
+            Current orphan diagnostic status and durable census provenance.
+        """
         if not note_id.strip():
             raise ObsidianValidationError("orphan note_id is required")
         async with self._index_maintenance_coordinator.operation(
@@ -287,8 +283,8 @@ class ObsidianGraphOrphanCensusService:
                 (orphan for orphan in result.orphans if orphan.note_id == note_id),
                 None,
             )
-            acknowledgement = await self._load_acknowledgement(note_id)
-            metadata = await self._load_census_metadata(note_id)
+            acknowledgement = await self._checkpoints.load_acknowledgement(note_id)
+            metadata = await self._checkpoints.load_census_metadata(note_id)
             note = (
                 await index_repository.get_by_id(note_id)
                 if index_repository is not None
@@ -356,7 +352,7 @@ class ObsidianGraphOrphanCensusService:
         async with self._index_maintenance_coordinator.operation(
             "obsidian_orphan_acknowledgement", wait=True
         ):
-            existing = await self._load_acknowledgement(note_id)
+            existing = await self._checkpoints.load_acknowledgement(note_id)
             if existing is not None:
                 if (
                     existing.decision != decision
@@ -371,11 +367,11 @@ class ObsidianGraphOrphanCensusService:
             acknowledgement = ObsidianOrphanAcknowledgement(
                 note_id=note_id,
                 decision=decision,
-                acknowledged_at=_now(),
+                acknowledged_at=utc_now(),
                 acknowledged_by=acknowledged_by,
                 reason=reason,
             )
-            await self._save_acknowledgement(acknowledgement)
+            await self._checkpoints.save_acknowledgement(acknowledgement)
             return acknowledgement
 
     async def suggest_relations(
@@ -463,7 +459,7 @@ class ObsidianGraphOrphanCensusService:
                 candidate = await self._source_reader.read_note(
                     suggestion.candidate_note_id
                 )
-            except Exception:
+            except ObsidianDomainError, OSError, ValueError:
                 continue
             if candidate.relative_path != suggestion.candidate_path:
                 continue
@@ -486,104 +482,7 @@ class ObsidianGraphOrphanCensusService:
             suggestions=tuple(suggestions[:limit]),
         )
 
-    def _run_store(self) -> ObsidianReportBundleRunStore:
-        """Return the vault-local acknowledgement store."""
-        return ObsidianReportBundleRunStore(
-            vault_path=self._vault_config_store.current().vault_path
-        )
-
-    async def _observe_orphan(
-        self,
-        *,
-        note_id: str,
-        graph_run_id: str | None,
-    ) -> ObsidianOrphanCensusMetadata:
-        """Record first/last-seen census metadata under the census lease."""
-        now = _now()
-        existing = await anyio.to_thread.run_sync(
-            lambda: self._run_store().load_typed(
-                _CENSUS_PREFIX + note_id,
-                _CENSUS_ADAPTER,
-            ),
-            limiter=anyio.to_thread.current_default_thread_limiter(),
-        )
-        metadata = ObsidianOrphanCensusMetadata(
-            note_id=note_id,
-            first_seen_at=now if existing is None else existing.first_seen_at,
-            last_seen_at=now,
-            first_seen_run_id=(
-                graph_run_id
-                if existing is None
-                else existing.first_seen_run_id or existing.graph_run_id
-            ),
-            last_seen_run_id=(
-                graph_run_id
-                if graph_run_id is not None
-                else (
-                    None
-                    if existing is None
-                    else existing.last_seen_run_id or existing.graph_run_id
-                )
-            ),
-            graph_run_id=graph_run_id,
-        )
-        await anyio.to_thread.run_sync(
-            lambda: self._run_store().save_typed(
-                _CENSUS_PREFIX + note_id,
-                metadata,
-                _CENSUS_ADAPTER,
-            ),
-            limiter=anyio.to_thread.current_default_thread_limiter(),
-        )
-        return metadata
-
-    async def _load_census_metadata(
-        self, note_id: str
-    ) -> ObsidianOrphanCensusMetadata | None:
-        """Load historical first/last-seen metadata without mutating it."""
-        metadata = await anyio.to_thread.run_sync(
-            lambda: self._run_store().load_typed(
-                _CENSUS_PREFIX + note_id,
-                _CENSUS_ADAPTER,
-            ),
-            limiter=anyio.to_thread.current_default_thread_limiter(),
-        )
-        if metadata is None:
-            return None
-        return replace(
-            metadata,
-            first_seen_run_id=metadata.first_seen_run_id or metadata.graph_run_id,
-            last_seen_run_id=metadata.last_seen_run_id or metadata.graph_run_id,
-        )
-
-    async def _load_acknowledgement(
-        self, note_id: str
-    ) -> ObsidianOrphanAcknowledgement | None:
-        """Load one acknowledgement through the bounded blocking-I/O lane."""
-        return await anyio.to_thread.run_sync(
-            lambda: self._run_store().load_typed(_ACK_PREFIX + note_id, _ACK_ADAPTER),
-            limiter=anyio.to_thread.current_default_thread_limiter(),
-        )
-
-    async def _save_acknowledgement(
-        self, acknowledgement: ObsidianOrphanAcknowledgement
-    ) -> None:
-        """Persist one acknowledgement through the bounded blocking-I/O lane."""
-        await anyio.to_thread.run_sync(
-            lambda: self._run_store().save_typed(
-                _ACK_PREFIX + acknowledgement.note_id,
-                acknowledgement,
-                _ACK_ADAPTER,
-            ),
-            limiter=anyio.to_thread.current_default_thread_limiter(),
-        )
-
 
 def _has_declared_relations(note: ObsidianNote) -> bool:
     """Return whether one note still declares relation frontmatter."""
     return any(key in note.frontmatter for key in _RELATION_FIELD_NAMES)
-
-
-def _now() -> datetime:
-    """Return the current aware UTC timestamp."""
-    return datetime.now(UTC)

@@ -1,0 +1,1 @@
+"""Obsidian note route groups."""

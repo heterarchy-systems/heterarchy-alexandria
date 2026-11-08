@@ -2,90 +2,18 @@
 
 from __future__ import annotations
 
-from typing import Annotated
-
 import httpx
-from pydantic import AliasChoices, field_validator
-from pydantic_settings import BaseSettings
 
-from app.shared.schemas.common_schemas import described_field
+from app.mcp_server.type_validate.oauth.config_contracts import McpApiConfig
 from app.shared.types.extra_types import JSONObject, JSONValue
-from app.shared.utils.config import settings_model_config
 from app.shared.utils.http_helpers.json_payloads import (
     decode_json_body,
     extract_json_error_message,
     json_body_bytes,
 )
 
-DEFAULT_ALEXANDRIA_API_URL = "http://localhost:8000"
-DEFAULT_MCP_TIMEOUT_SECONDS = 30.0
-
 HttpHeaders = dict[str, str]
 type QueryParamValue = bool | float | int | str | None
-
-
-class AlexandriaApiSettings(BaseSettings):
-    """Environment-backed settings for the MCP HTTP client."""
-
-    model_config = {
-        **settings_model_config(env_prefix=""),
-        "populate_by_name": True,
-    }
-
-    base_url: Annotated[
-        str,
-        described_field(
-            "Base URL for this alexandria API settings.",
-            validation_alias=AliasChoices("ALEXANDRIA_API_URL", "HERMES_API_URL"),
-        ),
-    ] = DEFAULT_ALEXANDRIA_API_URL
-    timeout: Annotated[
-        float,
-        described_field(
-            "Timeout for this alexandria API settings.",
-            validation_alias="ALEXANDRIA_API_TIMEOUT_SECONDS",
-        ),
-    ] = DEFAULT_MCP_TIMEOUT_SECONDS
-
-    @classmethod
-    def from_env(cls) -> AlexandriaApiSettings:
-        """Create settings through the typed MCP settings boundary.
-
-        Args:
-            None.
-
-        Returns:
-            Client settings for backend API calls.
-        """
-        settings = cls()
-        return settings
-
-    @field_validator("base_url")
-    @classmethod
-    def normalize_base_url(cls, value: str) -> str:
-        """Normalize the configured backend URL.
-
-        Args:
-            value: Raw URL from environment or default.
-
-        Returns:
-            Normalized URL without a trailing slash.
-        """
-        stripped = value.strip()
-        return (stripped or DEFAULT_ALEXANDRIA_API_URL).rstrip("/")
-
-    @field_validator("timeout")
-    @classmethod
-    def normalize_timeout(cls, value: float) -> float:
-        """Clamp configured timeout to at least one second.
-
-        Args:
-            value: Parsed timeout value.
-
-        Returns:
-            Bounded timeout value.
-        """
-        return max(1.0, value)
 
 
 class AlexandriaApiConfigurationError(Exception):
@@ -115,7 +43,7 @@ class AlexandriaApiClient:
 
     def __init__(
         self,
-        settings: AlexandriaApiSettings,
+        settings: McpApiConfig,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
         """Initialize the API client.
@@ -164,11 +92,11 @@ class AlexandriaApiClient:
         """Send a POST request whose bounded operation inputs are query parameters.
 
         Args:
-            path: Value supplied to post_query.
-            params: Value supplied to post_query.
+            path: Backend path beginning with slash.
+            params: Query parameters encoding the bounded operation inputs.
 
         Returns:
-            Result produced by post_query.
+            Decoded JSON response.
         """
         return await self._request("POST", path, None, params)
 
@@ -192,16 +120,16 @@ class AlexandriaApiClient:
         payload: JSONValue | None,
         params: JSONObject | None,
     ) -> JSONValue:
-        """Execute request.
+        """Send an HTTP request and decode its JSON response.
 
         Args:
-            method: Method used by this operation.
-            path: Path used by this operation.
-            payload: Validated payload for this operation.
-            params: Params used by this operation.
+            method: HTTP method verb.
+            path: Backend path beginning with slash.
+            payload: Optional JSON request body.
+            params: Optional query parameters.
 
         Returns:
-            JSONValue result produced by request.
+            Decoded JSON response value.
         """
         request_body = None if payload is None else json_body_bytes(payload)
         headers: HttpHeaders = {"Accept": "application/json"}
@@ -231,13 +159,13 @@ class AlexandriaApiClient:
 
 
 def _query_params(params: JSONObject | None) -> list[tuple[str, QueryParamValue]]:
-    """Execute query params.
+    """Flatten a JSON parameter mapping into httpx query-parameter tuples.
 
     Args:
-        params: Params used by this operation.
+        params: Optional query parameter mapping.
 
     Returns:
-        list[tuple[str, QueryParamValue]] result produced by query params.
+        Flattened list of key/string-value query parameter pairs.
     """
     if params is None:
         return []

@@ -26,7 +26,7 @@ from app.cli.type_validate.maintenance_payload_views import (
     check_summary,
     preflight_ready,
 )
-from app.mcp_server.backend_api_client import AlexandriaApiSettings
+from app.platform.config.mcp_config import McpApiConfig
 from app.shared.types.extra_types import JSONValue
 
 
@@ -190,7 +190,7 @@ def _check(
             JSONValue result produced by operation.
         """
         mcp_smoke = await _mcp_smoke_tools(
-            settings=AlexandriaApiSettings.from_env(),
+            settings=McpApiConfig.from_env(),
             mcp_url=None,
             required_tools=DEFAULT_REQUIRED_MCP_TOOLS,
         )

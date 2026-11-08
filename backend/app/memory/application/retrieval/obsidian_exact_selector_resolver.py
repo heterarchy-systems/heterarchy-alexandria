@@ -39,7 +39,12 @@ class ObsidianExactSelectorResolver(RecallExactSelectorResolver):
         obsidian_service: ObsidianService,
         canonical_identity_service: ObsidianCanonicalIdentityService,
     ) -> None:
-        """Create the exact source resolver from existing Obsidian authorities."""
+        """Create the exact source resolver from existing Obsidian authorities.
+
+        Args:
+            obsidian_service: Obsidian source note service.
+            canonical_identity_service: Canonical logical identity resolution service.
+        """
         self._obsidian_service = obsidian_service
         self._canonical_identity_service = canonical_identity_service
 
@@ -48,7 +53,18 @@ class ObsidianExactSelectorResolver(RecallExactSelectorResolver):
         selector: RecallExactSelector,
         scope_identity: ScopeIdentity,
     ) -> tuple[ContextSearchMatch, ...]:
-        """Read one exact note and map it into the existing Context read model."""
+        """Read one exact note and map it into the existing Context read model.
+
+        Args:
+            selector: Exact note id, path, or logical identity selector.
+            scope_identity: Resolved caller scope identity.
+
+        Returns:
+            Single-element match tuple when found, or empty tuple when absent.
+
+        Raises:
+            MemoryContextValidationError: If selector validation fails.
+        """
         del scope_identity
         try:
             note = await self._read_selector(selector)
@@ -63,7 +79,18 @@ class ObsidianExactSelectorResolver(RecallExactSelectorResolver):
     async def _read_selector(
         self, selector: RecallExactSelector
     ) -> ObsidianNote | None:
-        """Resolve selector precedence through the canonical source facade."""
+        """Resolve selector precedence through the canonical source facade.
+
+        Args:
+            selector: Exact note id, path, or logical identity selector.
+
+        Returns:
+            Resolved ObsidianNote if found, otherwise None.
+
+        Raises:
+            MemoryContextValidationError: If no selector field is set or logical
+                identity resolution is ambiguous.
+        """
         if selector.note_id is not None and selector.note_id.strip():
             return await self._obsidian_service.read_note(
                 selector.note_id.strip().removeprefix("obsidian:")
@@ -91,7 +118,14 @@ class ObsidianExactSelectorResolver(RecallExactSelectorResolver):
         return await self._obsidian_service.read_note(resolved.existing_note_id)
 
     def _match_from_note(self, note: ObsidianNote) -> ContextSearchMatch:
-        """Build one exact match without claiming an index timestamp."""
+        """Build one exact match without claiming an index timestamp.
+
+        Args:
+            note: Canonical ObsidianNote read from the vault.
+
+        Returns:
+            Synthesized ContextSearchMatch for the exact note.
+        """
         context = context_record_from_obsidian_note(note)
         chunks = chunk_markdown(note.title, note.body)
         if chunks:

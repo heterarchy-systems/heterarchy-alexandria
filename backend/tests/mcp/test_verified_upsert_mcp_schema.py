@@ -7,7 +7,7 @@ from typing import cast
 
 from app.mcp_server.backend_api_client import AlexandriaApiClient
 from app.mcp_server.server_runtime import build_mcp_server
-from app.mcp_server.tools.obsidian.verified_upsert_backend_gateway import (
+from app.mcp_server.tools.obsidian.verified_upsert.verified_upsert_backend_gateway import (
     alexandria_verified_upsert,
     alexandria_verify,
 )

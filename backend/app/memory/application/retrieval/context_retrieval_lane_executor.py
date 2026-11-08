@@ -62,7 +62,7 @@ class ContextRetrievalLaneExecutor:
         adaptive_plan: ContextRetrievalPlan | None,
         collector: ContextSearchTraceCollector | None,
     ) -> list[ContextSearchMatch]:
-        """Execute one resolved fixed lane and optional traced Hybrid fusion.
+        """Run one resolved fixed lane and optional traced Hybrid fusion.
 
         Args:
             query: Search query text.
@@ -74,6 +74,9 @@ class ContextRetrievalLaneExecutor:
 
         Returns:
             Ranked Context matches from the effective retrieval strategy.
+
+        Raises:
+            ValueError: If RagStrategy.AUTO was not resolved prior to execution.
         """
         if effective is RagStrategy.AUTO:
             raise ValueError("AUTO must be resolved before retrieval lane execution")
@@ -95,7 +98,7 @@ class ContextRetrievalLaneExecutor:
         recall_filter: ContextRecallFilter,
         collector: ContextSearchTraceCollector | None,
     ) -> list[ContextSearchMatch]:
-        """Execute lexical recall and record explain-only counters.
+        """Run lexical recall and record explain-only counters.
 
         Args:
             query: Search query text.
@@ -121,7 +124,7 @@ class ContextRetrievalLaneExecutor:
         recall_filter: ContextRecallFilter,
         collector: ContextSearchTraceCollector | None,
     ) -> list[ContextSearchMatch]:
-        """Execute semantic vector recall and record explain-only counters.
+        """Run semantic vector recall and record explain-only counters.
 
         Args:
             query: Search query text.
@@ -150,7 +153,7 @@ class ContextRetrievalLaneExecutor:
         adaptive_plan: ContextRetrievalPlan | None,
         collector: ContextSearchTraceCollector | None,
     ) -> list[ContextSearchMatch]:
-        """Execute bounded lexical/vector recall followed by Rust Hybrid fusion.
+        """Run bounded lexical/vector recall followed by Rust Hybrid fusion.
 
         Args:
             query: Search query text.

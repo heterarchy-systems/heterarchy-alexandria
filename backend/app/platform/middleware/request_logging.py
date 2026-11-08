@@ -16,7 +16,6 @@ from app.shared.utils.http_helpers.request_logging import (
     should_skip_request_log,
 )
 from app.shared.utils.http_helpers.response_headers import (
-    apply_response_headers,
     response_headers,
 )
 from app.shared.utils.http_helpers.trace_context import (
@@ -111,9 +110,7 @@ def install_request_logging_middleware(
                 event=event,
             )
 
-        apply_response_headers(
-            response=response,
-            request_id=request_id,
-            trace_id=trace_id,
+        response.headers.update(
+            response_headers(request_id=request_id, trace_id=trace_id)
         )
         return response

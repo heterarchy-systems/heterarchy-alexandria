@@ -43,7 +43,16 @@ async def temporal_coverage(
         Depends(Provide[ApplicationContainer.obsidian.temporal_coverage_service]),
     ],
 ) -> ObsidianTemporalCoverageResponse:
-    """Return one deterministic temporal coverage matrix."""
+    """Return one deterministic temporal coverage matrix.
+
+    Args:
+        http_request: Active HTTP request used to mark the DB session read-only.
+        request: Validated temporal coverage query parameters and date window.
+        service: Injected service computing per-date report-family coverage.
+
+    Returns:
+        Deterministic temporal coverage matrix response payload.
+    """
     mark_database_transaction_read_only(http_request)
     payload = await service.coverage(
         project=request.project,

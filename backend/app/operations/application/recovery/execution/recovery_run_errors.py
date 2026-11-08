@@ -18,6 +18,34 @@ class RecoveryInProgressError(RuntimeError):
         self.idempotency_key = idempotency_key
 
 
+class RecoveryRunObservationUnavailableError(RuntimeError):
+    """Raised when durable recovery evidence cannot be safely observed."""
+
+    def __init__(self, run_id: str) -> None:
+        """Create observation error.
+
+        Args:
+            run_id: Recovery run identifier whose durable state is unavailable.
+        """
+        super().__init__("recovery run durable observation is unavailable")
+        self.run_id = run_id
+
+
+class RecoveryRunNotRetryableError(RuntimeError):
+    """Raised when persisted recovery state does not allow a retry."""
+
+    def __init__(self, run_id: str, status: str) -> None:
+        """Create retry error.
+
+        Args:
+            run_id: Recovery run identifier used as the retry parent.
+            status: Persisted status that prevents retry.
+        """
+        super().__init__("the persisted recovery run status does not allow retry")
+        self.run_id = run_id
+        self.status = status
+
+
 class RecoveryStepFailedError(RuntimeError):
     """Raised when a recovery step result must fail the run."""
 

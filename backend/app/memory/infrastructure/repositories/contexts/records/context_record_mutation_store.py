@@ -9,12 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.memory.domain.contracts.context_contracts import ContextAccessCreate
 from app.memory.domain.entities.context_read_models import ContextRecord
 from app.memory.domain.event_enum.context_enums import ContextChangeKind
-from app.memory.infrastructure.repositories.contexts.records.access_events import (
-    record_context_access,
-)
-from app.memory.infrastructure.repositories.contexts.records.context_change_log_writer import (
+from app.memory.infrastructure.repositories.contexts.change_log.context_change_log_writer import (
     context_change_content_hash,
     record_context_change,
+)
+from app.memory.infrastructure.repositories.contexts.records.access_events import (
+    record_context_access,
 )
 from app.memory.infrastructure.repositories.contexts.records.context_record_query_store import (
     require_context,

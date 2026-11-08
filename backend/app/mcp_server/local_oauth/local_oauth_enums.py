@@ -18,3 +18,12 @@ class LocalOAuthClientConnectionStatus(StrEnum):
     REGISTERED = "registered"
     CONNECTED = "connected"
     EXPIRED = "expired"
+
+
+class OAuthClientCredentialField(StrEnum):
+    """SDK credential fields stored separately from extensible client metadata."""
+
+    CLIENT_ID = "client_id"
+    CLIENT_SECRET = "client_secret"
+    CLIENT_ID_ISSUED_AT = "client_id_issued_at"
+    CLIENT_SECRET_EXPIRES_AT = "client_secret_expires_at"

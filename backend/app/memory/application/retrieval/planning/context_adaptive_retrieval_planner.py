@@ -131,7 +131,11 @@ class ContextRetrievalPlan:
     reasons: tuple[str, ...]
 
     def __post_init__(self) -> None:
-        """Reject internally inconsistent plans before execution."""
+        """Reject internally inconsistent plans before execution.
+
+        Raises:
+            ValueError: If strategy, budgets, graph depth, or lane settings are inconsistent.
+        """
         if self.strategy is RagStrategy.AUTO:
             raise ValueError(
                 "adaptive plan strategy must resolve to a fixed retrieval lane"
@@ -175,13 +179,15 @@ def build_context_retrieval_plan(
     Returns:
         Immutable adaptive retrieval plan.
     """
-    normalized = _normalized_query(query)
-    intent, reason = _classify_intent(query, normalized)
-    graph_requested = _contains_marker(normalized, _GRAPH_MARKERS)
+    normalized = _AdaptiveQueryClassifier.normalized_query(query)
+    intent, reason = _AdaptiveQueryClassifier.classify_intent(query, normalized)
+    graph_requested = _AdaptiveQueryClassifier.contains_marker(
+        normalized, _GRAPH_MARKERS
+    )
     preferred = (
         caller_memory_functions
         if caller_memory_functions
-        else _inferred_memory_functions(intent)
+        else _AdaptiveQueryClassifier.inferred_memory_functions(intent)
     )
     graph_enabled = intent is ContextRetrievalIntent.GRAPH_ORIENTED or graph_requested
     if intent is ContextRetrievalIntent.EXACT_OR_TITLE:
@@ -224,137 +230,150 @@ def build_context_retrieval_plan(
     )
 
 
-def _classify_intent(
-    raw_query: str,
-    normalized_query: str,
-) -> tuple[ContextRetrievalIntent, str]:
-    """Classify one query using ordered deterministic v1 markers.
+class _AdaptiveQueryClassifier:
+    """Deterministic query normalization and v1 retrieval intent classification."""
 
-    Args:
-        raw_query: Original caller query text.
-        normalized_query: Case-folded single-space query text.
+    @staticmethod
+    def classify_intent(
+        raw_query: str,
+        normalized_query: str,
+    ) -> tuple[ContextRetrievalIntent, str]:
+        """Classify one query using ordered deterministic v1 markers.
 
-    Returns:
-        Deterministic retrieval intent and bounded reason code.
-    """
-    tokens = _query_tokens(raw_query)
-    if _DATE_TOKEN_PATTERN.search(raw_query) is not None and _is_title_like(
-        raw_query, normalized_query, tokens
-    ):
-        return ContextRetrievalIntent.EXACT_OR_TITLE, "dated_title_like_query"
-    ordered_rules = (
-        (
-            ContextRetrievalIntent.TEMPORAL_CURRENT_STATE,
-            _TEMPORAL_MARKERS,
-            "temporal_marker",
-        ),
-        (
-            ContextRetrievalIntent.EXPERIENTIAL,
-            _EXPERIENTIAL_MARKERS,
-            "experiential_marker",
-        ),
-        (
-            ContextRetrievalIntent.PROCEDURAL,
-            _PROCEDURAL_MARKERS,
-            "procedural_marker",
-        ),
-        (
-            ContextRetrievalIntent.GRAPH_ORIENTED,
-            _GRAPH_MARKERS,
-            "graph_marker",
-        ),
-    )
-    for intent, markers, reason in ordered_rules:
-        if _contains_marker(normalized_query, markers):
-            return intent, reason
-    if _is_title_like(raw_query, normalized_query, tokens):
-        return ContextRetrievalIntent.EXACT_OR_TITLE, "short_title_like_query"
-    if "?" in raw_query or _contains_marker(normalized_query, _SEMANTIC_MARKERS):
-        return ContextRetrievalIntent.SEMANTIC_PARAPHRASE, "semantic_question_marker"
-    return ContextRetrievalIntent.MIXED, "mixed_query_fallback"
+        Args:
+            raw_query: Original caller query text.
+            normalized_query: Case-folded single-space query text.
 
+        Returns:
+            Deterministic retrieval intent and bounded reason code.
+        """
+        tokens = _AdaptiveQueryClassifier.query_tokens(raw_query)
+        if _DATE_TOKEN_PATTERN.search(
+            raw_query
+        ) is not None and _AdaptiveQueryClassifier.is_title_like(
+            raw_query, normalized_query, tokens
+        ):
+            return ContextRetrievalIntent.EXACT_OR_TITLE, "dated_title_like_query"
+        ordered_rules = (
+            (
+                ContextRetrievalIntent.TEMPORAL_CURRENT_STATE,
+                _TEMPORAL_MARKERS,
+                "temporal_marker",
+            ),
+            (
+                ContextRetrievalIntent.EXPERIENTIAL,
+                _EXPERIENTIAL_MARKERS,
+                "experiential_marker",
+            ),
+            (
+                ContextRetrievalIntent.PROCEDURAL,
+                _PROCEDURAL_MARKERS,
+                "procedural_marker",
+            ),
+            (
+                ContextRetrievalIntent.GRAPH_ORIENTED,
+                _GRAPH_MARKERS,
+                "graph_marker",
+            ),
+        )
+        for intent, markers, reason in ordered_rules:
+            if _AdaptiveQueryClassifier.contains_marker(normalized_query, markers):
+                return intent, reason
+        if _AdaptiveQueryClassifier.is_title_like(raw_query, normalized_query, tokens):
+            return ContextRetrievalIntent.EXACT_OR_TITLE, "short_title_like_query"
+        if "?" in raw_query or _AdaptiveQueryClassifier.contains_marker(
+            normalized_query, _SEMANTIC_MARKERS
+        ):
+            return (
+                ContextRetrievalIntent.SEMANTIC_PARAPHRASE,
+                "semantic_question_marker",
+            )
+        return ContextRetrievalIntent.MIXED, "mixed_query_fallback"
 
-def _inferred_memory_functions(
-    intent: ContextRetrievalIntent,
-) -> tuple[MemoryFunction, ...]:
-    """Return only high-confidence functional-memory preferences for v1.
+    @staticmethod
+    def inferred_memory_functions(
+        intent: ContextRetrievalIntent,
+    ) -> tuple[MemoryFunction, ...]:
+        """Return only high-confidence functional-memory preferences for v1.
 
-    Args:
-        intent: Deterministic adaptive retrieval intent.
+        Args:
+            intent: Deterministic adaptive retrieval intent.
 
-    Returns:
-        Inferred soft MemoryFunction preferences, if confidence is high.
-    """
-    if intent is ContextRetrievalIntent.EXPERIENTIAL:
-        return (MemoryFunction.EXPERIENTIAL,)
-    if intent is ContextRetrievalIntent.PROCEDURAL:
-        return (MemoryFunction.PROCEDURAL,)
-    return ()
+        Returns:
+            Inferred soft MemoryFunction preferences, if confidence is high.
+        """
+        if intent is ContextRetrievalIntent.EXPERIENTIAL:
+            return (MemoryFunction.EXPERIENTIAL,)
+        if intent is ContextRetrievalIntent.PROCEDURAL:
+            return (MemoryFunction.PROCEDURAL,)
+        return ()
 
+    @staticmethod
+    def normalized_query(query: str) -> str:
+        """Return case-folded single-space query text for deterministic markers.
 
-def _normalized_query(query: str) -> str:
-    """Return case-folded single-space query text for deterministic markers.
+        Args:
+            query: Raw caller query text.
 
-    Args:
-        query: Raw caller query text.
+        Returns:
+            Normalized query text used only for deterministic classification.
+        """
+        return " ".join(query.casefold().split())
 
-    Returns:
-        Normalized query text used only for deterministic classification.
-    """
-    return " ".join(query.casefold().split())
+    @staticmethod
+    def query_tokens(query: str) -> tuple[str, ...]:
+        """Return stable alphanumeric/Korean query tokens.
 
+        Args:
+            query: Raw caller query text.
 
-def _query_tokens(query: str) -> tuple[str, ...]:
-    """Return stable alphanumeric/Korean query tokens.
+        Returns:
+            Ordered token sequence used by the title-like heuristic.
+        """
+        return tuple(match.group(0) for match in _QUERY_TOKEN_PATTERN.finditer(query))
 
-    Args:
-        query: Raw caller query text.
+    @staticmethod
+    def contains_marker(query: str, markers: tuple[str, ...]) -> bool:
+        """Return whether normalized query contains one explicit v1 marker.
 
-    Returns:
-        Ordered token sequence used by the title-like heuristic.
-    """
-    return tuple(match.group(0) for match in _QUERY_TOKEN_PATTERN.finditer(query))
+        Args:
+            query: Normalized query text.
+            markers: Explicit versioned marker phrases.
 
+        Returns:
+            Whether at least one marker occurs in the normalized query.
+        """
+        return any(marker in query for marker in markers)
 
-def _contains_marker(query: str, markers: tuple[str, ...]) -> bool:
-    """Return whether normalized query contains one explicit v1 marker.
+    @staticmethod
+    def is_title_like(
+        raw_query: str,
+        normalized_query: str,
+        tokens: tuple[str, ...],
+    ) -> bool:
+        """Recognize bounded identifier/title-like lookups without semantic guessing.
 
-    Args:
-        query: Normalized query text.
-        markers: Explicit versioned marker phrases.
+        Args:
+            raw_query: Original caller query text.
+            normalized_query: Normalized query text.
+            tokens: Deterministic query tokens.
 
-    Returns:
-        Whether at least one marker occurs in the normalized query.
-    """
-    return any(marker in query for marker in markers)
-
-
-def _is_title_like(
-    raw_query: str,
-    normalized_query: str,
-    tokens: tuple[str, ...],
-) -> bool:
-    """Recognize bounded identifier/title-like lookups without semantic guessing.
-
-    Args:
-        raw_query: Original caller query text.
-        normalized_query: Normalized query text.
-        tokens: Deterministic query tokens.
-
-    Returns:
-        Whether the query is safe to treat as a lexical title-like lookup.
-    """
-    if not tokens:
-        return False
-    if any(character in raw_query for character in "?!。"):
-        return False
-    if _contains_marker(normalized_query, _SEMANTIC_MARKERS):
-        return False
-    if _DATE_TOKEN_PATTERN.search(raw_query) is not None:
-        return True
-    if len(tokens) > _TITLE_LIKE_MAX_TOKENS:
-        return False
-    return len(raw_query.strip()) <= _TITLE_LIKE_MAX_CHARACTERS
+        Returns:
+            Whether the query is safe to treat as a lexical title-like lookup.
+        """
+        if not tokens:
+            return False
+        if any(character in raw_query for character in "?!。"):
+            return False
+        if _AdaptiveQueryClassifier.contains_marker(
+            normalized_query, _SEMANTIC_MARKERS
+        ):
+            return False
+        if _DATE_TOKEN_PATTERN.search(raw_query) is not None:
+            return True
+        if len(tokens) > _TITLE_LIKE_MAX_TOKENS:
+            return False
+        return len(raw_query.strip()) <= _TITLE_LIKE_MAX_CHARACTERS
 
 
 def _hybrid_budget(top_k: int) -> int:

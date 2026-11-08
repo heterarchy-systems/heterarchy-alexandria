@@ -16,9 +16,9 @@ from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.main import app
-from app.mcp_server.backend_api_client import AlexandriaApiClient, AlexandriaApiSettings
+from app.mcp_server.backend_api_client import AlexandriaApiClient
 from app.mcp_server.server_runtime import build_mcp_server
-from app.memory.application.reconciliation.cycles.memory_cycle_planning import (
+from app.memory.application.reconciliation.cycles.memory_cycle_hashing import (
     compact_source_hashes_match,
 )
 from app.memory.domain.entities.memory_compact import (
@@ -37,6 +37,7 @@ from app.obsidian.infrastructure.obsidian_vault_config_store import (
 from app.obsidian.infrastructure.repositories.obsidian_index_repository import (
     SqlAlchemyObsidianIndexRepository,
 )
+from app.platform.config.mcp_config import McpApiConfig
 from app.shared.infrastructure.database import Database
 
 
@@ -135,7 +136,7 @@ async def _database_session() -> AsyncIterator[AsyncSession]:
 def _client() -> AlexandriaApiClient:
     """Build the native MCP HTTP client over the real FastAPI app."""
     return AlexandriaApiClient(
-        AlexandriaApiSettings(base_url="http://testserver"),
+        McpApiConfig(base_url="http://testserver", timeout=30.0),
         transport=httpx.ASGITransport(app=app),
     )
 
@@ -348,8 +349,8 @@ async def _seed_cycle_source(server: Any) -> dict[str, Any]:
     )
     async with _database_session() as session:
         config = ObsidianVaultConfigStore(
-            default_vault_path=app.state.app_config.obsidian_vault_path,
-            default_alexandria_root=app.state.app_config.alexandria_obsidian_root,
+            default_vault_path=app.state.container.vault_config().obsidian_vault_path,
+            default_alexandria_root=app.state.container.vault_config().alexandria_obsidian_root,
             config_path=None,
         )
         service = ObsidianService(

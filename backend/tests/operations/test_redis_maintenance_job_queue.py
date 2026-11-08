@@ -2,17 +2,19 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import cast
 
 import anyio
 import pytest
 from redis.asyncio import Redis
+from tests.config_test_data import (
+    maintenance_configuration as maintenance_configuration,
+)
 
 from app.operations.application.maintenance_job_queue import (
     MaintenanceDeadLetterNotFoundError,
     MaintenanceDeadLetterSourceGoneError,
-    MaintenanceJobDelivery,
+    MaintenanceQueueUnavailableError,
     MaintenanceSubmissionRateLimitError,
 )
 from app.operations.domain.entities.maintenance_job import (
@@ -25,29 +27,31 @@ from app.operations.domain.event_enum.maintenance_job_enums import (
     MaintenanceJobKind,
     MaintenanceJobStatus,
 )
-from app.operations.infrastructure.redis_maintenance_job_codec import (
-    encode_batch_note_write_result,
+from app.operations.infrastructure.maintenance_codec.history import (
+    MaintenanceAttemptHistoryCodec,
 )
-from app.operations.infrastructure.redis_maintenance_job_consumer import (
-    RedisMaintenanceJobConsumer,
+from app.operations.infrastructure.maintenance_codec.results import (
+    MaintenanceResultCodec,
+)
+from app.operations.infrastructure.maintenance_codec.snapshots import (
+    MaintenanceSnapshotDecoder,
+)
+from app.operations.infrastructure.maintenance_codec.streams import (
+    RedisDeadLetterDecoder,
 )
 from app.operations.infrastructure.redis_maintenance_job_queue import (
     RedisMaintenanceJobSubmitter,
     create_maintenance_worker_client,
 )
-from app.platform.config.maintenance_queue_config import MaintenanceQueueConfig
+from app.platform.config.redis_config import MaintenanceQueueConfig
+
+pytestmark = pytest.mark.usefixtures("maintenance_configuration")
 
 
 class _FakeRedis:
     def __init__(self) -> None:
         self.eval_response: object = ["QUEUED", "job-1", "1-0"]
         self.status_fields = _status_fields()
-        self.hset_calls: list[dict[str, str]] = []
-        self.xack_calls: list[tuple[str, str, str]] = []
-        self.xadd_calls: list[tuple[str, dict[str, str], int, bool]] = []
-        self.xadd_returns: dict[str, str] = {}
-        self.expire_calls: list[tuple[str, int]] = []
-        self.attempt = 1
         self.dead_letter_entries: list[tuple[str, dict[str, str]]] = []
         self.source_entries: list[tuple[str, dict[str, str]]] = []
         self.xtrim_calls: list[tuple[str, int, bool]] = []
@@ -57,40 +61,6 @@ class _FakeRedis:
 
     async def hgetall(self, _key: str) -> dict[str, str]:
         return dict(self.status_fields)
-
-    async def hincrby(self, _key: str, _field: str, _amount: int) -> int:
-        return self.attempt
-
-    async def hset(
-        self,
-        _key: str,
-        mapping: dict[str, str],
-    ) -> int:
-        self.hset_calls.append(dict(mapping))
-        return len(mapping)
-
-    async def expire(self, key: str, seconds: int) -> bool:
-        self.expire_calls.append((key, seconds))
-        return True
-
-    async def xack(self, stream: str, group: str, stream_id: str) -> int:
-        self.xack_calls.append((stream, group, stream_id))
-        return 1
-
-    async def xadd(
-        self,
-        stream: str,
-        fields: dict[str, str],
-        *,
-        maxlen: int,
-        approximate: bool,
-    ) -> str:
-        self.xadd_calls.append((stream, dict(fields), maxlen, approximate))
-        if stream.endswith("dead:v1"):
-            entry_id = f"{len(self.dead_letter_entries) + 1}-0"
-            self.dead_letter_entries.append((entry_id, dict(fields)))
-            return entry_id
-        return self.xadd_returns.get(stream, "2-0")
 
     async def xrevrange(
         self,
@@ -212,52 +182,6 @@ def test_enqueue_exposes_retry_after_when_submission_budget_is_exceeded() -> Non
     anyio.run(scenario)
 
 
-def test_nonterminal_failure_remains_pending_for_xautoclaim_retry() -> None:
-    """A retryable failure should not acknowledge the Streams delivery."""
-
-    async def scenario() -> tuple[bool, _FakeRedis]:
-        fake = _FakeRedis()
-        queue = _consumer(fake)
-        terminal = await queue.mark_failed(
-            _delivery(),
-            attempt=1,
-            error_summary="transient",
-        )
-        return terminal, fake
-
-    terminal, fake = anyio.run(scenario)
-
-    assert terminal is False
-    assert fake.xack_calls == []
-    assert fake.xadd_calls == []
-    assert fake.hset_calls[-1]["status"] == MaintenanceJobStatus.RETRYING.value
-
-
-def test_terminal_failure_is_dead_lettered_and_acknowledged() -> None:
-    """The configured final attempt should move evidence to the dead-letter stream."""
-
-    async def scenario() -> tuple[bool, _FakeRedis]:
-        fake = _FakeRedis()
-        queue = _consumer(fake)
-        terminal = await queue.mark_failed(
-            _delivery(),
-            attempt=3,
-            error_summary="permanent",
-        )
-        return terminal, fake
-
-    terminal, fake = anyio.run(scenario)
-
-    assert terminal is True
-    stream_name, fields, maxlen, approximate = fake.xadd_calls[-1]
-    assert stream_name == "alexandria:maintenance:dead:v1"
-    assert fields["job_id"] == "job-1"
-    assert maxlen == 10000
-    assert approximate is True
-    assert fake.xack_calls[-1][-1] == "1-0"
-    assert fake.hset_calls[-1]["status"] == MaintenanceJobStatus.FAILED.value
-
-
 def test_worker_client_read_timeout_has_headroom_above_stream_block() -> None:
     """Blocking Stream reads should not race a nearly identical socket timeout."""
     client = create_maintenance_worker_client(
@@ -274,7 +198,7 @@ def test_worker_client_read_timeout_has_headroom_above_stream_block() -> None:
 
 def test_batch_note_write_result_roundtrips_through_status_hash() -> None:
     """A batch write job result decodes by kind from the status hash."""
-    encoded = encode_batch_note_write_result(
+    encoded = MaintenanceResultCodec.encode_batch_note_write_result(
         BatchNoteWriteJobResult(
             succeeded=1,
             conflicted=1,
@@ -394,19 +318,49 @@ def test_replay_dead_letter_trimmed_source_raises_source_gone() -> None:
     anyio.run(scenario)
 
 
+def test_maintenance_codec_rejects_corrupt_enums_and_json_with_queue_unavailable_error() -> (
+    None
+):
+    """Corrupt enum values or malformed JSON in Redis payloads raise MaintenanceQueueUnavailableError."""
+    bad_status_fields = _status_fields()
+    bad_status_fields["status"] = "UNKNOWN_STATUS"
+    with pytest.raises(MaintenanceQueueUnavailableError):
+        MaintenanceSnapshotDecoder.decode_job_snapshot(bad_status_fields)
+
+    bad_kind_fields = _status_fields()
+    bad_kind_fields["kind"] = "UNKNOWN_KIND"
+    with pytest.raises(MaintenanceQueueUnavailableError):
+        MaintenanceSnapshotDecoder.decode_job_snapshot(bad_kind_fields)
+
+    _, stream_fields = _source_entry("1-0")
+    stream_fields["kind"] = "UNKNOWN_KIND"
+    with pytest.raises(MaintenanceQueueUnavailableError):
+        RedisDeadLetterDecoder.decode_dead_letter_source_request(
+            [("1-0", stream_fields)]
+        )
+
+    with pytest.raises(MaintenanceQueueUnavailableError):
+        MaintenanceResultCodec.decode_embedding_result("{invalid-json")
+
+    with pytest.raises(MaintenanceQueueUnavailableError):
+        MaintenanceResultCodec.decode_batch_note_write_result("{invalid-json")
+
+    with pytest.raises(MaintenanceQueueUnavailableError):
+        MaintenanceAttemptHistoryCodec.decode_text("{invalid-json")
+
+    with pytest.raises(MaintenanceQueueUnavailableError):
+        MaintenanceAttemptHistoryCodec.decode_attempt_history(b"\xff\xfe")
+
+    with pytest.raises(MaintenanceQueueUnavailableError):
+        MaintenanceAttemptHistoryCodec.decode_text(
+            '[{"attempt":true,"status":"FAILED","occurred_at":"2026-08-03T10:00:00+00:00"}]'
+        )
+
+
 def _submitter(fake: _FakeRedis) -> RedisMaintenanceJobSubmitter:
     return RedisMaintenanceJobSubmitter(
         client=cast(Redis, fake),
         config=_config(),
-    )
-
-
-def _consumer(fake: _FakeRedis) -> RedisMaintenanceJobConsumer:
-    submitter = _submitter(fake)
-    return RedisMaintenanceJobConsumer(
-        client=cast(Redis, fake),
-        config=_config(),
-        submitter=submitter,
     )
 
 
@@ -424,24 +378,6 @@ def _request() -> MaintenanceJobRequest:
         source_id="scheduler-1",
         limit=250,
         force=False,
-    )
-
-
-def _delivery() -> MaintenanceJobDelivery:
-    return MaintenanceJobDelivery(
-        stream_id="1-0",
-        job=MaintenanceJobSnapshot(
-            job_id="job-1",
-            kind=MaintenanceJobKind.EMBEDDING_REINDEX,
-            status=MaintenanceJobStatus.RUNNING,
-            requested_by="manual",
-            source_id="scheduler-1",
-            limit=250,
-            force=False,
-            attempts=1,
-            submitted_at=datetime(2026, 8, 7, tzinfo=UTC),
-            stream_id="1-0",
-        ),
     )
 
 

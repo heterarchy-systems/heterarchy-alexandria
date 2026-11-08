@@ -31,12 +31,14 @@ from app.memory.domain.types.context_payload_types import (
     ContextBriefPayload,
     ContextMetadataPayload,
 )
+from app.memory.interface.schemas.context.context_brief_schema import (
+    ContextBriefResponse,
+)
 from app.memory.interface.schemas.context.context_mapping import (
     match_payload,
     pack_payload,
 )
-from app.memory.interface.schemas.context.context_retrieval_schema import (
-    ContextBriefResponse,
+from app.memory.interface.schemas.context.context_search_schema import (
     ContextSearchMatchResponse,
 )
 

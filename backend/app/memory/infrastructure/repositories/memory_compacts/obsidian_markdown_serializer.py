@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import cast
 
 from app.memory.domain.entities.memory_compact import MemoryCompact
 from app.memory.infrastructure.repositories.memory_compacts.obsidian_markdown_contracts import (
@@ -11,12 +10,11 @@ from app.memory.infrastructure.repositories.memory_compacts.obsidian_markdown_co
     DEFAULT_MEMORY_COMPACT_SOURCE,
     DEFAULT_MEMORY_COMPACT_TAGS,
     FRONTMATTER_DELIMITER,
+    CompactFrontmatterValue,
 )
 from app.shared.serialization.orjson_codec import dumps_json
 from app.shared.types.extra_types import JSONValue
 from app.shared.types.types_convert_utils import aware_utc_datetime
-
-type CompactFrontmatterValue = str | bool | tuple[str, ...] | None
 
 
 def serialize_compact(compact: MemoryCompact) -> str:
@@ -28,7 +26,7 @@ def serialize_compact(compact: MemoryCompact) -> str:
     Returns:
         Markdown note text with YAML frontmatter.
     """
-    source_refs = [
+    source_refs: list[JSONValue] = [
         {
             "id": source_ref.id,
             "compact_id": source_ref.compact_id,
@@ -43,7 +41,12 @@ def serialize_compact(compact: MemoryCompact) -> str:
     source_ref_links = tuple(
         link
         for source_ref in compact.source_refs
-        if (link := _obsidian_source_link(source_ref.detail_path)) is not None
+        if (
+            link := _CompactMarkdownFormatter.obsidian_source_link(
+                source_ref.detail_path
+            )
+        )
+        is not None
     )
     frontmatter: dict[str, CompactFrontmatterValue] = {
         "alexandria_type": ALEXANDRIA_MEMORY_COMPACT_TYPE,
@@ -52,11 +55,11 @@ def serialize_compact(compact: MemoryCompact) -> str:
         "status": compact.status.value,
         "source": DEFAULT_MEMORY_COMPACT_SOURCE,
         "project": compact.project,
-        "covered_from": _isoformat(compact.covered_from),
-        "covered_to": _isoformat(compact.covered_to),
-        "created_at": _isoformat(compact.created_at),
-        "updated_at": _isoformat(compact.updated_at),
-        "archived_at": _isoformat(compact.archived_at)
+        "covered_from": _CompactMarkdownFormatter.isoformat(compact.covered_from),
+        "covered_to": _CompactMarkdownFormatter.isoformat(compact.covered_to),
+        "created_at": _CompactMarkdownFormatter.isoformat(compact.created_at),
+        "updated_at": _CompactMarkdownFormatter.isoformat(compact.updated_at),
+        "archived_at": _CompactMarkdownFormatter.isoformat(compact.archived_at)
         if compact.archived_at is not None
         else None,
         "review_verdict": compact.review_verdict.value
@@ -70,7 +73,7 @@ def serialize_compact(compact: MemoryCompact) -> str:
         "review_max_score": str(compact.review_max_score)
         if compact.review_max_score is not None
         else None,
-        "reviewed_at": _isoformat(compact.reviewed_at)
+        "reviewed_at": _CompactMarkdownFormatter.isoformat(compact.reviewed_at)
         if compact.reviewed_at is not None
         else None,
         "source_set_hash": compact.source_set_hash,
@@ -78,92 +81,106 @@ def serialize_compact(compact: MemoryCompact) -> str:
         "generation_revision": str(compact.generation_revision)
         if compact.generation_revision is not None
         else None,
-        "generated_at": _isoformat(compact.generated_at)
+        "generated_at": _CompactMarkdownFormatter.isoformat(compact.generated_at)
         if compact.generated_at is not None
         else None,
-        "source_refs": dumps_json(cast(JSONValue, source_refs)).decode("utf-8"),
+        "source_refs": dumps_json(source_refs).decode("utf-8"),
         "source_ref_links": source_ref_links,
     }
     lines = [FRONTMATTER_DELIMITER]
     for key, value in frontmatter.items():
-        lines.extend(_yaml_property_lines(key, value))
+        lines.extend(_CompactMarkdownFormatter.yaml_property_lines(key, value))
     lines.append(FRONTMATTER_DELIMITER)
     body = compact.markdown_body.rstrip("\n")
     return "\n".join(lines) + f"\n{body}\n"
 
 
-def _isoformat(value: datetime) -> str:
-    """Execute isoformat.
+class _CompactMarkdownFormatter:
+    """Format YAML frontmatter scalars, block sequences, and wikilink references."""
 
-    Args:
-        value: Value being processed.
+    @staticmethod
+    def isoformat(value: datetime) -> str:
+        """Format a datetime as a canonical UTC ISO-8601 string with a ``Z`` suffix.
 
-    Returns:
-        str result produced by isoformat.
-    """
-    return aware_utc_datetime(value).isoformat().replace("+00:00", "Z")
+        Args:
+            value: Datetime to format.
 
+        Returns:
+            UTC ISO-8601 timestamp string ending in ``Z``.
+        """
+        return aware_utc_datetime(value).isoformat().replace("+00:00", "Z")
 
-def _yaml_scalar(value: CompactFrontmatterValue) -> str:
-    """Execute yaml scalar.
+    @staticmethod
+    def yaml_scalar(value: CompactFrontmatterValue) -> str:
+        """Render a scalar frontmatter value as a YAML token.
 
-    Args:
-        value: Value being processed.
+        Args:
+            value: Scalar frontmatter value to render.
 
-    Returns:
-        str result produced by yaml scalar.
-    """
-    if value is None:
-        return "null"
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    if isinstance(value, tuple):
-        raise TypeError("list properties must be rendered as block sequences")
-    if value.startswith("[") and value.endswith("]"):
-        return value
-    return _quoted_yaml_string(value)
+        Returns:
+            Rendered YAML scalar token string.
 
+        Raises:
+            TypeError: When a tuple collection is passed instead of a scalar value.
+        """
+        if value is None:
+            return "null"
+        if isinstance(value, bool):
+            return "true" if value else "false"
+        if isinstance(value, tuple):
+            raise TypeError("list properties must be rendered as block sequences")
+        return _CompactMarkdownFormatter.quoted_yaml_string(value)
 
-def _quoted_yaml_string(value: str) -> str:
-    """Execute quoted yaml string.
+    @staticmethod
+    def quoted_yaml_string(value: str) -> str:
+        """Wrap a string in single quotes with YAML single-quote escaping.
 
-    Args:
-        value: Value being processed.
+        Args:
+            value: Raw string value to quote.
 
-    Returns:
-        str result produced by quoted yaml string.
-    """
-    escaped = value.replace("'", "''")
-    return f"'{escaped}'"
+        Returns:
+            Single-quoted YAML string literal.
+        """
+        escaped = value.replace("'", "''")
+        return f"'{escaped}'"
 
+    @staticmethod
+    def yaml_property_lines(key: str, value: CompactFrontmatterValue) -> list[str]:
+        """Render one frontmatter key-value pair as one or more YAML lines.
 
-def _yaml_property_lines(key: str, value: CompactFrontmatterValue) -> list[str]:
-    """Execute yaml property lines.
+        Args:
+            key: YAML frontmatter property name.
+            value: Scalar or tuple collection property value.
 
-    Args:
-        key: Key used by this operation.
-        value: Value being processed.
+        Returns:
+            Ordered YAML frontmatter lines for the property.
+        """
+        if isinstance(value, tuple):
+            if not value:
+                return [f"{key}: []"]
+            return [
+                f"{key}:",
+                *[
+                    f"  - {_CompactMarkdownFormatter.quoted_yaml_string(item)}"
+                    for item in value
+                ],
+            ]
+        if key == "source_refs" and isinstance(value, str):
+            return [f"{key}: {value}"]
+        return [f"{key}: {_CompactMarkdownFormatter.yaml_scalar(value)}"]
 
-    Returns:
-        list[str] result produced by yaml property lines.
-    """
-    if isinstance(value, tuple):
-        if not value:
-            return [f"{key}: []"]
-        return [f"{key}:", *[f"  - {_quoted_yaml_string(item)}" for item in value]]
-    return [f"{key}: {_yaml_scalar(value)}"]
+    @staticmethod
+    def obsidian_source_link(detail_path: str) -> str | None:
+        """Convert a vault-relative Markdown detail path into an Obsidian wikilink.
 
+        Args:
+            detail_path: Source reference detail path.
 
-def _obsidian_source_link(detail_path: str) -> str | None:
-    """Execute obsidian source link.
-
-    Args:
-        detail_path: Detail path used by this operation.
-
-    Returns:
-        str | None result produced by obsidian source link.
-    """
-    normalized = detail_path.strip().lstrip("/")
-    if not normalized.lower().endswith(".md") or "://" in normalized:
-        return None
-    return f"[[{normalized[:-3]}]]"
+        Returns:
+            Obsidian wikilink string when ``detail_path`` targets a vault Markdown note,
+            otherwise None.
+        """
+        normalized = detail_path.strip().lstrip("/")
+        if not normalized.lower().endswith(".md") or "://" in normalized:
+            return None
+        return f"[[{normalized[:-3]}]]"

@@ -44,8 +44,14 @@ class RecoveryRunMutationOperations:
             database: Shared database coordinator.
             context_service: Context embedding recovery boundary.
             obsidian_service: Obsidian index recovery boundary.
-            context_service_factory: Factory that creates context service.
-            obsidian_service_factory: Factory that creates obsidian service.
+            context_service_factory: Optional factory that creates a request-scoped context service.
+            obsidian_service_factory: Optional factory that creates a request-scoped obsidian service.
+            embedding_recovery_callback: Optional bounded embedding recovery callback.
+            graph_rebuild_callback: Optional callback rebuilding the PostgreSQL graph projection.
+            link_diagnostics_callback: Optional callback reading bounded graph link diagnostics.
+            dlq_reconcile_callback: Optional callback reading maintenance dead-letter diagnostics.
+            embedding_batch_size: Maximum records processed per embedding recovery batch.
+            embedding_max_batches: Maximum batches allowed during bounded embedding recovery.
         """
         self._database = database
         self._context_service_factory = context_service_factory or (
@@ -65,7 +71,10 @@ class RecoveryRunMutationOperations:
         """Reindex the Obsidian vault.
 
         Returns:
-            Reindex operation result.
+            Serialized Obsidian vault reindex summary metrics and diagnostics.
+
+        Raises:
+            Exception: Propagates any reindex failure after rolling back the database session.
         """
         async with self._database.request_session() as session:
             try:
@@ -158,7 +167,10 @@ class RecoveryRunMutationOperations:
         """Reindex context embeddings.
 
         Returns:
-            Reindex operation result.
+            Serialized context embedding reindex batch or scan metrics.
+
+        Raises:
+            RuntimeError: When batch evidence is missing, exceeds bounds, or returns empty.
         """
         async with self._database.request_session() as session:
             callback_result: JSONObject | None = None
@@ -197,13 +209,27 @@ class RecoveryRunMutationOperations:
         }
 
     async def revalidate_graph(self) -> JSONObject:
-        """Rebuild the existing PostgreSQL graph projection owner."""
+        """Rebuild the existing PostgreSQL graph projection owner.
+
+        Returns:
+            Graph projection rebuild outcome payload.
+
+        Raises:
+            RuntimeError: When the graph rebuild callback is not wired.
+        """
         if self._graph_rebuild_callback is None:
             raise RuntimeError("GRAPH_REBUILD_UNAVAILABLE: graph owner is not wired")
         return await self._graph_rebuild_callback()
 
     async def revalidate_links(self) -> JSONObject:
-        """Read bounded graph/link diagnostics without repairing links."""
+        """Read bounded graph/link diagnostics without repairing links.
+
+        Returns:
+            Bounded graph link diagnostic payload.
+
+        Raises:
+            RuntimeError: When the link diagnostics callback is not wired.
+        """
         if self._link_diagnostics_callback is None:
             raise RuntimeError(
                 "LINK_DIAGNOSTICS_UNAVAILABLE: graph issue reader is not wired"
@@ -211,7 +237,14 @@ class RecoveryRunMutationOperations:
         return await self._link_diagnostics_callback()
 
     async def reconcile_dead_letters(self) -> JSONObject:
-        """Read maintenance dead-letter evidence without retrying effects."""
+        """Read maintenance dead-letter evidence without retrying effects.
+
+        Returns:
+            Maintenance dead-letter queue reconciliation payload.
+
+        Raises:
+            RuntimeError: When the dead-letter reconciliation callback is not wired.
+        """
         if self._dlq_reconcile_callback is None:
             raise RuntimeError("DLQ_RECONCILE_UNAVAILABLE: DLQ reader is not wired")
         return await self._dlq_reconcile_callback()

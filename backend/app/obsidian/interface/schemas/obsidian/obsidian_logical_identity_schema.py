@@ -5,12 +5,12 @@ from __future__ import annotations
 from datetime import date as calendar_date
 from typing import Annotated
 
-from pydantic import StringConstraints, field_validator
+from pydantic import Field, StringConstraints, field_validator
 
 from app.obsidian.domain.contracts.obsidian_logical_identity import (
     ObsidianLogicalIdentity,
 )
-from app.shared.schemas.common_schemas import StrictSchemaModel, described_field
+from app.shared.schemas.common_schemas import StrictSchemaModel
 
 _IDENTITY_TEXT = StringConstraints(strict=True, min_length=1, max_length=256)
 
@@ -21,12 +21,12 @@ class ObsidianLogicalIdentitySchema(StrictSchemaModel):
     project: Annotated[
         str,
         _IDENTITY_TEXT,
-        described_field("Project for this Obsidian logical identity."),
+        Field(description="Project for this Obsidian logical identity."),
     ]
     report: Annotated[
         str,
         _IDENTITY_TEXT,
-        described_field("Report family for this Obsidian logical identity."),
+        Field(description="Report family for this Obsidian logical identity."),
     ]
     date: Annotated[
         str,
@@ -36,17 +36,17 @@ class ObsidianLogicalIdentitySchema(StrictSchemaModel):
             max_length=10,
             pattern=r"^\d{4}-\d{2}-\d{2}$",
         ),
-        described_field("ISO calendar date for this Obsidian logical identity."),
+        Field(description="ISO calendar date for this Obsidian logical identity."),
     ]
     entity: Annotated[
         str,
         _IDENTITY_TEXT,
-        described_field("Entity for this Obsidian logical identity."),
+        Field(description="Entity for this Obsidian logical identity."),
     ]
     edition: Annotated[
         str | None,
         StringConstraints(strict=True, min_length=1, max_length=256),
-        described_field("Optional edition for this Obsidian logical identity."),
+        Field(description="Optional edition for this Obsidian logical identity."),
     ] = None
 
     @field_validator("project", "report", "entity", mode="after")

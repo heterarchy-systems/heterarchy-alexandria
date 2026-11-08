@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from contextlib import AbstractAsyncContextManager
 from dataclasses import replace
 from datetime import UTC, datetime
@@ -35,9 +34,6 @@ from app.memory.domain.repositories.memory_compacts.memory_compact_repository_co
 from app.memory.infrastructure.repositories.memory_compacts.creation_lock import (
     MemoryCompactCreationLock,
 )
-from app.memory.infrastructure.repositories.memory_compacts.critical_task import (
-    wait_for_critical_task,
-)
 from app.memory.infrastructure.repositories.memory_compacts.note_store import (
     MemoryCompactNoteStore,
 )
@@ -45,6 +41,7 @@ from app.shared.exceptions.memory_compact_exceptions import (
     MemoryCompactNotFoundError,
     MemoryCompactReviewConflictError,
 )
+from app.shared.infrastructure.critical_task import run_critical_sync
 from app.shared.infrastructure.identifiers import new_uuid
 from app.shared.types.types_convert_utils import aware_utc_datetime
 
@@ -54,6 +51,30 @@ class MemoryCompactCreateRepositoryDelegate:
 
     _store: MemoryCompactNoteStore
     _creation_lock: MemoryCompactCreationLock
+
+    async def creation_snapshot(
+        self,
+        project: str | None,
+        status: MemoryCompactStatus,
+    ) -> list[MemoryCompact]:
+        """Read one exact project/status snapshot for duplicate detection.
+
+        Args:
+            project: Exact project scope, including the default ``None`` project.
+            status: Exact lifecycle status to inspect.
+
+        Returns:
+            Matching canonical compacts ordered by newest coverage first.
+        """
+        async with self._creation_lock.hold():
+            stored_compacts = await run_critical_sync(self._store.read_all)
+        compacts = [
+            compact
+            for compact in stored_compacts
+            if compact.project == project and compact.status is status
+        ]
+        compacts.sort(key=lambda compact: compact.covered_to, reverse=True)
+        return compacts
 
     def creation_guard(self) -> AbstractAsyncContextManager[None]:
         """Serialize the full application-level check-and-create section.
@@ -98,10 +119,9 @@ class MemoryCompactCreateRepositoryDelegate:
             generated_at=now,
         )
         async with self._creation_lock.hold():
-            persistence_task = asyncio.ensure_future(
-                asyncify(_persist_created_compact)(self._store, compact)
+            await run_critical_sync(
+                lambda: _persist_created_compact(self._store, compact)
             )
-            await wait_for_critical_task(persistence_task)
             return _require_compact(self._store, compact_id)
 
 

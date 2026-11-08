@@ -1,0 +1,23 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "heterarchy-alexandria",
+  "version": "0.1.1",
+  "description": "Alexandria project memory, canonical Markdown storage, reviewed CURRENT handoffs, graph diagnosis and bounded operational recovery.",
+  "extensions": {
+    "com.openai": {
+      "apps": "./.app.json",
+      "interface": {
+        "displayName": "Alexandria",
+        "shortDescription": "프로젝트 기억·지식 저장소",
+        "longDescription": "기존 Alexandria MCP 서버에 연결하여 프로젝트 기억과 근거를 조회하고, 요청된 지식을 안전하게 저장하며, CURRENT 요약 검토·그래프 진단·운영 복구를 돕습니다. 저장소의 7개 운영 스킬을 포함합니다. 서버 접근에는 OAuth 인증이 필요하며, 실제 기능 가용성은 연결된 서버 상태에 따릅니다.",
+        "category": "Productivity",
+        "capabilities": [],
+        "defaultPrompt": [
+          "이 프로젝트의 기존 결정과 근거를 Alexandria에서 찾아줘.",
+          "이 내용을 Alexandria에 중복 없이 안전하게 저장해줘.",
+          "프로젝트 CURRENT 요약을 근거와 함께 검토해줘."
+        ]
+      }
+    }
+  }
+}

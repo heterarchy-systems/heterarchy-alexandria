@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from inspect import isawaitable
-from typing import cast
 
 from app.memory.application.contexts.records.context_service_ports import (
     ContextRecoveryPort,
@@ -52,6 +50,6 @@ async def resolve_recovery_service[RecoveryServiceT](
         Resolved recovery service instance.
     """
     candidate = factory()
-    if isawaitable(candidate):
-        return await cast(Awaitable[RecoveryServiceT], candidate)
+    if isinstance(candidate, Awaitable):
+        return await candidate
     return candidate

@@ -16,7 +16,7 @@ from tests.memory.test_memory_compact_service import (
     _source_ref,
 )
 
-from app.mcp_server.backend_api_client import AlexandriaApiClient, AlexandriaApiSettings
+from app.mcp_server.backend_api_client import AlexandriaApiClient
 from app.mcp_server.tools.memory_compacts.memory_compact_tools import (
     alexandria_mark_memory_compact_current,
 )
@@ -35,6 +35,7 @@ from app.memory.domain.event_enum.memory_compact_enums import MemoryCompactStatu
 from app.memory.infrastructure.repositories.memory_compact_repository import (
     ObsidianMemoryCompactRepository,
 )
+from app.platform.config.mcp_config import McpApiConfig
 from app.shared.exceptions.memory_compact_exceptions import (
     MemoryCompactReviewConflictError,
 )
@@ -202,7 +203,7 @@ def test_mark_current_adapter_posts_review_hash_fence() -> None:
         return httpx.Response(200, content=b'{"id": "compact-1", "status": "CURRENT"}')
 
     client = AlexandriaApiClient(
-        AlexandriaApiSettings(base_url="http://backend:8000", timeout=5.0),
+        McpApiConfig(base_url="http://backend:8000", timeout=5.0),
         transport=httpx.MockTransport(transport),
     )
 

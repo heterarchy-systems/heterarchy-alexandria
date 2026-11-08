@@ -30,7 +30,7 @@ def read_mcp_protected_resource_metadata(request: Request) -> JSONObject:
         OAuth protected-resource metadata payload.
     """
     try:
-        config = cast(McpProtectedResourceConfig, request.app.state.app_config)
+        config = cast(McpProtectedResourceConfig, request.app.state.mcp_config)
     except AttributeError:
-        config = DefaultMcpProtectedResourceConfig()
+        config = DefaultMcpProtectedResourceConfig(mcp_oauth_resource=None)
     return protected_resource_metadata(request, config)

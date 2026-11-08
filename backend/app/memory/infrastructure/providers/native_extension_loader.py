@@ -8,7 +8,7 @@ from app.memory.infrastructure.providers.native_context_retrieval_kernel_provide
     NativeContextRetrievalKernelProvider,
     NativeRetrievalKernelModule,
 )
-from app.shared.infrastructure.native_compute_extension import (
+from app.shared.infrastructure.native_compute.native_compute_extension import (
     load_native_compute_module,
 )
 

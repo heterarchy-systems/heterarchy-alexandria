@@ -28,6 +28,9 @@ from app.operations.application.readiness.operational_readiness_cache import (
 from app.operations.application.readiness.operational_readiness_service import (
     OperationalReadinessService,
 )
+from app.operations.application.readiness.operational_retrieval_canary_service import (
+    OperationalRetrievalCanaryService,
+)
 from app.operations.application.steward.memory_steward_service import (
     MemoryStewardDiagnoseService,
     MemoryStewardSealService,
@@ -44,6 +47,9 @@ from app.shared.infrastructure.database import Database
 
 
 class _ReindexRequiredContextService:
+    def __init__(self, *, fallback_canary: bool = False) -> None:
+        self._fallback_canary = fallback_canary
+
     async def rag_health_with_index_status(self) -> RagDependencyHealth:
         return RagDependencyHealth(
             fts=RagHealthState.HEALTHY,
@@ -77,7 +83,9 @@ class _ReindexRequiredContextService:
         return ContextPack(
             query=query,
             strategy=strategy,
-            effective_strategy=strategy,
+            effective_strategy=RagStrategy.FTS_ONLY
+            if self._fallback_canary
+            else strategy,
             warnings=(),
             recall_scopes=(),
             matches=(),
@@ -111,15 +119,21 @@ class _HealthyVaultObsidianService:
         )
 
 
-def _readiness_service(tmp_path: Path) -> tuple[OperationalReadinessService, Database]:
+def _readiness_service(
+    tmp_path: Path, *, fallback_canary: bool = False
+) -> tuple[OperationalReadinessService, Database]:
     database = Database(
         database_url=os.environ["DATABASE_URL"],
         create_schema=True,
     )
     anyio.run(database.initialize)
+    context_service = _ReindexRequiredContextService(fallback_canary=fallback_canary)
     service = OperationalReadinessService(
         database=database,
-        context_service=_ReindexRequiredContextService(),
+        context_service=context_service,
+        retrieval_canary_service=OperationalRetrievalCanaryService(
+            context_service, query="Alexandria readiness canary", limit=3
+        ),
         obsidian_service=_HealthyVaultObsidianService(tmp_path),
         reconciliation_service=None,
         readiness_cache=NoopOperationalReadinessCache(),
@@ -164,6 +178,31 @@ def test_steward_seal_reports_ready_with_residuals(tmp_path: Path) -> None:
 
     assert overall == "READY_WITH_RESIDUALS"
     assert "RAG_VECTOR_REINDEX_REQUIRED" in codes
+
+
+def test_steward_seal_preserves_readiness_canary_blockers(tmp_path: Path) -> None:
+    """Actual retrieval fallback must prevent a successful circulation seal."""
+    service, database = _readiness_service(tmp_path, fallback_canary=True)
+
+    async def scenario() -> dict[str, object]:
+        try:
+            response = await memory_steward_seal(
+                service=MemoryStewardSealService(service)
+            )
+            return response.model_dump(mode="json")
+        finally:
+            await database.shutdown()
+
+    payload = anyio.run(scenario)
+
+    readiness = payload["readiness"]
+    assert isinstance(readiness, dict)
+    assert readiness["overall_status"] == "NOT_READY"
+    assert readiness["blockers"] == [
+        "retrieval_canary_vector_only_failed",
+        "retrieval_canary_hybrid_failed",
+    ]
+    assert payload["overall_status"] == "NOT_READY"
 
 
 def test_steward_router_handlers_expose_http_contract(tmp_path: Path) -> None:

@@ -25,7 +25,7 @@ from app.memory.domain.types.context_change_cursor import (
 from app.memory.infrastructure.repositories.context_repository import (
     SqlAlchemyContextRepository,
 )
-from app.memory.infrastructure.repositories.contexts.records.context_change_log_writer import (
+from app.memory.infrastructure.repositories.contexts.change_log.context_change_log_writer import (
     context_change_content_hash,
     record_context_change,
 )

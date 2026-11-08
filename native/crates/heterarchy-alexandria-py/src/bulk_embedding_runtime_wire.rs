@@ -1,11 +1,14 @@
 //! Strict JSON wire for prepare -> `FastEmbed` inference -> finalize in one native call.
 
+use fastembed::TextEmbedding;
 use heterarchy_alexandria_core::bulk_embedding::{
     BULK_EMBEDDING_VERSION, BulkEmbeddingPolicy, BulkEmbeddingRequest, EmbeddingDocumentInput,
     EmbeddingInputKind, EmbeddingModelContract, finalize_embedding_batch, prepare_embedding_batch,
 };
 use heterarchy_alexandria_core::document_analysis::DocumentId;
 use serde::Deserialize;
+
+use crate::fastembed_runtime::EMBEDDING_RUNTIME_CONTRACT_VERSION;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -19,8 +22,7 @@ struct BulkEmbeddingRuntimeWire {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct RuntimeConfigWire {
-    cache_directory: Option<String>,
-    threads: usize,
+    version: u16,
 }
 
 #[derive(Debug, Deserialize)]
@@ -53,25 +55,20 @@ struct EmbeddingDocumentWire {
     heading: Option<String>,
 }
 
-pub(crate) fn run_bulk_embedding_payload(payload: &[u8]) -> Result<Vec<u8>, String> {
+pub(crate) fn run_bulk_embedding_payload(
+    payload: &[u8],
+    model: &mut TextEmbedding,
+) -> Result<Vec<u8>, String> {
     let wire: BulkEmbeddingRuntimeWire = serde_json::from_slice(payload)
         .map_err(|error| format!("NATIVE_BULK_EMBEDDING_INPUT_ERROR: {error}"))?;
     validate_versions(wire.contract_version, wire.embedding_version)?;
-    if wire.runtime.threads == 0 {
-        return Err(
-            "NATIVE_BULK_EMBEDDING_RUNTIME_ERROR: threads must be greater than zero".to_owned(),
-        );
-    }
+    validate_runtime_version(wire.runtime.version)?;
     let batch_size = wire.request.batch_size;
     let request = request_from_wire(wire.request)?;
     let preparation = prepare_embedding_batch(request)
         .map_err(|error| format!("NATIVE_BULK_EMBEDDING_INPUT_ERROR: {error}"))?;
-    let inference_batches = crate::fastembed_runtime::infer_prepared_batches(
-        &preparation,
-        wire.runtime.cache_directory.as_deref(),
-        wire.runtime.threads,
-        batch_size,
-    )?;
+    let inference_batches =
+        crate::fastembed_runtime::infer_prepared_batches(&preparation, model, batch_size)?;
     let result = finalize_embedding_batch(preparation, inference_batches)
         .map_err(|error| format!("NATIVE_BULK_EMBEDDING_RESULT_ERROR: {error}"))?;
     serde_json::to_vec(&result)
@@ -83,6 +80,15 @@ fn validate_versions(contract_version: u16, embedding_version: u16) -> Result<()
     if embedding_version != BULK_EMBEDDING_VERSION {
         return Err(format!(
             "NATIVE_BULK_EMBEDDING_CONTRACT_ERROR: expected embedding version {BULK_EMBEDDING_VERSION}, found {embedding_version}"
+        ));
+    }
+    Ok(())
+}
+
+fn validate_runtime_version(runtime_version: u16) -> Result<(), String> {
+    if runtime_version != EMBEDDING_RUNTIME_CONTRACT_VERSION {
+        return Err(format!(
+            "NATIVE_BULK_EMBEDDING_CONTRACT_ERROR: expected embedding runtime version {EMBEDDING_RUNTIME_CONTRACT_VERSION}, found {runtime_version}"
         ));
     }
     Ok(())
@@ -132,40 +138,15 @@ fn document_from_wire(wire: EmbeddingDocumentWire) -> Result<EmbeddingDocumentIn
 
 #[cfg(test)]
 mod tests {
-    use super::run_bulk_embedding_payload;
+    use super::validate_runtime_version;
 
     #[test]
-    fn rejects_zero_runtime_threads_before_model_initialization() {
-        let payload = serde_json::json!({
-            "contract_version": 1,
-            "embedding_version": 1,
-            "runtime": {
-                "cache_directory": null,
-                "threads": 0
-            },
-            "request": {
-                "model": {
-                    "provider": "FASTEMBED_LOCAL",
-                    "model": "intfloat/multilingual-e5-small",
-                    "provider_version": "5.17.4",
-                    "pooling_mode": "mean",
-                    "normalize": true,
-                    "dimensions": 384,
-                    "document_input_format": "metadata-v1+e5-passage-prefix-v1",
-                    "input_kind": "e5_passage"
-                },
-                "batch_size": 16,
-                "documents": []
-            }
-        });
-        let encoded = match serde_json::to_vec(&payload) {
-            Ok(value) => value,
-            Err(error) => unreachable!("test payload must serialize: {error}"),
-        };
-        let result = run_bulk_embedding_payload(&encoded);
+    fn rejects_runtime_version_two_for_an_owned_session() {
+        let result = validate_runtime_version(2);
         let Err(error) = result else {
-            unreachable!("zero runtime threads must fail before initialization");
+            unreachable!("runtime version two must fail before model inference");
         };
-        assert!(error.contains("threads must be greater than zero"));
+        assert!(error.contains("expected embedding runtime version 4, found 2"));
+        assert!(validate_runtime_version(4).is_ok());
     }
 }

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated, Literal
 
-from pydantic import StringConstraints
+from pydantic import Field, StringConstraints
 
 from app.memory.application.retrieval.planning.context_adaptive_retrieval_planner import (
     ADAPTIVE_RETRIEVAL_PROFILE_VERSION,
@@ -17,11 +17,7 @@ from app.memory.domain.event_enum.context_enums import (
     MemoryFunction,
     RagStrategy,
 )
-from app.shared.schemas.common_schemas import (
-    StrictSchemaModel,
-    described_field,
-    schema_list_default,
-)
+from app.shared.schemas.common_schemas import StrictSchemaModel, schema_list_default
 from app.shared.types.types_convert_utils import enum_value
 
 
@@ -31,32 +27,32 @@ class AdaptiveRetrievalPlannerCaseSchema(StrictSchemaModel):
     case_id: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=120),
-        described_field("Stable planner evaluation case identifier."),
+        Field(description="Stable planner evaluation case identifier."),
     ]
     query: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=1000),
-        described_field("Query classified by the deterministic planner."),
+        Field(description="Query classified by the deterministic planner."),
     ]
     expected_intent: Annotated[
         ContextRetrievalIntent,
-        described_field("Expected primary deterministic retrieval intent."),
+        Field(description="Expected primary deterministic retrieval intent."),
     ]
     expected_strategy: Annotated[
         RagStrategy,
-        described_field("Expected fixed execution lane selected by AUTO."),
+        Field(description="Expected fixed execution lane selected by AUTO."),
     ]
     expected_graph_enabled: Annotated[
         bool,
-        described_field("Expected graph-enrichment decision."),
+        Field(description="Expected graph-enrichment decision."),
     ]
     expected_memory_functions: Annotated[
         list[MemoryFunction],
-        described_field("Expected inferred soft functional-memory preferences."),
+        Field(description="Expected inferred soft functional-memory preferences."),
     ] = schema_list_default()
     expected_temporal_current_preference: Annotated[
         bool,
-        described_field("Expected current-state temporal intent flag."),
+        Field(description="Expected current-state temporal intent flag."),
     ]
 
 
@@ -65,16 +61,16 @@ class AdaptiveRetrievalPlannerCorpusSchema(StrictSchemaModel):
 
     schema_version: Annotated[
         Literal[1],
-        described_field("Planner corpus schema version."),
+        Field(description="Planner corpus schema version."),
     ]
     planner_profile: Annotated[
         str,
         StringConstraints(strict=True, min_length=1, max_length=120),
-        described_field("Planner profile version evaluated by this corpus."),
+        Field(description="Planner profile version evaluated by this corpus."),
     ]
     cases: Annotated[
         list[AdaptiveRetrievalPlannerCaseSchema],
-        described_field("Planner-intent golden cases."),
+        Field(description="Planner-intent golden cases."),
     ]
 
 

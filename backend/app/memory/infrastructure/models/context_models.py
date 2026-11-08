@@ -144,9 +144,7 @@ class ContextChangeLogORM(Base):
     __tablename__ = "context_change_log"
 
     sequence: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    context_id: Mapped[str] = mapped_column(
-        String(ID_LENGTH), nullable=False, index=True
-    )
+    context_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     change_kind: Mapped[str] = mapped_column(String(16), nullable=False)
     content_hash: Mapped[bytes] = mapped_column(LargeBinary(32), nullable=False)
     recorded_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)

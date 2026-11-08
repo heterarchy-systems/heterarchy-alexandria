@@ -6,7 +6,7 @@ from app.operations.domain.entities.operational_runtime_provenance import (
     OperationalRuntimeProvenanceSnapshot,
 )
 from app.platform.config.app_config import AppConfig
-from app.shared.infrastructure.native_compute_extension import (
+from app.shared.infrastructure.native_compute.native_compute_extension import (
     load_native_runtime_provenance_module,
 )
 

@@ -6,9 +6,11 @@ from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, status
 
 from app.container import ApplicationContainer
-from app.memory.application.retrieval.recall_service import RecallService
-from app.memory.interface.schemas.context.recall_schema import (
+from app.memory.application.retrieval.recall.recall_service import RecallService
+from app.memory.interface.schemas.context.recall_request_schema import (
     RecallRequestSchema,
+)
+from app.memory.interface.schemas.context.recall_response_schema import (
     RecallResponseSchema,
 )
 from app.shared.exceptions.exception_decorators import router_exception_status
@@ -37,6 +39,14 @@ async def recall_memory(
         Depends(Provide[ApplicationContainer.recall_service]),
     ],
 ) -> RecallResponseSchema:
-    """Return high-level recall matches with bounded provenance and trace."""
+    """Return high-level recall matches with bounded provenance and trace.
+
+    Args:
+        request: Validated high-level recall request payload.
+        service: Recall application service dependency.
+
+    Returns:
+        High-level recall response with matches, provenance, and stage trace.
+    """
     result = await service.recall(request.to_contract())
     return RecallResponseSchema.from_entity(result)

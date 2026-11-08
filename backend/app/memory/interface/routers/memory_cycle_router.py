@@ -9,10 +9,12 @@ from app.container import ApplicationContainer
 from app.memory.application.reconciliation.cycles.memory_cycle_service import (
     MemoryCycleService,
 )
-from app.memory.interface.schemas.reconciliation.cycles.memory_cycle_schema import (
+from app.memory.interface.schemas.reconciliation.cycles.memory_cycle_request_schema import (
     MemoryCycleApplyRequestSchema,
     MemoryCycleDryRunRequestSchema,
     MemoryCycleRequestBody,
+)
+from app.memory.interface.schemas.reconciliation.cycles.memory_cycle_response_schema import (
     MemoryCycleResponseSchema,
 )
 from app.platform.middleware.database_session import (
@@ -68,7 +70,19 @@ async def execute_memory_cycle(
         Depends(Provide[ApplicationContainer.memory_cycle_service]),
     ],
 ) -> MemoryCycleResponseSchema:
-    """Execute one discriminated high-level memory-cycle request."""
+    """Preview or apply one discriminated high-level memory-cycle request.
+
+    Args:
+        http_request: Incoming FastAPI request for transaction mode marking.
+        request: Discriminated dry-run or apply memory-cycle request body.
+        service: Memory-cycle application service dependency.
+
+    Returns:
+        Serialized memory-cycle execution or preview response.
+
+    Raises:
+        TypeError: If the discriminated request root is not a supported schema.
+    """
     typed_request = request.root
     if isinstance(typed_request, MemoryCycleDryRunRequestSchema):
         mark_database_transaction_read_only(http_request)

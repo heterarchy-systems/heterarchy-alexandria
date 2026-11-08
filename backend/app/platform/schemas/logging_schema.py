@@ -9,13 +9,9 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import ConfigDict, StrictInt, StrictStr
+from pydantic import ConfigDict, Field, StrictInt, StrictStr
 
-from app.shared.schemas.common_schemas import (
-    StrictSchemaModel,
-    described_field,
-    schema_dict_default,
-)
+from app.shared.schemas.common_schemas import StrictSchemaModel, schema_dict_default
 from app.shared.types.extra_types import JSONObject
 
 
@@ -83,7 +79,7 @@ class JsonLogPayload(JsonLoggingModel):
     func: StrictStr | None
     duration_ms: float | None
     attributes: Annotated[
-        JSONObject, described_field("Attributes for this JSON log payload.")
+        JSONObject, Field(description="Attributes for this JSON log payload.")
     ] = schema_dict_default()
     service: JsonLogServiceContext
     trace: JsonLogTraceContext

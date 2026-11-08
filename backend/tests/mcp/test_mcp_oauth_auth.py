@@ -10,6 +10,7 @@ import httpx
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from starlette.requests import Request
+from tests.config_test_data import mcp_config_values
 
 from app.mcp_server.http_auth_gate import McpHttpAuthGate
 from app.mcp_server.oauth_bearer_verifier import (
@@ -18,7 +19,7 @@ from app.mcp_server.oauth_bearer_verifier import (
 )
 from app.mcp_server.protected_resource_metadata import protected_resource_metadata
 from app.mcp_server.type_validate.oauth.mcp_auth_enums import McpAuthMode
-from app.platform.config.app_config import AppConfig
+from app.platform.config.mcp_config import McpConfig
 from app.shared.serialization.orjson_codec import dumps_json
 
 
@@ -129,13 +130,15 @@ def test_mcp_protected_resource_metadata_uses_injected_oauth_config() -> None:
             "headers": [(b"host", b"mcp.example.com")],
         }
     )
-    config = AppConfig(
+    config = McpConfig(
         _env_file=None,
-        mcp_auth_mode="oauth2",
-        mcp_oauth_issuer="https://auth.example.com",
-        mcp_oauth_audience="https://mcp.example.com/mcp",
-        mcp_oauth_jwks_url="https://auth.example.com/.well-known/jwks.json",
-        mcp_oauth_resource="https://mcp.example.com/mcp",
+        **mcp_config_values(
+            mcp_auth_mode="oauth2",
+            mcp_oauth_issuer="https://auth.example.com",
+            mcp_oauth_audience="https://mcp.example.com/mcp",
+            mcp_oauth_jwks_url="https://auth.example.com/.well-known/jwks.json",
+            mcp_oauth_resource="https://mcp.example.com/mcp",
+        ),
     )
 
     assert protected_resource_metadata(request, config) == {

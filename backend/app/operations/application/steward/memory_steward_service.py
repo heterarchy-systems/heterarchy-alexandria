@@ -221,7 +221,7 @@ async def _gather_current_compacts_evidence(
             status=MemoryCompactStatus.CURRENT,
             limit=_CURRENT_COMPACT_EVIDENCE_LIMIT,
         )
-    except (SQLAlchemyError, OSError, ValueError):
+    except SQLAlchemyError, OSError, ValueError:
         return None
     projects = {compact.project for compact in page}
     return StewardCurrentCompactsEvidence(
@@ -342,7 +342,7 @@ class MemoryStewardSealService:
         blocking = [d for d in diagnostics if d.blocking]
         if snapshot.database.reachable is False:
             status = MemoryStewardStatus.FAILED
-        elif blocking:
+        elif blocking or snapshot.blockers:
             status = MemoryStewardStatus.NOT_READY
         elif diagnostics:
             status = MemoryStewardStatus.READY_WITH_RESIDUALS

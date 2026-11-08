@@ -33,7 +33,7 @@ class OperationalDatabaseProbe:
             async with self._database.session_factory()() as session:
                 await session.execute(text("SELECT 1"))
                 schema_version = await _schema_version(session)
-        except (SQLAlchemyError, OSError):
+        except SQLAlchemyError, OSError:
             return OperationalDatabaseSnapshot(
                 reachable=False,
                 integrity="UNAVAILABLE",
@@ -51,13 +51,13 @@ class OperationalDatabaseProbe:
 async def _schema_version(
     session: AsyncSession,
 ) -> str | None:
-    """Execute schema version.
+    """Query the current Alembic migration version from PostgreSQL.
 
     Args:
-        session: Active session used by this operation.
+        session: Active async SQLAlchemy session.
 
     Returns:
-        str | None result produced by schema version.
+        Alembic revision string, `"unknown"` if the version table is absent, or None.
     """
     table_exists = await session.scalar(
         text("SELECT to_regclass('public.alembic_version')")

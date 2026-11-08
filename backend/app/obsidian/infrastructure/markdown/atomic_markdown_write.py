@@ -7,12 +7,20 @@ import tempfile
 from pathlib import Path
 
 
+class AtomicMarkdownCommitUnverifiedError(OSError):
+    """The canonical path was replaced but its durability was not confirmed."""
+
+
 def atomic_write_markdown(path: Path, content: str) -> None:
     """Write UTF-8 Markdown through a unique same-directory temporary file.
 
     Args:
         path: Final canonical Markdown path.
         content: Complete document text.
+
+    Raises:
+        AtomicMarkdownCommitUnverifiedError: Replacement succeeded but directory
+            synchronization failed. Visible readback is not proof of durability.
     """
     missing_parents: list[Path] = []
     parent = path.parent
@@ -34,9 +42,17 @@ def atomic_write_markdown(path: Path, content: str) -> None:
             stream.flush()
             os.fsync(stream.fileno())
         os.replace(temporary_path, path)
-        _sync_directory(path.parent)
-    except BaseException:
-        temporary_path.unlink(missing_ok=True)
+        try:
+            _sync_directory(path.parent)
+        except OSError as error:
+            raise AtomicMarkdownCommitUnverifiedError(
+                "Canonical Markdown replacement durability is unverified"
+            ) from error
+    except BaseException as error:
+        try:
+            temporary_path.unlink(missing_ok=True)
+        except OSError:
+            error.add_note("Temporary Markdown cleanup also failed")
         raise
 
 

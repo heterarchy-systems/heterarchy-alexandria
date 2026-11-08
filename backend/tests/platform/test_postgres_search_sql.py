@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from sqlalchemy.dialects import postgresql
+from sqlalchemy.sql.elements import ClauseElement
+
 from app.memory.domain.contracts.context_recall_contracts import (
     ContextFtsRecall,
     ContextRecallFilter,
@@ -21,8 +24,6 @@ from app.memory.infrastructure.repositories.contexts.search.fts import (
 from app.obsidian.infrastructure.repositories.obsidian_fts import (
     build_obsidian_fts_query,
 )
-from sqlalchemy.dialects import postgresql
-from sqlalchemy.sql.elements import ClauseElement
 
 
 def _recall_filter() -> ContextRecallFilter:
@@ -99,6 +100,8 @@ def test_postgres_obsidian_fts_uses_base_tables_and_jsonb_tags() -> None:
     lowered = sql.lower()
 
     assert "from obsidian_chunks join obsidian_files" in lowered
+    assert "obsidian_fts_note_scores as materialized" in lowered
+    assert "obsidian_fts_alias_notes as materialized" in lowered
     assert (
         "coalesce(obsidian_chunks.heading_path, '') || ' ' || obsidian_chunks.text"
         in sql
